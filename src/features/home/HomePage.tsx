@@ -23,6 +23,7 @@ export function HomePage() {
       setSkinDialogOpen(true);
     }
   };
+
   const sequences = useMemo(
     () => ({
       lain() {

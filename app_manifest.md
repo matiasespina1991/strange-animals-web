@@ -254,6 +254,7 @@ Important files:
 ```text
 src/features/home/HomePage.tsx
 src/features/home/components/BrandLogoExperience.tsx
+src/features/home/components/LogoPhysicsDrop.tsx
 src/features/home/components/SocialLinks.tsx
 src/features/home/components/TadeGame.tsx
 src/features/home/components/WebampLayer.tsx
@@ -264,6 +265,8 @@ src/features/home/hooks/useWebamp.ts
 ```
 
 `useTadeGameAudio.ts` is the canonical audio hook name. Do not recreate `useTadeAudio.ts`.
+
+`LogoPhysicsDrop.tsx` is currently disabled and must not be triggered by `Alt+W`. `Alt+W` opens Webamp only. Do not re-enable the logo fall/bounce effect unless explicitly requested.
 
 ### Home Fade-In
 

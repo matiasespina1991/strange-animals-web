@@ -25,8 +25,11 @@ export function WebampSkinDialog({
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [position, setPosition] = useState({x: 0, y: 0});
-  const [listHeight, setListHeight] = useState(() =>
+  const defaultListHeightReference = useRef(
     Math.round(window.innerHeight * 0.25),
+  );
+  const [listHeight, setListHeight] = useState(
+    defaultListHeightReference.current,
   );
   const skinButtonReferences = useRef(new Map<string, HTMLButtonElement>());
   const selectedSkinIdReference = useRef<string | null>(selectedSkinId);
@@ -34,6 +37,7 @@ export function WebampSkinDialog({
     pointerId: number;
     startPointerY: number;
     startHeight: number;
+    startPositionY: number;
   } | null>(null);
   const dragReference = useRef<{
     pointerId: number;
@@ -175,11 +179,20 @@ export function WebampSkinDialog({
         return;
       }
 
-      const minimumHeight = 120;
+      const minimumHeight = defaultListHeightReference.current;
       const maximumHeight = Math.round(window.innerHeight * 0.65);
-      const nextHeight = resize.startHeight + resize.startPointerY - event.clientY;
+      const pointerDeltaY = event.clientY - resize.startPointerY;
+      const nextHeight = Math.min(
+        Math.max(resize.startHeight + pointerDeltaY, minimumHeight),
+        maximumHeight,
+      );
+      const appliedDeltaY = nextHeight - resize.startHeight;
 
-      setListHeight(Math.min(Math.max(nextHeight, minimumHeight), maximumHeight));
+      setListHeight(nextHeight);
+      setPosition((currentPosition) => ({
+        x: currentPosition.x,
+        y: resize.startPositionY + appliedDeltaY,
+      }));
     };
 
     const handlePointerUp = (event: PointerEvent) => {
@@ -251,7 +264,7 @@ export function WebampSkinDialog({
   return (
     <div className="pointer-events-none fixed inset-0 z-[90]">
       <section
-        className="pointer-events-auto fixed bottom-7 right-7 w-[min(22rem,calc(100vw-2rem))] border border-white bg-black font-mono text-white"
+        className="pointer-events-auto fixed bottom-7 right-7 w-[min(17.6rem,calc(100vw-2rem))] border border-white bg-black font-mono text-white"
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
         }}
@@ -365,6 +378,7 @@ export function WebampSkinDialog({
               pointerId: event.pointerId,
               startPointerY: event.clientY,
               startHeight: listHeight,
+              startPositionY: position.y,
             };
             setResizing(true);
           }}

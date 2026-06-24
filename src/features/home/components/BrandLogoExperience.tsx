@@ -3,7 +3,13 @@ import {motion} from 'framer-motion';
 import {useThreeLogoScene} from '../hooks/useThreeLogoScene';
 import {SocialLinks} from './SocialLinks';
 
-export function BrandLogoExperience() {
+type BrandLogoExperienceProperties = {
+  logoPhysicsActive?: boolean;
+};
+
+export function BrandLogoExperience({
+  logoPhysicsActive = false,
+}: BrandLogoExperienceProperties) {
   const canvasReference = useRef<HTMLCanvasElement>(null);
   const backdropReference = useRef<HTMLDivElement>(null);
   useThreeLogoScene({backdropReference, canvasReference});
@@ -14,6 +20,7 @@ export function BrandLogoExperience() {
         ref={canvasReference}
         animate={{opacity: 1}}
         className="pointer-events-none fixed inset-0 z-40 size-full"
+        style={{visibility: logoPhysicsActive ? 'hidden' : 'visible'}}
         initial={{opacity: 0}}
         transition={{delay: 0.12, duration: 1.15, ease: 'easeOut'}}
       />
@@ -23,6 +30,7 @@ export function BrandLogoExperience() {
         aria-hidden="true"
         data-brand-backdrop
         className="fixed left-[calc(50%+var(--brand-offset-x,0px))] top-[calc(50%-var(--logo-half-height,1.35rem)-0.75rem+var(--brand-offset-y,0px))] z-30 h-[calc(var(--logo-half-height,1.35rem)*2+1.5rem)] w-[min(22.2rem,calc(100vw-1rem))] -translate-x-1/2 cursor-grab rounded-[1rem] bg-[rgba(0,0,0,0.08)] backdrop-blur-[14px]"
+        style={{visibility: logoPhysicsActive ? 'hidden' : 'visible'}}
         initial={{opacity: 0}}
         transition={{delay: 0.18, duration: 1.05, ease: 'easeOut'}}
       />
