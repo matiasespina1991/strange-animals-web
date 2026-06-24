@@ -81,9 +81,9 @@ export function HomePage() {
       />
       <motion.div
         animate={{opacity: 1}}
-        className="pointer-events-none fixed bottom-4 right-6 z-40 text-right font-sans text-[0.675rem] leading-none text-white/70"
+        className="pointer-events-none fixed bottom-4 right-6 z-40 text-right font-sans text-[0.675rem] leading-none text-white/70 opacity-0"
         initial={{opacity: 0}}
-        transition={{delay: 2.8, duration: 0.8, ease: 'easeOut'}}
+        transition={{delay: 2.05, duration: 0.75, ease: 'easeOut'}}
       >
         Strange Animals, Berlin ® 2026
       </motion.div>

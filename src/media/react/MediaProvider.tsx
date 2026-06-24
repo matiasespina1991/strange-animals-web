@@ -58,13 +58,7 @@ export function MediaProvider({children}: MediaProviderProperties) {
   );
 
   if (!assets) {
-    return (
-      <div className="min-h-screen bg-black text-white">
-        <div className="pointer-events-none fixed bottom-4 right-6 z-40 text-right font-sans text-[0.675rem] leading-none text-white/70">
-          Strange Animals, Berlin ® 2026
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen bg-black" />;
   }
 
   return (
