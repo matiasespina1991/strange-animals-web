@@ -3,10 +3,22 @@
     "origin": [
       "http://localhost:5173",
       "https://strange-animals-web.web.app",
-      "https://strange-animals-web.firebaseapp.com"
+      "https://strange-animals-web.firebaseapp.com",
+      "https://strangeanimals.de",
+      "https://www.strangeanimals.de"
     ],
-    "method": ["GET", "HEAD", "OPTIONS", "POST", "PUT"],
-    "responseHeader": ["Content-Type"],
+    "method": [
+      "GET",
+      "HEAD",
+      "OPTIONS",
+      "POST",
+      "PUT"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "x-goog-resumable"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

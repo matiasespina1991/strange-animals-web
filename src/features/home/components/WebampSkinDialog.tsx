@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState} from 'react';
 import {
   listWebampSkins,
   type WebampSkin,
-} from "@/features/webamp-skins/webamp-skin-repository";
+} from '@/features/webamp-skins/webamp-skin-repository';
 
 type WebampSkinDialogProperties = {
   open: boolean;
@@ -20,9 +20,11 @@ export function WebampSkinDialog({
   onSelect,
 }: WebampSkinDialogProperties) {
   const [skins, setSkins] = useState<WebampSkin[]>([]);
+  const [activeSkinId, setActiveSkinId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState({x: 0, y: 0});
+  const skinButtonReferences = useRef(new Map<string, HTMLButtonElement>());
   const dragReference = useRef<{
     pointerId: number;
     startPointerX: number;
@@ -57,6 +59,89 @@ export function WebampSkinDialog({
   }, [open]);
 
   useEffect(() => {
+    if (open) {
+      setActiveSkinId(selectedSkinId);
+    }
+  }, [open, selectedSkinId]);
+
+  useEffect(() => {
+    if (!activeSkinId) {
+      return;
+    }
+
+    skinButtonReferences.current.get(activeSkinId)?.scrollIntoView({
+      block: 'nearest',
+    });
+  }, [activeSkinId]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previewSkin = (skin: WebampSkin) => {
+      setActiveSkinId(skin.id);
+      onPreview(skin);
+    };
+
+    const moveActiveSkin = (direction: 1 | -1) => {
+      if (skins.length === 0) {
+        return;
+      }
+
+      const activeIndex = skins.findIndex((skin) => skin.id === activeSkinId);
+      const selectedIndex = skins.findIndex((skin) => skin.id === selectedSkinId);
+      const currentIndex = activeIndex >= 0 ? activeIndex : selectedIndex;
+      const nextIndex =
+        currentIndex >= 0
+          ? Math.min(Math.max(currentIndex + direction, 0), skins.length - 1)
+          : direction > 0
+            ? 0
+            : skins.length - 1;
+
+      previewSkin(skins[nextIndex]);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveActiveSkin(1);
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveActiveSkin(-1);
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        const activeSkin = skins.find((skin) => skin.id === activeSkinId);
+
+        if (!activeSkin) {
+          return;
+        }
+
+        event.preventDefault();
+        onSelect(activeSkin);
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeSkinId, onClose, onPreview, onSelect, open, selectedSkinId, skins]);
+
+  useEffect(() => {
     if (!dragging) {
       return;
     }
@@ -85,14 +170,14 @@ export function WebampSkinDialog({
       setDragging(false);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [dragging]);
 
@@ -110,14 +195,15 @@ export function WebampSkinDialog({
         onPointerLeave={() => {
           const selectedSkin =
             skins.find((skin) => skin.id === selectedSkinId) ?? null;
+          setActiveSkinId(selectedSkin?.id ?? null);
           onPreview(selectedSkin);
         }}
       >
         <header
           className={[
-            "flex select-none items-center justify-between border-b border-white bg-black px-2.5 py-1.5 text-white",
-            dragging ? "cursor-grabbing" : "cursor-grab",
-          ].join(" ")}
+            'flex select-none items-center justify-between border-b border-white bg-black px-2.5 py-1.5 text-white',
+            dragging ? 'cursor-grabbing' : 'cursor-grab',
+          ].join(' ')}
           onPointerDown={(event) => {
             if (event.button !== 0) {
               return;
@@ -161,25 +247,42 @@ export function WebampSkinDialog({
             )}
             {!loading &&
               skins.map((skin) => {
-                const selected = skin.id === selectedSkinId;
+                const highlighted = skin.id === (activeSkinId ?? selectedSkinId);
 
                 return (
                   <button
                     key={skin.id}
+                    ref={(node) => {
+                      if (node) {
+                        skinButtonReferences.current.set(skin.id, node);
+                      } else {
+                        skinButtonReferences.current.delete(skin.id);
+                      }
+                    }}
                     type="button"
                     className={[
-                      "block w-full border-b border-white px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.05em] last:border-b-0",
-                      selected
-                        ? "bg-white text-black"
-                        : "bg-black text-white hover:bg-white hover:text-black",
-                    ].join(" ")}
-                    onClick={() => onSelect(skin)}
+                      'block w-full border-b border-white px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.05em] last:border-b-0',
+                      highlighted
+                        ? 'bg-white text-black'
+                        : 'bg-black text-white hover:bg-white hover:text-black',
+                    ].join(' ')}
+                    onClick={() => {
+                      setActiveSkinId(skin.id);
+                      onSelect(skin);
+                    }}
                     onDoubleClick={() => {
+                      setActiveSkinId(skin.id);
                       onSelect(skin);
                       onClose();
                     }}
-                    onFocus={() => onPreview(skin)}
-                    onMouseEnter={() => onPreview(skin)}
+                    onFocus={() => {
+                      setActiveSkinId(skin.id);
+                      onPreview(skin);
+                    }}
+                    onMouseEnter={() => {
+                      setActiveSkinId(skin.id);
+                      onPreview(skin);
+                    }}
                   >
                     {skin.displayName}
                   </button>

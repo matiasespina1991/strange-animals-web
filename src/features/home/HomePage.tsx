@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'framer-motion';
 import {useTadeGameStore} from '@/store/tade-game-store';
 import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
@@ -15,35 +15,50 @@ export function HomePage() {
   const selectedSkinReference = useRef<WebampSkin | null>(null);
   const [skinDialogOpen, setSkinDialogOpen] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState<WebampSkin | null>(null);
+  const openWinamp = () => {
+    void openWebamp('winamp', selectedSkinReference.current);
+
+    if (!hasOpenedWinampSkinDialog.current) {
+      hasOpenedWinampSkinDialog.current = true;
+      setSkinDialogOpen(true);
+    }
+  };
   const sequences = useMemo(
     () => ({
       lain() {
         void openWebamp('lain');
       },
-      skin() {
-        setSkinDialogOpen(true);
-      },
       tarde: activateTade,
       tade: activateTade,
-      winamp() {
-        void openWebamp('winamp', selectedSkin);
-        if (!hasOpenedWinampSkinDialog.current) {
-          hasOpenedWinampSkinDialog.current = true;
-          setSkinDialogOpen(true);
-        }
-      },
-      winmp() {
-        void openWebamp('winamp', selectedSkin);
-        if (!hasOpenedWinampSkinDialog.current) {
-          hasOpenedWinampSkinDialog.current = true;
-          setSkinDialogOpen(true);
-        }
-      },
     }),
-    [activateTade, openWebamp, selectedSkin],
+    [activateTade, openWebamp],
   );
 
   useKeyboardSequence(sequences);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+
+      if (event.code === 'KeyW') {
+        event.preventDefault();
+        openWinamp();
+      }
+
+      if (event.code === 'KeyS') {
+        event.preventDefault();
+        setSkinDialogOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openWebamp]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
