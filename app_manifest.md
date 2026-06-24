@@ -355,11 +355,11 @@ Workflow:
 On push to `main`, it:
 
 1. Checks out the repo.
-2. Sets up Node 20.
-3. Enables Corepack.
+2. Enables Corepack and activates `pnpm@9.15.4`.
+3. Sets up Node 24 with `actions/setup-node@v5` and pnpm cache.
 4. Runs `pnpm install --frozen-lockfile`.
 5. Runs `npm run build`.
-6. Authenticates to Google Cloud with Workload Identity Federation.
+6. Authenticates to Google Cloud with Workload Identity Federation via `google-github-actions/auth@v3`.
 7. Runs `pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web`.
 
 No JSON service account key is used. The organization blocks service account key creation.
