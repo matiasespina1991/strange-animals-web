@@ -41,7 +41,19 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
   ];
 
   const applySkin = useCallback((skin: WebampSkin | null) => {
+    if (!webampReference.current) {
+      return;
+    }
+
     if (!skin) {
+      if (activeWinampSkinIdReference.current === null) {
+        return;
+      }
+
+      (webampReference.current as unknown as {store: {dispatch: (action: {type: string}) => void}}).store.dispatch({
+        type: 'LOAD_DEFAULT_SKIN',
+      });
+      activeWinampSkinIdReference.current = null;
       return;
     }
 
@@ -49,10 +61,8 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
       return;
     }
 
-    if (webampReference.current) {
-      webampReference.current.setSkinFromUrl(skin.downloadUrl);
-      activeWinampSkinIdReference.current = skin.id;
-    }
+    webampReference.current.setSkinFromUrl(skin.downloadUrl);
+    activeWinampSkinIdReference.current = skin.id;
   }, []);
 
   const openWebamp = useCallback(
@@ -77,7 +87,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
             webampReference.current.setSkinFromUrl(skin.downloadUrl);
             activeWinampSkinIdReference.current = skin.id;
           } else {
-            activeWinampSkinIdReference.current = null;
+            applySkin(null);
           }
 
           webampReference.current.setTracksToPlay(winampTracks);
@@ -118,7 +128,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
         loadingReference.current = false;
       }
     },
-    [assets.audio.bluejaye, assets.audio.sillizium, assets.audio.tadeKop, assets.webampSkins.lain, layerReference, winampTracks],
+    [applySkin, assets.audio.bluejaye, assets.audio.sillizium, assets.audio.tadeKop, assets.webampSkins.lain, layerReference, winampTracks],
   );
 
   return {applySkin, openWebamp};

@@ -1,0 +1,42 @@
+name: Deploy Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: npm run build
+
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/536380283169/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: github-actions-hosting-deploy@strange-animals-web.iam.gserviceaccount.com
+
+      - name: Deploy Firebase Hosting
+        run: pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web

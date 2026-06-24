@@ -28,7 +28,6 @@ export function HomePage() {
       lain() {
         void openWebamp('lain');
       },
-      tarde: activateTade,
       tade: activateTade,
     }),
     [activateTade, openWebamp],

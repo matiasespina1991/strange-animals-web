@@ -1,47 +1,53 @@
 # Strange Animals Web App Manifest
 
-This file is the architectural entry point for future work on this project. Any AI or developer touching the codebase should read this first.
+This file is the architectural entry point for future work on this project. Read it before changing code.
 
 ## Project Identity
 
-- App root: `strange-animals-web`
+- App root on this machine: `/Users/matiasespina/Documents/Projekte/strangeanimals/strange-animals-web`
 - Firebase project ID: `strange-animals-web`
 - Firebase auth domain: `strange-animals-web.firebaseapp.com`
 - Firebase Storage bucket: `strange-animals-web.firebasestorage.app`
-- Firebase Storage CORS config: `firebase-storage-cors.json`
+- Production domain: `https://strangeanimals.de` and `https://www.strangeanimals.de`
 - Frontend: React + Vite + TypeScript
-- Backend: Firebase Functions v2 + TypeScript, currently only health endpoint
-- Database: Cloud Firestore
-- Object storage: Firebase Storage
+- Package manager: `pnpm@9.15.4`
 - Hosting target: Firebase Hosting, serving `dist`
-- Firestore default database: `(default)` in `europe-west3`
+- Database: Cloud Firestore `(default)` in `europe-west3`
+- Object storage: Firebase Storage
+- Backend: Firebase Functions v2 + TypeScript, currently only a health endpoint
 
 ## Regional Policy
 
-All backend compute and database resources for this project must be created in Europe.
+All backend compute and database resources must be created in Europe.
 
-- Firebase Functions region: `europe-west3` when functions are needed
-- Firestore `(default)` location: `europe-west3`
-- New Storage buckets must be created in a European location.
-- Do not add new backend resources in `us-central1` or any non-European region.
+- Firebase Functions region: `europe-west3` when functions are needed.
+- Firestore `(default)` location: `europe-west3`.
+- New Storage buckets must be in a European location.
+- Do not add backend resources in `us-central1` or other non-European regions.
 
-If a Firebase default would create a resource in the United States, override it explicitly before deploy.
+## Routing
 
-## Current Firebase Surface
+The app uses normal path routing, not hash routing.
 
-### Known Operational State
+Routes are selected in `src/App.tsx` through `src/hooks/usePathRoute.ts`.
 
-As of 2026-06-24, media loading uses direct public Firestore reads plus Firebase Storage SDK `getDownloadURL`. The old callable media function is no longer part of the app flow.
+Current routes:
 
-### Functions
+```text
+/                              -> HomePage
+/webamp-skin-uploader           -> WebampSkinUploaderPage
+/services/release-id-verifier   -> ReleaseIdVerifierPage
+```
 
-Source: `functions/src/index.ts`
+Firebase Hosting has an SPA rewrite in `firebase.json`:
 
-- `health`: HTTP health endpoint.
+```json
+{"source":"**","destination":"/index.html"}
+```
 
-Do not add a Firebase Function for public media lookup unless the media becomes private or needs server-only authorization logic.
+Do not reintroduce `#/...` routes unless there is a specific hosting constraint.
 
-### Frontend Firebase Client
+## Firebase Client
 
 Source: `src/lib/firebase.ts`
 
@@ -52,11 +58,13 @@ Exports:
 - `firebaseStorage`
 - `analyticsPromise`
 
+Firebase Web config values are public client config, not server secrets. Security depends on Firestore/Storage rules and Google Cloud API key restrictions.
+
 ## Media Architecture
 
-Media access is intentionally centralized.
+Media loading is centralized. Components should not call Firebase SDKs directly for home media and should not hardcode generated download URLs.
 
-Frontend components must not call Firebase APIs directly and must not hardcode download URLs. Components consume media through:
+Primary files:
 
 - `src/media/react/MediaProvider.tsx`
 - `src/media/infrastructure/firebase-media-repository.ts`
@@ -66,89 +74,95 @@ Runtime flow:
 
 1. React starts inside `MediaProvider`.
 2. `MediaProvider` calls `getHomeMediaAssets()`.
-3. The frontend media repository reads Firestore domain collections.
-4. Firestore documents contain `storagePath` values.
-5. The frontend media repository converts Storage paths into public download URLs through Firebase Storage SDK `getDownloadURL`.
-6. UI components receive resolved media URLs through `useMediaAssets()`.
+3. The repository reads domain-oriented Firestore collections.
+4. Firestore documents store `storagePath`, not download URLs.
+5. The repository resolves Storage paths with Firebase Storage SDK `getDownloadURL`.
+6. Components consume URLs through `useMediaAssets()`.
 
-`src/media/domain/media-assets.ts` contains a minimal non-local fallback only. Production media comes from Firebase Storage through the centralized media repository.
+`MediaProvider` shows a black loading screen only. It must not render the footer/signature during loading, otherwise the signature flashes before the home fade-in sequence.
 
 ## Firestore Data Model
 
-Keep Firestore simple and domain-oriented. The primary collections are:
+Current public collections:
 
 ```text
+images/{imageId}
 tracks/{trackId}
 webampSkins/{skinId}
-images/{imageId}
 siteContent/{sectionId}
 ```
 
-The currently used media collections are `tracks`, `webampSkins`, and `images`.
+Used by the media repository today: `images`, `tracks`, `webampSkins`.
 
-### Shared Media Fields
+Common media fields:
 
-Each media document stores the file path and editable metadata directly.
+- `storagePath`: Storage object path, for example `media/public/images/brand/logo/v1/strange-animals-transparent-logo.png`
+- `contentType`
+- `enabled`
+- `label`
+- `version`
+- `sortOrder`
+- `updatedAt`
 
-Required fields:
+Recommended future fields:
 
-- `storagePath`: string. Example: `media/public/images/brand/logo/v1/strange-animals-transparent-logo.png`
-- `contentType`: string. Example: `image/png`
-- `enabled`: boolean
-- `label`: string
-- `version`: number
-- `sortOrder`: number
-- `updatedAt`: timestamp
+- `createdAt`
+- `createdBy`
+- `checksum`
+- `sizeBytes`
+- `metadata`
 
-Recommended fields for future scale:
+Important rule: store Storage paths in Firestore, never generated download URLs.
 
-- `createdAt`: server timestamp
-- `createdBy`: uid or system actor
-- `checksum`: content hash for immutable assets
-- `sizeBytes`: numeric byte size
-- `metadata`: object for asset-specific data
+### Images
 
-Important rule: the database stores Storage paths, not generated download URLs. URLs are resolved from Storage at runtime.
+Current IDs include:
 
-### `images/{imageId}`
+```text
+logo
+og
+tade
+cd
+basketball-hoop
+coin
+cherry
+```
 
-Current IDs:
+### Tracks
 
-- `logo`
-- `og`
-- `tade`
-- `cd`
-- `basketball-hoop`
-- `coin`
-- `cherry`
+Current IDs include:
 
-### `tracks/{trackId}`
+```text
+enya-caribbean-blue
+aphex-twin-tha
+bluejaye-beginning
+sillizium-coldsunset
+tade-kop-untitled
+```
 
-Current IDs:
-
-- `enya-caribbean-blue`
-- `aphex-twin-tha`
-- `bluejaye-beginning`
-- `sillizium-coldsunset`
-- `tade-kop-untitled`
-
-Track-specific fields:
+Track-specific fields may include:
 
 - `title`
 - `artist`
 - `homeKey`
 
-### `webampSkins/{skinId}`
+### Webamp Skins
 
-Current IDs:
+Collection: `webampSkins/{skinId}`
 
-- `lain`
+The app ships with `lain` as a known skin. Additional skins can be uploaded through:
 
-Additional skins can be uploaded from `#/webamp-skin-uploader`. Uploaded skin documents use an empty `label` by default and store the `.wsz` object path in `storagePath`.
+```text
+/webamp-skin-uploader
+```
 
-### `siteContent/{sectionId}`
+Uploader behavior:
 
-Reserved for future editable site text and structured page content. Do not mix page copy into `tracks`, `images`, or `webampSkins`.
+- Uploads `.wsz` files to `media/public/webamp-skins/{skinId}/v1/{fileName}`.
+- Writes a Firestore doc to `webampSkins/{skinId}`.
+- `label` defaults to an empty string.
+- `sourceFileName` is stored and used for display names.
+- Internal IDs include a unique suffix to avoid overwrites; UI displays `label`, then `sourceFileName` without extension, then a cleaned ID fallback.
 
 ### Deprecated Collections
 
@@ -159,11 +173,11 @@ mediaAssets/{assetId}
 mediaManifests/{manifestName}
 ```
 
-They were part of the initial migration design and are intentionally removed from the current flow.
+They were part of an earlier migration design and are not in the current app flow.
 
 ## Storage Structure
 
-Storage paths are versioned and grouped by domain:
+Public media is under `media/public` and uses versioned paths:
 
 ```text
 media/public/images/brand/logo/v1/strange-animals-transparent-logo.png
@@ -182,30 +196,128 @@ media/public/webamp-skins/lain/v1/lain.wsz
 media/public/webamp-skins/{skinId}/v1/{fileName}.wsz
 ```
 
-Path rules:
+Rules:
 
 - Use lowercase slug folders.
 - Use version folders like `v1`, `v2`, `v3`.
-- Do not overwrite production assets in place unless the asset is explicitly mutable.
-- Prefer adding a new version folder and updating Firestore.
+- Prefer new version folders over overwriting production assets.
 - Keep public readable media under `media/public`.
-- Future private/admin-only media should use a separate prefix, for example `media/private`.
-- Browser uploads are currently allowed only for `media/public/webamp-skins/{skinId}/v1/{fileName}` and should be replaced with authenticated/admin uploads before exposing the uploader publicly.
+- Future private media should use a separate prefix such as `media/private`.
 
-## Security Rules Status
+## Security Rules
 
-Storage allows public reads under `media/public/**` and denies browser writes.
-The bucket CORS config must allow app origins because Three.js/WebGL texture loading requires CORS headers from Storage.
-Storage allows browser writes only for Webamp skin uploads under `media/public/webamp-skins/**`.
+### Firestore
 
-Firestore allows public reads for public content collections and denies browser writes.
+`firestore.rules` currently allows:
 
-- Public client reads media metadata only through the centralized frontend media repository.
-- Public client does not write `images`.
-- Public client does not write `tracks`.
-- Public client can create/update `webampSkins` only for the uploader workflow.
-- Admin writes happen through trusted backend/admin tooling.
-- Storage public reads currently remain allowed for `media/public` to support public assets such as Open Graph images.
+- Public reads for `images`, `tracks`, `webampSkins`, `siteContent`.
+- No client writes to `images`, `tracks`, or `siteContent`.
+- Public create/update for `webampSkins` only when `storagePath` is a string under `media/public/webamp-skins/.*` and `enabled == true`.
+- No deletes.
+
+This public Webamp skin uploader is convenient but should become authenticated/admin-only before broad public exposure.
+
+### Storage
+
+`storage.rules` currently allows:
+
+- Public reads under `media/public/**`.
+- Browser writes only under `media/public/webamp-skins/{skinId}/{version}/{fileName}` with size under 10 MB.
+- Everything else denied.
+
+## CORS
+
+Bucket CORS is configured in `firebase-storage-cors.json`, not through `firebase deploy --only storage`.
+
+Current allowed origins include:
+
+```text
+http://localhost:5173
+https://strange-animals-web.web.app
+https://strange-animals-web.firebaseapp.com
+https://strangeanimals.de
+https://www.strangeanimals.de
+```
+
+Apply CORS with:
+
+```bash
+gcloud storage buckets update gs://strange-animals-web.firebasestorage.app --cors-file=firebase-storage-cors.json --project=strange-animals-web
+```
+
+CORS matters because Three.js/WebGL texture loading requires valid CORS headers from Storage.
+
+## Home Experience
+
+Important files:
+
+```text
+src/features/home/HomePage.tsx
+src/features/home/components/BrandLogoExperience.tsx
+src/features/home/components/SocialLinks.tsx
+src/features/home/components/TadeGame.tsx
+src/features/home/components/WebampLayer.tsx
+src/features/home/components/WebampSkinDialog.tsx
+src/features/home/hooks/useTadeGameAudio.ts
+src/features/home/hooks/useThreeLogoScene.ts
+src/features/home/hooks/useWebamp.ts
+```
+
+`useTadeGameAudio.ts` is the canonical audio hook name. Do not recreate `useTadeAudio.ts`.
+
+### Home Fade-In
+
+Framer Motion is used for fade-in only.
+
+- Logo fades first.
+- Links fade after the logo.
+- Footer/signature fades after links start becoming visible.
+- Do not animate position for these fade-ins unless explicitly requested.
+- The footer/signature exists only in `HomePage`; do not duplicate it in loading/fallback providers.
+
+## Webamp Behavior
+
+Primary files:
+
+```text
+src/features/home/hooks/useWebamp.ts
+src/features/home/components/WebampLayer.tsx
+src/features/home/components/WebampSkinDialog.tsx
+src/features/webamp-skins/webamp-skin-repository.ts
+src/features/webamp-skins/WebampSkinUploaderPage.tsx
+```
+
+Shortcuts:
+
+- `Alt+W`: open Webamp. On first Webamp open, also opens the skin picker.
+- `Alt+S`: open the skin picker.
+- `lain`: typed sequence opens Webamp in Lain mode.
+- `tade`: typed sequence activates Tade game mode.
+
+Do not use `Cmd+W`, `Cmd+S`, `Ctrl+W`, or `Ctrl+S`; those conflict with browser/OS shortcuts.
+
+### Skin Picker UI
+
+The skin picker is `WebampSkinDialog`.
+
+Current behavior:
+
+- Opens bottom-right by default.
+- Draggable from the top header; cursor is `grab` / `grabbing`.
+- Resizable vertically from a small bottom-right handle; cursor is diagonal `nwse-resize`.
+- High-contrast black background, white border/text.
+- No backdrop overlay.
+- Skins are alphabetically sorted by display name.
+- Hover previews a skin.
+- Click confirms a skin and keeps the dialog open.
+- Double click confirms and closes.
+- Arrow Up/Down previews and navigates skins.
+- Enter confirms the active skin and closes.
+- Escape closes.
+- Leaving the skin list or dialog restores the last confirmed skin.
+- If no skin is confirmed, restore calls `onPreview(null)`, and Webamp returns to default via internal `LOAD_DEFAULT_SKIN` without recreating the Webamp instance.
+
+The UI intentionally does not show a `default` row. Default is represented internally by `selectedSkin === null`.
 
 ## React Structure
 
@@ -214,6 +326,7 @@ Important folders:
 ```text
 src/features/home
 src/features/webamp-skins
+src/features/release-id-verifier
 src/media/domain
 src/media/infrastructure
 src/media/react
@@ -222,63 +335,59 @@ src/store
 src/components/ui
 ```
 
-Rules for future frontend work:
+Rules:
 
 - Feature UI lives under `src/features/{featureName}`.
-- Shared domain contracts live under `src/{domain}/domain`.
-- Firebase and network implementations live under `infrastructure`.
+- Shared domain contracts live under domain folders.
+- Firebase/network implementations live under `infrastructure`.
 - React providers/hooks that bridge domain data to UI live under `react`.
 - Components should consume hooks/providers, not Firebase SDKs directly.
-- Avoid calling backend services directly from page components.
+- Avoid direct backend calls from page components unless isolated behind a repository/service module.
 
-## Current Home Media Consumers
+## GitHub Actions Deployment
 
-The home experience consumes media from the centralized provider through `useMediaAssets()`.
+Workflow:
 
-Relevant files:
+```text
+.github/workflows/deploy-hosting.yml
+```
 
-- `src/features/home/components/TadeGame.tsx`
-- `src/features/home/components/BasketballHoop.tsx`
-- `src/features/home/hooks/useTadeGameAudio.ts`
-- `src/features/home/hooks/useTadeGameLoop.ts`
-- `src/features/home/hooks/useThreeLogoScene.ts`
-- `src/features/home/hooks/useWebamp.ts`
-- `src/features/home/components/WebampSkinDialog.tsx`
+On push to `main`, it:
 
-Note: `useTadeGameAudio.ts` is the canonical audio hook name. Do not recreate `useTadeAudio.ts`.
+1. Checks out the repo.
+2. Sets up Node 20.
+3. Enables Corepack.
+4. Runs `pnpm install --frozen-lockfile`.
+5. Runs `npm run build`.
+6. Authenticates to Google Cloud with Workload Identity Federation.
+7. Runs `pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web`.
 
-Keyboard sequences:
+No JSON service account key is used. The organization blocks service account key creation.
 
-- `skin`: opens the high-contrast Webamp skin picker.
-- `winamp` / `winmp`: opens Webamp using the selected skin when one exists.
-- `lain`: opens Webamp with the Lain skin and Lain track mode.
+OIDC configuration:
 
-## Deployment Notes
+- GitHub repo: `matiasespina1991/strange-animals-web`
+- Project number: `536380283169`
+- Workload identity pool: `github-actions`
+- Provider: `github`
+- Service account: `github-actions-hosting-deploy@strange-animals-web.iam.gserviceaccount.com`
+- The provider condition restricts access to `assertion.repository == 'matiasespina1991/strange-animals-web'` and `assertion.ref == 'refs/heads/main'`.
 
-Useful commands from the app root:
+## Commands
+
+From the app root:
 
 ```bash
+pnpm install --frozen-lockfile
 npm run build
+npm run dev
 npm run build --prefix functions
+npx --cache .npm-cache firebase-tools@latest deploy --only hosting --project strange-animals-web
 npx --cache .npm-cache firebase-tools@latest deploy --only storage --project strange-animals-web
 npx --cache .npm-cache firebase-tools@latest deploy --only firestore:rules --project strange-animals-web
 ```
 
-Global `firebase-tools` may be old on this machine. Prefer the `npx --cache .npm-cache firebase-tools@latest` form when deploy behavior looks inconsistent.
-
-## Cleanup Checklist After Migration
-
-Completed:
-
-1. Removed `src/features/dev-media-uploader`.
-2. Removed the uploader import/render from the app.
-3. Removed temporary Storage write permission.
-4. Replaced open Firestore development rules.
-5. Removed Vite/static-copy behavior for local `images`, `audio`, and `webamp_skins`.
-
-Remaining:
-
-- Delete local media folders from the repo/worktree after confirming no local development task still needs them.
+For CORS, use `gcloud storage buckets update`, not Firebase deploy.
 
 ## Scaling Rules
 
@@ -286,7 +395,7 @@ Remaining:
 - Add new asset families by extending `MediaAssets` first, then Firestore domain collections, then UI consumers.
 - Add backend functions around use cases, not around pages.
 - Use backend URL generation only for private media or authorization-sensitive workflows.
-- Keep browser write access disabled outside temporary migrations.
+- Keep browser write access disabled outside intentional uploader workflows.
 - Version Storage objects instead of mutating production files.
 - Prefer small, typed repository modules over direct SDK calls from components.
 - Any region-sensitive backend change must explicitly state its Firebase region.
