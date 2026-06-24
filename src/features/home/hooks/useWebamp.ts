@@ -1,0 +1,125 @@
+import {useCallback, useRef} from 'react';
+import {useMediaAssets} from '@/media/react/MediaProvider';
+import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
+import type {WebampTrack} from 'webamp/butterchurn';
+
+const lainTracks: WebampTrack[] = [
+  {
+    url: 'https://archive.org/download/sel-bootleg-cd.-7z_202108/Serial%20experiments%20lain%2F%5B01%5D%20Soundtracks%2F1998.08.05%20-%20DUVET%20%7BPSDR-5310%7D%2F01.%20Duvet.mp3?tunnel=1',
+    metaData: {
+      title: 'Bôa - Duvet.mp3',
+    },
+  },
+];
+
+export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
+  const assets = useMediaAssets();
+  const webampReference = useRef<import('webamp/butterchurn').default | null>(
+    null,
+  );
+  const loadingReference = useRef(false);
+  const activeWinampSkinIdReference = useRef<string | null>(null);
+  const winampTracks: WebampTrack[] = [
+    {
+      url: assets.audio.bluejaye,
+      metaData: {
+        title: 'Bluejaye - Beginning (Live Mix) EDIT low.mp3',
+      },
+    },
+    {
+      url: assets.audio.sillizium,
+      metaData: {
+        title: 'Sillizium - ColdSunset.mp3',
+      },
+    },
+    {
+      url: assets.audio.tadeKop,
+      metaData: {
+        title: 'Tade Kop - Untitled.mp3',
+      },
+    },
+  ];
+
+  const applySkin = useCallback((skin: WebampSkin | null) => {
+    if (!skin) {
+      return;
+    }
+
+    if (activeWinampSkinIdReference.current === skin.id) {
+      return;
+    }
+
+    if (webampReference.current) {
+      webampReference.current.setSkinFromUrl(skin.downloadUrl);
+      activeWinampSkinIdReference.current = skin.id;
+    }
+  }, []);
+
+  const openWebamp = useCallback(
+    async (mode: 'winamp' | 'lain', skin?: WebampSkin | null) => {
+      const layer = layerReference.current;
+
+      if (!layer || loadingReference.current) {
+        return;
+      }
+
+      layer.classList.remove('hidden');
+
+      if (webampReference.current) {
+        webampReference.current.reopen();
+
+        if (mode === 'lain') {
+          webampReference.current.setSkinFromUrl(assets.webampSkins.lain);
+          activeWinampSkinIdReference.current = 'lain';
+          webampReference.current.setTracksToPlay(lainTracks);
+        } else {
+          if (skin) {
+            webampReference.current.setSkinFromUrl(skin.downloadUrl);
+            activeWinampSkinIdReference.current = skin.id;
+          } else {
+            activeWinampSkinIdReference.current = null;
+          }
+
+          webampReference.current.setTracksToPlay(winampTracks);
+        }
+
+        webampReference.current.play();
+        return;
+      }
+
+      loadingReference.current = true;
+
+      try {
+        const {default: Webamp} = await import('webamp/butterchurn');
+        const webamp = new Webamp({
+          initialTracks: mode === 'lain' ? lainTracks : winampTracks,
+          ...(mode === 'lain'
+            ? {initialSkin: {url: assets.webampSkins.lain}}
+            : skin
+              ? {initialSkin: {url: skin.downloadUrl}}
+              : {}),
+          windowLayout: {
+            main: {position: {top: 0, left: 0}},
+            equalizer: {position: {top: 116, left: 0}},
+            playlist: {position: {top: 232, left: 0}},
+            milkdrop: {
+              position: {top: -180, left: -420},
+              size: {extraWidth: 80, extraHeight: 40},
+            },
+          },
+        });
+
+        webampReference.current = webamp;
+        await webamp.renderWhenReady(layer);
+        activeWinampSkinIdReference.current =
+          mode === 'lain' ? 'lain' : skin?.id ?? null;
+        webamp.play();
+      } finally {
+        loadingReference.current = false;
+      }
+    },
+    [assets.audio.bluejaye, assets.audio.sillizium, assets.audio.tadeKop, assets.webampSkins.lain, layerReference, winampTracks],
+  );
+
+  return {applySkin, openWebamp};
+}

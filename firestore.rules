@@ -1,0 +1,32 @@
+rules_version='2'
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /images/{imageId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /tracks/{trackId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /webampSkins/{skinId} {
+      allow read: if true;
+      allow create, update: if request.resource.data.storagePath is string
+        && request.resource.data.storagePath.matches('media/public/webamp-skins/.*')
+        && request.resource.data.enabled == true;
+      allow delete: if false;
+    }
+
+    match /siteContent/{sectionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

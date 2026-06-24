@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "http://localhost:5173",
+      "https://strange-animals-web.web.app",
+      "https://strange-animals-web.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD", "OPTIONS", "POST", "PUT"],
+    "responseHeader": ["Content-Type"],
+    "maxAgeSeconds": 3600
+  }
+]
