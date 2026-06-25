@@ -1,17 +1,11 @@
 import {useEffect, useRef, useState} from 'react';
-import {
-  getDoomGameFiles,
-  type DosGameFile,
-} from '@/features/dos-games/dos-game-repository';
+import {getDoomGameFiles} from '@/features/dos-games/dos-game-repository';
 import {StrangeOsDialog} from './StrangeOsDialog';
 
 const jsDosCssId = 'js-dos-v8-css';
 const jsDosScriptId = 'js-dos-v8-script';
-const jsZipScriptId = 'jszip-script';
 const jsDosCssUrl = 'https://v8.js-dos.com/latest/js-dos.css';
 const jsDosScriptUrl = 'https://v8.js-dos.com/latest/js-dos.js';
-const jsZipScriptUrl =
-  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
 
 type DosOptions = {
   autoStart?: boolean;
@@ -20,7 +14,9 @@ type DosOptions = {
   imageRendering?: 'pixelated' | 'smooth';
   renderAspect?: 'AsIs' | '1/1' | '5/4' | '4/3' | '16/10' | '16/9' | 'Fit';
   theme?: string;
-  url?: string;
+  dosboxConf?: string;
+  initFs?: Array<{path: string; contents: Uint8Array | ArrayBuffer | string}>;
+  jsdosConf?: {version?: string};
 };
 
 type DosProperties = {
@@ -30,16 +26,11 @@ type DosProperties = {
 declare global {
   interface Window {
     Dos?: (element: HTMLDivElement, options: DosOptions) => DosProperties;
-    JSZip?: new () => {
-      file: (path: string, data: Blob | string) => void;
-      generateAsync: (options: {type: 'blob'}) => Promise<Blob>;
-    };
   }
 }
 
 let jsDosScriptPromise: Promise<void> | null = null;
-let jsZipScriptPromise: Promise<void> | null = null;
-let doomBundleUrlPromise: Promise<string> | null = null;
+let doomInitFsPromise: Promise<Array<{path: string; contents: Uint8Array}>> | null = null;
 
 function loadJsDosCss() {
   if (document.querySelector(`#${jsDosCssId}`)) {
@@ -78,6 +69,8 @@ async function loadJsDos() {
     const script = document.createElement('script');
     script.id = jsDosScriptId;
     script.src = jsDosScriptUrl;
+    script.type = 'module';
+    script.crossOrigin = 'anonymous';
     script.async = true;
     script.addEventListener('load', () => {
       resolve();
@@ -95,90 +88,33 @@ async function loadJsDos() {
   }
 }
 
-async function loadJsZip() {
-  if (window.JSZip) {
-    return;
-  }
-
-  jsZipScriptPromise ??= new Promise((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      `#${jsZipScriptId}`,
-    );
-
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        resolve();
-      });
-      existingScript.addEventListener('error', () => {
-        reject(new Error('Failed to load JSZip.'));
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = jsZipScriptId;
-    script.src = jsZipScriptUrl;
-    script.async = true;
-    script.addEventListener('load', () => {
-      resolve();
-    });
-    script.addEventListener('error', () => {
-      reject(new Error('Failed to load JSZip.'));
-    });
-    document.head.append(script);
-  });
-
-  await jsZipScriptPromise;
-
-  if (!window.JSZip) {
-    throw new Error('JSZip loaded without exposing window.JSZip.');
-  }
-}
-
-async function fetchDoomFile(file: DosGameFile) {
-  const response = await fetch(file.downloadUrl);
-
-  if (!response.ok) {
-    throw new Error(`Failed to load ${file.bundlePath}.`);
-  }
-
-  return {
-    bundlePath: file.bundlePath,
-    data: await response.blob(),
-  };
-}
-
-async function createDoomBundleUrl() {
-  await loadJsZip();
-
-  const JsZip = window.JSZip;
-
-  if (!JsZip) {
-    throw new Error('JSZip is unavailable.');
-  }
-
-  const zip = new JsZip();
-  zip.file(
-    '.jsdos/dosbox.conf',
-    ['[autoexec]', 'mount c .', 'c:', 'DOOMWEB.BAT', ''].join('\n'),
-  );
-
+async function createDoomInitFs() {
   const files = await getDoomGameFiles();
   const loadedFiles = await Promise.all(
-    files.map(async (file) => fetchDoomFile(file)),
+    files.map(async (file) => {
+      const response = await fetch(file.downloadUrl);
+
+      if (!response.ok) {
+        throw new Error(`Failed to load ${file.bundlePath}.`);
+      }
+
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+
+      return {
+        path: file.bundlePath,
+        contents: new Uint8Array(arrayBuffer),
+      };
+    }),
   );
 
-  for (const file of loadedFiles) {
-    zip.file(file.bundlePath, file.data);
-  }
-
-  return URL.createObjectURL(await zip.generateAsync({type: 'blob'}));
+  return loadedFiles;
 }
 
-async function getDoomBundleUrl() {
-  doomBundleUrlPromise ??= createDoomBundleUrl();
+async function getDoomInitFs() {
+  doomInitFsPromise ??= createDoomInitFs();
 
-  return doomBundleUrlPromise;
+  return doomInitFsPromise;
 }
 
 type DoomPlayerProperties = {
@@ -200,10 +136,7 @@ function DoomPlayer({open}: DoomPlayerProperties) {
     const startDoom = async () => {
       try {
         setStatus('Preparing DOOM...');
-        const [doomBundleUrl] = await Promise.all([
-          getDoomBundleUrl(),
-          loadJsDos(),
-        ]);
+        const [doomInitFs] = await Promise.all([getDoomInitFs(), loadJsDos()]);
 
         const createDosPlayer = window.Dos;
 
@@ -218,11 +151,14 @@ function DoomPlayer({open}: DoomPlayerProperties) {
           imageRendering: 'pixelated',
           renderAspect: '4/3',
           theme: 'black',
-          url: doomBundleUrl,
+          jsdosConf: {version: '8'},
+          dosboxConf: ['[autoexec]', 'mount c .', 'c:', 'DOOMWEB.BAT', ''].join('\n'),
+          initFs: doomInitFs,
         });
         setStatus('');
-      } catch {
+      } catch (error) {
         if (!cancelled) {
+          console.error(error);
           setStatus('DOOM failed to load.');
         }
       }
