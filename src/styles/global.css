@@ -25,6 +25,8 @@ input {
 
 #webamp {
   pointer-events: auto !important;
+  transform: scale(1.1);
+  transform-origin: 0 0;
   z-index: 5 !important;
 }
 
@@ -34,12 +36,18 @@ input {
 }
 
 .webamp-skin-scrollbar {
+  overflow-x: hidden;
   scrollbar-color: #fff #000;
   scrollbar-width: thin;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar {
   width: 0.7rem;
+}
+
+.webamp-skin-scrollbar::-webkit-scrollbar:horizontal {
+  display: none;
+  height: 0;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar-track {

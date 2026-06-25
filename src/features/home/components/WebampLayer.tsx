@@ -11,7 +11,7 @@ export function useWebampLayer() {
         ref={layerReference}
         aria-hidden="true"
         data-webamp-layer
-        className="pointer-events-none fixed left-[18vw] top-1/2 z-[5] hidden h-[760px] w-[460px] -translate-y-1/2"
+        className="pointer-events-none fixed left-4 top-1/2 z-[5] hidden h-[464px] w-[460px] -translate-y-1/2 sm:left-7"
       />
     ),
     applySkin,
