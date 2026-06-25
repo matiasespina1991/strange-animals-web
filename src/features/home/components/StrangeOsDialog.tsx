@@ -78,6 +78,7 @@ export function StrangeOsDialog({
     <AnimatePresence>
       {open && (
         <div
+          data-custom-cursor
           className={[
             'pointer-events-auto fixed w-[min(17.6rem,calc(100vw-2rem))]',
             className,

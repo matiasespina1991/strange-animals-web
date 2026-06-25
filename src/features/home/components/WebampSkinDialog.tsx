@@ -347,6 +347,7 @@ export function WebampSkinDialog({
         </div>
         <div
           aria-hidden="true"
+          data-native-resize-cursor
           className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-white/90 bg-black"
           onPointerDown={(event) => {
             event.preventDefault();

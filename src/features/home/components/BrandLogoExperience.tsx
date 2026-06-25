@@ -29,6 +29,7 @@ export function BrandLogoExperience({
         animate={{opacity: 1}}
         aria-hidden="true"
         data-brand-backdrop
+        data-custom-cursor
         className="fixed left-[calc(50%+var(--brand-offset-x,0px))] top-[calc(50%-var(--logo-half-height,1.35rem)-0.75rem+var(--brand-offset-y,0px))] z-30 h-[calc(var(--logo-half-height,1.35rem)*2+1.5rem)] w-[min(22.2rem,calc(100vw-1rem))] -translate-x-1/2 cursor-grab rounded-[1rem] bg-[rgba(0,0,0,0.08)] backdrop-blur-[14px]"
         style={{visibility: logoPhysicsActive ? 'hidden' : 'visible'}}
         initial={{opacity: 0}}

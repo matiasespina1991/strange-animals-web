@@ -19,18 +19,8 @@ body {
   cursor: none;
 }
 
-button,
-a {
-  cursor: pointer;
-}
-
-input,
-textarea {
-  cursor: text;
-}
-
-select {
-  cursor: default;
+body *:not(#webamp):not(#webamp *) {
+  cursor: none !important;
 }
 
 button,
@@ -39,6 +29,7 @@ input {
 }
 
 #webamp {
+  cursor: auto !important;
   pointer-events: auto !important;
   transform: scale(1.1);
   transform-origin: 0 0;
@@ -46,8 +37,17 @@ input {
 }
 
 #webamp-context-menu {
+  cursor: auto !important;
   pointer-events: auto !important;
   z-index: 100 !important;
+}
+
+#webamp-context-menu {
+  z-index: 100 !important;
+}
+
+[data-native-resize-cursor] {
+  cursor: nwse-resize !important;
 }
 
 .webamp-skin-scrollbar {
@@ -73,6 +73,7 @@ input {
 .webamp-skin-scrollbar::-webkit-scrollbar-thumb {
   background: #fff;
   border: 2px solid #000;
+  border-radius: 0;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar-thumb:hover {

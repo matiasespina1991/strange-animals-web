@@ -1,13 +1,13 @@
-import {useState} from 'react';
-import {Button} from '@/components/ui/button';
-import {Card} from '@/components/ui/card';
-import {Input} from '@/components/ui/input';
-import {validateReleaseId} from './release-id';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { validateReleaseId } from "./release-id";
 
 type VerificationResult = ReturnType<typeof validateReleaseId>;
 
 export function ReleaseIdVerifierPage() {
-  const [releaseId, setReleaseId] = useState('');
+  const [releaseId, setReleaseId] = useState("");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -22,7 +22,7 @@ export function ReleaseIdVerifierPage() {
       } catch {
         setResult({
           valid: false,
-          message: 'There was an error while trying to verify this release ID.',
+          message: "There was an error while trying to verify this release ID.",
         });
       } finally {
         setChecking(false);
@@ -67,7 +67,7 @@ export function ReleaseIdVerifierPage() {
               }}
             />
             <Button disabled={checking} type="submit">
-              {checking ? 'Checking...' : 'Verify'}
+              {checking ? "Checking..." : "Verify"}
             </Button>
           </div>
         </form>
@@ -75,14 +75,14 @@ export function ReleaseIdVerifierPage() {
         {(checking || result) && (
           <div
             className={[
-              'mt-4 rounded-xl border bg-white/5 p-4',
-              result?.valid ? 'border-emerald-300/50' : '',
-              result?.valid ? 'border-white/10' : 'border-red-300/50',
-            ].join(' ')}
+              "mt-4 rounded-xl border bg-white/5 p-4",
+              result?.valid ? "border-emerald-300/50" : "",
+              result?.valid ? "border-white/10" : "border-red-300/50",
+            ].join(" ")}
             role="status"
           >
             <p className="m-0 font-bold">
-              {checking ? 'Checking release ID...' : result?.message}
+              {checking ? "Checking release ID..." : result?.message}
             </p>
             {result?.valid && (
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
