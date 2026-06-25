@@ -272,10 +272,10 @@ export function WebampSkinDialog({
             onPointerLeave={restoreConfirmedSkin}
           >
             {loading && (
-              <p className="p-2 text-[0.625rem] uppercase">loading...</p>
+              <p className="p-2 text-[0.85rem] uppercase">loading...</p>
             )}
             {!loading && skins.length === 0 && (
-              <p className="p-2 text-[0.625rem] uppercase">no skins</p>
+              <p className="p-2 text-[0.85rem] uppercase">no skins</p>
             )}
             {!loading &&
               skins.map((skin) => {
@@ -295,12 +295,12 @@ export function WebampSkinDialog({
                     }}
                     type="button"
                     className={[
-                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
+                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
                       selected
                         ? 'bg-white/90 text-black'
-                        : active || hovered
-                          ? 'bg-white/35 text-white'
-                          : 'bg-black text-white hover:bg-white/20',
+                        : hovered
+                          ? 'bg-white/30 text-white'
+                          : 'bg-black text-white hover:bg-white/15',
                     ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;

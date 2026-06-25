@@ -96,10 +96,10 @@ export function StrangeOsDialog({
           <motion.section
             animate={{opacity: 1, scale: 1}}
             className={[
-              'relative border border-white/90 bg-black font-ubuntu-mono tracking-[0.11em] text-white',
+              'relative border border-white/90 bg-black font-ubuntu-mono tracking-[0.11em] text-white text-[0.85rem]',
               contentClassName,
             ].join(' ')}
-            style={{fontFamily: 'Ubuntu Sans Mono, monospace', letterSpacing: '0.11em'}}
+            style={{fontFamily: 'IBM3161, Ubuntu Sans Mono, monospace', letterSpacing: '0.11em'}}
             exit={{opacity: 0, scale: 0.96}}
             initial={{opacity: 0, scale: 0.96}}
             transition={{duration: 0.16, ease: 'easeOut'}}
@@ -127,7 +127,7 @@ export function StrangeOsDialog({
               {title ? (
                 <h2
                   className={[
-                    'text-[0.60rem] uppercase tracking-[0.11em]',
+                    'text-[0.85rem] uppercase tracking-[0.11em]',
                     titleClassName,
                   ].join(' ')}
                 >
@@ -139,7 +139,8 @@ export function StrangeOsDialog({
               <button
                 type="button"
                 aria-label="Close dialog"
-                className="flex size-5 cursor-pointer items-center justify-center border border-white/90 bg-black text-[0.75rem] font-bold leading-none text-white hover:bg-white/35"
+                className="flex h-6 w-6 shrink-0 items-center justify-center border border-white/90 bg-black text-[0.8rem] font-normal text-white hover:bg-white/15"
+                style={{fontFamily: 'Ubuntu Sans Mono, monospace', fontWeight: 400, lineHeight: '1', transform: 'translateX(-0.05em)'}}
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose();

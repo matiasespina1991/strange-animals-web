@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'IBM3161';
+  src: url('https://raw.githubusercontent.com/wyatt8740/IBM3161-font/master/truetype/IBM3161.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,6 +18,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  user-select: none;
 }
 
 body {
@@ -17,10 +26,12 @@ body {
   background: #000;
   color: #fff;
   cursor: none;
+  user-select: none;
 }
 
-body *:not(#webamp):not(#webamp *):not([data-native-resize-cursor]):not([data-native-resize-cursor] *) {
+body *:not(#webamp):not(#webamp *) {
   cursor: none !important;
+  user-select: none !important;
 }
 
 button,
