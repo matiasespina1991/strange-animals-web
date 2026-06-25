@@ -40,6 +40,7 @@ jobs:
         with:
           workload_identity_provider: projects/536380283169/locations/global/workloadIdentityPools/github-actions/providers/github
           service_account: github-actions-hosting-deploy@strange-animals-web.iam.gserviceaccount.com
+          token_format: access_token
 
       - name: Debug Google Cloud auth
         run: |
@@ -50,5 +51,6 @@ jobs:
 
       - name: Deploy Firebase Hosting
         env:
+          FIREBASE_TOKEN: ${{ steps.auth.outputs.access_token }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
-        run: pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web
+        run: pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web --non-interactive
