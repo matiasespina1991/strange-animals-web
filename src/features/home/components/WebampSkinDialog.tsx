@@ -267,7 +267,7 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border border-white/90"
+            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border-[0.25px] border-white/90"
             style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >
@@ -295,12 +295,12 @@ export function WebampSkinDialog({
                     }}
                     type="button"
                     className={[
-                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
+                      'block w-full max-w-full overflow-hidden break-words border-b-[0.25px] border-white/90 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
                       selected
                         ? 'bg-white/90 text-black'
                         : hovered
-                          ? 'bg-white/30 text-white'
-                          : 'bg-black text-white hover:bg-white/18',
+                          ? 'bg-white/25 text-white'
+                          : 'bg-black text-white hover:bg-white/15',
                     ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;
@@ -348,7 +348,7 @@ export function WebampSkinDialog({
         <div
           aria-hidden="true"
           data-native-resize-cursor
-          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-white/90 bg-black"
+          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b-[0.25px] border-r-[0.25px] border-white/90 bg-black"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
