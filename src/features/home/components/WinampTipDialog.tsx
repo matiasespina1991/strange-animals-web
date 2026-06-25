@@ -12,8 +12,8 @@ export function WinampTipDialog({onClose, open}: WinampTipDialogProperties) {
         open={open}
         title="TIP!"
         titleClassName="italic"
-        className="left-[55%] top-[calc(78%-2rem)] w-[min(30rem,calc(100vw-2rem))]"
-        baseTransform="translateX(-50%)"
+        className="left-[55%] top-[calc(78%-2rem)] w-[min(34rem,calc(100vw-2rem))]"
+        baseTransform="translateX(calc(-50% - 2rem))"
         onClose={onClose}
       >
         <div className="bg-black p-3">

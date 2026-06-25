@@ -21,11 +21,19 @@ type WebampWindowState = {
 
 type WebampStoreAccess = {
   store: {
-    dispatch: (action: {
-      absolute?: boolean;
-      positions?: Record<string, {x: number; y: number}>;
-      type: string;
-    }) => void;
+    dispatch: (
+      action:
+        | {
+            absolute?: boolean;
+            positions?: Record<string, {x: number; y: number}>;
+            type: 'UPDATE_WINDOW_POSITIONS';
+          }
+        | {
+            size: [number, number];
+            type: 'WINDOW_SIZE_CHANGED';
+            windowId: 'milkdrop' | 'playlist';
+          },
+    ) => void;
     getState: () => {
       windows?: {
         genWindows?: Record<string, WebampWindowState>;
@@ -41,11 +49,15 @@ const milkdropOffsetFromMain = {
   y: 0,
 };
 const milkdropExtraSize = {
-  width: 80,
-  height: 90,
+  width: 2,
+  height: 3,
+};
+const playlistExtraSize = {
+  width: 0,
+  height: 3,
 };
 
-function alignWebampToLeft(webamp: WebampStoreAccess) {
+function applyWebampLayout(webamp: WebampStoreAccess) {
   const windows = webamp.store.getState().windows?.genWindows;
   const mainWindow = windows?.main;
 
@@ -81,6 +93,18 @@ function alignWebampToLeft(webamp: WebampStoreAccess) {
     absolute: true,
     positions,
     type: 'UPDATE_WINDOW_POSITIONS',
+  });
+
+  webamp.store.dispatch({
+    size: [milkdropExtraSize.width, milkdropExtraSize.height],
+    type: 'WINDOW_SIZE_CHANGED',
+    windowId: 'milkdrop',
+  });
+
+  webamp.store.dispatch({
+    size: [playlistExtraSize.width, playlistExtraSize.height],
+    type: 'WINDOW_SIZE_CHANGED',
+    windowId: 'playlist',
   });
 }
 
@@ -153,7 +177,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
 
       if (webampReference.current) {
         webampReference.current.reopen();
-        alignWebampToLeft(
+        applyWebampLayout(
           webampReference.current as unknown as WebampStoreAccess,
         );
 
@@ -190,7 +214,13 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
           windowLayout: {
             main: {position: {top: 0, left: 0}},
             equalizer: {position: {top: 116, left: 0}},
-            playlist: {position: {top: 232, left: 0}},
+            playlist: {
+              position: {top: 232, left: 0},
+              size: {
+                extraWidth: playlistExtraSize.width,
+                extraHeight: playlistExtraSize.height,
+              },
+            },
             milkdrop: {
               position: {
                 top: milkdropOffsetFromMain.y,
@@ -206,7 +236,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
 
         webampReference.current = webamp;
         await webamp.renderWhenReady(layer);
-        alignWebampToLeft(webamp as unknown as WebampStoreAccess);
+        applyWebampLayout(webamp as unknown as WebampStoreAccess);
         activeWinampSkinIdReference.current =
           mode === 'lain' ? 'lain' : (skin?.id ?? null);
         webamp.play();
