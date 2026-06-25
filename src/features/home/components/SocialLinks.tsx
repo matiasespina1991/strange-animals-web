@@ -27,7 +27,7 @@ export function SocialLinks() {
         target="_blank"
       >
         <span className={glassClassName} />
-        <FaEnvelope aria-hidden />
+        <FaEnvelope aria-hidden className="text-[1.22rem]" />
       </a>
       <a
         aria-label="Instagram"

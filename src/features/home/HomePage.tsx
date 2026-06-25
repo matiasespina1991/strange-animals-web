@@ -3,6 +3,7 @@ import {motion} from 'framer-motion';
 import {useTadeGameStore} from '@/store/tade-game-store';
 import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
 import {BrandLogoExperience} from './components/BrandLogoExperience';
+import {CustomCursor} from './components/CustomCursor';
 import {TadeGame} from './components/TadeGame';
 import {useWebampLayer} from './components/WebampLayer';
 import {WebampSkinDialog} from './components/WebampSkinDialog';
@@ -83,6 +84,7 @@ export function HomePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
+      <CustomCursor />
       <TadeGame />
       <BrandLogoExperience />
       {layer}

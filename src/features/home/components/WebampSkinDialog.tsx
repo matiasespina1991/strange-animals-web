@@ -267,7 +267,7 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border border-white"
+            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border border-white/90"
             style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >
@@ -295,9 +295,9 @@ export function WebampSkinDialog({
                     }}
                     type="button"
                     className={[
-                      'block w-full max-w-full overflow-hidden break-words border-b border-white px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.05em] whitespace-normal last:border-b-0',
+                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.05em] whitespace-normal outline-none last:border-b-0',
                       selected
-                        ? 'bg-white text-black'
+                        ? 'bg-white/90 text-black'
                         : active || hovered
                           ? 'bg-white/35 text-white'
                           : 'bg-black text-white hover:bg-white/20',
@@ -347,7 +347,7 @@ export function WebampSkinDialog({
         </div>
         <div
           aria-hidden="true"
-          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-white bg-black"
+          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-white/90 bg-black"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();

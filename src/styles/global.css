@@ -16,6 +16,21 @@ body {
   margin: 0;
   background: #000;
   color: #fff;
+  cursor: none;
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+input,
+textarea {
+  cursor: text;
+}
+
+select {
+  cursor: default;
 }
 
 button,

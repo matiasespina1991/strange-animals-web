@@ -1,5 +1,5 @@
 export const gameConfig = {
-  logoMaxWidthRem: 20.7,
+  logoMaxWidthRem: 20.2,
   tadeWidthRem: 7,
   tadeFadeDurationMs: 6000,
   tadeFadeOutDurationMs: 1800,

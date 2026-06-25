@@ -34,7 +34,7 @@ export function BrandLogoExperience({
         initial={{opacity: 0}}
         transition={{delay: 0.18, duration: 1.05, ease: 'easeOut'}}
       />
-      <div className="pointer-events-none fixed left-1/2 top-[calc(50%+var(--logo-half-height,1.35rem)+2rem)] z-50 flex w-[min(20.7rem,calc(100vw-2rem))] -translate-x-1/2 justify-center">
+      <div className="pointer-events-none fixed left-1/2 top-[calc(50%+var(--logo-half-height,1.35rem)+1.5rem)] z-50 flex w-[min(20.7rem,calc(100vw-2rem))] -translate-x-1/2 justify-center">
         <motion.div
           animate={{opacity: 1}}
           initial={{opacity: 0}}

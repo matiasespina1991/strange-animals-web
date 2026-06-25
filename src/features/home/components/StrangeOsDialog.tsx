@@ -95,7 +95,7 @@ export function StrangeOsDialog({
           <motion.section
             animate={{opacity: 1, scale: 1}}
             className={[
-              'relative border border-white bg-black font-mono text-white',
+              'relative border border-white/90 bg-black font-mono text-white',
               contentClassName,
             ].join(' ')}
             exit={{opacity: 0, scale: 0.96}}
@@ -104,7 +104,7 @@ export function StrangeOsDialog({
           >
             <header
               className={[
-                'flex min-h-8 select-none items-center justify-between border-b border-white bg-black px-2.5 py-1.5 text-white',
+                'flex min-h-8 select-none items-center justify-between border-b border-white/90 bg-black px-2.5 py-1.5 text-white',
                 dragging ? 'cursor-grabbing' : 'cursor-grab',
               ].join(' ')}
               onPointerDown={(event) => {
@@ -137,7 +137,7 @@ export function StrangeOsDialog({
               <button
                 type="button"
                 aria-label="Close dialog"
-                className="flex size-5 cursor-pointer items-center justify-center border border-white bg-black text-[0.75rem] font-bold leading-none text-white hover:bg-white/35"
+                className="flex size-5 cursor-pointer items-center justify-center border border-white/90 bg-black text-[0.75rem] font-bold leading-none text-white hover:bg-white/35"
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose();
