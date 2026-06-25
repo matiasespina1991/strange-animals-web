@@ -1,13 +1,13 @@
-import { useCallback, useRef } from "react";
-import { useMediaAssets } from "@/media/react/MediaProvider";
-import type { WebampSkin } from "@/features/webamp-skins/webamp-skin-repository";
-import type { WebampTrack } from "webamp/butterchurn";
+import {useCallback, useRef} from 'react';
+import {useMediaAssets} from '@/media/react/MediaProvider';
+import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
+import type {WebampTrack} from 'webamp/butterchurn';
 
 const lainTracks: WebampTrack[] = [
   {
-    url: "https://archive.org/download/sel-bootleg-cd.-7z_202108/Serial%20experiments%20lain%2F%5B01%5D%20Soundtracks%2F1998.08.05%20-%20DUVET%20%7BPSDR-5310%7D%2F01.%20Duvet.mp3?tunnel=1",
+    url: 'https://archive.org/download/sel-bootleg-cd.-7z_202108/Serial%20experiments%20lain%2F%5B01%5D%20Soundtracks%2F1998.08.05%20-%20DUVET%20%7BPSDR-5310%7D%2F01.%20Duvet.mp3?tunnel=1',
     metaData: {
-      title: "Bôa - Duvet.mp3",
+      title: 'Bôa - Duvet.mp3',
     },
   },
 ];
@@ -23,7 +23,7 @@ type WebampStoreAccess = {
   store: {
     dispatch: (action: {
       absolute?: boolean;
-      positions?: Record<string, { x: number; y: number }>;
+      positions?: Record<string, {x: number; y: number}>;
       type: string;
     }) => void;
     getState: () => {
@@ -36,6 +36,14 @@ type WebampStoreAccess = {
 
 const getWebampTargetLeft = () => (window.innerWidth >= 640 ? 28 : 16);
 const webampScale = 1.05;
+const milkdropOffsetFromMain = {
+  x: 275,
+  y: 0,
+};
+const milkdropExtraSize = {
+  width: 80,
+  height: 90,
+};
 
 function alignWebampToLeft(webamp: WebampStoreAccess) {
   const windows = webamp.store.getState().windows?.genWindows;
@@ -48,25 +56,37 @@ function alignWebampToLeft(webamp: WebampStoreAccess) {
   const deltaX = getWebampTargetLeft() / webampScale - mainWindow.position.x;
   const deltaY = (window.innerHeight / 2) * (1 / webampScale - 1);
   const positions = Object.fromEntries(
-    Object.entries(windows).map(([windowId, windowState]) => [
-      windowId,
-      {
-        x: windowState.position.x + deltaX,
-        y: windowState.position.y + deltaY,
-      },
-    ]),
+    Object.entries(windows).map(([windowId, windowState]) => {
+      if (windowId === 'milkdrop') {
+        return [
+          windowId,
+          {
+            x: mainWindow.position.x + deltaX + milkdropOffsetFromMain.x,
+            y: mainWindow.position.y + deltaY + milkdropOffsetFromMain.y,
+          },
+        ];
+      }
+
+      return [
+        windowId,
+        {
+          x: windowState.position.x + deltaX,
+          y: windowState.position.y + deltaY,
+        },
+      ];
+    }),
   );
 
   webamp.store.dispatch({
     absolute: true,
     positions,
-    type: "UPDATE_WINDOW_POSITIONS",
+    type: 'UPDATE_WINDOW_POSITIONS',
   });
 }
 
 export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
   const assets = useMediaAssets();
-  const webampReference = useRef<import("webamp/butterchurn").default | null>(
+  const webampReference = useRef<import('webamp/butterchurn').default | null>(
     null,
   );
   const loadingReference = useRef(false);
@@ -75,19 +95,19 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
     {
       url: assets.audio.bluejaye,
       metaData: {
-        title: "Bluejaye - Beginning (Live Mix) EDIT low.mp3",
+        title: 'Bluejaye - Beginning (Live Mix) EDIT low.mp3',
       },
     },
     {
       url: assets.audio.sillizium,
       metaData: {
-        title: "Sillizium - ColdSunset.mp3",
+        title: 'Sillizium - ColdSunset.mp3',
       },
     },
     {
       url: assets.audio.tadeKop,
       metaData: {
-        title: "Tade Kop - Untitled.mp3",
+        title: 'Tade Kop - Untitled.mp3',
       },
     },
   ];
@@ -104,10 +124,10 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
 
       (
         webampReference.current as unknown as {
-          store: { dispatch: (action: { type: string }) => void };
+          store: {dispatch: (action: {type: string}) => void};
         }
       ).store.dispatch({
-        type: "LOAD_DEFAULT_SKIN",
+        type: 'LOAD_DEFAULT_SKIN',
       });
       activeWinampSkinIdReference.current = null;
       return;
@@ -122,14 +142,14 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
   }, []);
 
   const openWebamp = useCallback(
-    async (mode: "winamp" | "lain", skin?: WebampSkin | null) => {
+    async (mode: 'winamp' | 'lain', skin?: WebampSkin | null) => {
       const layer = layerReference.current;
 
       if (!layer || loadingReference.current) {
         return;
       }
 
-      layer.classList.remove("hidden");
+      layer.classList.remove('hidden');
 
       if (webampReference.current) {
         webampReference.current.reopen();
@@ -137,9 +157,9 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
           webampReference.current as unknown as WebampStoreAccess,
         );
 
-        if (mode === "lain") {
+        if (mode === 'lain') {
           webampReference.current.setSkinFromUrl(assets.webampSkins.lain);
-          activeWinampSkinIdReference.current = "lain";
+          activeWinampSkinIdReference.current = 'lain';
           webampReference.current.setTracksToPlay(lainTracks);
         } else {
           if (skin) {
@@ -159,21 +179,27 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
       loadingReference.current = true;
 
       try {
-        const { default: Webamp } = await import("webamp/butterchurn");
+        const {default: Webamp} = await import('webamp/butterchurn');
         const webamp = new Webamp({
-          initialTracks: mode === "lain" ? lainTracks : winampTracks,
-          ...(mode === "lain"
-            ? { initialSkin: { url: assets.webampSkins.lain } }
+          initialTracks: mode === 'lain' ? lainTracks : winampTracks,
+          ...(mode === 'lain'
+            ? {initialSkin: {url: assets.webampSkins.lain}}
             : skin
-              ? { initialSkin: { url: skin.downloadUrl } }
+              ? {initialSkin: {url: skin.downloadUrl}}
               : {}),
           windowLayout: {
-            main: { position: { top: 0, left: 0 } },
-            equalizer: { position: { top: 116, left: 0 } },
-            playlist: { position: { top: 232, left: 0 } },
+            main: {position: {top: 0, left: 0}},
+            equalizer: {position: {top: 116, left: 0}},
+            playlist: {position: {top: 232, left: 0}},
             milkdrop: {
-              position: { top: -180, left: -420 },
-              size: { extraWidth: 80, extraHeight: 40 },
+              position: {
+                top: milkdropOffsetFromMain.y,
+                left: milkdropOffsetFromMain.x,
+              },
+              size: {
+                extraWidth: milkdropExtraSize.width,
+                extraHeight: milkdropExtraSize.height,
+              },
             },
           },
         });
@@ -182,7 +208,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
         await webamp.renderWhenReady(layer);
         alignWebampToLeft(webamp as unknown as WebampStoreAccess);
         activeWinampSkinIdReference.current =
-          mode === "lain" ? "lain" : (skin?.id ?? null);
+          mode === 'lain' ? 'lain' : (skin?.id ?? null);
         webamp.play();
       } finally {
         loadingReference.current = false;
@@ -199,5 +225,5 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
     ],
   );
 
-  return { applySkin, openWebamp };
+  return {applySkin, openWebamp};
 }
