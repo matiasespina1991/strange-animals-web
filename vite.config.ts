@@ -73,7 +73,7 @@ function copyStaticAssets(): Plugin {
 
 export default defineConfig({
   root: '.',
-  publicDir: false,
+  publicDir: path.join(rootDirectory, 'public'),
   plugins: [react(), copyStaticAssets()],
   resolve: {
     alias: {
