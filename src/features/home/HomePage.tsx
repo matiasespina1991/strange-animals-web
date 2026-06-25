@@ -1,9 +1,10 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'framer-motion';
 import {useTadeGameStore} from '@/store/tade-game-store';
 import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
 import {BrandLogoExperience} from './components/BrandLogoExperience';
 import {CustomCursor} from './components/CustomCursor';
+import {DoomDialog} from './components/DoomDialog';
 import {TadeGame} from './components/TadeGame';
 import {useWebampLayer} from './components/WebampLayer';
 import {WebampSkinDialog} from './components/WebampSkinDialog';
@@ -17,10 +18,11 @@ export function HomePage() {
   const hasOpenedWinampTipDialog = useRef(false);
   const tipDialogTimeoutReference = useRef<number | null>(null);
   const selectedSkinReference = useRef<WebampSkin | null>(null);
+  const [doomDialogOpen, setDoomDialogOpen] = useState(false);
   const [skinDialogOpen, setSkinDialogOpen] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState<WebampSkin | null>(null);
   const [tipDialogOpen, setTipDialogOpen] = useState(false);
-  const openWinamp = () => {
+  const openWinamp = useCallback(() => {
     void openWebamp('winamp', selectedSkinReference.current);
 
     if (!hasOpenedWinampTipDialog.current) {
@@ -35,7 +37,7 @@ export function HomePage() {
       hasOpenedWinampSkinDialog.current = true;
       setSkinDialogOpen(true);
     }
-  };
+  }, [openWebamp]);
 
   const sequences = useMemo(
     () => ({
@@ -69,6 +71,11 @@ export function HomePage() {
         openWinamp();
       }
 
+      if (event.code === 'KeyD') {
+        event.preventDefault();
+        setDoomDialogOpen(true);
+      }
+
       if (event.code === 'KeyS') {
         event.preventDefault();
         setSkinDialogOpen(true);
@@ -80,7 +87,7 @@ export function HomePage() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [openWebamp]);
+  }, [openWinamp]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
@@ -88,6 +95,12 @@ export function HomePage() {
       <TadeGame />
       <BrandLogoExperience />
       {layer}
+      <DoomDialog
+        open={doomDialogOpen}
+        onClose={() => {
+          setDoomDialogOpen(false);
+        }}
+      />
       <WebampSkinDialog
         open={skinDialogOpen}
         selectedSkinId={selectedSkin?.id ?? null}

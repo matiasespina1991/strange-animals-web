@@ -192,6 +192,9 @@ media/public/audio/tracks/aphex-twin-tha/v1/source.mp3
 media/public/audio/tracks/bluejaye-beginning-live-mix-edit-low/v1/source.mp3
 media/public/audio/tracks/sillizium-coldsunset/v1/source.mp3
 media/public/audio/tracks/tade-kop-untitled/v1/source.mp3
+media/public/games/dos-box/doom/DOOMWEB.BAT
+media/public/games/dos-box/doom/DOOM.BAT
+media/public/games/dos-box/doom/DOOMS/{doomFile}
 media/public/webamp-skins/lain/v1/lain.wsz
 media/public/webamp-skins/{skinId}/v1/{fileName}.wsz
 ```
@@ -203,6 +206,20 @@ Rules:
 - Prefer new version folders over overwriting production assets.
 - Keep public readable media under `media/public`.
 - Future private media should use a separate prefix such as `media/private`.
+
+### DOS Games
+
+The DOOM browser build uses the uploaded loose DOS files at:
+
+```text
+media/public/games/dos-box/doom/DOOMWEB.BAT
+media/public/games/dos-box/doom/DOOM.BAT
+media/public/games/dos-box/doom/DOOMS/
+```
+
+The frontend creates an in-memory js-dos bundle with JSZip on first `Alt+D`
+open. The generated `.jsdos/dosbox.conf` autoexec entrypoint calls
+`DOOMWEB.BAT` so the DOS Games Archive browser config is preserved.
 
 ## Security Rules
 
@@ -254,6 +271,7 @@ Important files:
 ```text
 src/features/home/HomePage.tsx
 src/features/home/components/BrandLogoExperience.tsx
+src/features/home/components/DoomDialog.tsx
 src/features/home/components/LogoPhysicsDrop.tsx
 src/features/home/components/SocialLinks.tsx
 src/features/home/components/TadeGame.tsx
@@ -294,6 +312,7 @@ Shortcuts:
 
 - `Alt+W`: open Webamp. On first Webamp open, also opens the skin picker.
 - `Alt+S`: open the skin picker.
+- `Alt+D`: open the DOOM js-dos dialog.
 - `lain`: typed sequence opens Webamp in Lain mode.
 - `tade`: typed sequence activates Tade game mode.
 
