@@ -29,7 +29,10 @@ body {
   user-select: none;
 }
 
-body *:not(#webamp):not(#webamp *) {
+body
+  *:not(#webamp):not(#webamp *):not(#webamp-context-menu):not(
+    #webamp-context-menu *
+  ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *) {
   cursor: none !important;
   user-select: none !important;
 }
@@ -50,10 +53,6 @@ input {
 #webamp-context-menu {
   cursor: auto !important;
   pointer-events: auto !important;
-  z-index: 100 !important;
-}
-
-#webamp-context-menu {
   z-index: 100 !important;
 }
 
