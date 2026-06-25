@@ -96,7 +96,7 @@ export function StrangeOsDialog({
           <motion.section
             animate={{opacity: 1, scale: 1}}
             className={[
-              'relative border-[0.25px] border-white/90 bg-black font-ubuntu-mono tracking-[0.11em] text-white/90 text-[0.85rem]',
+              'relative border-[0.25px] border-white/90 bg-black tracking-[0.11em] text-white/90 text-[0.85rem]',
               contentClassName,
             ].join(' ')}
             style={{
@@ -144,7 +144,7 @@ export function StrangeOsDialog({
                 aria-label="Close dialog"
                 className="relative h-6 w-6 shrink-0 border-[0.25px] border-white/90 bg-black text-[0.8rem] font-normal text-white/90 hover:bg-white/25"
                 style={{
-                  fontFamily: 'Ubuntu Sans Mono, monospace',
+                  fontFamily: 'IBM3161, Ubuntu Sans Mono, monospace',
                   fontWeight: 400,
                   lineHeight: '1',
                 }}
