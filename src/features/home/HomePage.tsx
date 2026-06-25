@@ -6,17 +6,29 @@ import {BrandLogoExperience} from './components/BrandLogoExperience';
 import {TadeGame} from './components/TadeGame';
 import {useWebampLayer} from './components/WebampLayer';
 import {WebampSkinDialog} from './components/WebampSkinDialog';
+import {WinampTipDialog} from './components/WinampTipDialog';
 import {useKeyboardSequence} from './hooks/useKeyboardSequence';
 
 export function HomePage() {
   const activateTade = useTadeGameStore((state) => state.activate);
   const {applySkin, layer, openWebamp} = useWebampLayer();
   const hasOpenedWinampSkinDialog = useRef(false);
+  const hasOpenedWinampTipDialog = useRef(false);
+  const tipDialogTimeoutReference = useRef<number | null>(null);
   const selectedSkinReference = useRef<WebampSkin | null>(null);
   const [skinDialogOpen, setSkinDialogOpen] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState<WebampSkin | null>(null);
+  const [tipDialogOpen, setTipDialogOpen] = useState(false);
   const openWinamp = () => {
     void openWebamp('winamp', selectedSkinReference.current);
+
+    if (!hasOpenedWinampTipDialog.current) {
+      hasOpenedWinampTipDialog.current = true;
+      tipDialogTimeoutReference.current = window.setTimeout(() => {
+        setTipDialogOpen(true);
+        tipDialogTimeoutReference.current = null;
+      }, 2000);
+    }
 
     if (!hasOpenedWinampSkinDialog.current) {
       hasOpenedWinampSkinDialog.current = true;
@@ -35,6 +47,15 @@ export function HomePage() {
   );
 
   useKeyboardSequence(sequences);
+
+  useEffect(
+    () => () => {
+      if (tipDialogTimeoutReference.current) {
+        window.clearTimeout(tipDialogTimeoutReference.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -77,6 +98,12 @@ export function HomePage() {
           selectedSkinReference.current = skin;
           setSelectedSkin(skin);
           applySkin(skin);
+        }}
+      />
+      <WinampTipDialog
+        open={tipDialogOpen}
+        onClose={() => {
+          setTipDialogOpen(false);
         }}
       />
       <motion.div
