@@ -300,7 +300,7 @@ export function WebampSkinDialog({
                         ? 'bg-white/90 text-black'
                         : hovered
                           ? 'bg-white/30 text-white'
-                          : 'bg-black text-white hover:bg-white/15',
+                          : 'bg-black text-white hover:bg-white/18',
                     ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;
