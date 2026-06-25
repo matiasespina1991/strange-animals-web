@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-import {getDoomGameFiles} from '@/features/dos-games/dos-game-repository';
 import {StrangeOsDialog} from './StrangeOsDialog';
 
 const jsDosCssId = 'js-dos-v8-css';
@@ -8,15 +7,13 @@ const jsDosCssUrl = 'https://v8.js-dos.com/latest/js-dos.css';
 const jsDosScriptUrl = 'https://v8.js-dos.com/latest/js-dos.js';
 
 type DosOptions = {
+  url?: string;
   autoStart?: boolean;
   backend?: 'dosbox' | 'dosboxX';
   backendLocked?: boolean;
   imageRendering?: 'pixelated' | 'smooth';
   renderAspect?: 'AsIs' | '1/1' | '5/4' | '4/3' | '16/10' | '16/9' | 'Fit';
   theme?: string;
-  dosboxConf?: string;
-  initFs?: Array<{path: string; contents: Uint8Array | ArrayBuffer | string}>;
-  jsdosConf?: {version?: string};
 };
 
 type DosProperties = {
@@ -30,7 +27,6 @@ declare global {
 }
 
 let jsDosScriptPromise: Promise<void> | null = null;
-let doomInitFsPromise: Promise<Array<{path: string; contents: Uint8Array}>> | null = null;
 
 function loadJsDosCss() {
   if (document.querySelector(`#${jsDosCssId}`)) {
@@ -88,34 +84,6 @@ async function loadJsDos() {
   }
 }
 
-async function createDoomInitFs() {
-  const files = await getDoomGameFiles();
-  const loadedFiles = await Promise.all(
-    files.map(async (file) => {
-      const response = await fetch(file.downloadUrl);
-
-      if (!response.ok) {
-        throw new Error(`Failed to load ${file.bundlePath}.`);
-      }
-
-      const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-
-      return {
-        path: file.bundlePath,
-        contents: new Uint8Array(arrayBuffer),
-      };
-    }),
-  );
-
-  return loadedFiles;
-}
-
-async function getDoomInitFs() {
-  doomInitFsPromise ??= createDoomInitFs();
-
-  return doomInitFsPromise;
-}
 
 type DoomPlayerProperties = {
   open: boolean;
@@ -136,7 +104,7 @@ function DoomPlayer({open}: DoomPlayerProperties) {
     const startDoom = async () => {
       try {
         setStatus('Preparing DOOM...');
-        const [doomInitFs] = await Promise.all([getDoomInitFs(), loadJsDos()]);
+        await loadJsDos();
 
         const createDosPlayer = window.Dos;
 
@@ -145,15 +113,13 @@ function DoomPlayer({open}: DoomPlayerProperties) {
         }
 
         dosReference.current = createDosPlayer(containerReference.current, {
+          url: 'https://v8.js-dos.com/bundles/doom.jsdos',
           autoStart: true,
           backend: 'dosbox',
           backendLocked: true,
           imageRendering: 'pixelated',
           renderAspect: '4/3',
           theme: 'black',
-          jsdosConf: {version: '8'},
-          dosboxConf: ['[autoexec]', 'mount c .', 'c:', 'DOOMWEB.BAT', ''].join('\n'),
-          initFs: doomInitFs,
         });
         setStatus('');
       } catch (error) {
