@@ -57,6 +57,27 @@ const playlistExtraSize = {
   height: 3,
 };
 
+function raiseMilkdropWindow(layer: HTMLElement) {
+  const milkdropCanvas = layer.querySelector<HTMLCanvasElement>(
+    '#webamp .gen-window canvas',
+  );
+  const milkdropWindow = milkdropCanvas?.closest<HTMLElement>('.gen-window');
+  const focusTarget = milkdropWindow?.parentElement;
+  const windowWrapper = focusTarget?.parentElement;
+
+  if (!windowWrapper) {
+    return;
+  }
+
+  windowWrapper.style.zIndex = '999';
+}
+
+function scheduleRaiseMilkdropWindow(layer: HTMLElement) {
+  window.requestAnimationFrame(() => {
+    raiseMilkdropWindow(layer);
+  });
+}
+
 function applyWebampLayout(webamp: WebampStoreAccess) {
   const windows = webamp.store.getState().windows?.genWindows;
   const mainWindow = windows?.main;
@@ -180,6 +201,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
         applyWebampLayout(
           webampReference.current as unknown as WebampStoreAccess,
         );
+        scheduleRaiseMilkdropWindow(layer);
 
         if (mode === 'lain') {
           webampReference.current.setSkinFromUrl(assets.webampSkins.lain);
@@ -237,6 +259,7 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
         webampReference.current = webamp;
         await webamp.renderWhenReady(layer);
         applyWebampLayout(webamp as unknown as WebampStoreAccess);
+        scheduleRaiseMilkdropWindow(layer);
         activeWinampSkinIdReference.current =
           mode === 'lain' ? 'lain' : (skin?.id ?? null);
         webamp.play();

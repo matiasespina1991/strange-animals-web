@@ -299,8 +299,8 @@ export function WebampSkinDialog({
                       selected
                         ? 'bg-white/90 text-black'
                         : hovered
-                          ? 'bg-white/25 text-white'
-                          : 'bg-black text-white hover:bg-white/15',
+                          ? 'bg-white/25 text-white/90'
+                          : 'bg-black text-white/90 hover:bg-white/15',
                     ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;

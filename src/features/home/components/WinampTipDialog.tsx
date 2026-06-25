@@ -24,7 +24,7 @@ export function WinampTipDialog({onClose, open}: WinampTipDialogProperties) {
           <div className="mt-4 flex justify-end">
             <button
               type="button"
-              className="flex min-h-6 min-w-20 items-center justify-center border-[0.25px] border-white/90 bg-black px-3 py-0.5 text-[0.75rem] uppercase leading-none tracking-[0.11em] text-white hover:bg-white/25"
+              className="flex min-h-6 min-w-20 items-center justify-center border-[0.25px] border-white/90 bg-black px-3 py-0.5 text-[0.75rem] uppercase leading-none tracking-[0.11em] text-white/90 hover:bg-white/25"
               onClick={onClose}
             >
               OK
