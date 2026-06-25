@@ -260,8 +260,8 @@ export function WebampSkinDialog({
         open={open && loaded}
         title="winamp skins"
         titleClassName="italic"
-        className="right-7 top-1/2"
-        baseTransform="translateY(calc(-50% - 2rem))"
+        className="right-[3.75rem] top-1/2"
+        baseTransform="translateY(-12rem)"
         onClose={onClose}
         onPointerLeave={restoreConfirmedSkin}
       >
@@ -295,7 +295,7 @@ export function WebampSkinDialog({
                     }}
                     type="button"
                     className={[
-                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.05em] whitespace-normal outline-none last:border-b-0',
+                      'block w-full max-w-full overflow-hidden break-words border-b border-white/90 px-2 py-1 text-left text-[0.625rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
                       selected
                         ? 'bg-white/90 text-black'
                         : active || hovered

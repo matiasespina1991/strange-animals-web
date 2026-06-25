@@ -110,7 +110,7 @@ export function HomePage() {
       />
       <motion.div
         animate={{opacity: 1}}
-        className="pointer-events-auto fixed bottom-5 right-7 z-40 text-right font-gruppo text-[0.775rem] leading-none tracking-[0.02em] text-white/70 opacity-0 transition-colors duration-150 ease-out hover:text-white/90"
+        className="pointer-events-auto fixed bottom-5 right-7 z-40 text-right font-gruppo text-[0.775rem] leading-none tracking-[0.02em] text-white/80 opacity-0 transition-colors duration-150 ease-out hover:text-white/95"
         initial={{opacity: 0}}
         transition={{delay: 2.05, duration: 0.75, ease: 'easeOut'}}
       >

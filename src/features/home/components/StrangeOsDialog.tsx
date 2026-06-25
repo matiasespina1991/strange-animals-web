@@ -96,9 +96,10 @@ export function StrangeOsDialog({
           <motion.section
             animate={{opacity: 1, scale: 1}}
             className={[
-              'relative border border-white/90 bg-black font-mono text-white',
+              'relative border border-white/90 bg-black font-ubuntu-mono tracking-[0.11em] text-white',
               contentClassName,
             ].join(' ')}
+            style={{fontFamily: 'Ubuntu Sans Mono, monospace', letterSpacing: '0.11em'}}
             exit={{opacity: 0, scale: 0.96}}
             initial={{opacity: 0, scale: 0.96}}
             transition={{duration: 0.16, ease: 'easeOut'}}
@@ -126,7 +127,7 @@ export function StrangeOsDialog({
               {title ? (
                 <h2
                   className={[
-                    'text-[0.60rem] uppercase tracking-[0.14em]',
+                    'text-[0.60rem] uppercase tracking-[0.11em]',
                     titleClassName,
                   ].join(' ')}
                 >

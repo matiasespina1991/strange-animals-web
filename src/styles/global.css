@@ -19,7 +19,7 @@ body {
   cursor: none;
 }
 
-body *:not(#webamp):not(#webamp *) {
+body *:not(#webamp):not(#webamp *):not([data-native-resize-cursor]):not([data-native-resize-cursor] *) {
   cursor: none !important;
 }
 
@@ -46,8 +46,10 @@ input {
   z-index: 100 !important;
 }
 
-[data-native-resize-cursor] {
+[data-native-resize-cursor],
+[data-native-resize-cursor] * {
   cursor: nwse-resize !important;
+  pointer-events: auto !important;
 }
 
 .webamp-skin-scrollbar {
@@ -68,6 +70,7 @@ input {
 .webamp-skin-scrollbar::-webkit-scrollbar-track {
   background: #000;
   border-left: 1px solid #fff;
+  border-radius: 0;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar-thumb {
