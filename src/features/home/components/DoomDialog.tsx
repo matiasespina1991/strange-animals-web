@@ -1,101 +1,76 @@
 import {useEffect, useRef, useState} from 'react';
 import {StrangeOsDialog} from './StrangeOsDialog';
 
-const jsDosCssId = 'js-dos-v8-css';
-const jsDosScriptId = 'js-dos-v8-script';
-const jsDosCssUrl = 'https://v8.js-dos.com/latest/js-dos.css';
-const jsDosScriptUrl = 'https://v8.js-dos.com/latest/js-dos.js';
+const jqueryScriptId = 'jquery-script';
+const jqueryScriptUrl = 'https://code.jquery.com/jquery-3.6.0.min.js';
+const jsDosScriptId = 'js-dos-api-script';
+const jsDosScriptUrl = 'https://thedoggybrad.github.io/doom_on_js-dos/js-dos-api.js';
 
-type DosOptions = {
-  url?: string;
-  autoStart?: boolean;
-  backend?: 'dosbox' | 'dosboxX';
-  backendLocked?: boolean;
-  imageRendering?: 'pixelated' | 'smooth';
-  renderAspect?: 'AsIs' | '1/1' | '5/4' | '4/3' | '16/10' | '16/9' | 'Fit';
-  theme?: string;
-};
-
-type DosProperties = {
-  stop: () => Promise<void>;
-};
+let jsDosScriptPromise: Promise<void> | null = null;
+let jqueryScriptPromise: Promise<void> | null = null;
 
 declare global {
   interface Window {
-    Dos?: (element: HTMLDivElement, options: DosOptions) => DosProperties;
+    Dosbox?: any;
+    jQuery?: any;
+    $?: any;
   }
 }
 
-let jsDosScriptPromise: Promise<void> | null = null;
-
-function loadJsDosCss() {
-  if (document.querySelector(`#${jsDosCssId}`)) {
-    return;
-  }
-
-  const link = document.createElement('link');
-  link.id = jsDosCssId;
-  link.rel = 'stylesheet';
-  link.href = jsDosCssUrl;
-  document.head.append(link);
-}
-
-async function loadJsDos() {
-  loadJsDosCss();
-
-  if (window.Dos) {
-    return;
-  }
-
-  jsDosScriptPromise ??= new Promise((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      `#${jsDosScriptId}`,
-    );
+function loadScript(id: string, url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(id) as HTMLScriptElement | null;
 
     if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        resolve();
-      });
-      existingScript.addEventListener('error', () => {
-        reject(new Error('Failed to load js-dos.'));
-      });
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', () => reject(new Error(`Failed to load script ${url}.`)));
       return;
     }
 
     const script = document.createElement('script');
-    script.id = jsDosScriptId;
-    script.src = jsDosScriptUrl;
-    script.type = 'module';
+    script.id = id;
+    script.src = url;
+    script.type = 'text/javascript';
+    script.async = false;
+    script.defer = false;
     script.crossOrigin = 'anonymous';
-    script.async = true;
-    script.addEventListener('load', () => {
-      resolve();
-    });
-    script.addEventListener('error', () => {
-      reject(new Error('Failed to load js-dos.'));
-    });
+    script.addEventListener('load', () => resolve());
+    script.addEventListener('error', () => reject(new Error(`Failed to load script ${url}.`)));
     document.head.append(script);
   });
-
-  await jsDosScriptPromise;
-
-  if (!window.Dos) {
-    throw new Error('js-dos loaded without exposing window.Dos.');
-  }
 }
 
+async function loadJsDosApi(): Promise<void> {
+  if (!window.$ && !window.jQuery) {
+    jqueryScriptPromise ??= loadScript(jqueryScriptId, jqueryScriptUrl);
+    await jqueryScriptPromise;
+  }
+
+  if (!window.Dosbox) {
+    jsDosScriptPromise ??= loadScript(jsDosScriptId, jsDosScriptUrl);
+    await jsDosScriptPromise;
+  }
+
+  if (!window.$ && !window.jQuery) {
+    throw new Error('jQuery failed to attach to window before js-dos API executed.');
+  }
+
+  if (!window.Dosbox) {
+    throw new Error('js-dos API loaded without exposing window.Dosbox.');
+  }
+}
 
 type DoomPlayerProperties = {
   open: boolean;
 };
 
 function DoomPlayer({open}: DoomPlayerProperties) {
-  const containerReference = useRef<HTMLDivElement | null>(null);
-  const dosReference = useRef<DosProperties | null>(null);
+  const containerId = useRef('DOOM');
+  const dosReference = useRef<any>(null);
   const [status, setStatus] = useState('Loading DOOM...');
 
   useEffect(() => {
-    if (!open || !containerReference.current) {
+    if (!open) {
       return;
     }
 
@@ -104,23 +79,25 @@ function DoomPlayer({open}: DoomPlayerProperties) {
     const startDoom = async () => {
       try {
         setStatus('Preparing DOOM...');
-        await loadJsDos();
+        await loadJsDosApi();
 
-        const createDosPlayer = window.Dos;
-
-        if (cancelled || !containerReference.current || !createDosPlayer) {
+        if (cancelled || !window.Dosbox) {
           return;
         }
 
-        dosReference.current = createDosPlayer(containerReference.current, {
-          url: 'https://v8.js-dos.com/bundles/doom.jsdos',
-          autoStart: true,
-          backend: 'dosbox',
-          backendLocked: true,
-          imageRendering: 'pixelated',
-          renderAspect: '4/3',
-          theme: 'black',
+        dosReference.current = new window.Dosbox({
+          id: containerId.current,
+          onload: (dosbox: any) => {
+            dosbox.run(
+              'https://thedoggybrad.github.io/doom_on_js-dos/DOOM-@evilution.zip',
+              './DOOM/DOOM.EXE',
+            );
+          },
+          onrun: (dosbox: any, app: string) => {
+            console.log("App '" + app + "' is runned");
+          },
         });
+
         setStatus('');
       } catch (error) {
         if (!cancelled) {
@@ -134,20 +111,16 @@ function DoomPlayer({open}: DoomPlayerProperties) {
 
     return () => {
       cancelled = true;
-
-      if (dosReference.current) {
-        void dosReference.current.stop();
-        dosReference.current = null;
+      if (dosReference.current && typeof dosReference.current.destroy === 'function') {
+        dosReference.current.destroy();
       }
+      dosReference.current = null;
     };
   }, [open]);
 
   return (
     <div className="p-2">
-      <div
-        ref={containerReference}
-        className="relative aspect-[4/3] w-full overflow-hidden bg-black"
-      >
+      <div id={containerId.current} className="relative aspect-[4/3] w-full overflow-hidden bg-black">
         {status && (
           <div className="absolute inset-0 flex items-center justify-center text-[0.7rem] uppercase tracking-[0.11em] text-white/70">
             {status}
