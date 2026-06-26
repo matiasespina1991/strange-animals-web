@@ -15,6 +15,9 @@ const getInitialListHeight = () => {
 
 const hoverPreviewDelayMs = 200;
 
+const formatSkinDisplayName = (displayName: string) =>
+  displayName.replaceAll('_', ' ');
+
 type WebampSkinDialogProperties = {
   open: boolean;
   selectedSkinId: string | null;
@@ -267,7 +270,7 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border-[0.25px] border-white/90"
+            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border-[0.25px] border-white/80"
             style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >
@@ -294,13 +297,12 @@ export function WebampSkinDialog({
                       }
                     }}
                     type="button"
+                    data-active={active && !hoveredSkinId ? 'true' : undefined}
+                    data-hovered={hovered ? 'true' : undefined}
+                    data-selected={selected ? 'true' : undefined}
                     className={[
-                      'block w-full max-w-full overflow-hidden break-words border-b-[0.25px] border-white/90 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
-                      selected
-                        ? 'bg-white/90 text-black'
-                        : hovered
-                          ? 'bg-white/25 text-white/90'
-                          : 'bg-black text-white/90 hover:bg-white/15',
+                      'webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b-[0.25px] border-white/80 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
+                      selected ? 'text-black' : 'text-white/90',
                     ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;
@@ -339,7 +341,7 @@ export function WebampSkinDialog({
                       scheduleHoverPreview(skin);
                     }}
                   >
-                    {skin.displayName}
+                    {formatSkinDisplayName(skin.displayName)}
                   </button>
                 );
               })}
@@ -348,7 +350,7 @@ export function WebampSkinDialog({
         <div
           aria-hidden="true"
           data-native-resize-cursor
-          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b-[0.25px] border-r-[0.25px] border-white/90 bg-black"
+          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b-[0.25px] border-r-[0.25px] border-white/80 bg-black"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
