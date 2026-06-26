@@ -264,7 +264,7 @@ function DoomPlayer({open}: DoomPlayerProperties) {
             {doomBundleUrl && runtimeReady && !started && (
               <button
                 type="button"
-                className="border-[0.25px] border-white/90 bg-black px-4 py-1.5 text-white/90 hover:bg-white/25"
+                className="border-[0.25px] border-white/80 bg-black px-4 py-1.5 text-white/90 hover:bg-white/25"
                 onClick={() => {
                   void startDoom();
                 }}

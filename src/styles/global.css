@@ -27,14 +27,15 @@ body {
   margin: 0;
   background: #000;
   color: #fff;
-  cursor: none;
   user-select: none;
 }
 
 body
   *:not(#webamp):not(#webamp *):not(#webamp-context-menu):not(
     #webamp-context-menu *
-  ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *) {
+  ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *):not(
+    .doom-jsdos-container canvas
+  ):not(.doom-jsdos-container canvas *) {
   cursor: none !important;
   user-select: none !important;
 }
@@ -85,6 +86,26 @@ input {
   overflow-x: hidden;
   scrollbar-color: #fff #000;
   scrollbar-width: thin;
+}
+
+.webamp-skin-scrollbar .webamp-skin-tile {
+  background: #000 !important;
+  color: rgb(255 255 255 / 0.9) !important;
+}
+
+.webamp-skin-scrollbar
+  .webamp-skin-tile:hover:not([data-selected='true']),
+.webamp-skin-scrollbar
+  .webamp-skin-tile[data-hovered='true']:not([data-selected='true']),
+.webamp-skin-scrollbar
+  .webamp-skin-tile[data-active='true']:not([data-selected='true']) {
+  background: rgb(255 255 255 / 0.15) !important;
+  color: rgb(255 255 255 / 0.9) !important;
+}
+
+.webamp-skin-scrollbar .webamp-skin-tile[data-selected='true'] {
+  background: rgb(255 255 255 / 0.9) !important;
+  color: #000 !important;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar {
