@@ -17,6 +17,8 @@
 html,
 body,
 #root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   min-height: 100%;
   user-select: none;
 }
@@ -50,10 +52,27 @@ input {
   z-index: 5 !important;
 }
 
+#webamp #playlist-window .playlist-track-titles .track-cell {
+  letter-spacing: normal !important;
+}
+
 #webamp-context-menu {
   cursor: auto !important;
   pointer-events: auto !important;
   z-index: 100 !important;
+}
+
+.doom-jsdos-container,
+.doom-jsdos-container .jsdos-rso,
+.doom-jsdos-container .window,
+.doom-jsdos-container .emulator-root {
+  background: #000 !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.doom-jsdos-container canvas {
+  image-rendering: pixelated;
 }
 
 [data-native-resize-cursor],
