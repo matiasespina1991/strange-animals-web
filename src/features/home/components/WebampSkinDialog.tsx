@@ -13,7 +13,7 @@ const getInitialListHeight = () => {
   return Math.round(window.innerHeight * 0.25 + rootFontSize * 5);
 };
 
-const hoverPreviewDelayMs = 200;
+const hoverPreviewDelayMs = 550;
 
 const formatSkinDisplayName = (displayName: string) =>
   displayName.replaceAll('_', ' ');
