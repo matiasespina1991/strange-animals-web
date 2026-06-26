@@ -192,9 +192,9 @@ media/public/audio/tracks/aphex-twin-tha/v1/source.mp3
 media/public/audio/tracks/bluejaye-beginning-live-mix-edit-low/v1/source.mp3
 media/public/audio/tracks/sillizium-coldsunset/v1/source.mp3
 media/public/audio/tracks/tade-kop-untitled/v1/source.mp3
-media/public/games/dos-box/doom/DOOMWEB.BAT
-media/public/games/dos-box/doom/DOOM.BAT
-media/public/games/dos-box/doom/DOOMS/{doomFile}
+media/public/games/doom-js-dos/doom.jsdos
+public/media/games/doom-js-dos/doom.jsdos
+public/js-dos/
 media/public/webamp-skins/lain/v1/lain.wsz
 media/public/webamp-skins/{skinId}/v1/{fileName}.wsz
 ```
@@ -209,17 +209,19 @@ Rules:
 
 ### DOS Games
 
-The DOOM browser build uses the uploaded loose DOS files at:
+The DOOM browser build uses a js-dos bundle at:
 
 ```text
-media/public/games/dos-box/doom/DOOMWEB.BAT
-media/public/games/dos-box/doom/DOOM.BAT
-media/public/games/dos-box/doom/DOOMS/
+public/media/games/doom-js-dos/doom.jsdos
 ```
 
-The frontend creates an in-memory js-dos bundle with JSZip on first `Alt+D`
-open. The generated `.jsdos/dosbox.conf` autoexec entrypoint calls
-`DOOMWEB.BAT` so the DOS Games Archive browser config is preserved.
+The frontend serves this same-origin public asset as
+`/media/games/doom-js-dos/doom.jsdos` and passes it to js-dos v8 when `Alt+D`
+opens the DOOM dialog. The dialog loads the runtime and bundle first, then starts
+the emulator from its `START` button so the browser can initialize audio from a
+user gesture. js-dos itself is vendored under `public/js-dos/`; the loader sets
+the emulator `pathPrefix` to `/js-dos/emulators/`, matching the known-working
+reference implementation.
 
 ## Security Rules
 
