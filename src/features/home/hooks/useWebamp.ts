@@ -42,6 +42,8 @@ type WebampStoreAccess = {
   };
 };
 
+type WebampSkinRequest = WebampSkin | null;
+
 const getWebampTargetLeft = () => (window.innerWidth >= 640 ? 28 : 16);
 const webampScale = 1.05;
 const milkdropOffsetFromMain = {
@@ -136,6 +138,8 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
   );
   const loadingReference = useRef(false);
   const activeWinampSkinIdReference = useRef<string | null>(null);
+  const queuedSkinReference = useRef<WebampSkinRequest | undefined>(undefined);
+  const skinLoadInProgressReference = useRef(false);
   const winampTracks: WebampTrack[] = [
     {
       url: assets.audio.bluejaye,
@@ -157,18 +161,17 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
     },
   ];
 
-  const applySkin = useCallback((skin: WebampSkin | null) => {
-    if (!webampReference.current) {
+  const loadSkin = useCallback(async (skin: WebampSkinRequest) => {
+    const webamp = webampReference.current;
+    const nextSkinId = skin?.id ?? null;
+
+    if (!webamp || activeWinampSkinIdReference.current === nextSkinId) {
       return;
     }
 
     if (!skin) {
-      if (activeWinampSkinIdReference.current === null) {
-        return;
-      }
-
       (
-        webampReference.current as unknown as {
+        webamp as unknown as {
           store: {dispatch: (action: {type: string}) => void};
         }
       ).store.dispatch({
@@ -178,13 +181,52 @@ export function useWebamp(layerReference: React.RefObject<HTMLDivElement>) {
       return;
     }
 
-    if (activeWinampSkinIdReference.current === skin.id) {
+    webamp.setSkinFromUrl(skin.downloadUrl);
+    await webamp.skinIsLoaded();
+    activeWinampSkinIdReference.current = skin.id;
+  }, []);
+
+  const flushQueuedSkin = useCallback(async () => {
+    if (skinLoadInProgressReference.current) {
       return;
     }
 
-    webampReference.current.setSkinFromUrl(skin.downloadUrl);
-    activeWinampSkinIdReference.current = skin.id;
-  }, []);
+    const nextSkin = queuedSkinReference.current;
+
+    if (nextSkin === undefined) {
+      return;
+    }
+
+    queuedSkinReference.current = undefined;
+    skinLoadInProgressReference.current = true;
+
+    try {
+      await loadSkin(nextSkin);
+    } finally {
+      skinLoadInProgressReference.current = false;
+
+      if (queuedSkinReference.current !== undefined) {
+        void flushQueuedSkin();
+      }
+    }
+  }, [loadSkin]);
+
+  const applySkin = useCallback(
+    (skin: WebampSkinRequest) => {
+      const queuedSkin = queuedSkinReference.current;
+
+      if (
+        queuedSkin !== undefined &&
+        (queuedSkin?.id ?? null) === (skin?.id ?? null)
+      ) {
+        return;
+      }
+
+      queuedSkinReference.current = skin;
+      void flushQueuedSkin();
+    },
+    [flushQueuedSkin],
+  );
 
   const openWebamp = useCallback(
     async (mode: 'winamp' | 'lain', skin?: WebampSkin | null) => {
