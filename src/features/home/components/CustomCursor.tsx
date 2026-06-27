@@ -190,11 +190,18 @@ export function CustomCursor() {
       style={{ x: smoothX, y: smoothY }}
       transition={{ duration: 0.06, ease: "easeOut" }}
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 h-10 w-10 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.022)_0%,rgba(255,255,255,0.01)_28%,rgba(255,255,255,0.004)_48%,rgba(255,255,255,0)_72%)]"
+        style={{
+          transform: "translate(calc(-50% + 0.08rem), calc(-50% + 0.58rem))",
+        }}
+      />
       <svg
         aria-hidden="true"
         className="-translate-x-1/2 drop-shadow-[0_0_4px_rgba(255,255,255,0.18)]"
         style={{
-          transform: "translate(-50%, calc(-50% + 0.9rem)) rotate(22deg)",
+          transform: "translate(-50%, calc(-50% + 0.7rem)) rotate(22deg)",
         }}
         fill="none"
         height="22"

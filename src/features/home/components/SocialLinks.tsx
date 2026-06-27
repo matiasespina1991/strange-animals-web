@@ -3,17 +3,44 @@ import { FaEnvelope, FaInstagram, FaSoundcloud } from "react-icons/fa6";
 import { socialLinks } from "@/lib/social-links";
 
 const socialLinkClassName =
-  "relative isolate inline-flex size-12 items-center justify-center text-[1.35rem] text-white transition-colors duration-150 hover:text-white/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white";
+  "group relative isolate inline-flex size-12 items-center justify-center overflow-hidden rounded-full text-[1.35rem] text-white/88 transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white";
 const glassClassName =
-  "absolute inset-0 -z-10 rounded-full bg-[rgba(0,0,0,0.08)] backdrop-blur-[14px]";
+  "absolute inset-0 -z-20 rounded-full bg-[rgba(0,0,0,0.08)] backdrop-blur-[14px]";
 
 const hoverMotion = {
   whileHover: {
-    y: 1.2,
-    transition: { delay: 0.18, duration: 0.7, ease: [0.24, 0, 0.36, 1] },
+    y: 0.6,
+    transition: { duration: 0.95, ease: [0.2, 0.02, 0.12, 1] },
   },
-  defaultTransition: { duration: 0.5, ease: [0.24, 0, 0.36, 1] },
+  defaultTransition: { duration: 0.82, ease: [0.2, 0.02, 0.12, 1] },
 };
+
+const linkOverlayClassName =
+  "pointer-events-none absolute inset-0 -z-10 rounded-full opacity-0 scale-[0.18] -translate-x-2 -translate-y-2 transition-[transform,opacity] duration-[950ms] ease-[cubic-bezier(0.2,0.02,0.12,1)] group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 group-hover:translate-y-0";
+
+const socialItems = [
+  {
+    label: "SoundCloud",
+    href: socialLinks.soundcloud,
+    icon: <FaSoundcloud aria-hidden className="text-[1.65rem]" />,
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(255,122,0,0.98)_0%,rgba(255,94,0,0.92)_40%,rgba(255,145,77,0.85)_100%)]",
+  },
+  {
+    label: "Email",
+    href: socialLinks.email,
+    icon: <FaEnvelope aria-hidden className="text-[1.22rem]" />,
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(86,180,255,0.98)_0%,rgba(36,129,255,0.9)_52%,rgba(125,214,255,0.82)_100%)]",
+  },
+  {
+    label: "Instagram",
+    href: socialLinks.instagram,
+    icon: <FaInstagram aria-hidden />,
+    overlay:
+      "bg-[linear-gradient(135deg,rgba(131,58,180,0.96)_0%,rgba(225,48,108,0.92)_45%,rgba(253,29,29,0.9)_68%,rgba(245,96,64,0.88)_82%,rgba(252,175,69,0.84)_100%)]",
+  },
+] as const;
 
 export function SocialLinks() {
   return (
@@ -22,43 +49,29 @@ export function SocialLinks() {
       data-custom-cursor
       className="pointer-events-auto flex gap-4"
     >
-      <motion.a
-        aria-label="SoundCloud"
-        className={socialLinkClassName}
-        href={socialLinks.soundcloud}
-        rel="noopener noreferrer"
-        target="_blank"
-        initial={{ y: 0 }}
-        transition={hoverMotion.defaultTransition}
-        whileHover={hoverMotion.whileHover}
-      >
-        <span className={glassClassName} />
-        <FaSoundcloud aria-hidden className="text-[1.65rem]" />
-      </motion.a>
-      <motion.a
-        aria-label="Email"
-        className={socialLinkClassName}
-        href={socialLinks.email}
-        rel="noopener noreferrer"
-        target="_blank"
-        transition={hoverMotion.defaultTransition}
-        whileHover={hoverMotion.whileHover}
-      >
-        <span className={glassClassName} />
-        <FaEnvelope aria-hidden className="text-[1.22rem]" />
-      </motion.a>
-      <motion.a
-        aria-label="Instagram"
-        className={socialLinkClassName}
-        href={socialLinks.instagram}
-        rel="noopener noreferrer"
-        target="_blank"
-        transition={hoverMotion.defaultTransition}
-        whileHover={hoverMotion.whileHover}
-      >
-        <span className={glassClassName} />
-        <FaInstagram aria-hidden />
-      </motion.a>
+      {socialItems.map((item) => (
+        <motion.a
+          key={item.label}
+          aria-label={item.label}
+          className={socialLinkClassName}
+          href={item.href}
+          rel="noopener noreferrer"
+          target="_blank"
+          initial={{ y: 0 }}
+          transition={hoverMotion.defaultTransition}
+          whileHover={hoverMotion.whileHover}
+        >
+          <span className={glassClassName} />
+          <span
+            aria-hidden="true"
+            className={[linkOverlayClassName, item.overlay].join(" ")}
+            style={{ transformOrigin: "top left" }}
+          />
+          <span className="relative z-10 transition-colors duration-300 group-hover:text-white">
+            {item.icon}
+          </span>
+        </motion.a>
+      ))}
     </nav>
   );
 }
