@@ -1,5 +1,5 @@
-import {Minesweeper} from '@/features/minesweeper';
-import {StrangeOsDialog} from './StrangeOsDialog';
+import { Minesweeper } from "@/features/minesweeper";
+import { StrangeOsDialog } from "./StrangeOsDialog";
 
 type MinesweeperDialogProperties = {
   open: boolean;
@@ -20,7 +20,7 @@ export function MinesweeperDialog({
         baseTransform="translate(-50%, -50%)"
         onClose={onClose}
       >
-        <div className="bg-black p-2 leading-none">
+        <div className="bg-black leading-none">
           <Minesweeper
             embedded
             defaultDifficulty="Beginner"

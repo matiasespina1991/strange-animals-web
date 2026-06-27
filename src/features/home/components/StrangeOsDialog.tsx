@@ -1,5 +1,5 @@
-import {useEffect, useRef, useState, type ReactNode} from 'react';
-import {AnimatePresence, motion} from 'framer-motion';
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 type StrangeOsDialogProperties = {
   baseTransform?: string;
@@ -16,16 +16,15 @@ type StrangeOsDialogProperties = {
 export function StrangeOsDialog({
   baseTransform,
   children,
-  className = '',
-  contentClassName = '',
+  className = "",
+  contentClassName = "",
   onClose,
   onPointerLeave,
   open,
   title,
-  titleClassName = '',
 }: StrangeOsDialogProperties) {
   const [dragging, setDragging] = useState(false);
-  const [position, setPosition] = useState({x: 0, y: 0});
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const dragReference = useRef<{
     pointerId: number;
     startPointerX: number;
@@ -63,14 +62,14 @@ export function StrangeOsDialog({
       setDragging(false);
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [dragging]);
 
@@ -81,38 +80,38 @@ export function StrangeOsDialog({
           data-strange-os-dialog
           data-custom-cursor
           className={[
-            'pointer-events-auto fixed w-[min(17.6rem,calc(100vw-2rem))]',
+            "pointer-events-auto italic fixed w-[min(17.6rem,calc(100vw-2rem))]",
             className,
-          ].join(' ')}
+          ].join(" ")}
           style={{
             transform: [
               baseTransform,
               `translate(${position.x}px, ${position.y}px)`,
             ]
               .filter(Boolean)
-              .join(' '),
+              .join(" "),
           }}
           onPointerLeave={onPointerLeave}
         >
           <motion.section
-            animate={{opacity: 1, scale: 1}}
+            animate={{ opacity: 1, scale: 1 }}
             className={[
-              'relative border-[0.25px] border-white/80 bg-black tracking-[0.11em] text-white/90 text-[0.85rem]',
+              "relative border-[0.25px] border-white/80 bg-black tracking-[0.11em] text-white/90 text-[0.85rem]",
               contentClassName,
-            ].join(' ')}
+            ].join(" ")}
             style={{
-              fontFamily: 'IBM3161, Ubuntu Sans Mono, monospace',
-              letterSpacing: '0.11em',
+              fontFamily: "IBM3161, Ubuntu Sans Mono, monospace",
+              letterSpacing: "0.11em",
             }}
-            exit={{opacity: 0, scale: 0.96}}
-            initial={{opacity: 0, scale: 0.96}}
-            transition={{duration: 0.16, ease: 'easeOut'}}
+            exit={{ opacity: 0, scale: 0.96 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
           >
             <header
               className={[
-                'flex min-h-8 select-none items-center justify-between border-b-[0.25px] border-white/80 bg-black px-2.5 py-1.5 text-white/90',
-                dragging ? 'cursor-grabbing' : 'cursor-grab',
-              ].join(' ')}
+                "flex min-h-8 select-none items-center justify-between border-b-[0.25px] border-white/80 bg-black px-2.5 py-1.5 text-white/90",
+                dragging ? "cursor-grabbing" : "cursor-grab",
+              ].join(" ")}
               onPointerDown={(event) => {
                 if (event.button !== 0) {
                   return;
@@ -129,12 +128,7 @@ export function StrangeOsDialog({
               }}
             >
               {title ? (
-                <h2
-                  className={[
-                    'text-[0.85rem] uppercase tracking-[0.11em]',
-                    titleClassName,
-                  ].join(' ')}
-                >
+                <h2 className={"text-[0.85rem] uppercase tracking-[0.11em]"}>
                   {title}
                 </h2>
               ) : (
@@ -146,9 +140,9 @@ export function StrangeOsDialog({
                 className="flex h-6 w-6 shrink-0 items-center justify-center border-[0.25px] border-white/80 bg-black text-[0.85rem] tracking-normal leading-none font-normal text-white/90 hover:bg-white/20"
                 style={{
                   fontFamily:
-                    'Ubuntu Sans Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    "Ubuntu Sans Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
                   fontWeight: 400,
-                  letterSpacing: '0',
+                  letterSpacing: "0",
                 }}
                 onClick={(event) => {
                   event.stopPropagation();

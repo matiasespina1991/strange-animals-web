@@ -250,7 +250,7 @@ function(a,b){jQuery.fn[b]=function(d){return d?this.bind(b,d):this.trigger(b)}}
       this.overlay = $('<div class="dosbox-overlay">');
       this.loaderMessage = $('<div class="dosbox-loader-message">');
       this.loader = $('<div class="dosbox-loader">').append($('<div class="st-loader">').append($('<span class="equal">'))).append(this.loaderMessage);
-      this.start = $('<div class="dosbox-start">Click to start');
+      this.start = $('<div class="dosbox-start">CLICK TO START');
       this.div.append(this.wrapper);
       this.wrapper.append(this.canvas);
       this.wrapper.append(this.loader);
