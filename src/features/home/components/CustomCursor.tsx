@@ -6,6 +6,7 @@ export function CustomCursor() {
   const y = useMotionValue(-100);
   const smoothX = useSpring(x, { damping: 18, stiffness: 650, mass: 0.18 });
   const smoothY = useSpring(y, { damping: 18, stiffness: 650, mass: 0.18 });
+  const [locked, setLocked] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -81,7 +82,21 @@ export function CustomCursor() {
         return;
       }
 
+      if (locked) {
+        setVisible(false);
+        return;
+      }
+
       const target = event.target;
+
+      if (
+        target instanceof HTMLIFrameElement ||
+        (target instanceof Element &&
+          target.closest("[data-native-cursor-surface]"))
+      ) {
+        setVisible(false);
+        return;
+      }
 
       if (
         target instanceof Element &&
@@ -107,16 +122,65 @@ export function CustomCursor() {
       setVisible(false);
     };
 
+    const handleCursorLock = (event: Event) => {
+      const customEvent = event as CustomEvent<{ locked?: boolean }>;
+      const nextLocked = Boolean(customEvent.detail?.locked);
+
+      setLocked(nextLocked);
+
+      if (!nextLocked) {
+        setVisible(false);
+      }
+
+      if (nextLocked) {
+        setVisible(false);
+      }
+    };
+
+    const handleDoomCursorMessage = (event: MessageEvent) => {
+      if (event.data?.type !== "strangeanimals-doom-cursor") {
+        return;
+      }
+
+      const iframe = document.querySelector<HTMLIFrameElement>(
+        "iframe[data-doom-cursor-frame]",
+      );
+
+      if (!iframe) {
+        return;
+      }
+
+      if (!event.data.visible) {
+        setVisible(false);
+        return;
+      }
+
+      const rect = iframe.getBoundingClientRect();
+      x.set(rect.left + Number(event.data.x ?? 0));
+      y.set(rect.top + Number(event.data.y ?? 0));
+      setVisible(true);
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("blur", handlePointerLeave);
     document.addEventListener("mouseleave", handlePointerLeave);
+    window.addEventListener(
+      "strangeanimals-cursor-lock",
+      handleCursorLock as EventListener,
+    );
+    window.addEventListener("message", handleDoomCursorMessage);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("blur", handlePointerLeave);
       document.removeEventListener("mouseleave", handlePointerLeave);
+      window.removeEventListener(
+        "strangeanimals-cursor-lock",
+        handleCursorLock as EventListener,
+      );
+      window.removeEventListener("message", handleDoomCursorMessage);
     };
-  }, [x, y]);
+  }, [locked, x, y]);
 
   return (
     <motion.div

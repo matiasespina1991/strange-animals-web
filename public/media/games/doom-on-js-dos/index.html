@@ -25,6 +25,13 @@
         font-family: "AMI EGA 8x14", "Ubuntu Sans Mono", monospace;
       }
 
+      body,
+      body *,
+      #DOOM,
+      #DOOM * {
+        cursor: none !important;
+      }
+
       body {
         display: grid;
         height: 100vh;
@@ -110,12 +117,42 @@
       #DOOM .st-loader .equal {
         border-color: #b9b6ad;
       }
+
     </style>
   </head>
   <body>
     <div id="DOOM" class="dosbox-default"></div>
 
     <script>
+      const postCursorState = (visible, event) => {
+        window.parent.postMessage(
+          {
+            type: "strangeanimals-doom-cursor",
+            visible,
+            x: event?.clientX ?? 0,
+            y: event?.clientY ?? 0,
+          },
+          window.location.origin,
+        );
+      };
+
+      window.addEventListener("pointermove", (event) => {
+        if (event.pointerType && event.pointerType !== "mouse") {
+          postCursorState(false);
+          return;
+        }
+
+        postCursorState(true, event);
+      });
+
+      window.addEventListener("pointerleave", () => {
+        postCursorState(false);
+      });
+
+      window.addEventListener("blur", () => {
+        postCursorState(false);
+      });
+
       new Dosbox({
         id: "DOOM",
         onload(dosbox) {

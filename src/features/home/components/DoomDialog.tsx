@@ -8,6 +8,14 @@ type DoomDialogProperties = {
 };
 
 export function DoomDialog({ onClose, open }: DoomDialogProperties) {
+  const setCursorLock = (locked: boolean) => {
+    window.dispatchEvent(
+      new CustomEvent("strangeanimals-cursor-lock", {
+        detail: { locked },
+      }),
+    );
+  };
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[92]">
       <StrangeOsDialog
@@ -18,8 +26,18 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
         baseTransform="translate(-50%, -50%)"
         onClose={onClose}
       >
-        <div className="bg-black leading-none">
+        <div
+          className="bg-black leading-none"
+          data-native-cursor-surface
+          onPointerEnter={() => {
+            setCursorLock(true);
+          }}
+          onPointerLeave={() => {
+            setCursorLock(false);
+          }}
+        >
           <iframe
+            data-doom-cursor-frame
             className="block min-w-[6rem] border-0 bg-black"
             src={doomPagePath}
             style={{
