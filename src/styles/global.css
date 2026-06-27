@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'IBM3161';
-  src: url('/media/fonts/IMB3161/source.ttf') format('truetype');
+  font-family: "IBM3161";
+  src: url("/media/fonts/IMB3161/source.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -93,17 +93,16 @@ input {
   color: rgb(255 255 255 / 0.9) !important;
 }
 
+.webamp-skin-scrollbar .webamp-skin-tile:hover:not([data-selected="true"]),
 .webamp-skin-scrollbar
-  .webamp-skin-tile:hover:not([data-selected='true']),
+  .webamp-skin-tile[data-hovered="true"]:not([data-selected="true"]),
 .webamp-skin-scrollbar
-  .webamp-skin-tile[data-hovered='true']:not([data-selected='true']),
-.webamp-skin-scrollbar
-  .webamp-skin-tile[data-active='true']:not([data-selected='true']) {
+  .webamp-skin-tile[data-active="true"]:not([data-selected="true"]) {
   background: rgb(255 255 255 / 0.15) !important;
   color: rgb(255 255 255 / 0.9) !important;
 }
 
-.webamp-skin-scrollbar .webamp-skin-tile[data-selected='true'] {
+.webamp-skin-scrollbar .webamp-skin-tile[data-selected="true"] {
   background: rgb(255 255 255 / 0.9) !important;
   color: #000 !important;
 }
