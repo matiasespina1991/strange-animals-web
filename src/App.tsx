@@ -1,5 +1,6 @@
 import {HomePage} from '@/features/home/HomePage';
 import {CustomCursor} from '@/features/home/components/CustomCursor';
+import {MinesweeperPage} from '@/features/minesweeper';
 import {ReleaseIdVerifierPage} from '@/features/release-id-verifier/ReleaseIdVerifierPage';
 import {WebampSkinUploaderPage} from '@/features/webamp-skins/WebampSkinUploaderPage';
 import {usePathRoute} from '@/hooks/usePathRoute';
@@ -14,6 +15,10 @@ export function App() {
 
   if (route === '/webamp-skin-uploader') {
     page = <WebampSkinUploaderPage />;
+  }
+
+  if (route === '/minesweeper') {
+    page = <MinesweeperPage />;
   }
 
   return (

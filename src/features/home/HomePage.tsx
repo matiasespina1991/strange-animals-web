@@ -1,28 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { useTadeGameStore } from "@/store/tade-game-store";
-import type { WebampSkin } from "@/features/webamp-skins/webamp-skin-repository";
-import { BrandLogoExperience } from "./components/BrandLogoExperience";
-import { DoomDialog } from "./components/DoomDialog";
-import { TadeGame } from "./components/TadeGame";
-import { useWebampLayer } from "./components/WebampLayer";
-import { WebampSkinDialog } from "./components/WebampSkinDialog";
-import { WinampTipDialog } from "./components/WinampTipDialog";
-import { useKeyboardSequence } from "./hooks/useKeyboardSequence";
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {motion} from 'framer-motion';
+import {useTadeGameStore} from '@/store/tade-game-store';
+import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
+import {BrandLogoExperience} from './components/BrandLogoExperience';
+import {DoomDialog} from './components/DoomDialog';
+import {MinesweeperDialog} from './components/MinesweeperDialog';
+import {TadeGame} from './components/TadeGame';
+import {useWebampLayer} from './components/WebampLayer';
+import {WebampSkinDialog} from './components/WebampSkinDialog';
+import {WinampTipDialog} from './components/WinampTipDialog';
+import {useKeyboardSequence} from './hooks/useKeyboardSequence';
 
 export function HomePage() {
   const activateTade = useTadeGameStore((state) => state.activate);
-  const { applySkin, layer, openWebamp } = useWebampLayer();
+  const {applySkin, layer, openWebamp} = useWebampLayer();
   const hasOpenedWinampSkinDialog = useRef(false);
   const hasOpenedWinampTipDialog = useRef(false);
   const tipDialogTimeoutReference = useRef<number | null>(null);
   const selectedSkinReference = useRef<WebampSkin | null>(null);
   const [doomDialogOpen, setDoomDialogOpen] = useState(false);
+  const [minesweeperDialogOpen, setMinesweeperDialogOpen] = useState(false);
   const [skinDialogOpen, setSkinDialogOpen] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState<WebampSkin | null>(null);
   const [tipDialogOpen, setTipDialogOpen] = useState(false);
   const openWinamp = useCallback(() => {
-    void openWebamp("winamp", selectedSkinReference.current);
+    void openWebamp('winamp', selectedSkinReference.current);
 
     if (!hasOpenedWinampTipDialog.current) {
       hasOpenedWinampTipDialog.current = true;
@@ -41,7 +43,7 @@ export function HomePage() {
   const sequences = useMemo(
     () => ({
       lain() {
-        void openWebamp("lain");
+        void openWebamp('lain');
       },
       tade: activateTade,
     }),
@@ -65,26 +67,31 @@ export function HomePage() {
         return;
       }
 
-      if (event.code === "KeyW") {
+      if (event.code === 'KeyW') {
         event.preventDefault();
         openWinamp();
       }
 
-      if (event.code === "KeyD") {
+      if (event.code === 'KeyD' && import.meta.env.DEV) {
         event.preventDefault();
         setDoomDialogOpen(true);
       }
 
-      if (event.code === "KeyS") {
+      if (event.code === 'KeyM') {
+        event.preventDefault();
+        setMinesweeperDialogOpen(true);
+      }
+
+      if (event.code === 'KeyS') {
         event.preventDefault();
         setSkinDialogOpen(true);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [openWinamp]);
 
@@ -97,6 +104,12 @@ export function HomePage() {
         open={doomDialogOpen}
         onClose={() => {
           setDoomDialogOpen(false);
+        }}
+      />
+      <MinesweeperDialog
+        open={minesweeperDialogOpen}
+        onClose={() => {
+          setMinesweeperDialogOpen(false);
         }}
       />
       <WebampSkinDialog
@@ -120,10 +133,10 @@ export function HomePage() {
         }}
       />
       <motion.div
-        animate={{ opacity: 1 }}
+        animate={{opacity: 1}}
         className="pointer-events-auto fixed bottom-5 right-5 md:right-9 z-40 text-right font-puritan text-[0.70rem] font-light leading-none tracking-[0.05em] text-white/70 opacity-0 transition-colors duration-150 ease-out hover:text-white/85"
-        initial={{ opacity: 0 }}
-        transition={{ delay: 2.05, duration: 0.75, ease: "easeOut" }}
+        initial={{opacity: 0}}
+        transition={{delay: 2.05, duration: 0.75, ease: 'easeOut'}}
       >
         strange animals, berlin |
       </motion.div>
