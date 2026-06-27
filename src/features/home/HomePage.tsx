@@ -72,7 +72,7 @@ export function HomePage() {
         openWinamp();
       }
 
-      if (event.code === 'KeyD' && import.meta.env.DEV) {
+      if (event.code === 'KeyD') {
         event.preventDefault();
         setDoomDialogOpen(true);
       }
