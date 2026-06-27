@@ -153,21 +153,12 @@
 }
 
 .mine__digits__outer {
-  display: flex;
   width: 40px;
   height: 24px;
-  align-items: flex-start;
-  justify-content: flex-end;
   border-width: 0 1px 1px 0;
   border-style: solid;
   border-color: #fff;
-  line-height: 0;
-}
-
-.mine__digits__outer img {
-  display: block;
-  width: 13px;
-  height: 23px;
+  text-align: right;
 }
 
 .mine__face__outer {
