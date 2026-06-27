@@ -1,11 +1,11 @@
-import {useEffect, useRef, useState} from 'react';
-import {getDoomBundleUrl} from '@/features/dos-games/dos-game-repository';
-import {StrangeOsDialog} from './StrangeOsDialog';
+import { useEffect, useRef, useState } from "react";
+import { getDoomBundleUrl } from "@/features/dos-games/dos-game-repository";
+import { StrangeOsDialog } from "./StrangeOsDialog";
 
-const jsDosCssId = 'js-dos-v8-css';
-const jsDosEmulatorsScriptId = 'js-dos-v8-emulators-script';
-const jsDosScriptId = 'js-dos-v8-script';
-const jsDosBasePath = '/js-dos/';
+const jsDosCssId = "js-dos-v8-css";
+const jsDosEmulatorsScriptId = "js-dos-v8-emulators-script";
+const jsDosScriptId = "js-dos-v8-script";
+const jsDosBasePath = "/js-dos/";
 const jsDosEmulatorsPath = `${jsDosBasePath}emulators/`;
 const jsDosCssUrl = `${jsDosBasePath}js-dos.css`;
 const jsDosEmulatorsScriptUrl = `${jsDosEmulatorsPath}emulators.js`;
@@ -15,16 +15,16 @@ type DosOptions = {
   autoSave?: boolean;
   autoStart?: boolean;
   background?: string;
-  backend?: 'dosbox' | 'dosboxX';
+  backend?: "dosbox" | "dosboxX";
   backendLocked?: boolean;
   countDownStart?: boolean;
-  imageRendering?: 'pixelated' | 'smooth';
+  imageRendering?: "pixelated" | "smooth";
   kiosk?: boolean;
   mouseCapture?: boolean;
   noCloud?: boolean;
   noCursor?: boolean;
   pathPrefix?: string;
-  renderAspect?: 'AsIs' | '1/1' | '5/4' | '4/3' | '16/10' | '16/9' | 'Fit';
+  renderAspect?: "AsIs" | "1/1" | "5/4" | "4/3" | "16/10" | "16/9" | "Fit";
   theme?: string;
   url?: string;
   volume?: number;
@@ -58,9 +58,9 @@ function loadJsDosCss() {
     return;
   }
 
-  const link = document.createElement('link');
+  const link = document.createElement("link");
   link.id = jsDosCssId;
-  link.rel = 'stylesheet';
+  link.rel = "stylesheet";
   link.href = jsDosCssUrl;
   document.head.append(link);
 }
@@ -73,34 +73,34 @@ async function loadScript(id: string, url: string) {
   const existingScript = document.querySelector<HTMLScriptElement>(`#${id}`);
 
   if (existingScript) {
-    if (existingScript.dataset.loaded === 'true') {
+    if (existingScript.dataset.loaded === "true") {
       loadedScriptIds.add(id);
       return;
     }
 
     return new Promise<void>((resolve, reject) => {
-      existingScript.addEventListener('load', () => {
-        existingScript.dataset.loaded = 'true';
+      existingScript.addEventListener("load", () => {
+        existingScript.dataset.loaded = "true";
         loadedScriptIds.add(id);
         resolve();
       });
-      existingScript.addEventListener('error', () => {
+      existingScript.addEventListener("error", () => {
         reject(new Error(`Failed to load ${url}.`));
       });
     });
   }
 
   return new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.id = id;
     script.src = url;
     script.async = true;
-    script.addEventListener('load', () => {
-      script.dataset.loaded = 'true';
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
       loadedScriptIds.add(id);
       resolve();
     });
-    script.addEventListener('error', () => {
+    script.addEventListener("error", () => {
       reject(new Error(`Failed to load ${url}.`));
     });
     document.head.append(script);
@@ -130,7 +130,7 @@ async function loadJsDos() {
   await jsDosScriptPromise;
 
   if (!window.Dos) {
-    throw new Error('js-dos loaded without exposing window.Dos.');
+    throw new Error("js-dos loaded without exposing window.Dos.");
   }
 }
 
@@ -138,13 +138,13 @@ type DoomPlayerProperties = {
   open: boolean;
 };
 
-function DoomPlayer({open}: DoomPlayerProperties) {
+function DoomPlayer({ open }: DoomPlayerProperties) {
   const containerReference = useRef<HTMLDivElement | null>(null);
   const dosReference = useRef<DosProperties | null>(null);
   const [doomBundleUrl, setDoomBundleUrl] = useState<string | null>(null);
   const [runtimeReady, setRuntimeReady] = useState(false);
   const [started, setStarted] = useState(false);
-  const [status, setStatus] = useState('Loading DOOM...');
+  const [status, setStatus] = useState("Loading DOOM...");
 
   useEffect(() => {
     const container = containerReference.current;
@@ -154,7 +154,7 @@ function DoomPlayer({open}: DoomPlayerProperties) {
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event("resize"));
     });
 
     resizeObserver.observe(container);
@@ -173,7 +173,7 @@ function DoomPlayer({open}: DoomPlayerProperties) {
 
     const prepareDoom = async () => {
       try {
-        setStatus('Loading DOOM...');
+        setStatus("Loading DOOM...");
         const [doomBundleUrl] = await Promise.all([
           getDoomBundleUrl(),
           loadJsDos(),
@@ -185,12 +185,12 @@ function DoomPlayer({open}: DoomPlayerProperties) {
 
         setDoomBundleUrl(doomBundleUrl);
         setRuntimeReady(true);
-        setStatus('Click START to run DOOM.');
+        setStatus("Click START to run DOOM.");
       } catch (error) {
         console.error(error);
 
         if (!cancelled) {
-          setStatus('DOOM failed to load.');
+          setStatus("DOOM failed to load.");
         }
       }
     };
@@ -221,19 +221,19 @@ function DoomPlayer({open}: DoomPlayerProperties) {
     }
 
     try {
-      setStatus('');
+      setStatus("");
       setStarted(true);
 
       const dos = await createDosPlayer(containerReference.current, {
         autoSave: false,
         autoStart: true,
-        background: '#000000',
-        imageRendering: 'pixelated',
+        background: "#000000",
+        imageRendering: "pixelated",
         kiosk: true,
         noCloud: true,
         pathPrefix: jsDosEmulatorsPath,
-        renderAspect: '4/3',
-        theme: 'black',
+        renderAspect: "4/3",
+        theme: "black",
         url: doomBundleUrl,
       });
 
@@ -241,14 +241,14 @@ function DoomPlayer({open}: DoomPlayerProperties) {
       dos.setAutoSave?.(false);
       dos.setVolume?.(0.8);
       dosReference.current = dos;
-      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event("resize"));
       window.setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event("resize"));
       }, 250);
     } catch (error) {
       console.error(error);
       setStarted(false);
-      setStatus('DOOM failed to start.');
+      setStatus("DOOM failed to start.");
     }
   };
 
@@ -284,7 +284,7 @@ type DoomDialogProperties = {
   open: boolean;
 };
 
-export function DoomDialog({onClose, open}: DoomDialogProperties) {
+export function DoomDialog({ onClose, open }: DoomDialogProperties) {
   return (
     <div className="pointer-events-none fixed inset-0 z-[90]">
       <StrangeOsDialog
