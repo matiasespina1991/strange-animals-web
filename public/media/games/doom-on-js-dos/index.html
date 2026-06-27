@@ -32,6 +32,13 @@
         cursor: none !important;
       }
 
+      body[data-fullscreen="true"],
+      body[data-fullscreen="true"] *,
+      body[data-fullscreen="true"] #DOOM,
+      body[data-fullscreen="true"] #DOOM * {
+        cursor: auto !important;
+      }
+
       body {
         display: grid;
         height: 100vh;
@@ -65,20 +72,32 @@
 
       #DOOM > .dosbox-container > .dosbox-overlay > .dosbox-start {
         box-sizing: border-box;
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translate(-50%, -50%);
         width: 14em;
-        margin: 0 auto;
+        margin: 0;
         padding: 8px 0px 8px;
         border: 0;
-        background-color: rgb(8 8 8 / 57%);
-        color: #f2f0e8;
+        background-color: rgb(8 8 8 / 71%);
+        color: #b9b6ad;
         font-family: "AMI EGA 8x14", "Ubuntu Sans Mono", monospace;
-        font-size: 14px;
+        font-size: clamp(16px, 3.6vmin, 26px);
         letter-spacing: -0.05em;
         line-height: 1;
         text-decoration: none;
         text-align: center;
-        vertical-align: middle;
+        user-select: none;
         white-space: nowrap;
+        -webkit-user-select: none;
+      }
+
+      #DOOM > .dosbox-container > .dosbox-overlay > .dosbox-start:hover {
+        background-color: rgb(8 8 8 / 60%);
       }
 
       #DOOM > .dosbox-container > .dosbox-loader > .dosbox-loader-message {
@@ -89,10 +108,12 @@
         margin: 0;
         color: #b9b6ad;
         font-family: "AMI EGA 8x14", "Ubuntu Sans Mono", monospace;
-        font-size: 11px;
+        font-size: clamp(13px, 2.8vmin, 20px);
         letter-spacing: -0.05em;
         line-height: 1;
         text-align: left;
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       #DOOM > .dosbox-container > .dosbox-loader {
@@ -102,7 +123,9 @@
       #DOOM > .dosbox-container > .dosbox-loader * {
         color: #b9b6ad;
         font-family: "AMI EGA 8x14", "Ubuntu Sans Mono", monospace;
-        font-size: 11px;
+        font-size: clamp(13px, 2.8vmin, 20px);
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       #DOOM .st-loader {
@@ -124,6 +147,8 @@
     <div id="DOOM" class="dosbox-default"></div>
 
     <script>
+      let fullscreenActive = false;
+
       const postCursorState = (visible, event) => {
         window.parent.postMessage(
           {
@@ -142,6 +167,11 @@
           return;
         }
 
+        if (fullscreenActive) {
+          postCursorState(false);
+          return;
+        }
+
         postCursorState(true, event);
       });
 
@@ -151,6 +181,45 @@
 
       window.addEventListener("blur", () => {
         postCursorState(false);
+      });
+
+      window.addEventListener("dblclick", () => {
+        window.parent.postMessage(
+          {
+            type: "strangeanimals-doom-request-fullscreen",
+          },
+          window.location.origin,
+        );
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+          return;
+        }
+
+        window.parent.postMessage(
+          {
+            type: "strangeanimals-doom-exit-fullscreen",
+          },
+          window.location.origin,
+        );
+      });
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+
+        if (event.data?.type !== "strangeanimals-doom-fullscreen-state") {
+          return;
+        }
+
+        fullscreenActive = Boolean(event.data.fullscreenActive);
+        document.body.dataset.fullscreen = fullscreenActive ? "true" : "false";
+
+        if (fullscreenActive) {
+          postCursorState(false);
+        }
       });
 
       new Dosbox({
