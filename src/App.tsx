@@ -1,3 +1,4 @@
+import {DoomJsDosPage} from '@/features/doom-js-dos/DoomJsDosPage';
 import {HomePage} from '@/features/home/HomePage';
 import {CustomCursor} from '@/features/home/components/CustomCursor';
 import {MinesweeperPage} from '@/features/minesweeper';
@@ -19,6 +20,10 @@ export function App() {
 
   if (route === '/minesweeper') {
     page = <MinesweeperPage />;
+  }
+
+  if (route === '/doom') {
+    page = <DoomJsDosPage />;
   }
 
   return (

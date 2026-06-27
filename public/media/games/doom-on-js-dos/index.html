@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DOOM</title>
+    <script src="./js-dos-api.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #000;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+      }
+
+      #DOOM > .dosbox-container {
+        width: 640px;
+        height: 400px;
+      }
+
+      #DOOM > .dosbox-container > .dosbox-overlay {
+        background-image: url('./DOOM.png');
+      }
+
+      #DOOM > .dosbox-container > .dosbox-overlay > .dosbox-start {
+        width: 10em;
+        margin: 0 auto;
+        padding: 5px;
+        border: 0;
+        border-radius: 17px;
+        background-color: rgb(8 8 8 / 57%);
+        text-align: center;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="DOOM" class="dosbox-default"></div>
+
+    <script>
+      new Dosbox({
+        id: 'DOOM',
+        onload(dosbox) {
+          dosbox.run('./DOOM-@evilution.zip', './DOOM/DOOM.EXE');
+        },
+      });
+    </script>
+  </body>
+</html>
