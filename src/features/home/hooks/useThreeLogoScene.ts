@@ -181,7 +181,10 @@ export function useThreeLogoScene({
     const startDrag = (event: PointerEvent) => {
       const target = event.target as Element | null;
 
-      if (target?.closest('a, button, #webamp') || !isPointerOverLogo(event)) {
+      if (
+        target?.closest('a, button, #webamp, [data-strange-os-dialog]') ||
+        !isPointerOverLogo(event)
+      ) {
         return;
       }
 
