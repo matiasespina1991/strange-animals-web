@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {StrangeOsDialog} from './StrangeOsDialog';
 
 const jspaintPagePath = '/apps/jspaint/index.html';
@@ -8,15 +9,29 @@ type JspaintDialogProperties = {
 };
 
 export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
+  const [paintLoaded, setPaintLoaded] = useState(false);
+
   const hideCustomCursor = () => {
     window.dispatchEvent(new CustomEvent('strangeanimals-cursor-hide'));
   };
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[92]">
+      {!paintLoaded && (
+        <iframe
+          aria-hidden="true"
+          className="pointer-events-none fixed -left-[9999px] -top-[9999px] h-px w-px opacity-0"
+          src={jspaintPagePath}
+          tabIndex={-1}
+          title="JS Paint preload"
+          onLoad={() => {
+            setPaintLoaded(true);
+          }}
+        />
+      )}
       <StrangeOsDialog
         key={open ? 'jspaint-open' : 'jspaint-closed'}
-        open={open}
+        open={open && paintLoaded}
         title="PAINT.EXE"
         className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"

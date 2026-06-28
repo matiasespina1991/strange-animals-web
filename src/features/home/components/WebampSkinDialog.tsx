@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import {useEffect, useRef, useState} from 'react';
 import {
   listWebampSkins,
   type WebampSkin,
-} from "@/features/webamp-skins/webamp-skin-repository";
-import { StrangeOsDialog } from "./StrangeOsDialog";
+} from '@/features/webamp-skins/webamp-skin-repository';
+import {StrangeOsDialog} from './StrangeOsDialog';
 
 const getInitialListHeight = () => {
   const rootFontSize = Number.parseFloat(
@@ -16,7 +16,7 @@ const getInitialListHeight = () => {
 const hoverPreviewDelayMs = 550;
 
 const formatSkinDisplayName = (displayName: string) =>
-  displayName.replaceAll("_", " ");
+  displayName.replaceAll('_', ' ');
 
 type WebampSkinDialogProperties = {
   open: boolean;
@@ -87,7 +87,7 @@ export function WebampSkinDialog({
         }
       })
       .catch((error: unknown) => {
-        console.warn("[webamp-skins] could not load skins", error);
+        console.warn('[webamp-skins] could not load skins', error);
 
         if (active) {
           setSkins([]);
@@ -121,7 +121,7 @@ export function WebampSkinDialog({
     }
 
     skinButtonReferences.current.get(activeSkinId)?.scrollIntoView({
-      block: "nearest",
+      block: 'nearest',
     });
   }, [activeSkinId]);
 
@@ -167,13 +167,13 @@ export function WebampSkinDialog({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         event.preventDefault();
         onClose();
         return;
       }
 
-      if (event.key === "ArrowDown") {
+      if (event.key === 'ArrowDown') {
         event.preventDefault();
         clearHoverPreviewTimeout();
         ignorePointerHoverReference.current = true;
@@ -182,7 +182,7 @@ export function WebampSkinDialog({
         return;
       }
 
-      if (event.key === "ArrowUp") {
+      if (event.key === 'ArrowUp') {
         event.preventDefault();
         clearHoverPreviewTimeout();
         ignorePointerHoverReference.current = true;
@@ -191,7 +191,7 @@ export function WebampSkinDialog({
         return;
       }
 
-      if (event.key === "Enter") {
+      if (event.key === 'Enter') {
         const activeSkin = skins.find((skin) => skin.id === activeSkinId);
 
         if (!activeSkin) {
@@ -205,10 +205,10 @@ export function WebampSkinDialog({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [activeSkinId, onClose, onPreview, onSelect, open, selectedSkinId, skins]);
 
@@ -246,14 +246,14 @@ export function WebampSkinDialog({
       setResizing(false);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [resizing]);
 
@@ -269,8 +269,8 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border-[0.25px] border-white/80"
-            style={{ height: listHeight }}
+            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border border-[#d1d1d1cc]"
+            style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >
             {loading && (
@@ -296,13 +296,13 @@ export function WebampSkinDialog({
                       }
                     }}
                     type="button"
-                    data-active={active && !hoveredSkinId ? "true" : undefined}
-                    data-hovered={hovered ? "true" : undefined}
-                    data-selected={selected ? "true" : undefined}
+                    data-active={active && !hoveredSkinId ? 'true' : undefined}
+                    data-hovered={hovered ? 'true' : undefined}
+                    data-selected={selected ? 'true' : undefined}
                     className={[
-                      "webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b-[0.25px] border-white/80 px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0",
-                      selected ? "text-black" : "text-white/90",
-                    ].join(" ")}
+                      'webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b border-[#d1d1d1cc] px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
+                      selected ? 'text-black' : 'text-white/90',
+                    ].join(' ')}
                     onClick={() => {
                       selectedSkinIdReference.current = skin.id;
                       setHoveredSkinId(null);
@@ -349,7 +349,7 @@ export function WebampSkinDialog({
         <div
           aria-hidden="true"
           data-native-resize-cursor
-          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b-[0.25px] border-r-[0.25px] border-white/80 bg-black"
+          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-[#d1d1d1cc] bg-black"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
