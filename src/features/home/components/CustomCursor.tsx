@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import {useEffect, useState} from 'react';
+import {motion, useMotionValue, useSpring} from 'framer-motion';
 
 export function CustomCursor() {
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const smoothX = useSpring(x, { damping: 18, stiffness: 650, mass: 0.18 });
-  const smoothY = useSpring(y, { damping: 18, stiffness: 650, mass: 0.18 });
+  const smoothX = useSpring(x, {damping: 18, stiffness: 650, mass: 0.18});
+  const smoothY = useSpring(y, {damping: 18, stiffness: 650, mass: 0.18});
   const [locked, setLocked] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -14,6 +14,14 @@ export function CustomCursor() {
       const target = event.target;
 
       if (!(target instanceof Element)) {
+        return false;
+      }
+
+      if (
+        target.closest(
+          '[data-custom-scrollbar-content], [data-webamp-skin-scrollbar-track]',
+        )
+      ) {
         return false;
       }
 
@@ -26,7 +34,7 @@ export function CustomCursor() {
         const rect = element.getBoundingClientRect();
 
         const hasVerticalScrollbar =
-          (style.overflowY === "auto" || style.overflowY === "scroll") &&
+          (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
           element.scrollHeight > element.clientHeight;
 
         if (hasVerticalScrollbar) {
@@ -42,7 +50,7 @@ export function CustomCursor() {
         }
 
         const hasHorizontalScrollbar =
-          (style.overflowX === "auto" || style.overflowX === "scroll") &&
+          (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
           element.scrollWidth > element.clientWidth;
 
         if (hasHorizontalScrollbar) {
@@ -77,7 +85,7 @@ export function CustomCursor() {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") {
+      if (event.pointerType !== 'mouse') {
         setVisible(false);
         return;
       }
@@ -92,7 +100,7 @@ export function CustomCursor() {
       if (
         target instanceof HTMLIFrameElement ||
         (target instanceof Element &&
-          target.closest("[data-native-cursor-surface]"))
+          target.closest('[data-native-cursor-surface]'))
       ) {
         setVisible(false);
         return;
@@ -101,7 +109,7 @@ export function CustomCursor() {
       if (
         target instanceof Element &&
         target.closest(
-          "#webamp, #webamp-context-menu, [data-native-resize-cursor]",
+          '#webamp, #webamp-context-menu, [data-native-resize-cursor]',
         )
       ) {
         setVisible(false);
@@ -127,7 +135,7 @@ export function CustomCursor() {
     };
 
     const handleCursorLock = (event: Event) => {
-      const customEvent = event as CustomEvent<{ locked?: boolean }>;
+      const customEvent = event as CustomEvent<{locked?: boolean}>;
       const nextLocked = Boolean(customEvent.detail?.locked);
 
       setLocked(nextLocked);
@@ -142,12 +150,12 @@ export function CustomCursor() {
     };
 
     const handleDoomCursorMessage = (event: MessageEvent) => {
-      if (event.data?.type !== "strangeanimals-doom-cursor") {
+      if (event.data?.type !== 'strangeanimals-doom-cursor') {
         return;
       }
 
       const iframe = document.querySelector<HTMLIFrameElement>(
-        "iframe[data-doom-cursor-frame]",
+        'iframe[data-doom-cursor-frame]',
       );
 
       if (!iframe) {
@@ -165,26 +173,29 @@ export function CustomCursor() {
       setVisible(true);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("blur", handlePointerLeave);
-    document.addEventListener("mouseleave", handlePointerLeave);
-    window.addEventListener("strangeanimals-cursor-hide", handleCursorHide);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('blur', handlePointerLeave);
+    document.addEventListener('mouseleave', handlePointerLeave);
+    window.addEventListener('strangeanimals-cursor-hide', handleCursorHide);
     window.addEventListener(
-      "strangeanimals-cursor-lock",
+      'strangeanimals-cursor-lock',
       handleCursorLock as EventListener,
     );
-    window.addEventListener("message", handleDoomCursorMessage);
+    window.addEventListener('message', handleDoomCursorMessage);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("blur", handlePointerLeave);
-      document.removeEventListener("mouseleave", handlePointerLeave);
-      window.removeEventListener("strangeanimals-cursor-hide", handleCursorHide);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('blur', handlePointerLeave);
+      document.removeEventListener('mouseleave', handlePointerLeave);
       window.removeEventListener(
-        "strangeanimals-cursor-lock",
+        'strangeanimals-cursor-hide',
+        handleCursorHide,
+      );
+      window.removeEventListener(
+        'strangeanimals-cursor-lock',
         handleCursorLock as EventListener,
       );
-      window.removeEventListener("message", handleDoomCursorMessage);
+      window.removeEventListener('message', handleDoomCursorMessage);
     };
   }, [locked, x, y]);
 
@@ -192,22 +203,22 @@ export function CustomCursor() {
     <motion.div
       aria-hidden="true"
       className="pointer-events-none fixed left-0 top-0 z-[999]"
-      animate={{ opacity: visible ? 1 : 0 }}
-      style={{ x: smoothX, y: smoothY }}
-      transition={{ duration: 0.06, ease: "easeOut" }}
+      animate={{opacity: visible ? 1 : 0}}
+      style={{x: smoothX, y: smoothY}}
+      transition={{duration: 0.06, ease: 'easeOut'}}
     >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-0 top-0 h-10 w-10 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.022)_0%,rgba(255,255,255,0.01)_28%,rgba(255,255,255,0.004)_48%,rgba(255,255,255,0)_72%)]"
         style={{
-          transform: "translate(calc(-50% + 0.08rem), calc(-50% + 0.58rem))",
+          transform: 'translate(calc(-50% + 0.08rem), calc(-50% + 0.58rem))',
         }}
       />
       <svg
         aria-hidden="true"
         className="-translate-x-1/2 drop-shadow-[0_0_4px_rgba(255,255,255,0.18)]"
         style={{
-          transform: "translate(-50%, calc(-50% + 0.7rem)) rotate(22deg)",
+          transform: 'translate(-50%, calc(-50% + 0.7rem)) rotate(22deg)',
         }}
         fill="none"
         height="22"

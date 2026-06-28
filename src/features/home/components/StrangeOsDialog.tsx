@@ -288,7 +288,7 @@ export function StrangeOsDialog({
               <button
                 type="button"
                 aria-label="Close dialog"
-                className="relative flex h-5 w-5 shrink-0 items-center justify-center border border-[#d1d1d1cc] bg-black text-white/90 hover:bg-white/20"
+                className="relative flex h-5 w-5 shrink-0 items-center justify-center border border-[#d1d1d1cc] bg-black text-white/90 shadow-[1px_1px_0_0_rgba(255,255,255,0.78)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-px hover:translate-y-px hover:shadow-[0_0_0_0_rgba(255,255,255,0)] active:translate-x-px active:translate-y-px active:shadow-[0_0_0_0_rgba(255,255,255,0)]"
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose();
