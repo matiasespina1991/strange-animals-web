@@ -280,13 +280,7 @@ export function StrangeOsDialog({
               <button
                 type="button"
                 aria-label="Close dialog"
-                className="flex h-6 w-6 shrink-0 items-center justify-center border-[0.75px] border-white/80 bg-black text-[0.85rem] tracking-normal leading-none font-normal text-white/90 hover:bg-white/20"
-                style={{
-                  fontFamily:
-                    '"AMI EGA 8x14", Ubuntu Sans Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontWeight: 400,
-                  letterSpacing: "0",
-                }}
+                className="relative flex h-6 w-6 shrink-0 items-center justify-center border-[0.75px] border-white/80 bg-black text-white/90 hover:bg-white/20"
                 onClick={(event) => {
                   event.stopPropagation();
                   onClose();
@@ -295,7 +289,14 @@ export function StrangeOsDialog({
                   event.stopPropagation();
                 }}
               >
-                ×
+                <span
+                  aria-hidden="true"
+                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.82rem] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current"
+                />
+                <span
+                  aria-hidden="true"
+                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.82rem] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current"
+                />
               </button>
             </header>
             {children}

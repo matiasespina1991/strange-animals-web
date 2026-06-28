@@ -34,6 +34,8 @@ body
   *:not(#webamp):not(#webamp *):not(#webamp-context-menu):not(
     #webamp-context-menu *
   ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *):not(
+    [data-native-cursor-surface]
+  ):not([data-native-cursor-surface] *):not(
     .doom-jsdos-container canvas
   ):not(.doom-jsdos-container canvas *) {
   cursor: none !important;

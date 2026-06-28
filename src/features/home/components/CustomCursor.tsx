@@ -122,6 +122,10 @@ export function CustomCursor() {
       setVisible(false);
     };
 
+    const handleCursorHide = () => {
+      setVisible(false);
+    };
+
     const handleCursorLock = (event: Event) => {
       const customEvent = event as CustomEvent<{ locked?: boolean }>;
       const nextLocked = Boolean(customEvent.detail?.locked);
@@ -164,6 +168,7 @@ export function CustomCursor() {
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("blur", handlePointerLeave);
     document.addEventListener("mouseleave", handlePointerLeave);
+    window.addEventListener("strangeanimals-cursor-hide", handleCursorHide);
     window.addEventListener(
       "strangeanimals-cursor-lock",
       handleCursorLock as EventListener,
@@ -174,6 +179,7 @@ export function CustomCursor() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("blur", handlePointerLeave);
       document.removeEventListener("mouseleave", handlePointerLeave);
+      window.removeEventListener("strangeanimals-cursor-hide", handleCursorHide);
       window.removeEventListener(
         "strangeanimals-cursor-lock",
         handleCursorLock as EventListener,
