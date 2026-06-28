@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { StrangeOsDialog } from "./StrangeOsDialog";
+import {useEffect, useRef, useState} from 'react';
+import {StrangeOsDialog} from './StrangeOsDialog';
 
-const doomPagePath = "/media/games/doom-on-js-dos/index.html";
+const doomPagePath = '/media/games/doom-on-js-dos/index.html';
 
 const doomControls = [
-  "Arrow Up: move forward",
-  "Arrow Down: move backward",
-  "Arrow Left / Right: turn",
-  "A / D: strafe left / right",
-  "Alt + arrows: strafe modifier",
-  "S: fire",
-  "W: use / open",
-  "Space: run",
-  "Mouse: disabled.",
+  'Arrow Up: move forward',
+  'Arrow Down: move backward',
+  'Arrow Left / Right: turn',
+  'A / D: strafe left / right',
+  'Alt + arrows: strafe modifier',
+  'S: fire',
+  'W: use / open',
+  'Space: run',
+  'Mouse: disabled.',
 ];
 
 type DoomDialogProperties = {
@@ -20,15 +20,15 @@ type DoomDialogProperties = {
   open: boolean;
 };
 
-export function DoomDialog({ onClose, open }: DoomDialogProperties) {
+export function DoomDialog({onClose, open}: DoomDialogProperties) {
   const fullscreenReference = useRef<HTMLDivElement>(null);
   const iframeReference = useRef<HTMLIFrameElement>(null);
   const [controlsOpen, setControlsOpen] = useState(true);
 
   const setCursorLock = (locked: boolean) => {
     window.dispatchEvent(
-      new CustomEvent("strangeanimals-cursor-lock", {
-        detail: { locked },
+      new CustomEvent('strangeanimals-cursor-lock', {
+        detail: {locked},
       }),
     );
   };
@@ -39,21 +39,22 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
         return;
       }
 
-      if (event.data?.type === "strangeanimals-doom-request-fullscreen") {
+      if (event.data?.type === 'strangeanimals-doom-request-fullscreen') {
         void fullscreenReference.current?.requestFullscreen?.();
       }
 
-      if (event.data?.type === "strangeanimals-doom-exit-fullscreen") {
-        if (document.fullscreenElement === fullscreenReference.current) {
-          void document.exitFullscreen?.();
-        }
+      if (
+        event.data?.type === 'strangeanimals-doom-exit-fullscreen' &&
+        document.fullscreenElement === fullscreenReference.current
+      ) {
+        void document.exitFullscreen?.();
       }
     };
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
 
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 
@@ -64,17 +65,17 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
 
       iframeReference.current?.contentWindow?.postMessage(
         {
-          type: "strangeanimals-doom-fullscreen-state",
+          type: 'strangeanimals-doom-fullscreen-state',
           fullscreenActive,
         },
         window.location.origin,
       );
     };
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -85,15 +86,16 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
   }, [open]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[92]">
+    <div className="pointer-events-none fixed inset-0">
       <StrangeOsDialog
         open={open}
         title="DOOM.exe"
+        windowId="doom"
         className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"
         baseTransform="translate(-50%, -50%)"
-        defaultSize={{ width: 640, height: 432 }}
-        minSize={{ width: 480, height: 332 }}
+        defaultSize={{width: 640, height: 432}}
+        minSize={{width: 480, height: 332}}
         onClose={onClose}
         resizeAspectRatio={8 / 5}
         resizeChromeHeight={32}
@@ -126,11 +128,12 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
       <StrangeOsDialog
         open={open && controlsOpen}
         title="Info"
+        windowId="doom-info"
         className="left-[calc(50%+21rem)] top-1/2 max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"
         baseTransform="translate(0, -50%)"
-        defaultSize={{ width: 247, height: 360 }}
-        minSize={{ width: 190, height: 320 }}
+        defaultSize={{width: 247, height: 360}}
+        minSize={{width: 190, height: 320}}
         onClose={() => {
           setControlsOpen(false);
         }}

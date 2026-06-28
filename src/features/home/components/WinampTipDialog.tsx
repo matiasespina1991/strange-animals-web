@@ -8,10 +8,11 @@ type WinampTipDialogProperties = {
 
 export function WinampTipDialog({onClose, open}: WinampTipDialogProperties) {
   return (
-    <div className="pointer-events-none fixed inset-0 z-[85]">
+    <div className="pointer-events-none fixed inset-0">
       <StrangeOsDialog
         open={open}
         title="TIP!"
+        windowId="winamp-tip"
         titleClassName="italic"
         className="left-[55%] top-[calc(78%-2rem)] w-[min(34rem,calc(100vw-2rem))]"
         baseTransform="translateX(calc(-50% - 2rem))"

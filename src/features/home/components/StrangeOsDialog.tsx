@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState, type ReactNode} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import {bringWindowToFront, useWindowZIndex} from '../hooks/useWindowStack';
 
 type DialogSize = {
   height: number;
@@ -22,6 +23,7 @@ type StrangeOsDialogProperties = {
   resizable?: boolean;
   title?: string;
   titleClassName?: string;
+  windowId: string;
 };
 
 export function StrangeOsDialog({
@@ -39,11 +41,13 @@ export function StrangeOsDialog({
   resizeKeepsTopLeft = true,
   resizable = false,
   title,
+  windowId,
 }: StrangeOsDialogProperties) {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
   const [position, setPosition] = useState({x: 0, y: 0});
   const [size, setSize] = useState<DialogSize | null>(defaultSize ?? null);
+  const zIndex = useWindowZIndex(windowId, open);
   const dragReference = useRef<{
     pointerId: number;
     startPointerX: number;
@@ -232,6 +236,10 @@ export function StrangeOsDialog({
             ]
               .filter(Boolean)
               .join(' '),
+            zIndex,
+          }}
+          onPointerDownCapture={() => {
+            bringWindowToFront(windowId);
           }}
           onPointerLeave={onPointerLeave}
         >

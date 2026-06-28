@@ -373,10 +373,11 @@ export function WebampSkinDialog({
   }, [scrollListFromScrollbarPointer]);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[90]">
+    <div className="pointer-events-none fixed inset-0">
       <StrangeOsDialog
         open={open && loaded}
         title="winamp skins"
+        windowId="winamp-skins"
         className="right-[3.75rem] top-1/2"
         baseTransform="translateY(-12rem)"
         onClose={onClose}
@@ -510,7 +511,7 @@ export function WebampSkinDialog({
         <div
           aria-hidden="true"
           data-native-resize-cursor
-          className="absolute bottom-0 right-0 size-3 cursor-nwse-resize border-b border-r border-[#d1d1d1cc] bg-black"
+          className="absolute bottom-0 right-0 size-5 cursor-nwse-resize bg-transparent"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -522,7 +523,9 @@ export function WebampSkinDialog({
             };
             setResizing(true);
           }}
-        />
+        >
+          <span className="pointer-events-none absolute bottom-[3px] right-[3px] h-[8px] w-[8px] border-b border-r border-[#d1d1d1cc]" />
+        </div>
       </StrangeOsDialog>
     </div>
   );

@@ -16,7 +16,7 @@ export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[92]">
+    <div className="pointer-events-none fixed inset-0">
       {!paintLoaded && (
         <iframe
           aria-hidden="true"
@@ -33,6 +33,7 @@ export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
         key={open ? 'jspaint-open' : 'jspaint-closed'}
         open={open && paintLoaded}
         title="PAINT.EXE"
+        windowId="paint"
         className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"
         baseTransform="translate(-50%, -50%)"
