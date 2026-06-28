@@ -171,7 +171,7 @@ export function HomePage() {
       />
       <motion.div
         animate={{opacity: 1}}
-        className="pointer-events-auto fixed bottom-5 right-5 md:right-9 z-40 text-right font-puritan text-[0.70rem] font-light leading-none tracking-[0.05em] text-white/70 opacity-0 transition-colors duration-150 ease-out hover:text-white/85"
+        className="pointer-events-auto fixed bottom-5 right-5 md:right-9 z-40 text-right font-puritan text-[0.70rem] font-light leading-none tracking-[0.035em] text-white/70 opacity-0 transition-colors duration-150 ease-out hover:text-white/85"
         initial={{opacity: 0}}
         transition={{delay: 2.05, duration: 0.75, ease: 'easeOut'}}
       >

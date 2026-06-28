@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import * as THREE from 'three';
 import {useMediaAssets} from '@/media/react/MediaProvider';
-import {gameConfig} from '../lib/game-config';
 import {
   getViewportSizeAtZ,
   getWorldPositionFromPointerAtZ,
@@ -10,6 +9,7 @@ import {
 type UseThreeLogoSceneOptions = {
   canvasReference: React.RefObject<HTMLCanvasElement>;
   backdropReference: React.RefObject<HTMLDivElement>;
+  logoWidthPx: number;
 };
 
 const vertexShader = `
@@ -57,8 +57,15 @@ const fragmentShader = `
 export function useThreeLogoScene({
   canvasReference,
   backdropReference,
+  logoWidthPx,
 }: UseThreeLogoSceneOptions) {
   const assets = useMediaAssets();
+  const logoWidthPxReference = useRef(logoWidthPx);
+
+  useEffect(() => {
+    logoWidthPxReference.current = logoWidthPx;
+    window.dispatchEvent(new Event('strange-logo-resize'));
+  }, [logoWidthPx]);
 
   useEffect(() => {
     const canvas = canvasReference.current;
@@ -95,16 +102,7 @@ export function useThreeLogoScene({
     camera.position.z = 1;
     renderer.setClearColor(0x00_00_00, 0);
 
-    const getLogoMaxWidthPx = () => {
-      const rootFontSize = Number.parseFloat(
-        getComputedStyle(document.documentElement).fontSize,
-      );
-
-      return Math.min(
-        gameConfig.logoMaxWidthRem * rootFontSize,
-        window.innerWidth - 32,
-      );
-    };
+    const getLogoWidthPx = () => logoWidthPxReference.current;
 
     const updateBackdrop = () => {
       const backdrop = backdropReference.current;
@@ -116,11 +114,29 @@ export function useThreeLogoScene({
       const viewport = getViewportSizeAtZ(camera, 0);
       const offsetX = (logoOffset.x / viewport.width) * window.innerWidth;
       const offsetY = (-logoOffset.y / viewport.height) * window.innerHeight;
-      const logoHalfHeight = getLogoMaxWidthPx() / logoAspectRatio / 2;
+      const logoWidth = getLogoWidthPx();
+      const logoHalfHeight = logoWidth / logoAspectRatio / 2;
 
       backdrop.style.setProperty('--brand-offset-x', `${offsetX}px`);
       backdrop.style.setProperty('--brand-offset-y', `${offsetY}px`);
+      backdrop.style.setProperty('--logo-width', `${logoWidth}px`);
       backdrop.style.setProperty('--logo-half-height', `${logoHalfHeight}px`);
+      document.documentElement.style.setProperty(
+        '--brand-offset-x',
+        `${offsetX}px`,
+      );
+      document.documentElement.style.setProperty(
+        '--brand-offset-y',
+        `${offsetY}px`,
+      );
+      document.documentElement.style.setProperty(
+        '--logo-width',
+        `${logoWidth}px`,
+      );
+      document.documentElement.style.setProperty(
+        '--logo-half-height',
+        `${logoHalfHeight}px`,
+      );
     };
 
     const keepLogoInsideViewport = () => {
@@ -154,8 +170,7 @@ export function useThreeLogoScene({
 
       if (logoMesh) {
         const viewport = getViewportSizeAtZ(camera, 0);
-        const width =
-          (getLogoMaxWidthPx() / window.innerWidth) * viewport.width;
+        const width = (getLogoWidthPx() / window.innerWidth) * viewport.width;
         logoMesh.scale.set(width, width / logoAspectRatio, 1);
         keepLogoInsideViewport();
       }
@@ -182,7 +197,9 @@ export function useThreeLogoScene({
       const target = event.target as Element | null;
 
       if (
-        target?.closest('a, button, #webamp, [data-strange-os-dialog]') ||
+        target?.closest(
+          'a, button, #webamp, [data-strange-os-dialog], [data-logo-resize-handle]',
+        ) ||
         !isPointerOverLogo(event)
       ) {
         return;
@@ -246,6 +263,7 @@ export function useThreeLogoScene({
     updateSize();
     animate();
     window.addEventListener('resize', updateSize);
+    window.addEventListener('strange-logo-resize', updateSize);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerdown', startDrag);
     window.addEventListener('pointermove', drag);
@@ -255,11 +273,16 @@ export function useThreeLogoScene({
     return () => {
       cancelAnimationFrame(animationFrame);
       window.removeEventListener('resize', updateSize);
+      window.removeEventListener('strange-logo-resize', updateSize);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('pointerdown', startDrag);
       window.removeEventListener('pointermove', drag);
       window.removeEventListener('pointerup', stopDrag);
       window.removeEventListener('pointercancel', stopDrag);
+      document.documentElement.style.removeProperty('--brand-offset-x');
+      document.documentElement.style.removeProperty('--brand-offset-y');
+      document.documentElement.style.removeProperty('--logo-width');
+      document.documentElement.style.removeProperty('--logo-half-height');
       renderer.dispose();
     };
   }, [assets.images.logo, backdropReference, canvasReference]);
