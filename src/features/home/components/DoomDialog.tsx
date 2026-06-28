@@ -86,7 +86,7 @@ export function DoomDialog({onClose, open}: DoomDialogProperties) {
   }, [open]);
 
   return (
-    <div className="pointer-events-none fixed inset-0">
+    <>
       <StrangeOsDialog
         open={open}
         title="DOOM.exe"
@@ -149,6 +149,6 @@ export function DoomDialog({onClose, open}: DoomDialogProperties) {
           </div>
         </div>
       </StrangeOsDialog>
-    </div>
+    </>
   );
 }

@@ -61,9 +61,16 @@ export function useThreeLogoScene({
 }: UseThreeLogoSceneOptions) {
   const assets = useMediaAssets();
   const logoWidthPxReference = useRef(logoWidthPx);
+  const previousLogoWidthPxReference = useRef(logoWidthPx);
+  const pendingTopLeftAnchoredResizeReference = useRef(false);
 
   useEffect(() => {
+    if (logoWidthPx !== previousLogoWidthPxReference.current) {
+      pendingTopLeftAnchoredResizeReference.current = true;
+    }
+
     logoWidthPxReference.current = logoWidthPx;
+    previousLogoWidthPxReference.current = logoWidthPx;
     window.dispatchEvent(new Event('strange-logo-resize'));
   }, [logoWidthPx]);
 
@@ -169,9 +176,26 @@ export function useThreeLogoScene({
       renderer.setSize(window.innerWidth, window.innerHeight, false);
 
       if (logoMesh) {
+        const previousWidth = logoMesh.scale.x;
+        const previousHeight = logoMesh.scale.y;
         const viewport = getViewportSizeAtZ(camera, 0);
         const width = (getLogoWidthPx() / window.innerWidth) * viewport.width;
-        logoMesh.scale.set(width, width / logoAspectRatio, 1);
+        const nextHeight = width / logoAspectRatio;
+
+        if (
+          pendingTopLeftAnchoredResizeReference.current &&
+          previousWidth > 0 &&
+          previousHeight > 0
+        ) {
+          const deltaWidth = width - previousWidth;
+          const deltaHeight = nextHeight - previousHeight;
+
+          logoOffset.x += deltaWidth / 2;
+          logoOffset.y -= deltaHeight / 2;
+          pendingTopLeftAnchoredResizeReference.current = false;
+        }
+
+        logoMesh.scale.set(width, nextHeight, 1);
         keepLogoInsideViewport();
       }
     };
