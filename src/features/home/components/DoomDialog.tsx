@@ -88,7 +88,7 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
     <div className="pointer-events-none fixed inset-0 z-[92]">
       <StrangeOsDialog
         open={open}
-        title="DOOM"
+        title="DOOM.exe"
         className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"
         baseTransform="translate(-50%, -50%)"
@@ -119,7 +119,7 @@ export function DoomDialog({ onClose, open }: DoomDialogProperties) {
             data-doom-cursor-frame
             className="block h-full min-h-0 w-full min-w-[24rem] border-0 bg-black"
             src={doomPagePath}
-            title="DOOM"
+            title="DOOM.exe"
           />
         </div>
       </StrangeOsDialog>
