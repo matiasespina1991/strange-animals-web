@@ -1,4 +1,4 @@
-const doomPagePath = '/media/games/doom-on-js-dos/index.html';
+const doomPagePath = "/media/games/doom-on-js-dos/index.html";
 
 export function DoomJsDosPage() {
   return (
