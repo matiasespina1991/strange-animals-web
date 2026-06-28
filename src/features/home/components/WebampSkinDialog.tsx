@@ -1,4 +1,5 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {motion, useMotionValue} from 'framer-motion';
 import {
   listWebampSkins,
   type WebampSkin,
@@ -14,9 +15,16 @@ const getInitialListHeight = () => {
 };
 
 const hoverPreviewDelayMs = 550;
+const scrollbarRailWidth = 8.4;
 
 const formatSkinDisplayName = (displayName: string) =>
   displayName.replaceAll('_', ' ');
+
+type ScrollMetrics = {
+  clientHeight: number;
+  scrollHeight: number;
+  scrollTop: number;
+};
 
 type WebampSkinDialogProperties = {
   open: boolean;
@@ -43,7 +51,19 @@ export function WebampSkinDialog({
   const [listHeight, setListHeight] = useState(
     defaultListHeightReference.current,
   );
+  const scrollbarThumbHeight = useMotionValue(18);
+  const scrollbarThumbTop = useMotionValue(0);
   const skinButtonReferences = useRef(new Map<string, HTMLButtonElement>());
+  const scrollContainerReference = useRef<HTMLDivElement>(null);
+  const scrollMetricsReference = useRef<ScrollMetrics>({
+    clientHeight: 1,
+    scrollHeight: 1,
+    scrollTop: 0,
+  });
+  const scrollbarDragReference = useRef<{
+    pointerId: number;
+    pointerOffsetY: number;
+  } | null>(null);
   const hoverPreviewTimeoutReference = useRef<number | null>(null);
   const ignorePointerHoverReference = useRef(false);
   const selectedSkinIdReference = useRef<string | null>(selectedSkinId);
@@ -59,6 +79,64 @@ export function WebampSkinDialog({
       hoverPreviewTimeoutReference.current = null;
     }
   };
+
+  const updateScrollMetrics = useCallback(() => {
+    const scrollContainer = scrollContainerReference.current;
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    const nextScrollMetrics = {
+      clientHeight: scrollContainer.clientHeight,
+      scrollHeight: scrollContainer.scrollHeight,
+      scrollTop: scrollContainer.scrollTop,
+    };
+    const nextThumbMetrics = getScrollbarThumbMetrics(nextScrollMetrics);
+
+    scrollMetricsReference.current = nextScrollMetrics;
+    scrollbarThumbHeight.set(nextThumbMetrics.height);
+    scrollbarThumbTop.set(nextThumbMetrics.top);
+  }, [scrollbarThumbHeight, scrollbarThumbTop]);
+
+  const scrollListFromScrollbarPointer = useCallback(
+    (clientY: number, pointerOffsetY: number) => {
+      const scrollContainer = scrollContainerReference.current;
+
+      if (!scrollContainer) {
+        return;
+      }
+
+      const track = scrollContainer.parentElement?.querySelector(
+        '[data-webamp-skin-scrollbar-track]',
+      );
+
+      if (!(track instanceof HTMLElement)) {
+        return;
+      }
+
+      const scrollMetrics = scrollMetricsReference.current;
+      const scrollbarThumbMetrics = getScrollbarThumbMetrics(scrollMetrics);
+      const trackRect = track.getBoundingClientRect();
+      const nextThumbTop = Math.min(
+        Math.max(clientY - trackRect.top - pointerOffsetY, 0),
+        Math.max(scrollMetrics.clientHeight - scrollbarThumbMetrics.height, 0),
+      );
+      const scrollableDistance = Math.max(
+        scrollMetrics.scrollHeight - scrollMetrics.clientHeight,
+        0,
+      );
+      const thumbTravelDistance = Math.max(
+        scrollMetrics.clientHeight - scrollbarThumbMetrics.height,
+        1,
+      );
+
+      scrollContainer.scrollTop =
+        (nextThumbTop / thumbTravelDistance) * scrollableDistance;
+      updateScrollMetrics();
+    },
+    [updateScrollMetrics],
+  );
 
   const scheduleHoverPreview = (skin: WebampSkin) => {
     clearHoverPreviewTimeout();
@@ -106,6 +184,10 @@ export function WebampSkinDialog({
   }, [open]);
 
   useEffect(() => clearHoverPreviewTimeout, []);
+
+  useEffect(() => {
+    window.requestAnimationFrame(updateScrollMetrics);
+  }, [listHeight, loaded, skins.length, updateScrollMetrics]);
 
   useEffect(() => {
     selectedSkinIdReference.current = selectedSkinId;
@@ -257,6 +339,39 @@ export function WebampSkinDialog({
     };
   }, [resizing]);
 
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const drag = scrollbarDragReference.current;
+
+      if (!drag || event.pointerId !== drag.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+      scrollListFromScrollbarPointer(event.clientY, drag.pointerOffsetY);
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const drag = scrollbarDragReference.current;
+
+      if (!drag || event.pointerId !== drag.pointerId) {
+        return;
+      }
+
+      scrollbarDragReference.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [scrollListFromScrollbarPointer]);
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[90]">
       <StrangeOsDialog
@@ -269,81 +384,127 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-scroll overflow-x-hidden border border-[#d1d1d1cc]"
+            className="relative border border-[#d1d1d1cc]"
             style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >
-            {loading && (
-              <p className="p-2 text-[0.85rem] uppercase">loading...</p>
-            )}
-            {!loading && skins.length === 0 && (
-              <p className="p-2 text-[0.85rem] uppercase">no skins</p>
-            )}
-            {!loading &&
-              skins.map((skin) => {
-                const active = skin.id === activeSkinId;
-                const hovered = skin.id === hoveredSkinId;
-                const selected = skin.id === selectedSkinId;
+            <div
+              ref={scrollContainerReference}
+              className="webamp-skin-scrollbar h-full overflow-y-scroll overflow-x-hidden"
+              data-custom-scrollbar-content
+              style={{paddingRight: scrollbarRailWidth}}
+              onScroll={updateScrollMetrics}
+            >
+              {loading && (
+                <p className="p-2 text-[0.85rem] uppercase">loading...</p>
+              )}
+              {!loading && skins.length === 0 && (
+                <p className="p-2 text-[0.85rem] uppercase">no skins</p>
+              )}
+              {!loading &&
+                skins.map((skin) => {
+                  const active = skin.id === activeSkinId;
+                  const hovered = skin.id === hoveredSkinId;
+                  const selected = skin.id === selectedSkinId;
 
-                return (
-                  <button
-                    key={skin.id}
-                    ref={(node) => {
-                      if (node) {
-                        skinButtonReferences.current.set(skin.id, node);
-                      } else {
-                        skinButtonReferences.current.delete(skin.id);
+                  return (
+                    <button
+                      key={skin.id}
+                      ref={(node) => {
+                        if (node) {
+                          skinButtonReferences.current.set(skin.id, node);
+                        } else {
+                          skinButtonReferences.current.delete(skin.id);
+                        }
+                      }}
+                      type="button"
+                      data-active={
+                        active && !hoveredSkinId ? 'true' : undefined
                       }
-                    }}
-                    type="button"
-                    data-active={active && !hoveredSkinId ? 'true' : undefined}
-                    data-hovered={hovered ? 'true' : undefined}
-                    data-selected={selected ? 'true' : undefined}
-                    className={[
-                      'webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b border-[#d1d1d1cc] px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
-                      selected ? 'text-black' : 'text-white/90',
-                    ].join(' ')}
-                    onClick={() => {
-                      selectedSkinIdReference.current = skin.id;
-                      setHoveredSkinId(null);
-                      clearHoverPreviewTimeout();
-                      setActiveSkinId(skin.id);
-                      onSelect(skin);
-                    }}
-                    onDoubleClick={() => {
-                      selectedSkinIdReference.current = skin.id;
-                      setHoveredSkinId(null);
-                      clearHoverPreviewTimeout();
-                      setActiveSkinId(skin.id);
-                      onSelect(skin);
-                      onClose();
-                    }}
-                    onFocus={() => {
-                      setActiveSkinId(skin.id);
-                      onPreview(skin);
-                    }}
-                    onPointerMove={() => {
-                      ignorePointerHoverReference.current = false;
-                      if (hoveredSkinId === skin.id) {
-                        return;
-                      }
+                      data-hovered={hovered ? 'true' : undefined}
+                      data-selected={selected ? 'true' : undefined}
+                      className={[
+                        'webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b border-[#d1d1d1cc] px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
+                        selected ? 'text-black' : 'text-white/90',
+                      ].join(' ')}
+                      onClick={() => {
+                        selectedSkinIdReference.current = skin.id;
+                        setHoveredSkinId(null);
+                        clearHoverPreviewTimeout();
+                        setActiveSkinId(skin.id);
+                        onSelect(skin);
+                      }}
+                      onDoubleClick={() => {
+                        selectedSkinIdReference.current = skin.id;
+                        setHoveredSkinId(null);
+                        clearHoverPreviewTimeout();
+                        setActiveSkinId(skin.id);
+                        onSelect(skin);
+                        onClose();
+                      }}
+                      onFocus={() => {
+                        setActiveSkinId(skin.id);
+                        onPreview(skin);
+                      }}
+                      onPointerMove={() => {
+                        ignorePointerHoverReference.current = false;
+                        if (hoveredSkinId === skin.id) {
+                          return;
+                        }
 
-                      setHoveredSkinId(skin.id);
-                      scheduleHoverPreview(skin);
-                    }}
-                    onMouseEnter={() => {
-                      if (ignorePointerHoverReference.current) {
-                        return;
-                      }
+                        setHoveredSkinId(skin.id);
+                        scheduleHoverPreview(skin);
+                      }}
+                      onMouseEnter={() => {
+                        if (ignorePointerHoverReference.current) {
+                          return;
+                        }
 
-                      setHoveredSkinId(skin.id);
-                      scheduleHoverPreview(skin);
-                    }}
-                  >
-                    {formatSkinDisplayName(skin.displayName)}
-                  </button>
+                        setHoveredSkinId(skin.id);
+                        scheduleHoverPreview(skin);
+                      }}
+                    >
+                      {formatSkinDisplayName(skin.displayName)}
+                    </button>
+                  );
+                })}
+            </div>
+            <div
+              aria-hidden="true"
+              className="absolute bottom-0 right-0 top-0 border-l border-[#d1d1d1cc] bg-black"
+              data-custom-cursor
+              data-webamp-skin-scrollbar-track
+              style={{width: scrollbarRailWidth}}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const clickedThumb =
+                  event.target instanceof HTMLElement &&
+                  event.target.dataset.webampSkinScrollbarThumb === 'true';
+                const scrollbarThumbMetrics = getScrollbarThumbMetrics(
+                  scrollMetricsReference.current,
                 );
-              })}
+                const pointerOffsetY = clickedThumb
+                  ? event.nativeEvent.offsetY
+                  : scrollbarThumbMetrics.height / 2;
+
+                scrollbarDragReference.current = {
+                  pointerId: event.pointerId,
+                  pointerOffsetY,
+                };
+                scrollListFromScrollbarPointer(event.clientY, pointerOffsetY);
+              }}
+            >
+              <motion.div
+                className="absolute left-[-0.5px] right-[-0.5px] bg-white/90"
+                data-webamp-skin-scrollbar-thumb="true"
+                style={{
+                  height: scrollbarThumbHeight,
+                  top: scrollbarThumbTop,
+                }}
+              />
+            </div>
           </div>
         </div>
         <div
@@ -365,4 +526,30 @@ export function WebampSkinDialog({
       </StrangeOsDialog>
     </div>
   );
+}
+
+function getScrollbarThumbMetrics({
+  clientHeight,
+  scrollHeight,
+  scrollTop,
+}: {
+  clientHeight: number;
+  scrollHeight: number;
+  scrollTop: number;
+}) {
+  const scrollableDistance = Math.max(scrollHeight - clientHeight, 1);
+  const thumbHeight = Math.max(
+    Math.round(
+      (clientHeight / Math.max(scrollHeight, clientHeight)) * clientHeight,
+    ),
+    18,
+  );
+  const thumbTop = Math.round(
+    (scrollTop / scrollableDistance) * Math.max(clientHeight - thumbHeight, 0),
+  );
+
+  return {
+    height: thumbHeight,
+    top: thumbTop,
+  };
 }

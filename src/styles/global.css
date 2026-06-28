@@ -86,8 +86,7 @@ input {
 
 .webamp-skin-scrollbar {
   overflow-x: hidden;
-  scrollbar-color: #fff #000;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .webamp-skin-scrollbar .webamp-skin-tile {
@@ -110,7 +109,8 @@ input {
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar {
-  width: 0.7rem;
+  display: none;
+  width: 0;
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar:horizontal {
