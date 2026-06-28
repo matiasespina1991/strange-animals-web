@@ -216,11 +216,11 @@ export function CustomCursor() {
       >
         <path
           d="M5.4 3.7L19.2 11.6L12.8 14.1L10.4 20.7L5.4 3.7Z"
-          fill="white"
+          fill="rgb(255 255 255 / 0.96)"
           stroke="rgb(120 120 120 / 0.72)"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="1.15"
+          strokeWidth="1.65"
         />
       </svg>
     </motion.div>
