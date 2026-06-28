@@ -16,7 +16,7 @@ export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-0">
+    <>
       {!paintLoaded && (
         <iframe
           aria-hidden="true"
@@ -54,6 +54,6 @@ export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
           />
         </div>
       </StrangeOsDialog>
-    </div>
+    </>
   );
 }
