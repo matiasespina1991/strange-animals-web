@@ -1,18 +1,18 @@
-import {useState} from 'react';
-import {StrangeOsDialog} from './StrangeOsDialog';
+import { useState } from "react";
+import { StrangeOsDialog } from "./StrangeOsDialog";
 
-const jspaintPagePath = '/apps/jspaint/index.html';
+const jspaintPagePath = "/apps/jspaint/index.html";
 
 type JspaintDialogProperties = {
   onClose: () => void;
   open: boolean;
 };
 
-export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
+export function JspaintDialog({ onClose, open }: JspaintDialogProperties) {
   const [paintLoaded, setPaintLoaded] = useState(false);
 
   const hideCustomCursor = () => {
-    window.dispatchEvent(new CustomEvent('strangeanimals-cursor-hide'));
+    window.dispatchEvent(new CustomEvent("strangeanimals-cursor-hide"));
   };
 
   return (
@@ -30,15 +30,16 @@ export function JspaintDialog({onClose, open}: JspaintDialogProperties) {
         />
       )}
       <StrangeOsDialog
-        key={open ? 'jspaint-open' : 'jspaint-closed'}
+        key={open ? "jspaint-open" : "jspaint-closed"}
         open={open && paintLoaded}
         title="PAINT.EXE"
         windowId="paint"
+        forceTopLayer
         className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
         contentClassName="overflow-hidden"
         baseTransform="translate(-50%, -50%)"
-        defaultSize={{width: 745, height: 518}}
-        minSize={{width: 480, height: 360}}
+        defaultSize={{ width: 745, height: 518 }}
+        minSize={{ width: 480, height: 360 }}
         onClose={onClose}
         resizable
       >

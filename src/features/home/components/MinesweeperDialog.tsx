@@ -1,5 +1,5 @@
-import {Minesweeper} from '@/features/minesweeper';
-import {StrangeOsDialog} from './StrangeOsDialog';
+import { Minesweeper } from "@/features/minesweeper";
+import { StrangeOsDialog } from "./StrangeOsDialog";
 
 type MinesweeperDialogProperties = {
   open: boolean;
@@ -15,17 +15,14 @@ export function MinesweeperDialog({
       open={open}
       title="minesweeper"
       windowId="minesweeper"
+      forceTopLayer
       className="left-1/2 top-1/2 !w-auto max-w-[calc(100vw-2rem)]"
       contentClassName="overflow-visible"
       baseTransform="translate(-50%, -50%)"
       onClose={onClose}
     >
       <div className="bg-black leading-none">
-        <Minesweeper
-          embedded
-          defaultDifficulty="Beginner"
-          onClose={onClose}
-        />
+        <Minesweeper embedded defaultDifficulty="Beginner" onClose={onClose} />
       </div>
     </StrangeOsDialog>
   );

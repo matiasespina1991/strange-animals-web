@@ -1,10 +1,10 @@
-import {useEffect, useRef} from 'react';
-import * as THREE from 'three';
-import {useMediaAssets} from '@/media/react/MediaProvider';
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { useMediaAssets } from "@/media/react/MediaProvider";
 import {
   getViewportSizeAtZ,
   getWorldPositionFromPointerAtZ,
-} from './three-utils';
+} from "./three-utils";
 
 type UseThreeLogoSceneOptions = {
   canvasReference: React.RefObject<HTMLCanvasElement>;
@@ -71,7 +71,7 @@ export function useThreeLogoScene({
 
     logoWidthPxReference.current = logoWidthPx;
     previousLogoWidthPxReference.current = logoWidthPx;
-    window.dispatchEvent(new Event('strange-logo-resize'));
+    window.dispatchEvent(new Event("strange-logo-resize"));
   }, [logoWidthPx]);
 
   useEffect(() => {
@@ -97,9 +97,9 @@ export function useThreeLogoScene({
     const logoOffset = new THREE.Vector2();
     const dragOffset = new THREE.Vector2();
     const uniforms = {
-      tex: {value: null as THREE.Texture | null},
-      time: {value: 0},
-      mousePos: {value: new THREE.Vector2(0.5, 0.5)},
+      tex: { value: null as THREE.Texture | null },
+      time: { value: 0 },
+      mousePos: { value: new THREE.Vector2(0.5, 0.5) },
     };
     let logoMesh: THREE.Mesh | null = null;
     let logoAspectRatio = 1;
@@ -124,24 +124,24 @@ export function useThreeLogoScene({
       const logoWidth = getLogoWidthPx();
       const logoHalfHeight = logoWidth / logoAspectRatio / 2;
 
-      backdrop.style.setProperty('--brand-offset-x', `${offsetX}px`);
-      backdrop.style.setProperty('--brand-offset-y', `${offsetY}px`);
-      backdrop.style.setProperty('--logo-width', `${logoWidth}px`);
-      backdrop.style.setProperty('--logo-half-height', `${logoHalfHeight}px`);
+      backdrop.style.setProperty("--brand-offset-x", `${offsetX}px`);
+      backdrop.style.setProperty("--brand-offset-y", `${offsetY}px`);
+      backdrop.style.setProperty("--logo-width", `${logoWidth}px`);
+      backdrop.style.setProperty("--logo-half-height", `${logoHalfHeight}px`);
       document.documentElement.style.setProperty(
-        '--brand-offset-x',
+        "--brand-offset-x",
         `${offsetX}px`,
       );
       document.documentElement.style.setProperty(
-        '--brand-offset-y',
+        "--brand-offset-y",
         `${offsetY}px`,
       );
       document.documentElement.style.setProperty(
-        '--logo-width',
+        "--logo-width",
         `${logoWidth}px`,
       );
       document.documentElement.style.setProperty(
-        '--logo-half-height',
+        "--logo-half-height",
         `${logoHalfHeight}px`,
       );
     };
@@ -222,7 +222,7 @@ export function useThreeLogoScene({
 
       if (
         target?.closest(
-          'a, button, #webamp, [data-strange-os-dialog], [data-logo-resize-handle]',
+          "a, button, #webamp, [data-strange-os-dialog], [data-logo-resize-handle]",
         ) ||
         !isPointerOverLogo(event)
       ) {
@@ -234,7 +234,7 @@ export function useThreeLogoScene({
       dragOffset
         .copy(logoOffset)
         .sub(getWorldPositionFromPointerAtZ(camera, event, 0));
-      document.body.classList.add('cursor-grabbing');
+      document.body.classList.add("cursor-grabbing");
     };
 
     const drag = (event: PointerEvent) => {
@@ -250,7 +250,7 @@ export function useThreeLogoScene({
 
     const stopDrag = () => {
       dragging = false;
-      document.body.classList.remove('cursor-grabbing');
+      document.body.classList.remove("cursor-grabbing");
     };
 
     const animate = () => {
@@ -286,27 +286,27 @@ export function useThreeLogoScene({
 
     updateSize();
     animate();
-    window.addEventListener('resize', updateSize);
-    window.addEventListener('strange-logo-resize', updateSize);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('pointerdown', startDrag);
-    window.addEventListener('pointermove', drag);
-    window.addEventListener('pointerup', stopDrag);
-    window.addEventListener('pointercancel', stopDrag);
+    window.addEventListener("resize", updateSize);
+    window.addEventListener("strange-logo-resize", updateSize);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("pointerdown", startDrag);
+    window.addEventListener("pointermove", drag);
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
 
     return () => {
       cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', updateSize);
-      window.removeEventListener('strange-logo-resize', updateSize);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('pointerdown', startDrag);
-      window.removeEventListener('pointermove', drag);
-      window.removeEventListener('pointerup', stopDrag);
-      window.removeEventListener('pointercancel', stopDrag);
-      document.documentElement.style.removeProperty('--brand-offset-x');
-      document.documentElement.style.removeProperty('--brand-offset-y');
-      document.documentElement.style.removeProperty('--logo-width');
-      document.documentElement.style.removeProperty('--logo-half-height');
+      window.removeEventListener("resize", updateSize);
+      window.removeEventListener("strange-logo-resize", updateSize);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("pointerdown", startDrag);
+      window.removeEventListener("pointermove", drag);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
+      document.documentElement.style.removeProperty("--brand-offset-x");
+      document.documentElement.style.removeProperty("--brand-offset-y");
+      document.documentElement.style.removeProperty("--logo-width");
+      document.documentElement.style.removeProperty("--logo-half-height");
       renderer.dispose();
     };
   }, [assets.images.logo, backdropReference, canvasReference]);

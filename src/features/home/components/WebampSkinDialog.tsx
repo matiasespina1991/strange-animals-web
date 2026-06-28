@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {motion, useMotionValue} from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useMotionValue } from "framer-motion";
 import {
   listWebampSkins,
   type WebampSkin,
-} from '@/features/webamp-skins/webamp-skin-repository';
-import {StrangeOsDialog} from './StrangeOsDialog';
+} from "@/features/webamp-skins/webamp-skin-repository";
+import { StrangeOsDialog } from "./StrangeOsDialog";
 
 const getInitialListHeight = () => {
   const rootFontSize = Number.parseFloat(
@@ -18,7 +18,7 @@ const hoverPreviewDelayMs = 550;
 const scrollbarRailWidth = 8.4;
 
 const formatSkinDisplayName = (displayName: string) =>
-  displayName.replaceAll('_', ' ');
+  displayName.replaceAll("_", " ");
 
 type ScrollMetrics = {
   clientHeight: number;
@@ -41,6 +41,7 @@ export function WebampSkinDialog({
   onPreview,
   onSelect,
 }: WebampSkinDialogProperties) {
+  const [showStaffPicksOnly, setShowStaffPicksOnly] = useState(true);
   const [skins, setSkins] = useState<WebampSkin[]>([]);
   const [activeSkinId, setActiveSkinId] = useState<string | null>(null);
   const [hoveredSkinId, setHoveredSkinId] = useState<string | null>(null);
@@ -108,7 +109,7 @@ export function WebampSkinDialog({
       }
 
       const track = scrollContainer.parentElement?.querySelector(
-        '[data-webamp-skin-scrollbar-track]',
+        "[data-webamp-skin-scrollbar-track]",
       );
 
       if (!(track instanceof HTMLElement)) {
@@ -158,14 +159,14 @@ export function WebampSkinDialog({
     setLoaded(false);
     setLoading(true);
 
-    listWebampSkins()
+    listWebampSkins({ staffPicksOnly: showStaffPicksOnly })
       .then((nextSkins) => {
         if (active) {
           setSkins(nextSkins);
         }
       })
       .catch((error: unknown) => {
-        console.warn('[webamp-skins] could not load skins', error);
+        console.warn("[webamp-skins] could not load skins", error);
 
         if (active) {
           setSkins([]);
@@ -181,7 +182,7 @@ export function WebampSkinDialog({
     return () => {
       active = false;
     };
-  }, [open]);
+  }, [open, showStaffPicksOnly]);
 
   useEffect(() => clearHoverPreviewTimeout, []);
 
@@ -203,7 +204,7 @@ export function WebampSkinDialog({
     }
 
     skinButtonReferences.current.get(activeSkinId)?.scrollIntoView({
-      block: 'nearest',
+      block: "nearest",
     });
   }, [activeSkinId]);
 
@@ -249,13 +250,13 @@ export function WebampSkinDialog({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         event.preventDefault();
         onClose();
         return;
       }
 
-      if (event.key === 'ArrowDown') {
+      if (event.key === "ArrowDown") {
         event.preventDefault();
         clearHoverPreviewTimeout();
         ignorePointerHoverReference.current = true;
@@ -264,7 +265,7 @@ export function WebampSkinDialog({
         return;
       }
 
-      if (event.key === 'ArrowUp') {
+      if (event.key === "ArrowUp") {
         event.preventDefault();
         clearHoverPreviewTimeout();
         ignorePointerHoverReference.current = true;
@@ -273,7 +274,7 @@ export function WebampSkinDialog({
         return;
       }
 
-      if (event.key === 'Enter') {
+      if (event.key === "Enter") {
         const activeSkin = skins.find((skin) => skin.id === activeSkinId);
 
         if (!activeSkin) {
@@ -287,10 +288,10 @@ export function WebampSkinDialog({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [activeSkinId, onClose, onPreview, onSelect, open, selectedSkinId, skins]);
 
@@ -328,14 +329,14 @@ export function WebampSkinDialog({
       setResizing(false);
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [resizing]);
 
@@ -361,14 +362,14 @@ export function WebampSkinDialog({
       scrollbarDragReference.current = null;
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [scrollListFromScrollbarPointer]);
 
@@ -376,6 +377,31 @@ export function WebampSkinDialog({
     <StrangeOsDialog
       open={open && loaded}
       title="winamp skins"
+      headerActions={
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={showStaffPicksOnly}
+          className="inline-flex items-center gap-1.5 text-[0.62rem] normal-case tracking-[0.02em] text-white/78 hover:text-white"
+          onClick={(event) => {
+            event.stopPropagation();
+            setShowStaffPicksOnly((currentValue) => !currentValue);
+          }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="relative inline-flex h-[0.74rem] w-[0.74rem] shrink-0 items-center justify-center border border-[#d1d1d1cc] bg-black"
+          >
+            {showStaffPicksOnly ? (
+              <span className="h-[2px] w-[6px] rotate-[-45deg] border-b-2 border-l-2 border-white" />
+            ) : null}
+          </span>
+          <span> Only staff picks</span>
+        </button>
+      }
       windowId="winamp-skins"
       className="right-[3.75rem] top-1/2"
       baseTransform="translateY(-12rem)"
@@ -385,125 +411,123 @@ export function WebampSkinDialog({
       <div className="bg-black p-2">
         <div
           className="relative border border-[#d1d1d1cc]"
-          style={{height: listHeight}}
+          style={{ height: listHeight }}
           onPointerLeave={restoreConfirmedSkin}
         >
           <div
             ref={scrollContainerReference}
             className="webamp-skin-scrollbar h-full overflow-y-scroll overflow-x-hidden"
             data-custom-scrollbar-content
-            style={{paddingRight: scrollbarRailWidth}}
+            style={{ paddingRight: scrollbarRailWidth }}
             onScroll={updateScrollMetrics}
           >
-              {loading && (
-                <p className="p-2 text-[0.85rem] uppercase">loading...</p>
-              )}
-              {!loading && skins.length === 0 && (
-                <p className="p-2 text-[0.85rem] uppercase">no skins</p>
-              )}
-              {!loading &&
-                skins.map((skin) => {
-                  const active = skin.id === activeSkinId;
-                  const hovered = skin.id === hoveredSkinId;
-                  const selected = skin.id === selectedSkinId;
+            {loading && (
+              <p className="p-2 text-[0.85rem] uppercase">loading...</p>
+            )}
+            {!loading && skins.length === 0 && (
+              <p className="p-2 text-[0.85rem] uppercase">no skins</p>
+            )}
+            {!loading &&
+              skins.map((skin) => {
+                const active = skin.id === activeSkinId;
+                const hovered = skin.id === hoveredSkinId;
+                const selected = skin.id === selectedSkinId;
 
-                  return (
-                    <button
-                      key={skin.id}
-                      ref={(node) => {
-                        if (node) {
-                          skinButtonReferences.current.set(skin.id, node);
-                        } else {
-                          skinButtonReferences.current.delete(skin.id);
-                        }
-                      }}
-                      type="button"
-                      data-active={
-                        active && !hoveredSkinId ? 'true' : undefined
+                return (
+                  <button
+                    key={skin.id}
+                    ref={(node) => {
+                      if (node) {
+                        skinButtonReferences.current.set(skin.id, node);
+                      } else {
+                        skinButtonReferences.current.delete(skin.id);
                       }
-                      data-hovered={hovered ? 'true' : undefined}
-                      data-selected={selected ? 'true' : undefined}
-                      className={[
-                        'webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b border-[#d1d1d1cc] px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0',
-                        selected ? 'text-black' : 'text-white/90',
-                      ].join(' ')}
-                      onClick={() => {
-                        selectedSkinIdReference.current = skin.id;
-                        setHoveredSkinId(null);
-                        clearHoverPreviewTimeout();
-                        setActiveSkinId(skin.id);
-                        onSelect(skin);
-                      }}
-                      onDoubleClick={() => {
-                        selectedSkinIdReference.current = skin.id;
-                        setHoveredSkinId(null);
-                        clearHoverPreviewTimeout();
-                        setActiveSkinId(skin.id);
-                        onSelect(skin);
-                        onClose();
-                      }}
-                      onFocus={() => {
-                        setActiveSkinId(skin.id);
-                        onPreview(skin);
-                      }}
-                      onPointerMove={() => {
-                        ignorePointerHoverReference.current = false;
-                        if (hoveredSkinId === skin.id) {
-                          return;
-                        }
+                    }}
+                    type="button"
+                    data-active={active && !hoveredSkinId ? "true" : undefined}
+                    data-hovered={hovered ? "true" : undefined}
+                    data-selected={selected ? "true" : undefined}
+                    className={[
+                      "webamp-skin-tile block w-full max-w-full overflow-hidden break-words border-b border-[#d1d1d1cc] px-2 py-1 text-left text-[0.75rem] leading-tight tracking-[0.11em] whitespace-normal outline-none last:border-b-0",
+                      selected ? "text-black" : "text-white/90",
+                    ].join(" ")}
+                    onClick={() => {
+                      selectedSkinIdReference.current = skin.id;
+                      setHoveredSkinId(null);
+                      clearHoverPreviewTimeout();
+                      setActiveSkinId(skin.id);
+                      onSelect(skin);
+                    }}
+                    onDoubleClick={() => {
+                      selectedSkinIdReference.current = skin.id;
+                      setHoveredSkinId(null);
+                      clearHoverPreviewTimeout();
+                      setActiveSkinId(skin.id);
+                      onSelect(skin);
+                      onClose();
+                    }}
+                    onFocus={() => {
+                      setActiveSkinId(skin.id);
+                      onPreview(skin);
+                    }}
+                    onPointerMove={() => {
+                      ignorePointerHoverReference.current = false;
+                      if (hoveredSkinId === skin.id) {
+                        return;
+                      }
 
-                        setHoveredSkinId(skin.id);
-                        scheduleHoverPreview(skin);
-                      }}
-                      onMouseEnter={() => {
-                        if (ignorePointerHoverReference.current) {
-                          return;
-                        }
+                      setHoveredSkinId(skin.id);
+                      scheduleHoverPreview(skin);
+                    }}
+                    onMouseEnter={() => {
+                      if (ignorePointerHoverReference.current) {
+                        return;
+                      }
 
-                        setHoveredSkinId(skin.id);
-                        scheduleHoverPreview(skin);
-                      }}
-                    >
-                      {formatSkinDisplayName(skin.displayName)}
-                    </button>
-                  );
-                })}
-            </div>
-            <div
-              aria-hidden="true"
-              className="absolute bottom-0 right-0 top-0 border-l border-[#d1d1d1cc] bg-black"
-              data-custom-cursor
-              data-webamp-skin-scrollbar-track
-              style={{width: scrollbarRailWidth}}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const clickedThumb =
-                  event.target instanceof HTMLElement &&
-                  event.target.dataset.webampSkinScrollbarThumb === 'true';
-                const scrollbarThumbMetrics = getScrollbarThumbMetrics(
-                  scrollMetricsReference.current,
+                      setHoveredSkinId(skin.id);
+                      scheduleHoverPreview(skin);
+                    }}
+                  >
+                    {formatSkinDisplayName(skin.displayName)}
+                  </button>
                 );
-                const pointerOffsetY = clickedThumb
-                  ? event.nativeEvent.offsetY
-                  : scrollbarThumbMetrics.height / 2;
+              })}
+          </div>
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 top-0 border-l border-[#d1d1d1cc] bg-black"
+            data-custom-cursor
+            data-webamp-skin-scrollbar-track
+            style={{ width: scrollbarRailWidth }}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
 
-                scrollbarDragReference.current = {
-                  pointerId: event.pointerId,
-                  pointerOffsetY,
-                };
-                scrollListFromScrollbarPointer(event.clientY, pointerOffsetY);
+              const clickedThumb =
+                event.target instanceof HTMLElement &&
+                event.target.dataset.webampSkinScrollbarThumb === "true";
+              const scrollbarThumbMetrics = getScrollbarThumbMetrics(
+                scrollMetricsReference.current,
+              );
+              const pointerOffsetY = clickedThumb
+                ? event.nativeEvent.offsetY
+                : scrollbarThumbMetrics.height / 2;
+
+              scrollbarDragReference.current = {
+                pointerId: event.pointerId,
+                pointerOffsetY,
+              };
+              scrollListFromScrollbarPointer(event.clientY, pointerOffsetY);
+            }}
+          >
+            <motion.div
+              className="absolute left-[-0.5px] right-[-0.5px] bg-white/90"
+              data-webamp-skin-scrollbar-thumb="true"
+              style={{
+                height: scrollbarThumbHeight,
+                top: scrollbarThumbTop,
               }}
-            >
-              <motion.div
-                className="absolute left-[-0.5px] right-[-0.5px] bg-white/90"
-                data-webamp-skin-scrollbar-thumb="true"
-                style={{
-                  height: scrollbarThumbHeight,
-                  top: scrollbarThumbTop,
-                }}
-              />
+            />
           </div>
         </div>
       </div>
