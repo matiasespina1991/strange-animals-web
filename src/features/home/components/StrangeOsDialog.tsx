@@ -1,6 +1,6 @@
-import {useEffect, useRef, useState, type ReactNode} from 'react';
-import {AnimatePresence, motion} from 'framer-motion';
-import {bringWindowToFront, useWindowZIndex} from '../hooks/useWindowStack';
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { bringWindowToFront, useWindowZIndex } from "../hooks/useWindowStack";
 
 type DialogSize = {
   height: number;
@@ -13,6 +13,8 @@ type StrangeOsDialogProperties = {
   className?: string;
   contentClassName?: string;
   defaultSize?: DialogSize;
+  forceTopLayer?: boolean;
+  headerActions?: ReactNode;
   minSize?: DialogSize;
   onClose: () => void;
   onPointerLeave?: () => void;
@@ -29,10 +31,12 @@ type StrangeOsDialogProperties = {
 export function StrangeOsDialog({
   baseTransform,
   children,
-  className = '',
-  contentClassName = '',
+  className = "",
+  contentClassName = "",
   defaultSize,
-  minSize = {height: 240, width: 320},
+  forceTopLayer = false,
+  headerActions,
+  minSize = { height: 240, width: 320 },
   onClose,
   onPointerLeave,
   open,
@@ -41,13 +45,15 @@ export function StrangeOsDialog({
   resizeKeepsTopLeft = true,
   resizable = false,
   title,
+  titleClassName = "",
   windowId,
 }: StrangeOsDialogProperties) {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const [position, setPosition] = useState({x: 0, y: 0});
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [size, setSize] = useState<DialogSize | null>(defaultSize ?? null);
   const zIndex = useWindowZIndex(windowId, open);
+  const resolvedZIndex = forceTopLayer ? zIndex + 300 : zIndex;
   const dragReference = useRef<{
     pointerId: number;
     startPointerX: number;
@@ -99,14 +105,14 @@ export function StrangeOsDialog({
       setDragging(false);
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [dragging]);
 
@@ -208,14 +214,14 @@ export function StrangeOsDialog({
       setResizing(false);
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
 
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
   }, [minSize.height, minSize.width, resizing]);
 
@@ -226,17 +232,17 @@ export function StrangeOsDialog({
           data-strange-os-dialog
           data-custom-cursor
           className={[
-            'pointer-events-auto fixed w-[min(17.6rem,calc(100vw-2rem))]',
+            "pointer-events-auto fixed w-[min(17.6rem,calc(100vw-2rem))]",
             className,
-          ].join(' ')}
+          ].join(" ")}
           style={{
             transform: [
               baseTransform,
               `translate(${position.x}px, ${position.y}px)`,
             ]
               .filter(Boolean)
-              .join(' '),
-            zIndex,
+              .join(" "),
+            zIndex: resolvedZIndex,
           }}
           onPointerDownCapture={() => {
             bringWindowToFront(windowId);
@@ -247,30 +253,30 @@ export function StrangeOsDialog({
             animate={{
               opacity: 1,
               scale: 1,
-              transition: {delay: 0.5, duration: 0.16, ease: 'easeOut'},
+              transition: { delay: 0.5, duration: 0.16, ease: "easeOut" },
             }}
             className={[
-              'relative flex flex-col border border-[#d1d1d1cc] bg-black tracking-[0.01em] text-white/90 text-[0.85rem]',
+              "relative flex flex-col border border-[#d1d1d1cc] bg-black tracking-[0.01em] text-white/90 text-[0.85rem]",
               contentClassName,
-            ].join(' ')}
+            ].join(" ")}
             style={{
               fontFamily: '"AMI EGA 8x14", Ubuntu Sans Mono, monospace',
-              letterSpacing: '0.01em',
+              letterSpacing: "0.01em",
               height: size?.height,
               width: size?.width,
             }}
             exit={{
               opacity: 0,
               scale: 0.96,
-              transition: {duration: 0.16, ease: 'easeOut'},
+              transition: { duration: 0.16, ease: "easeOut" },
             }}
-            initial={{opacity: 0, scale: 0.96}}
+            initial={{ opacity: 0, scale: 0.96 }}
           >
             <header
               className={[
-                'flex min-h-7 select-none items-center justify-between border-b border-[#d1d1d1cc] bg-black py-1 pl-2.5 pr-1 text-white/90',
-                dragging ? 'cursor-grabbing' : 'cursor-grab',
-              ].join(' ')}
+                "flex min-h-7 select-none items-center justify-between border-b border-[#d1d1d1cc] bg-black py-1 pl-2.5 pr-1 text-white/90",
+                dragging ? "cursor-grabbing" : "cursor-grab",
+              ].join(" ")}
               onPointerDown={(event) => {
                 if (event.button !== 0) {
                   return;
@@ -286,13 +292,24 @@ export function StrangeOsDialog({
                 setDragging(true);
               }}
             >
-              {title ? (
-                <h2 className={'text-[0.85rem] uppercase tracking-[0.01em]'}>
-                  {title}
-                </h2>
-              ) : (
-                <div aria-hidden="true" />
-              )}
+              <div
+                className="flex min-w-0 flex-1 items-center gap-2               justify-between
+              pr-2"
+              >
+                {title ? (
+                  <h2
+                    className={[
+                      "truncate text-[0.85rem] uppercase tracking-[0.01em]",
+                      titleClassName,
+                    ].join(" ")}
+                  >
+                    {title}
+                  </h2>
+                ) : (
+                  <div aria-hidden="true" />
+                )}
+                {headerActions}
+              </div>
               <button
                 type="button"
                 aria-label="Close dialog"
