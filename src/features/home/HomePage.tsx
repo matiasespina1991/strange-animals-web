@@ -27,6 +27,7 @@ export function HomePage() {
   const {applySkin, layer, openWebamp} = useWebampLayer();
   const hasOpenedWinampSkinDialog = useRef(false);
   const hasOpenedWinampTipDialog = useRef(false);
+  const skinDialogTimeoutReference = useRef<number | null>(null);
   const tipDialogTimeoutReference = useRef<number | null>(null);
   const selectedSkinReference = useRef<WebampSkin | null>(null);
   const [doomDialogOpen, setDoomDialogOpen] = useState(false);
@@ -40,15 +41,15 @@ export function HomePage() {
 
     if (!hasOpenedWinampTipDialog.current) {
       hasOpenedWinampTipDialog.current = true;
-      tipDialogTimeoutReference.current = window.setTimeout(() => {
-        setTipDialogOpen(true);
-        tipDialogTimeoutReference.current = null;
-      }, 2000);
+      setTipDialogOpen(true);
     }
 
     if (!hasOpenedWinampSkinDialog.current) {
       hasOpenedWinampSkinDialog.current = true;
-      setSkinDialogOpen(true);
+      skinDialogTimeoutReference.current = window.setTimeout(() => {
+        setSkinDialogOpen(true);
+        skinDialogTimeoutReference.current = null;
+      }, 900);
     }
   }, [openWebamp]);
 
@@ -66,6 +67,10 @@ export function HomePage() {
 
   useEffect(
     () => () => {
+      if (skinDialogTimeoutReference.current) {
+        window.clearTimeout(skinDialogTimeoutReference.current);
+      }
+
       if (tipDialogTimeoutReference.current) {
         window.clearTimeout(tipDialogTimeoutReference.current);
       }
