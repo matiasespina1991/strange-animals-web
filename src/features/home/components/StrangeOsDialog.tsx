@@ -299,11 +299,11 @@ export function StrangeOsDialog({
               >
                 <span
                   aria-hidden="true"
-                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.82rem] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current"
+                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.62rem] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current"
                 />
                 <span
                   aria-hidden="true"
-                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.82rem] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current"
+                  className="absolute left-1/2 top-1/2 h-[2px] w-[0.62rem] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current"
                 />
               </button>
             </header>

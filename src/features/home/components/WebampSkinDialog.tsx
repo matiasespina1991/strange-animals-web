@@ -269,7 +269,7 @@ export function WebampSkinDialog({
       >
         <div className="bg-black p-2">
           <div
-            className="webamp-skin-scrollbar overflow-y-auto overflow-x-hidden border border-[#d1d1d1cc]"
+            className="webamp-skin-scrollbar overflow-y-scroll overflow-x-hidden border border-[#d1d1d1cc]"
             style={{height: listHeight}}
             onPointerLeave={restoreConfirmedSkin}
           >

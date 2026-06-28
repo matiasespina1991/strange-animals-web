@@ -1,3 +1,4 @@
+import {DialogButton} from './DialogButton';
 import {StrangeOsDialog} from './StrangeOsDialog';
 
 type WinampTipDialogProperties = {
@@ -22,13 +23,7 @@ export function WinampTipDialog({onClose, open}: WinampTipDialogProperties) {
             Winamp playlist :)
           </p>
           <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              className="flex min-h-6 min-w-20 items-center justify-center border border-[#d1d1d1cc] bg-black px-3 py-0.5 text-[0.75rem] uppercase leading-none tracking-[0.11em] text-white/90 hover:bg-white/25"
-              onClick={onClose}
-            >
-              OK
-            </button>
+            <DialogButton onClick={onClose}>OK</DialogButton>
           </div>
         </div>
       </StrangeOsDialog>
