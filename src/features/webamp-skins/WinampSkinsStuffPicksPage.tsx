@@ -42,7 +42,6 @@ function StaffPickCheckbox({
           <span className="h-[2px] w-[8px] rotate-[-45deg] border-b-2 border-l-2 border-white" />
         ) : null}
       </span>
-      <span>{label}</span>
     </button>
   );
 }
@@ -99,6 +98,7 @@ export function WinampSkinsStuffPicksPage() {
         currentRow.id === row.id
           ? {
               ...currentRow,
+              hasStaffPickProperty: true,
               isStaffPick: nextValue,
             }
           : currentRow,
@@ -106,17 +106,27 @@ export function WinampSkinsStuffPicksPage() {
     );
 
     try {
+      console.log("[staff-picks] toggling row", {
+        skinId: row.id,
+        displayName: row.displayName,
+        nextValue,
+      });
       await setWebampSkinStaffPick(row.id, nextValue);
       setSaveState({
         tone: "success",
         message: `${row.displayName}: ${nextValue ? "staff pick enabled" : "staff pick disabled"}`,
       });
     } catch (error) {
+      console.error("[staff-picks] toggle failed", {
+        skinId: row.id,
+        error,
+      });
       setRows((currentRows) =>
         currentRows.map((currentRow) =>
           currentRow.id === row.id
             ? {
                 ...currentRow,
+                hasStaffPickProperty: row.hasStaffPickProperty,
                 isStaffPick: row.isStaffPick,
               }
             : currentRow,
@@ -154,21 +164,6 @@ export function WinampSkinsStuffPicksPage() {
         <div className="border border-[#d1d1d1cc] bg-black px-3 py-2 text-xs text-white/78">
           total: {rows.length} | staff picks: {staffPicksCount}
         </div>
-
-        {saveState ? (
-          <p
-            className={[
-              "border px-3 py-2 text-xs",
-              saveState.tone === "error"
-                ? "border-red-300/60 text-red-100"
-                : saveState.tone === "success"
-                  ? "border-emerald-300/60 text-emerald-100"
-                  : "border-white/35 text-white/85",
-            ].join(" ")}
-          >
-            {saveState.message}
-          </p>
-        ) : null}
 
         <div className="overflow-auto border border-[#d1d1d1cc]">
           <table className="w-full min-w-[44rem] border-collapse text-left text-[0.74rem] leading-tight">
@@ -214,8 +209,8 @@ export function WinampSkinsStuffPicksPage() {
                     <td className="px-3 py-2">
                       <StaffPickCheckbox
                         checked={row.isStaffPick}
+                        label={`Staff pick for ${row.displayName}`}
                         disabled={savingId === row.id}
-                        label="Mark as staff pick"
                         onToggle={() => {
                           void handleToggle(row);
                         }}

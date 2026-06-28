@@ -156,7 +156,6 @@ export function WebampSkinDialog({
     }
 
     let active = true;
-    setLoaded(false);
     setLoading(true);
 
     listWebampSkins({ staffPicksOnly: showStaffPicksOnly })

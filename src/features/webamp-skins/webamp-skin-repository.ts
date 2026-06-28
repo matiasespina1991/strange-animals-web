@@ -4,15 +4,15 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
 import {
   getDownloadURL,
   ref,
   uploadBytesResumable,
   type UploadTaskSnapshot,
 } from "firebase/storage";
-import { firebaseDb, firebaseFunctions, firebaseStorage } from "@/lib/firebase";
+import { firebaseDb, firebaseStorage } from "@/lib/firebase";
 
 export type WebampSkin = {
   isStaffPick: boolean;
@@ -27,6 +27,7 @@ export type WebampSkinStaffPickRow = {
   id: string;
   displayName: string;
   enabled: boolean;
+  hasStaffPickProperty: boolean;
   isStaffPick: boolean;
   storagePath: string;
 };
@@ -132,6 +133,10 @@ export async function listWebampSkinsForStaffPicks() {
       id: documentSnapshot.id,
       displayName: getSkinDisplayName(documentSnapshot.id, data),
       enabled: Boolean(data.enabled),
+      hasStaffPickProperty: Object.prototype.hasOwnProperty.call(
+        data,
+        "isStaffPick",
+      ),
       isStaffPick: Boolean(data.isStaffPick),
       storagePath: data.storagePath ?? "",
     } satisfies WebampSkinStaffPickRow;
@@ -144,16 +149,51 @@ export async function listWebampSkinsForStaffPicks() {
   );
 }
 
-const setWebampSkinStaffPickCallable = httpsCallable<
-  { skinId: string; isStaffPick: boolean },
-  { ok: boolean; skinId: string; isStaffPick: boolean }
->(firebaseFunctions, "setWebampSkinStaffPick");
-
 export async function setWebampSkinStaffPick(
   skinId: string,
   isStaffPick: boolean,
 ) {
-  await setWebampSkinStaffPickCallable({ skinId, isStaffPick });
+  await updateDoc(doc(firebaseDb, "webampSkins", skinId), {
+    isStaffPick,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function setMissingWebampSkinStaffPicksToTrue() {
+  const snapshot = await getDocs(collection(firebaseDb, "webampSkins"));
+  const documentsMissingStaffPick = snapshot.docs.filter((documentSnapshot) => {
+    const data = documentSnapshot.data() as WebampSkinDocument;
+
+    return !Object.prototype.hasOwnProperty.call(data, "isStaffPick");
+  });
+
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const documentSnapshot of documentsMissingStaffPick) {
+    const data = documentSnapshot.data() as WebampSkinDocument;
+    const canUpdateFromRules =
+      data.enabled === true &&
+      typeof data.storagePath === "string" &&
+      data.storagePath.startsWith("media/public/webamp-skins/");
+
+    if (!canUpdateFromRules) {
+      skippedCount += 1;
+      continue;
+    }
+
+    await updateDoc(documentSnapshot.ref, {
+      isStaffPick: true,
+      updatedAt: serverTimestamp(),
+    });
+    updatedCount += 1;
+  }
+
+  return {
+    totalMissingCount: documentsMissingStaffPick.length,
+    updatedCount,
+    skippedCount,
+  };
 }
 
 export async function uploadWebampSkin({

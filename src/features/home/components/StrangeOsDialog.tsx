@@ -66,7 +66,6 @@ export function StrangeOsDialog({
     startHeight: number;
     startPositionX: number;
     startPositionY: number;
-    startHeight: number;
     startPointerX: number;
     startPointerY: number;
     startWidth: number;
