@@ -57,10 +57,7 @@ function SocialIconFill({
         viewBox={viewBox}
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          d={path}
-          fill="rgba(255,255,255,0.88)"
-        />
+        <path d={path} fill="rgba(255,255,255,0.88)" />
       </svg>
     </span>
   );

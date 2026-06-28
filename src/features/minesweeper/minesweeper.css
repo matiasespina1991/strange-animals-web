@@ -153,12 +153,26 @@
 }
 
 .mine__digits__outer {
+  display: flex;
   width: 40px;
   height: 24px;
+  align-items: flex-start;
+  justify-content: flex-end;
   border-width: 0 1px 1px 0;
   border-style: solid;
   border-color: #fff;
+  line-height: 0;
+  overflow: hidden;
   text-align: right;
+}
+
+.mine__digits__outer img {
+  display: block;
+  flex: 0 0 auto;
+  width: 13px;
+  max-width: none;
+  height: 23px;
+  image-rendering: pixelated;
 }
 
 .mine__face__outer {
@@ -192,6 +206,13 @@
 
 .mine__face:active:hover img {
   transform: translate(1px, 1px);
+}
+
+.mine__face img {
+  width: 17px;
+  max-width: none;
+  height: 17px;
+  image-rendering: pixelated;
 }
 
 .mine__face img:nth-child(2) {

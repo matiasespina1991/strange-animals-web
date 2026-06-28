@@ -4,12 +4,23 @@ import {useTadeGameStore} from '@/store/tade-game-store';
 import type {WebampSkin} from '@/features/webamp-skins/webamp-skin-repository';
 import {BrandLogoExperience} from './components/BrandLogoExperience';
 import {DoomDialog} from './components/DoomDialog';
+import {JspaintDialog} from './components/JspaintDialog';
 import {MinesweeperDialog} from './components/MinesweeperDialog';
 import {TadeGame} from './components/TadeGame';
 import {useWebampLayer} from './components/WebampLayer';
 import {WebampSkinDialog} from './components/WebampSkinDialog';
 import {WinampTipDialog} from './components/WinampTipDialog';
 import {useKeyboardSequence} from './hooks/useKeyboardSequence';
+
+function isEditableShortcutTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest('input, textarea, select, [contenteditable="true"]'),
+  );
+}
 
 export function HomePage() {
   const activateTade = useTadeGameStore((state) => state.activate);
@@ -19,6 +30,7 @@ export function HomePage() {
   const tipDialogTimeoutReference = useRef<number | null>(null);
   const selectedSkinReference = useRef<WebampSkin | null>(null);
   const [doomDialogOpen, setDoomDialogOpen] = useState(false);
+  const [jspaintDialogOpen, setJspaintDialogOpen] = useState(false);
   const [minesweeperDialogOpen, setMinesweeperDialogOpen] = useState(false);
   const [skinDialogOpen, setSkinDialogOpen] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState<WebampSkin | null>(null);
@@ -63,7 +75,16 @@ export function HomePage() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      if (isEditableShortcutTarget(event.target)) {
+        return;
+      }
+
+      const altShortcut =
+        event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+      const shiftShortcut =
+        event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey;
+
+      if (!altShortcut && !shiftShortcut) {
         return;
       }
 
@@ -80,6 +101,11 @@ export function HomePage() {
       if (event.code === 'KeyM') {
         event.preventDefault();
         setMinesweeperDialogOpen(true);
+      }
+
+      if (event.code === 'KeyP') {
+        event.preventDefault();
+        setJspaintDialogOpen(true);
       }
 
       if (event.code === 'KeyS') {
@@ -110,6 +136,12 @@ export function HomePage() {
         open={minesweeperDialogOpen}
         onClose={() => {
           setMinesweeperDialogOpen(false);
+        }}
+      />
+      <JspaintDialog
+        open={jspaintDialogOpen}
+        onClose={() => {
+          setJspaintDialogOpen(false);
         }}
       />
       <WebampSkinDialog
