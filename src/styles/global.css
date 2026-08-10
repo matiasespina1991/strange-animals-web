@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +7,14 @@
 @font-face {
   font-family: "AMI EGA 8x14";
   src: url("/media/fonts/AMI%20EGA%208x14/source.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Zekton";
+  src: url("/media/fonts/Zekton/Zekton-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -27,7 +37,13 @@ body {
   margin: 0;
   background: #000;
   color: #fff;
+  font-family: "AMI EGA 8x14", monospace;
   user-select: none;
+}
+
+.listen-page-amiga,
+.listen-page-amiga * {
+  font-family: "Inconsolata", "AMI EGA 8x14", monospace !important;
 }
 
 body
@@ -35,9 +51,9 @@ body
     #webamp-context-menu *
   ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *):not(
     [data-native-cursor-surface]
-  ):not([data-native-cursor-surface] *):not(
-    .doom-jsdos-container canvas
-  ):not(.doom-jsdos-container canvas *) {
+  ):not([data-native-cursor-surface] *):not(.doom-jsdos-container canvas):not(
+    .doom-jsdos-container canvas *
+  ) {
   cursor: none !important;
   user-select: none !important;
 }
@@ -131,6 +147,30 @@ input {
 }
 
 .webamp-skin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #d6d6d6;
+}
+
+.listen-playlist-scrollbar {
+  scrollbar-color: #fff #000;
+  scrollbar-width: thin;
+}
+
+.listen-playlist-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.listen-playlist-scrollbar::-webkit-scrollbar-track {
+  background: #000;
+  border-left: 1px solid #fff;
+}
+
+.listen-playlist-scrollbar::-webkit-scrollbar-thumb {
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+
+.listen-playlist-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #d6d6d6;
 }
 
