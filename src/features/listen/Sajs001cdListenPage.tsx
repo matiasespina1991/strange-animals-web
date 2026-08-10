@@ -40,7 +40,7 @@ export function Sajs001cdListenPage() {
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.82);
+  const [volume, setVolume] = useState(1);
   const currentTrack = sajs001cdRelease.tracks[currentTrackIndex];
   const currentTrackUrl = trackUrlState.urls[currentTrack.slug];
   const isFirstTrack = currentTrackIndex === 0;
@@ -175,30 +175,24 @@ export function Sajs001cdListenPage() {
     setCurrentTime(nextTime);
   };
 
-  const activeTrackLabel = useMemo(
-    () =>
-      `${currentTrack.number.toString().padStart(2, "0")} / ${currentTrack.artist} - ${currentTrack.title}`,
-    [currentTrack],
-  );
-
   return (
-    <main className="min-h-screen bg-[#050505] pr-3 pl-2 py-2 font-mono text-white sm:px-6 lg:px-8">
+    <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.8rem] text-white sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
-          <div className="flex min-h-[31rem] flex-col justify-between border border-white/70 bg-black p-4 shadow-[4px_4px_0_0_rgba(255,255,255,0.75)] sm:p-5">
+          <div className="flex min-h-[31rem] flex-col justify-between bg-black p-4 sm:p-5">
             <div>
-              <p className="font-mono text-[0.72rem] uppercase tracking-[0.11em] text-white/55">
+              <p className="font-mono text-[0.845rem] uppercase tracking-[0.11em] text-white/55">
                 {sajs001cdRelease.catalogue}
               </p>
-              <h1 className="mt-4 font-mono text-4xl uppercase leading-[0.9] tracking-normal text-white sm:text-4xl">
+              <h1 className="mt-4 font-mono text-[2.4rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[2.4rem]">
                 V.A. Odyssey
               </h1>
               <img
                 alt="SAJS001CD Odyssey cover"
-                className="mx-auto mt-6 aspect-square w-full max-w-[12.6rem] border border-white/45 object-cover xl:max-w-[18rem]"
+                className="mt-6 aspect-square w-full max-w-[12.6rem] border border-white/45 object-cover lg:mx-auto xl:max-w-[18rem]"
                 src="/media/images/releases/sajs001/cover.png"
               />
-              <p className="mt-4 max-w-sm text-sm leading-6 text-white/64">
+              <p className="mt-4 max-w-sm text-[0.8125rem] leading-6 text-white/64">
                 Strange Animals presents Odyssey, a compilation album consisting
                 of a selection of tracks from various artists, showcasing
                 diverse and innovative sounds inspired by liquid drum n
@@ -213,14 +207,17 @@ export function Sajs001cdListenPage() {
             </div>
           </div>
 
-          <div className="flex min-h-[31rem] flex-col border border-white/70 bg-black shadow-[4px_4px_0_0_rgba(255,255,255,0.75)]">
+          <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 shadow-[4px_4px_0_0_rgba(255,255,255,0.75)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-white/45">
+                <p className="font-mono text-[0.669rem] uppercase tracking-[0.1em] text-white/45">
                   Now Playing
                 </p>
-                <p className="mt-2 min-h-12 font-mono text-lg leading-tight text-white">
-                  {activeTrackLabel}
+                <p className="mt-2 min-h-12 font-mono text-[0.9rem] leading-tight text-white">
+                  <span className="tabular-nums text-[1.025rem]">
+                    {currentTrack.number.toString().padStart(2, "0")} /
+                  </span>{" "}
+                  {currentTrack.artist} - {currentTrack.title}
                 </p>
                 <button
                   type="button"
@@ -239,9 +236,13 @@ export function Sajs001cdListenPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </button>
-                <div className="mt-2 flex justify-between font-mono text-[0.72rem] text-white/55">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
+                <div className="mt-2 flex justify-between font-mono text-[0.576rem] text-white/55">
+                  <span className="tabular-nums text-[0.701rem]">
+                    {formatTime(currentTime)}
+                  </span>
+                  <span className="tabular-nums text-[0.701rem]">
+                    {formatTime(duration)}
+                  </span>
                 </div>
               </div>
 
@@ -296,16 +297,16 @@ export function Sajs001cdListenPage() {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="listen-playlist-scrollbar min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-sm uppercase tracking-[0.08em] text-white/60">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-white/60">
                   <Loader2 className="size-4 animate-spin" />
                   Loading WAVs
                 </div>
               ) : null}
 
               {trackUrlState.status === "error" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-sm text-white/70">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.7rem] text-white/70">
                   <AlertTriangle className="size-5 shrink-0" />
                   <span>{trackUrlState.message}</span>
                 </div>
@@ -330,23 +331,23 @@ export function Sajs001cdListenPage() {
                             selectTrack(index);
                           }}
                         >
-                          <span className="font-mono text-sm tabular-nums opacity-70">
+                          <span className="font-mono text-[0.7625rem] tabular-nums opacity-70">
                             {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-mono text-sm uppercase tracking-[0.04em]">
+                            <span className="block truncate font-mono text-[0.825rem] uppercase tracking-[0.04em]">
                               {track.title}
                             </span>
                             <span
                               className={[
-                                "mt-0.5 block truncate text-[0.7825rem] font-semibold",
+                                "mt-0.5 block truncate text-[0.751rem] font-semibold",
                                 selected ? "text-black/68" : "text-white/48",
                               ].join(" ")}
                             >
                               {track.artist}
                             </span>
                           </span>
-                          <span className="text-right text-xs tabular-nums opacity-60">
+                          <span className="text-right text-[0.725rem] tabular-nums opacity-60">
                             {track.durationLabel}
                           </span>
                         </button>
