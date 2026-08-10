@@ -20,6 +20,15 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/media/fonts/Departure Mono/DepartureMono-Regular.otf")
+    format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -43,7 +52,7 @@ body {
 
 .listen-page-amiga,
 .listen-page-amiga * {
-  font-family: "Inconsolata", "AMI EGA 8x14", monospace !important;
+  font-family: "Inconsolata", monospace !important;
 }
 
 body
