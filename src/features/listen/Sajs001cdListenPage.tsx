@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Loader2,
@@ -11,6 +11,8 @@ import {
 import { getDownloadURL, ref } from "firebase/storage";
 import { firebaseStorage } from "@/lib/firebase";
 import { sajs001cdRelease } from "./sajs001cd-release";
+
+const SAJS001CD_COVER_PATH = "/media/images/releases/sajs001/cover.png";
 
 const formatTime = (time: number) => {
   if (!Number.isFinite(time)) {
@@ -175,6 +177,86 @@ export function Sajs001cdListenPage() {
     setCurrentTime(nextTime);
   };
 
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") {
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      album: `${sajs001cdRelease.title} (${sajs001cdRelease.catalogue})`,
+      artwork: [
+        {
+          src: SAJS001CD_COVER_PATH,
+          sizes: "512x512",
+          type: "image/png",
+        },
+      ],
+    });
+
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+    const setActionHandler = (
+      action: MediaSessionAction,
+      handler: MediaSessionActionHandler | null,
+    ) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Some actions are not supported by all browsers/platforms.
+      }
+    };
+
+    setActionHandler("play", () => {
+      playCurrentTrack();
+    });
+
+    setActionHandler("pause", () => {
+      pauseCurrentTrack();
+    });
+
+    setActionHandler("previoustrack", () => {
+      goToPreviousTrack();
+    });
+
+    setActionHandler("nexttrack", () => {
+      goToNextTrack();
+    });
+
+    setActionHandler("seekto", (details) => {
+      if (typeof details.seekTime !== "number" || !audioReference.current) {
+        return;
+      }
+
+      const maxDuration =
+        Number.isFinite(audioReference.current.duration) &&
+        audioReference.current.duration > 0
+          ? audioReference.current.duration
+          : duration;
+      const nextTime = Math.min(maxDuration, Math.max(0, details.seekTime));
+
+      audioReference.current.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    });
+
+    return () => {
+      setActionHandler("play", null);
+      setActionHandler("pause", null);
+      setActionHandler("previoustrack", null);
+      setActionHandler("nexttrack", null);
+      setActionHandler("seekto", null);
+    };
+  }, [
+    currentTrack.artist,
+    currentTrack.title,
+    duration,
+    goToNextTrack,
+    isPlaying,
+    pauseCurrentTrack,
+    playCurrentTrack,
+  ]);
+
   return (
     <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.8rem] text-white sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
@@ -185,19 +267,19 @@ export function Sajs001cdListenPage() {
                 {sajs001cdRelease.catalogue}
               </p>
               <h1 className="mt-4 font-mono text-[2.4rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[2.4rem]">
-                V.A. Odyssey (CD)
+                V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <img
                   alt="SAJS001CD Odyssey cover"
                   className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover xl:max-w-[18rem]"
-                  src="/media/images/releases/sajs001/cover.png"
+                  src={SAJS001CD_COVER_PATH}
                 />
                 <p className="max-w-sm text-[0.8125rem] leading-6 text-white/64">
-                  Strange Animals presents Odyssey, a compilation album
+                  Strange Animals presents Odyssey Vol. 1, a compilation album
                   consisting of a selection of tracks from various artists,
-                  showcasing diverse and innovative sounds inspired by liquid
-                  drum n bass/jungle.
+                  showcasing a wide spectrum of sounds inspired by liquid drum n
+                  bass/jungle.
                   <span className="mt-3 block">
                     All tracks mastered by Beau Thomas.
                   </span>
