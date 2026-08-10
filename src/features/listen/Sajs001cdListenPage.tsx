@@ -179,31 +179,33 @@ export function Sajs001cdListenPage() {
     <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.8rem] text-white sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
-          <div className="flex min-h-[31rem] flex-col justify-between bg-black p-4 sm:p-5">
+          <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.845rem] uppercase tracking-[0.11em] text-white/55">
                 {sajs001cdRelease.catalogue}
               </p>
               <h1 className="mt-4 font-mono text-[2.4rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[2.4rem]">
-                V.A. Odyssey
+                V.A. Odyssey (CD)
               </h1>
-              <img
-                alt="SAJS001CD Odyssey cover"
-                className="mt-6 aspect-square w-full max-w-[12.6rem] border border-white/45 object-cover lg:mx-auto xl:max-w-[18rem]"
-                src="/media/images/releases/sajs001/cover.png"
-              />
-              <p className="mt-4 max-w-sm text-[0.8125rem] leading-6 text-white/64">
-                Strange Animals presents Odyssey, a compilation album consisting
-                of a selection of tracks from various artists, showcasing
-                diverse and innovative sounds inspired by liquid drum n
-                bass/jungle.
-                <span className="mt-3 block">
-                  All tracks mastered by Beau Thomas.
-                </span>
-                <span className="mt-3 block">
-                  Original artwork by Laura Butallo.
-                </span>
-              </p>
+              <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
+                <img
+                  alt="SAJS001CD Odyssey cover"
+                  className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover xl:max-w-[18rem]"
+                  src="/media/images/releases/sajs001/cover.png"
+                />
+                <p className="max-w-sm text-[0.8125rem] leading-6 text-white/64">
+                  Strange Animals presents Odyssey, a compilation album
+                  consisting of a selection of tracks from various artists,
+                  showcasing diverse and innovative sounds inspired by liquid
+                  drum n bass/jungle.
+                  <span className="mt-3 block">
+                    All tracks mastered by Beau Thomas.
+                  </span>
+                  <span className="mt-3 block">
+                    Original artwork by Laura Butallo.
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 
