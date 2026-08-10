@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Loader2,
@@ -7,33 +7,33 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
-} from 'lucide-react';
-import {getDownloadURL, ref} from 'firebase/storage';
-import {firebaseStorage} from '@/lib/firebase';
-import {sajs001cdRelease} from './sajs001cd-release';
+} from "lucide-react";
+import { getDownloadURL, ref } from "firebase/storage";
+import { firebaseStorage } from "@/lib/firebase";
+import { sajs001cdRelease } from "./sajs001cd-release";
 
 const formatTime = (time: number) => {
   if (!Number.isFinite(time)) {
-    return '0:00';
+    return "0:00";
   }
 
   const minutes = Math.floor(time / 60);
   const seconds = Math.floor(time % 60)
     .toString()
-    .padStart(2, '0');
+    .padStart(2, "0");
 
   return `${minutes}:${seconds}`;
 };
 
 type TrackUrlState =
-  | {status: 'loading'; urls: Record<string, string>}
-  | {message: string; status: 'error'; urls: Record<string, string>}
-  | {status: 'ready'; urls: Record<string, string>};
+  | { status: "loading"; urls: Record<string, string> }
+  | { message: string; status: "error"; urls: Record<string, string> }
+  | { status: "ready"; urls: Record<string, string> };
 
 export function Sajs001cdListenPage() {
   const audioReference = useRef<HTMLAudioElement>(null);
   const [trackUrlState, setTrackUrlState] = useState<TrackUrlState>({
-    status: 'loading',
+    status: "loading",
     urls: {},
   });
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -61,7 +61,7 @@ export function Sajs001cdListenPage() {
 
         if (!cancelled) {
           setTrackUrlState({
-            status: 'ready',
+            status: "ready",
             urls: Object.fromEntries(entries),
           });
         }
@@ -71,8 +71,8 @@ export function Sajs001cdListenPage() {
             message:
               error instanceof Error
                 ? error.message
-                : 'Could not load the release audio.',
-            status: 'error',
+                : "Could not load the release audio.",
+            status: "error",
             urls: {},
           });
         }
@@ -177,7 +177,7 @@ export function Sajs001cdListenPage() {
 
   const activeTrackLabel = useMemo(
     () =>
-      `${currentTrack.number.toString().padStart(2, '0')} / ${currentTrack.artist} - ${currentTrack.title}`,
+      `${currentTrack.number.toString().padStart(2, "0")} / ${currentTrack.artist} - ${currentTrack.title}`,
     [currentTrack],
   );
 
@@ -199,8 +199,11 @@ export function Sajs001cdListenPage() {
                 src="/media/images/releases/sajs001/cover.png"
               />
               <p className="mt-4 max-w-sm text-sm leading-6 text-white/64">
-                Strange Animals presents {sajs001cdRelease.artist}. Full WAV
-                playback direct from the release masters.
+                (this is a liquid drum n bass/jungle compilation, not a full
+                album) Strange Animals presents Odyssey, a compilation album
+                consisting of a selection of tracks from various artists,
+                showcasing diverse and innovative sounds inspired by liquid drum
+                n bass/jungle.
               </p>
             </div>
           </div>
@@ -228,7 +231,7 @@ export function Sajs001cdListenPage() {
                 >
                   <div
                     className="h-full bg-white"
-                    style={{width: `${progress}%`}}
+                    style={{ width: `${progress}%` }}
                   />
                 </button>
                 <div className="mt-2 flex justify-between font-mono text-[0.72rem] text-white/55">
@@ -242,16 +245,16 @@ export function Sajs001cdListenPage() {
                   type="button"
                   aria-label="Previous track"
                   className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
-                  disabled={isFirstTrack || trackUrlState.status !== 'ready'}
+                  disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
                   <SkipBack className="size-4" />
                 </button>
                 <button
                   type="button"
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                  aria-label={isPlaying ? "Pause" : "Play"}
                   className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
-                  disabled={trackUrlState.status !== 'ready'}
+                  disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                 >
                   {isPlaying ? (
@@ -264,7 +267,7 @@ export function Sajs001cdListenPage() {
                   type="button"
                   aria-label="Next track"
                   className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
-                  disabled={isLastTrack || trackUrlState.status !== 'ready'}
+                  disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
                   <SkipForward className="size-4" />
@@ -289,21 +292,21 @@ export function Sajs001cdListenPage() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {trackUrlState.status === 'loading' ? (
+              {trackUrlState.status === "loading" ? (
                 <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-sm uppercase tracking-[0.08em] text-white/60">
                   <Loader2 className="size-4 animate-spin" />
                   Loading WAVs
                 </div>
               ) : null}
 
-              {trackUrlState.status === 'error' ? (
+              {trackUrlState.status === "error" ? (
                 <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-sm text-white/70">
                   <AlertTriangle className="size-5 shrink-0" />
                   <span>{trackUrlState.message}</span>
                 </div>
               ) : null}
 
-              {trackUrlState.status === 'ready' ? (
+              {trackUrlState.status === "ready" ? (
                 <ol className="divide-y divide-white/20">
                   {sajs001cdRelease.tracks.map((track, index) => {
                     const selected = index === currentTrackIndex;
@@ -313,17 +316,17 @@ export function Sajs001cdListenPage() {
                         <button
                           type="button"
                           className={[
-                            'grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4',
+                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
                             selected
-                              ? 'bg-white/72 text-black'
-                              : 'bg-black text-white/82 hover:bg-white/[0.12]',
-                          ].join(' ')}
+                              ? "bg-white/72 text-black"
+                              : "bg-black text-white/82 hover:bg-white/[0.12]",
+                          ].join(" ")}
                           onClick={() => {
                             selectTrack(index);
                           }}
                         >
                           <span className="font-mono text-sm tabular-nums opacity-70">
-                            {track.number.toString().padStart(2, '0')}
+                            {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate font-mono text-sm uppercase tracking-[0.04em]">
@@ -331,9 +334,9 @@ export function Sajs001cdListenPage() {
                             </span>
                             <span
                               className={[
-                                'mt-0.5 block truncate text-[0.7825rem] font-semibold',
-                                selected ? 'text-black/68' : 'text-white/48',
-                              ].join(' ')}
+                                "mt-0.5 block truncate text-[0.7825rem] font-semibold",
+                                selected ? "text-black/68" : "text-white/48",
+                              ].join(" ")}
                             >
                               {track.artist}
                             </span>
