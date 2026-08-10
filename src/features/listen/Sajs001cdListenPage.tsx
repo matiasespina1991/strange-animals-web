@@ -182,16 +182,16 @@ export function Sajs001cdListenPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#050505] px-4 py-5 font-mono text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#050505] pr-3 pl-2 py-2 font-mono text-white sm:px-6 lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
-          <div className="flex min-h-[31rem] flex-col justify-between border border-white/70 bg-black p-4 shadow-[5px_5px_0_0_rgba(255,255,255,0.75)] sm:p-5">
+          <div className="flex min-h-[31rem] flex-col justify-between border border-white/70 bg-black p-4 shadow-[4px_4px_0_0_rgba(255,255,255,0.75)] sm:p-5">
             <div>
               <p className="font-mono text-[0.72rem] uppercase tracking-[0.11em] text-white/55">
                 {sajs001cdRelease.catalogue}
               </p>
-              <h1 className="mt-4 max-w-[10ch] font-mono text-5xl uppercase leading-[0.9] tracking-normal text-white sm:text-6xl">
-                {sajs001cdRelease.title}
+              <h1 className="mt-4 font-mono text-4xl uppercase leading-[0.9] tracking-normal text-white sm:text-4xl">
+                V.A. Odyssey
               </h1>
               <img
                 alt="SAJS001CD Odyssey cover"
@@ -199,16 +199,21 @@ export function Sajs001cdListenPage() {
                 src="/media/images/releases/sajs001/cover.png"
               />
               <p className="mt-4 max-w-sm text-sm leading-6 text-white/64">
-                (this is a liquid drum n bass/jungle compilation, not a full
-                album) Strange Animals presents Odyssey, a compilation album
-                consisting of a selection of tracks from various artists,
-                showcasing diverse and innovative sounds inspired by liquid drum
-                n bass/jungle.
+                Strange Animals presents Odyssey, a compilation album consisting
+                of a selection of tracks from various artists, showcasing
+                diverse and innovative sounds inspired by liquid drum n
+                bass/jungle.
+                <span className="mt-3 block">
+                  All tracks mastered by Beau Thomas.
+                </span>
+                <span className="mt-3 block">
+                  Original artwork by Laura Butallo.
+                </span>
               </p>
             </div>
           </div>
 
-          <div className="flex min-h-[31rem] flex-col border border-white/70 bg-black shadow-[5px_5px_0_0_rgba(255,255,255,0.75)]">
+          <div className="flex min-h-[31rem] flex-col border border-white/70 bg-black shadow-[4px_4px_0_0_rgba(255,255,255,0.75)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
                 <p className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-white/45">
@@ -244,7 +249,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Previous track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
@@ -253,7 +258,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                 >
@@ -266,7 +271,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Next track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none focus:ring-2 focus:ring-white/80 disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
@@ -316,9 +321,9 @@ export function Sajs001cdListenPage() {
                         <button
                           type="button"
                           className={[
-                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
+                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
                             selected
-                              ? "bg-white/72 text-black"
+                              ? "bg-white/[0.82] text-black"
                               : "bg-black text-white/82 hover:bg-white/[0.12]",
                           ].join(" ")}
                           onClick={() => {
