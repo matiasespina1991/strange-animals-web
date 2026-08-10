@@ -178,7 +178,10 @@ export function Sajs001cdListenPage() {
   };
 
   useEffect(() => {
-    if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") {
+    if (
+      !("mediaSession" in navigator) ||
+      typeof MediaMetadata === "undefined"
+    ) {
       return;
     }
 
@@ -266,13 +269,13 @@ export function Sajs001cdListenPage() {
               <p className="font-mono text-[0.845rem] uppercase tracking-[0.11em] text-white/55">
                 {sajs001cdRelease.catalogue}
               </p>
-              <h1 className="mt-4 font-mono text-[2.4rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[2.4rem]">
+              <h1 className="mt-4 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[1.8rem]">
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <img
                   alt="SAJS001CD Odyssey cover"
-                  className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover xl:max-w-[18rem]"
+                  className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover"
                   src={SAJS001CD_COVER_PATH}
                 />
                 <p className="max-w-sm text-[0.8125rem] leading-6 text-white/64">
@@ -292,7 +295,7 @@ export function Sajs001cdListenPage() {
             </div>
           </div>
 
-          <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 shadow-[4px_4px_0_0_rgba(255,255,255,0.75)]">
+          <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[3px_3px_0_0_rgba(255,255,255,0.85)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
                 <p className="font-mono text-[0.669rem] uppercase tracking-[0.1em] text-white/45">
@@ -335,33 +338,33 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Previous track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-8 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
-                  <SkipBack className="size-4" />
+                  <SkipBack className="size-[0.8rem]" />
                 </button>
                 <button
                   type="button"
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-8 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                 >
                   {isPlaying ? (
-                    <Pause className="size-4" />
+                    <Pause className="size-[0.8rem]" />
                   ) : (
-                    <Play className="size-4" />
+                    <Play className="size-[0.8rem]" />
                   )}
                 </button>
                 <button
                   type="button"
                   aria-label="Next track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-8 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
                   disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
-                  <SkipForward className="size-4" />
+                  <SkipForward className="size-[0.8rem]" />
                 </button>
 
                 <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
