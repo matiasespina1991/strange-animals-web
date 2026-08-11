@@ -41,6 +41,7 @@ export function Sajs001cdListenPage() {
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isCoverLightboxOpen, setIsCoverLightboxOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const currentTrack = sajs001cdRelease.tracks[currentTrackIndex];
@@ -178,6 +179,37 @@ export function Sajs001cdListenPage() {
   };
 
   useEffect(() => {
+    if (!isCoverLightboxOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCoverLightboxOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isCoverLightboxOpen]);
+
+  useEffect(() => {
+    if (!isCoverLightboxOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isCoverLightboxOpen]);
+
+  useEffect(() => {
     if (
       !("mediaSession" in navigator) ||
       typeof MediaMetadata === "undefined"
@@ -276,11 +308,20 @@ export function Sajs001cdListenPage() {
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
-                <img
-                  alt="SAJS001CD Odyssey cover"
-                  className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover"
-                  src={SAJS001CD_COVER_PATH}
-                />
+                <button
+                  type="button"
+                  aria-label="Open album cover"
+                  className="w-full max-w-[12.6rem] shrink-0 border border-white/45 bg-black p-0 text-left"
+                  onClick={() => {
+                    setIsCoverLightboxOpen(true);
+                  }}
+                >
+                  <img
+                    alt="SAJS001CD Odyssey cover"
+                    className="aspect-square w-full object-cover"
+                    src={SAJS001CD_COVER_PATH}
+                  />
+                </button>
                 <p className="max-w-sm text-[0.8125rem] leading-6 tracking-[-0.008em] text-white/64">
                   Strange Animals presents Odyssey Vol. 1, a compilation album
                   consisting of a selection of tracks from various artists,
@@ -489,6 +530,48 @@ export function Sajs001cdListenPage() {
           </div>
         </div>
       </section>
+
+      {isCoverLightboxOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 sm:px-8 sm:py-10"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Album cover preview"
+          onClick={() => {
+            setIsCoverLightboxOpen(false);
+          }}
+        >
+          <div
+            className="relative"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Close album cover preview"
+              className="absolute top-2 -right-12 z-10 flex h-6 w-6 items-center justify-center border border-[#d1d1d1cc] bg-black text-white/90 shadow-[1px_1px_0_0_rgba(255,255,255,0.78)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-px hover:translate-y-px hover:shadow-[0_0_0_0_rgba(255,255,255,0)] active:translate-x-px active:translate-y-px active:shadow-[0_0_0_0_rgba(255,255,255,0)] sm:-right-14"
+              onClick={() => {
+                setIsCoverLightboxOpen(false);
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-1/2 h-[2px] w-[0.72rem] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current"
+              />
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-1/2 h-[2px] w-[0.72rem] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current"
+              />
+            </button>
+            <img
+              alt="SAJS001CD Odyssey cover preview"
+              className="max-h-[calc(100vh-4rem)] w-auto max-w-[calc(100vw-2rem)] object-contain"
+              src={SAJS001CD_COVER_PATH}
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
