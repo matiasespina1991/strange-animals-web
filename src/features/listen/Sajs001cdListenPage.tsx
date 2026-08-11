@@ -401,7 +401,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Previous track"
-                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
+                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                   disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
@@ -411,10 +411,10 @@ export function Sajs001cdListenPage() {
                   type="button"
                   aria-label={isPlaying ? "Pause" : "Play"}
                   className={[
-                    "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9",
+                    "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                     isPlaying
                       ? "bg-white text-black shadow-none translate-x-px translate-y-px"
-                      : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)]  hover:shadow-none",
+                      : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
                   ].join(" ")}
                   disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
@@ -428,7 +428,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Next track"
-                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
+                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                   disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
