@@ -81,7 +81,7 @@ export const sajs001cdRelease = {
       slug: "midu-nunca-deja-de-caer-interlude",
       storagePath:
         "media/public/audio/tracks/midu-nunca-deja-de-caer-interlude/v1/source.wav",
-      title: "Nunca Deja De Caer [Interlude]",
+      title: "[Interlude] Nunca Deja De Caer",
     },
     {
       artist: "Ewan Jansen pres. Bluejaye",

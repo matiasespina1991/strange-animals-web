@@ -266,10 +266,13 @@ export function Sajs001cdListenPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
-              <p className="font-mono text-[0.845rem] uppercase tracking-[0.11em] text-white/55">
+              <p className="font-mono text-[0.845rem] uppercase tracking-[0.066em] text-white/55">
                 {sajs001cdRelease.catalogue}
               </p>
-              <h1 className="mt-4 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-normal text-white sm:text-[1.8rem]">
+              <p className="mt-1 text-[0.72rem] uppercase tracking-[0.06em] text-white/55">
+                Jungle Series
+              </p>
+              <h1 className="mt-4 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -278,18 +281,37 @@ export function Sajs001cdListenPage() {
                   className="aspect-square w-full max-w-[12.6rem] shrink-0 border border-white/45 object-cover"
                   src={SAJS001CD_COVER_PATH}
                 />
-                <p className="max-w-sm text-[0.8125rem] leading-6 text-white/64">
+                <p className="max-w-sm text-[0.8125rem] leading-6 tracking-[-0.008em] text-white/64">
                   Strange Animals presents Odyssey Vol. 1, a compilation album
                   consisting of a selection of tracks from various artists,
                   showcasing a wide spectrum of sounds inspired by liquid drum n
                   bass/jungle.
                   <span className="mt-3 block">
-                    All tracks mastered by Beau Thomas.
+                    All tracks mastered by{" "}
+                    <a
+                      href="https://www.discogs.com/artist/499136-Beau-Thomas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-blue-400 hover:text-blue-300 hover:underline hover:underline-offset-2"
+                    >
+                      Beau Thomas
+                    </a>{" "}
+                    at Ten Eight Seven Mastering, London, UK.
                   </span>
                   <span className="mt-3 block">
-                    Original artwork by Laura Butallo.
+                    Original artwork by{" "}
+                    <a
+                      href="https://laurabutallo.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-blue-400 hover:text-blue-300 hover:underline hover:underline-offset-2"
+                    >
+                      Laura Butallo
+                    </a>
+                    .
                   </span>
                   <span className="mt-3 block">Release date: TBD 2026</span>
+                  <span className="mt-3 block">Format: CD + Vinyl sampler</span>
                 </p>
               </div>
             </div>
@@ -298,10 +320,10 @@ export function Sajs001cdListenPage() {
           <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[3px_3px_0_0_rgba(255,255,255,0.85)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
-                <p className="font-mono text-[0.669rem] uppercase tracking-[0.1em] text-white/45">
+                <p className="font-mono text-[0.669rem] uppercase tracking-[0.06em] text-white/45">
                   Now Playing
                 </p>
-                <p className="mt-2 min-h-12 font-mono text-[0.9rem] leading-tight text-white">
+                <p className="mt-2 min-h-12 font-mono text-[0.9rem] leading-tight tracking-[-0.008em] text-white">
                   <span className="tabular-nums text-[1.025rem]">
                     {currentTrack.number.toString().padStart(2, "0")} /
                   </span>{" "}
@@ -338,33 +360,33 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Previous track"
-                  className="flex size-8 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
                   disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
-                  <SkipBack className="size-[0.8rem]" />
+                  <SkipBack className="size-[0.9rem] md:size-[0.82rem]" />
                 </button>
                 <button
                   type="button"
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="flex size-8 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
                   disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                 >
                   {isPlaying ? (
-                    <Pause className="size-[0.8rem]" />
+                    <Pause className="size-[0.9rem] md:size-[0.82rem]" />
                   ) : (
-                    <Play className="size-[0.8rem]" />
+                    <Play className="size-[0.9rem] md:size-[0.82rem]" />
                   )}
                 </button>
                 <button
                   type="button"
                   aria-label="Next track"
-                  className="flex size-8 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35"
+                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
                   disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
-                  <SkipForward className="size-[0.8rem]" />
+                  <SkipForward className="size-[0.9rem] md:size-[0.82rem]" />
                 </button>
 
                 <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
@@ -387,7 +409,7 @@ export function Sajs001cdListenPage() {
 
             <div className="listen-playlist-scrollbar min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-white/60">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.048em] text-white/60">
                   <Loader2 className="size-4 animate-spin" />
                   Loading WAVs
                 </div>
@@ -423,7 +445,7 @@ export function Sajs001cdListenPage() {
                             {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-mono text-[0.825rem] uppercase tracking-[0.04em]">
+                            <span className="block truncate font-mono text-[0.825rem] uppercase tracking-[0.024em]">
                               {track.title}
                             </span>
                             <span
