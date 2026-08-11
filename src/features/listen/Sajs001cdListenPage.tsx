@@ -298,13 +298,13 @@ export function Sajs001cdListenPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
-              <p className="font-mono text-[1.014rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.845rem]">
-                {sajs001cdRelease.catalogue}
+              <p className="font-mono text-[0.9rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+                <a href="/" className="hover:text-white/80">
+                  Strange Animals
+                </a>{" "}
+                &gt; Jungle Series &gt; {sajs001cdRelease.catalogue}
               </p>
-              <p className="mt-1 text-[0.864rem] uppercase tracking-[0.06em] text-white/60 md:text-[0.72rem]">
-                Jungle Series
-              </p>
-              <h1 className="mt-3 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
+              <h1 className="mt-[0.5rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -358,7 +358,7 @@ export function Sajs001cdListenPage() {
             </div>
           </div>
 
-          <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[3px_3px_0_0_rgba(255,255,255,0.85)]">
+          <div className="flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col mt-3 overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[2.5px_2.5px_0_0_rgba(255,255,255,0.85)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
                 <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
