@@ -324,9 +324,9 @@ export function Sajs001cdListenPage() {
                 </button>
                 <p className="max-w-sm text-[0.8125rem] leading-6 tracking-[-0.008em] text-white/64">
                   Strange Animals presents Odyssey Vol. 1, a compilation album
-                  consisting of a selection of tracks from various artists,
-                  showcasing a wide spectrum of sounds inspired by liquid drum n
-                  bass/jungle.
+                  consisting of a selection of tracks from a variety of artists
+                  from all over the world, showcasing a wide spectrum of sounds
+                  inspired by liquid drum n bass/jungle.
                   <span className="mt-3 block">
                     All tracks mastered by{" "}
                     <a
