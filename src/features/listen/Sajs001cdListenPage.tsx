@@ -298,13 +298,13 @@ export function Sajs001cdListenPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
-              <p className="font-mono text-[0.9rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+              <p className="font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
                 <a href="/" className="hover:text-white/80">
                   Strange Animals
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs001cdRelease.catalogue}
               </p>
-              <h1 className="mt-[0.5rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
+              <h1 className="mt-[0.65rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -351,7 +351,7 @@ export function Sajs001cdListenPage() {
                     </a>
                     .
                   </span>
-                  <span className="mt-3 block">Release date: TBD 2026</span>
+                  <span className="mt-3 block">Release date: TBA 2026</span>
                   <span className="mt-3 block">Format: CD + Vinyl sampler</span>
                 </p>
               </div>
