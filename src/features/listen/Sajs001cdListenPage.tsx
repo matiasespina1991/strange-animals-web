@@ -293,18 +293,18 @@ export function Sajs001cdListenPage() {
   ]);
 
   return (
-    <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.8rem] text-white sm:px-6 lg:px-8">
+    <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
-              <p className="font-mono text-[0.845rem] uppercase tracking-[0.066em] text-white/55">
+              <p className="font-mono text-[1.014rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.845rem]">
                 {sajs001cdRelease.catalogue}
               </p>
-              <p className="mt-1 text-[0.72rem] uppercase tracking-[0.06em] text-white/55">
+              <p className="mt-1 text-[0.864rem] uppercase tracking-[0.06em] text-white/60 md:text-[0.72rem]">
                 Jungle Series
               </p>
-              <h1 className="mt-4 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
+              <h1 className="mt-3 font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
                 V.A. Odyssey Vol. 1 (CD)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -322,7 +322,7 @@ export function Sajs001cdListenPage() {
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[0.8125rem] leading-6 tracking-[-0.008em] text-white/64">
+                <p className="max-w-sm text-[0.894rem] leading-6 tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
                   Strange Animals presents Odyssey Vol. 1, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
@@ -361,11 +361,11 @@ export function Sajs001cdListenPage() {
           <div className="flex min-h-0 max-h-[calc(100vh-2rem)] flex-col overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[3px_3px_0_0_rgba(255,255,255,0.85)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
-                <p className="font-mono text-[0.669rem] uppercase tracking-[0.06em] text-white/45">
+                <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
                   Now Playing
                 </p>
-                <p className="mt-2 min-h-12 font-mono text-[0.9rem] leading-tight tracking-[-0.008em] text-white">
-                  <span className="tabular-nums text-[1.025rem]">
+                <p className="mt-2 min-h-12 font-mono text-[1.08rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
+                  <span className="tabular-nums text-[1.23rem] md:text-[1.025rem]">
                     {currentTrack.number.toString().padStart(2, "0")} /
                   </span>{" "}
                   {currentTrack.artist} - {currentTrack.title}
@@ -387,11 +387,11 @@ export function Sajs001cdListenPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </button>
-                <div className="mt-2 flex justify-between font-mono text-[0.576rem] text-white/55">
-                  <span className="tabular-nums text-[0.701rem]">
+                <div className="mt-2 flex justify-between font-mono text-[0.691rem] text-white/55 md:text-[0.576rem]">
+                  <span className="tabular-nums text-[0.841rem] md:text-[0.701rem]">
                     {formatTime(currentTime)}
                   </span>
-                  <span className="tabular-nums text-[0.701rem]">
+                  <span className="tabular-nums text-[0.841rem] md:text-[0.701rem]">
                     {formatTime(duration)}
                   </span>
                 </div>
@@ -401,33 +401,38 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Previous track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
+                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
                   disabled={isFirstTrack || trackUrlState.status !== "ready"}
                   onClick={goToPreviousTrack}
                 >
-                  <SkipBack className="size-[0.9rem] md:size-[0.82rem]" />
+                  <SkipBack className="size-4 md:size-[0.82rem]" />
                 </button>
                 <button
                   type="button"
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="flex size-10 items-center justify-center border border-white/80 bg-white text-black shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,background-color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:bg-white/90 hover:shadow-none focus:outline-none  disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
+                  className={[
+                    "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9",
+                    isPlaying
+                      ? "bg-white text-black shadow-none translate-x-px translate-y-px"
+                      : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)]  hover:shadow-none",
+                  ].join(" ")}
                   disabled={trackUrlState.status !== "ready"}
                   onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                 >
                   {isPlaying ? (
-                    <Pause className="size-[0.9rem] md:size-[0.82rem]" />
+                    <Pause className="size-4 md:size-[0.82rem]" />
                   ) : (
-                    <Play className="size-[0.9rem] md:size-[0.82rem]" />
+                    <Play className="size-4 fill-current md:size-[0.82rem]" />
                   )}
                 </button>
                 <button
                   type="button"
                   aria-label="Next track"
-                  className="flex size-10 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
+                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9"
                   disabled={isLastTrack || trackUrlState.status !== "ready"}
                   onClick={goToNextTrack}
                 >
-                  <SkipForward className="size-[0.9rem] md:size-[0.82rem]" />
+                  <SkipForward className="size-4 md:size-[0.82rem]" />
                 </button>
 
                 <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
@@ -450,14 +455,14 @@ export function Sajs001cdListenPage() {
 
             <div className="listen-playlist-scrollbar min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.048em] text-white/60">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.84rem] uppercase tracking-[0.048em] text-white/60 md:text-[0.7rem]">
                   <Loader2 className="size-4 animate-spin" />
                   Loading WAVs
                 </div>
               ) : null}
 
               {trackUrlState.status === "error" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.7rem] text-white/70">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.84rem] text-white/70 md:text-[0.7rem]">
                   <AlertTriangle className="size-5 shrink-0" />
                   <span>{trackUrlState.message}</span>
                 </div>
@@ -482,23 +487,23 @@ export function Sajs001cdListenPage() {
                             selectTrack(index);
                           }}
                         >
-                          <span className="font-mono text-[0.7625rem] tabular-nums opacity-70">
+                          <span className="font-mono text-[0.915rem] tabular-nums opacity-70 md:text-[0.7625rem]">
                             {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-mono text-[0.825rem] uppercase tracking-[0.024em]">
+                            <span className="block truncate font-mono text-[0.908rem] uppercase tracking-[0.024em] md:text-[0.825rem]">
                               {track.title}
                             </span>
                             <span
                               className={[
-                                "mt-0.5 block truncate text-[0.751rem] font-semibold",
+                                "mt-0.5 block truncate text-[0.901rem] font-semibold md:text-[0.751rem]",
                                 selected ? "text-black/68" : "text-white/48",
                               ].join(" ")}
                             >
                               {track.artist}
                             </span>
                           </span>
-                          <span className="text-right text-[0.725rem] tabular-nums opacity-60">
+                          <span className="text-right text-[0.87rem] tabular-nums opacity-60 md:text-[0.725rem]">
                             {track.durationLabel}
                           </span>
                         </button>
