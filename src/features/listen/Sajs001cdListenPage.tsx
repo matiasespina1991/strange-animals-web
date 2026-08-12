@@ -358,7 +358,7 @@ export function Sajs001cdListenPage() {
             </div>
           </div>
 
-          <div className="flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col mt-3 overflow-hidden border border-white/70 bg-black ring-inset ring-white/30 md:shadow-[2.5px_2.5px_0_0_rgba(255,255,255,0.85)]">
+          <div className="flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col mt-3 overflow-hidden border-[0.5px] border-white/70 bg-black ring-inset ring-white/30 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.70)]">
             <div className="border-b border-white/35 px-3 py-3 sm:px-4">
               <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
                 <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
@@ -439,7 +439,7 @@ export function Sajs001cdListenPage() {
                   <Volume2 className="size-4" />
                   <span className="sr-only">Volume</span>
                   <input
-                    className="h-1 w-full accent-white"
+                    className="listen-volume-slider h-1 w-full"
                     max="1"
                     min="0"
                     step="0.01"
