@@ -364,8 +364,8 @@ export function Sajs001cdListenPage() {
                 <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
                   Now Playing
                 </p>
-                <p className="mt-2 min-h-12 font-mono text-[1.08rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
-                  <span className="tabular-nums text-[1.23rem] md:text-[1.025rem]">
+                <p className="mt-2 min-h-12 font-mono text-[1.0175rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
+                  <span className="tabular-nums text-[1.1675rem] md:text-[1.025rem]">
                     {currentTrack.number.toString().padStart(2, "0")} /
                   </span>{" "}
                   {currentTrack.artist} - {currentTrack.title}
@@ -491,7 +491,7 @@ export function Sajs001cdListenPage() {
                             {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-mono text-[0.908rem] uppercase tracking-[0.024em] md:text-[0.825rem]">
+                            <span className="block truncate font-mono text-[0.908rem] uppercase tracking-[0.024em] md:text-[0.7625rem]">
                               {track.title}
                             </span>
                             <span
