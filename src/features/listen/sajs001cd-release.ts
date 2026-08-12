@@ -106,7 +106,7 @@ export const sajs001cdRelease = {
       number: 11,
       slug: "gl3w-untitled",
       storagePath: "media/public/audio/tracks/gl3w-untitled/v1/source.wav",
-      title: "Untitled",
+      title: "Immerse",
     },
   ] satisfies Sajs001cdTrack[],
 } as const;
