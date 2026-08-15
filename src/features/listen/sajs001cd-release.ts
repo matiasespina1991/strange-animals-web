@@ -84,7 +84,7 @@ export const sajs001cdRelease = {
       title: "[Interlude] Nunca Deja De Caer",
     },
     {
-      artist: "Ewan Jansen pres. Bluejaye",
+      artist: "Bluejaye (a.k.a. Ewan Jansen)",
       durationLabel: "6:42",
       number: 9,
       slug: "bluejaye-beginning-1996-live-mix",
