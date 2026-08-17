@@ -13,7 +13,7 @@ export const sajs001cdRelease = {
   title: "Odyssey",
   tracks: [
     {
-      artist: "Tade Kop",
+      artist: "Tade Fonk",
       durationLabel: "2:05",
       number: 1,
       slug: "tade-kop-heroe",
