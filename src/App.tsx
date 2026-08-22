@@ -1,6 +1,7 @@
 import {DoomJsDosPage} from '@/features/doom-js-dos/DoomJsDosPage';
 import {HomePage} from '@/features/home/HomePage';
 import {CustomCursor} from '@/features/home/components/CustomCursor';
+import {IdentityRoute} from '@/features/identity';
 import {Sajs001cdListenPage} from '@/features/listen';
 import {MinesweeperPage} from '@/features/minesweeper';
 import {ReleaseIdVerifierPage} from '@/features/release-id-verifier/ReleaseIdVerifierPage';
@@ -10,6 +11,16 @@ import {usePathRoute} from '@/hooks/usePathRoute';
 
 export function App() {
   const route = usePathRoute();
+
+  if (route === '/identity' || route.startsWith('/identity/')) {
+    return (
+      <>
+        <CustomCursor />
+        <IdentityRoute route={route} />
+      </>
+    );
+  }
+
   let page = <HomePage />;
 
   if (route === '/services/release-id-verifier') {

@@ -2,6 +2,14 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // The identity catalog is readable only by the fixed Firebase Auth account.
+    // Client writes remain disabled; catalog synchronization uses Admin access.
+    function hasIdentityAccess() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email == 'identity-access@strangeanimals.de';
+    }
+
     match /images/{imageId} {
       allow read: if true;
       allow write: if false;
@@ -23,6 +31,22 @@ service cloud.firestore {
     match /siteContent/{sectionId} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // Assumed model: fonts/{fontId} contains the bounded family summary used
+    // by the catalog. fonts/{fontId}/files/{fileId} contains one file manifest
+    // entry. Both are private; only the fixed identity may delete them through
+    // the temporary catalog-management control.
+    match /fonts/{fontId} {
+      allow read: if hasIdentityAccess();
+      allow delete: if hasIdentityAccess();
+      allow create, update: if false;
+
+      match /files/{fileId} {
+        allow read: if hasIdentityAccess();
+        allow delete: if hasIdentityAccess();
+        allow create, update: if false;
+      }
     }
 
     match /{document=**} {

@@ -2,6 +2,12 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function hasIdentityAccess() {
+      return request.auth != null
+        && request.auth.token.email is string
+        && request.auth.token.email == 'identity-access@strangeanimals.de';
+    }
+
     match /media/public/{allPaths=**} {
       allow read: if true;
       allow write: if false;
@@ -11,6 +17,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.resource != null
         && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /media/private/fonts/{allPaths=**} {
+      allow read: if hasIdentityAccess();
+      allow delete: if hasIdentityAccess();
+      allow create, update: if false;
     }
 
     match /{allPaths=**} {

@@ -202,7 +202,7 @@ export function CustomCursor() {
   return (
     <motion.div
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[999]"
+      className="pointer-events-none fixed left-0 top-0 z-[2147483647]"
       animate={{opacity: visible ? 1 : 0}}
       style={{x: smoothX, y: smoothY}}
       transition={{duration: 0.06, ease: 'easeOut'}}
