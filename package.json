@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "xo",
+    "sync:fonts": "node scripts/sync-font-catalog.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

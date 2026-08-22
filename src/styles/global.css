@@ -225,6 +225,74 @@ input {
   width: 14px;
 }
 
+.identity-font-size-slider {
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+.identity-font-size-slider:focus {
+  outline: none;
+}
+
+.identity-font-size-slider::-webkit-slider-runnable-track {
+  background: rgb(255 255 255 / 35%);
+  height: 1px;
+}
+
+.identity-font-size-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff;
+  border: 0;
+  border-radius: 999px;
+  height: 12px;
+  margin-top: -5.5px;
+  width: 12px;
+}
+
+.identity-font-size-slider::-moz-range-track {
+  background: rgb(255 255 255 / 35%);
+  border: 0;
+  height: 1px;
+}
+
+.identity-font-size-slider::-moz-range-thumb {
+  background: #fff;
+  border: 0;
+  border-radius: 999px;
+  height: 12px;
+  width: 12px;
+}
+
+.identity-color-picker {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 0;
+  cursor: pointer;
+  height: 1.5rem;
+  outline: none;
+  padding: 0;
+  width: 1.5rem;
+  -webkit-appearance: none;
+}
+
+.identity-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.identity-color-picker::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0;
+}
+
+.identity-color-picker::-moz-color-swatch {
+  border: 0;
+  border-radius: 0;
+}
+
 @media (min-width: 768px) {
   .listen-volume-slider::-webkit-slider-thumb {
     height: 13px;
