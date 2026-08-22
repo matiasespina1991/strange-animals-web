@@ -17,6 +17,8 @@ import {
   type FontVariant,
 } from './font-catalog-repository';
 
+const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
+
 function FontSpecimen({
   backgroundColor,
   font,
@@ -143,18 +145,20 @@ function FontSpecimen({
     >
       <div className="flex items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex max-w-[45%] items-start gap-2">
-          <button
-            aria-label={`Delete ${font.name}`}
-            className="shrink-0 text-white/40 hover:text-white disabled:cursor-wait disabled:text-white/20"
-            disabled={deleting}
-            title={`Delete ${font.name}`}
-            type="button"
-            onClick={() => {
-              onDelete(font);
-            }}
-          >
-            <Trash2 aria-hidden="true" className="size-[0.7rem]" />
-          </button>
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <button
+              aria-label={`Delete ${font.name}`}
+              className="shrink-0 text-white/40 hover:text-white disabled:cursor-wait disabled:text-white/20"
+              disabled={deleting}
+              title={`Delete ${font.name}`}
+              type="button"
+              onClick={() => {
+                onDelete(font);
+              }}
+            >
+              <Trash2 aria-hidden="true" className="size-[0.7rem]" />
+            </button>
+          ) : null}
           <h2 className="font-normal text-white/80">{font.name}</h2>
         </div>
         <div className="flex min-w-0 max-w-[55%] items-center justify-end gap-2">
@@ -311,7 +315,7 @@ export function IdentityFontsPage() {
           <div className="flex items-baseline justify-between gap-6">
             <nav
               aria-label="Breadcrumb"
-              className="text-[0.8rem] font-normal tracking-[0.02em] lowercase"
+              className="text-[0.9rem] font-normal tracking-[0.02em] text-white/70 lowercase"
             >
               <span>strange animals</span>
               <span aria-hidden="true" className="mx-2 text-white/45">
@@ -323,13 +327,6 @@ export function IdentityFontsPage() {
               </span>
               <h1 className="inline font-normal">fonts</h1>
             </nav>
-            <p className="text-[0.625rem] tracking-[0.12em] text-white/55 uppercase">
-              {loading
-                ? 'loading'
-                : `${visibleFonts.length.toString().padStart(2, '0')} / ${fonts.length
-                    .toString()
-                    .padStart(2, '0')}`}
-            </p>
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_10rem]">
@@ -453,7 +450,7 @@ export function IdentityFontsPage() {
         )}
       </div>
 
-      {fontPendingDeletion ? (
+      {SHOW_FONT_DELETE_CONTROLS && fontPendingDeletion ? (
         <div
           aria-labelledby="delete-font-title"
           aria-modal="true"
