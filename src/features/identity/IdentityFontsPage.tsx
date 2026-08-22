@@ -166,7 +166,7 @@ function FontSpecimen({
             <>
               <button
                 aria-label={`Previous variant of ${font.name}`}
-                className="cursor-pointer text-white/60 hover:text-white disabled:cursor-default disabled:text-white/20"
+                className="flex size-5 shrink-0 cursor-pointer items-center justify-center border border-white/35 bg-transparent text-white/60 shadow-none outline-none hover:border-white/60 hover:text-white focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:border-white/15 disabled:text-white/20"
                 disabled={selectedVariantIndex === 0 || variantLoading}
                 type="button"
                 onClick={() => {
@@ -176,14 +176,16 @@ function FontSpecimen({
                 <ChevronLeft aria-hidden="true" className="size-3" />
               </button>
               <span
-                className="max-w-44 truncate text-white/70"
+                className="w-44 text-center"
                 title={selectedVariant.fileName}
               >
-                {selectedVariant.fileName}
+                <span className="inline-block max-w-full overflow-hidden border-b border-white/70 pb-[2px] text-white/70 text-ellipsis whitespace-nowrap">
+                  {selectedVariant.fileName}
+                </span>
               </span>
               <button
                 aria-label={`Next variant of ${font.name}`}
-                className="cursor-pointer text-white/60 hover:text-white disabled:cursor-default disabled:text-white/20"
+                className="flex size-5 shrink-0 cursor-pointer items-center justify-center border border-white/35 bg-transparent text-white/60 shadow-none outline-none hover:border-white/60 hover:text-white focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:border-white/15 disabled:text-white/20"
                 disabled={
                   selectedVariantIndex === variantTotal - 1 || variantLoading
                 }
