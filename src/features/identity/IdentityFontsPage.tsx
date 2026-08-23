@@ -211,7 +211,7 @@ function FontSpecimen({
       </div>
 
       <p
-        className={`my-8 px-4 py-8 leading-normal break-words text-white ${familyName ? 'visible' : 'invisible'}`}
+        className={`my-8 px-4 py-8 leading-normal break-words text-white ${familyName ? "visible" : "invisible"}`}
         style={{
           backgroundColor,
           color: fontColor,
@@ -355,7 +355,7 @@ export function IdentityFontsPage() {
 
             <label className="block">
               <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
-                Filter font by name
+                Search fonts
               </span>
               <input
                 className="h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
