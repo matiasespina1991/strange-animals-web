@@ -5,8 +5,8 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import {ChevronLeft, ChevronRight, Download, Trash2} from 'lucide-react';
+} from "react";
+import { ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
 import {
   deleteFontCatalogItem,
   downloadFontVariant,
@@ -15,7 +15,7 @@ import {
   loadFontVariant,
   type FontCatalogItem,
   type FontVariant,
-} from './font-catalog-repository';
+} from "./font-catalog-repository";
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 
@@ -86,8 +86,14 @@ function FontSpecimen({
 
           setVariants(nextVariants);
 
-          if (nextVariants[0]) {
-            loadVariant(nextVariants[0], 0);
+          const previewIndex = nextVariants.findIndex(
+            (variant) => variant.storagePath === font.preview?.storagePath,
+          );
+          const initialVariantIndex = Math.max(previewIndex, 0);
+          const initialVariant = nextVariants[initialVariantIndex];
+
+          if (initialVariant) {
+            loadVariant(initialVariant, initialVariantIndex);
           } else {
             setVariantLoading(false);
           }
@@ -97,7 +103,7 @@ function FontSpecimen({
         });
     };
 
-    if (!('IntersectionObserver' in window)) {
+    if (!("IntersectionObserver" in window)) {
       load();
       return () => {
         active = false;
@@ -112,7 +118,7 @@ function FontSpecimen({
           observer.disconnect();
         }
       },
-      {rootMargin: '240px'},
+      { rootMargin: "240px" },
     );
 
     observer.observe(card);
@@ -141,7 +147,7 @@ function FontSpecimen({
   return (
     <article
       ref={cardReference}
-      className="flex min-h-60 flex-col justify-between border-t border-white/35 py-4 sm:min-h-72 sm:py-5"
+      className="flex min-h-60 flex-col justify-between border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
     >
       <div className="flex items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex max-w-[45%] items-start gap-2">
@@ -205,7 +211,7 @@ function FontSpecimen({
       </div>
 
       <p
-        className={`my-8 px-4 py-8 leading-[1.1] break-words text-white ${familyName ? 'visible' : 'invisible'}`}
+        className={`my-8 px-4 py-8 leading-normal break-words text-white ${familyName ? 'visible' : 'invisible'}`}
         style={{
           backgroundColor,
           color: fontColor,
@@ -243,11 +249,11 @@ function FontSpecimen({
 
 export function IdentityFontsPage() {
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
-  const [search, setSearch] = useState('');
-  const [specimen, setSpecimen] = useState('');
+  const [search, setSearch] = useState("");
+  const [specimen, setSpecimen] = useState("");
   const [fontSize, setFontSize] = useState(34);
-  const [fontColor, setFontColor] = useState('#000000');
-  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [fontColor, setFontColor] = useState("#000000");
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [fontPendingDeletion, setFontPendingDeletion] =
     useState<FontCatalogItem>();
   const [deletingFontIds, setDeletingFontIds] = useState<Set<string>>(
@@ -265,7 +271,7 @@ export function IdentityFontsPage() {
         if (active) setFonts(catalog);
       })
       .catch(() => {
-        if (active) setErrorMessage('Could not load the private font catalog.');
+        if (active) setErrorMessage("Could not load the private font catalog.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -282,7 +288,7 @@ export function IdentityFontsPage() {
     if (!term) return fonts;
 
     return fonts.filter((font) =>
-      `${font.name} ${font.formats.join(' ')}`
+      `${font.name} ${font.formats.join(" ")}`
         .toLocaleLowerCase()
         .includes(term),
     );
@@ -310,14 +316,14 @@ export function IdentityFontsPage() {
   return (
     <main
       className="min-h-[100dvh] bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
-      style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
+      style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
       <div className="mx-auto max-w-[92rem]">
         <header className="border-b border-white/65 pb-5 sm:pb-6">
           <div className="flex items-baseline justify-between gap-6">
             <nav
               aria-label="Breadcrumb"
-              className="text-[0.9rem] font-normal tracking-[0.02em] text-white/70 lowercase"
+              className="text-[0.8rem] font-normal tracking-[0.02em] text-white/70 lowercase"
             >
               <span>strange animals</span>
               <span aria-hidden="true" className="mx-2 text-white/45">
@@ -428,8 +434,8 @@ export function IdentityFontsPage() {
         ) : visibleFonts.length === 0 ? (
           <p className="py-6 text-xs text-white/50">
             {fonts.length === 0
-              ? 'The catalog is empty.'
-              : 'No matching fonts. Try a shorter name or format.'}
+              ? "The catalog is empty."
+              : "No matching fonts. Try a shorter name or format."}
           </p>
         ) : (
           <section
