@@ -31,6 +31,22 @@
     ],
     "rewrites": [
       {
+        "source": "/listen/sajs001cd",
+        "destination": "/route-meta/listen-sajs001cd.html"
+      },
+      {
+        "source": "/listen/sajs001cd/**",
+        "destination": "/route-meta/listen-sajs001cd.html"
+      },
+      {
+        "source": "/identity/fonts",
+        "destination": "/route-meta/identity-fonts.html"
+      },
+      {
+        "source": "/identity/fonts/**",
+        "destination": "/route-meta/identity-fonts.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
