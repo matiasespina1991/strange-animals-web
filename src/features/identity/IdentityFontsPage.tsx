@@ -1,72 +1,66 @@
+import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ImageIcon,
+  Settings,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import {
   deleteFontCatalogItem,
-  downloadFontVariant,
+  downloadFontFamily,
   listFontCatalog,
   listFontVariants,
   loadFontVariant,
   type FontCatalogItem,
   type FontVariant,
-} from "./font-catalog-repository";
+} from './font-catalog-repository';
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
+const VARIANTS_PER_PAGE = 3;
+const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
+const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+type BackgroundImage = {
+  name: string;
+  url: string;
+};
 
 function FontSpecimen({
   backgroundColor,
+  backgroundImageUrl,
   font,
   fontColor,
   fontSize,
+  letterSpacing,
+  lineHeight,
   deleting,
   onDelete,
   specimen,
 }: {
   backgroundColor: string;
+  backgroundImageUrl?: string;
   font: FontCatalogItem;
   fontColor: string;
   fontSize: number;
+  letterSpacing: number;
+  lineHeight: number;
   deleting: boolean;
   onDelete: (font: FontCatalogItem) => void;
   specimen: string;
 }) {
   const cardReference = useRef<HTMLElement>(null);
-  const variantRequestId = useRef(0);
-  const [familyName, setFamilyName] = useState<string>();
   const [variants, setVariants] = useState<FontVariant[]>([]);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-  const [variantLoading, setVariantLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [familyNames, setFamilyNames] = useState<Record<string, string>>({});
   const [downloading, setDownloading] = useState(false);
-
-  const loadVariant = useCallback(
-    (variant: FontVariant, index: number) => {
-      const requestId = ++variantRequestId.current;
-
-      setSelectedVariantIndex(index);
-      setFamilyName(undefined);
-      setVariantLoading(true);
-
-      void loadFontVariant(font, variant)
-        .then((nextFamilyName) => {
-          if (variantRequestId.current === requestId) {
-            setFamilyName(nextFamilyName);
-          }
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          if (variantRequestId.current === requestId) {
-            setVariantLoading(false);
-          }
-        });
-    },
-    [font],
-  );
 
   useEffect(() => {
     const card = cardReference.current;
@@ -85,29 +79,15 @@ function FontSpecimen({
           if (!active) return;
 
           setVariants(nextVariants);
-
-          const previewIndex = nextVariants.findIndex(
-            (variant) => variant.storagePath === font.preview?.storagePath,
-          );
-          const initialVariantIndex = Math.max(previewIndex, 0);
-          const initialVariant = nextVariants[initialVariantIndex];
-
-          if (initialVariant) {
-            loadVariant(initialVariant, initialVariantIndex);
-          } else {
-            setVariantLoading(false);
-          }
+          setCurrentPage(0);
         })
-        .catch(() => {
-          if (active) setVariantLoading(false);
-        });
+        .catch(() => undefined);
     };
 
-    if (!("IntersectionObserver" in window)) {
+    if (!('IntersectionObserver' in window)) {
       load();
       return () => {
         active = false;
-        variantRequestId.current += 1;
       };
     }
 
@@ -118,36 +98,63 @@ function FontSpecimen({
           observer.disconnect();
         }
       },
-      { rootMargin: "240px" },
+      {rootMargin: '240px'},
     );
 
     observer.observe(card);
 
     return () => {
       active = false;
-      variantRequestId.current += 1;
       observer.disconnect();
     };
-  }, [font, loadVariant]);
+  }, [font]);
 
   const variantTotal =
     variants.length > 0 ? variants.length : font.variantCount;
-  const selectedVariant = variants[selectedVariantIndex];
-  const variantPosition = variantTotal === 0 ? 0 : selectedVariantIndex + 1;
-  const variantCountLabel =
-    variantTotal > 1 ? `${variantPosition}/${variantTotal}` : null;
+  const pageTotal = Math.ceil(variantTotal / VARIANTS_PER_PAGE);
+  const pageStart = currentPage * VARIANTS_PER_PAGE;
+  const visibleVariants = useMemo(
+    () => variants.slice(pageStart, pageStart + VARIANTS_PER_PAGE),
+    [pageStart, variants],
+  );
 
-  const selectVariant = (nextIndex: number) => {
-    const nextVariant = variants[nextIndex];
+  useEffect(() => {
+    if (visibleVariants.length === 0) return;
 
-    if (!nextVariant || variantLoading) return;
-    loadVariant(nextVariant, nextIndex);
+    let active = true;
+
+    void Promise.all(
+      visibleVariants.map(async (variant) =>
+        loadFontVariant(font, variant)
+          .then((familyName) => {
+            if (!active) return;
+            setFamilyNames((current) => ({
+              ...current,
+              [variant.id]: familyName,
+            }));
+          })
+          .catch(() => undefined),
+      ),
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [font, visibleVariants]);
+
+  const downloadFamily = () => {
+    setDownloading(true);
+    void downloadFontFamily(font)
+      .catch(() => undefined)
+      .finally(() => {
+        setDownloading(false);
+      });
   };
 
   return (
     <article
       ref={cardReference}
-      className="flex min-h-60 flex-col justify-between border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
+      className="flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
     >
       <div className="flex items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex max-w-[45%] items-start gap-2">
@@ -167,77 +174,91 @@ function FontSpecimen({
           ) : null}
           <h2 className="font-normal text-white/80">{font.name}</h2>
         </div>
-        <div className="flex min-w-0 max-w-[55%] items-center justify-end gap-2">
-          {variantTotal > 1 && selectedVariant ? (
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          {pageTotal > 1 ? (
             <>
               <button
-                aria-label={`Previous variant of ${font.name}`}
+                aria-label={`Previous variant page of ${font.name}`}
                 className="flex size-5 shrink-0 cursor-pointer items-center justify-center border border-white/35 bg-transparent text-white/60 shadow-none outline-none hover:border-white/60 hover:text-white focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:border-white/15 disabled:text-white/20"
-                disabled={selectedVariantIndex === 0 || variantLoading}
+                disabled={currentPage === 0}
                 type="button"
                 onClick={() => {
-                  selectVariant(selectedVariantIndex - 1);
+                  setCurrentPage((page) => Math.max(page - 1, 0));
                 }}
               >
                 <ChevronLeft aria-hidden="true" className="size-3" />
               </button>
-              <span
-                className="w-44 text-center"
-                title={selectedVariant.fileName}
-              >
-                <span className="inline-block max-w-full overflow-hidden border-b border-white/70 pb-[2px] text-white/70 text-ellipsis whitespace-nowrap">
-                  {selectedVariant.fileName}
-                </span>
+              <span aria-live="polite" className="w-10 text-center">
+                {currentPage + 1}/{pageTotal}
               </span>
               <button
-                aria-label={`Next variant of ${font.name}`}
+                aria-label={`Next variant page of ${font.name}`}
                 className="flex size-5 shrink-0 cursor-pointer items-center justify-center border border-white/35 bg-transparent text-white/60 shadow-none outline-none hover:border-white/60 hover:text-white focus:outline-none focus-visible:outline-none disabled:cursor-default disabled:border-white/15 disabled:text-white/20"
-                disabled={
-                  selectedVariantIndex === variantTotal - 1 || variantLoading
-                }
+                disabled={currentPage === pageTotal - 1}
                 type="button"
                 onClick={() => {
-                  selectVariant(selectedVariantIndex + 1);
+                  setCurrentPage((page) => Math.min(page + 1, pageTotal - 1));
                 }}
               >
                 <ChevronRight aria-hidden="true" className="size-3" />
               </button>
             </>
           ) : null}
-          {variantCountLabel ? (
-            <span className="shrink-0">{variantCountLabel}</span>
-          ) : null}
         </div>
       </div>
 
-      <p
-        className={`my-8 px-4 py-8 leading-normal break-words text-white ${familyName ? "visible" : "invisible"}`}
-        style={{
-          backgroundColor,
-          color: fontColor,
-          fontFamily: familyName,
-          fontSize: `${fontSize}px`,
-        }}
-      >
-        {specimen || font.name}
-      </p>
+      <div className="mt-8 mb-[1.4rem] space-y-6">
+        {visibleVariants.map((variant) => {
+          const familyName = familyNames[variant.id];
+          const variantName = variant.fileName
+            .replace(/\.[^/.]+$/, '')
+            .replaceAll('-', ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          return (
+            <div key={variant.id}>
+              <p
+                className={`px-4 py-8 leading-normal break-words whitespace-pre-wrap text-white ${familyName ? 'visible' : 'invisible'}`}
+                style={{
+                  backgroundColor,
+                  backgroundImage: backgroundImageUrl
+                    ? `url(${backgroundImageUrl})`
+                    : undefined,
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: 'cover',
+                  color: fontColor,
+                  fontFamily: familyName,
+                  fontSize: `${fontSize}px`,
+                  letterSpacing: `${letterSpacing}em`,
+                  lineHeight,
+                }}
+              >
+                {specimen || font.name}
+              </p>
+              {variantTotal > 1 ? (
+                <div className="mt-2 flex min-w-0 justify-end text-[0.625rem] tracking-[0.08em] uppercase">
+                  <span
+                    className="min-w-0 overflow-hidden text-right text-white/70 text-ellipsis whitespace-nowrap"
+                    title={variantName}
+                  >
+                    {variantName}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
 
       <div className="flex justify-end">
         <button
           aria-busy={downloading}
-          className="flex h-6 cursor-pointer items-center gap-2 bg-white px-2 text-[0.625rem] tracking-[0.08em] text-black uppercase transition-colors duration-150 hover:bg-white/80 disabled:cursor-wait disabled:opacity-50"
-          disabled={!selectedVariant || downloading || variantLoading}
+          className="flex h-6 shrink-0 cursor-pointer items-center gap-2 bg-white px-2 text-[0.625rem] tracking-[0.08em] text-black uppercase transition-colors duration-150 hover:bg-white/80 disabled:cursor-wait disabled:opacity-50"
+          disabled={downloading || font.fileCount === 0}
           type="button"
-          onClick={() => {
-            if (!selectedVariant) return;
-
-            setDownloading(true);
-            void downloadFontVariant(selectedVariant)
-              .catch(() => undefined)
-              .finally(() => {
-                setDownloading(false);
-              });
-          }}
+          onClick={downloadFamily}
         >
           <Download aria-hidden="true" className="size-3" />
           Download
@@ -249,11 +270,20 @@ function FontSpecimen({
 
 export function IdentityFontsPage() {
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
-  const [search, setSearch] = useState("");
-  const [specimen, setSpecimen] = useState("");
+  const [search, setSearch] = useState('');
+  const [specimen, setSpecimen] = useState('');
   const [fontSize, setFontSize] = useState(34);
-  const [fontColor, setFontColor] = useState("#000000");
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [lineHeight, setLineHeight] = useState(1.5);
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
+  const [fontColor, setFontColor] = useState('#000000');
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundMode, setBackgroundMode] = useState<'color' | 'image'>(
+    'color',
+  );
+  const [backgroundImage, setBackgroundImage] = useState<BackgroundImage>();
+  const [backgroundSettingsOpen, setBackgroundSettingsOpen] = useState(false);
+  const [backgroundImageError, setBackgroundImageError] = useState<string>();
   const [fontPendingDeletion, setFontPendingDeletion] =
     useState<FontCatalogItem>();
   const [deletingFontIds, setDeletingFontIds] = useState<Set<string>>(
@@ -262,6 +292,11 @@ export function IdentityFontsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const deferredSearch = useDeferredValue(search);
+  const typographySettingsReference = useRef<HTMLDivElement>(null);
+  const typographySettingsButtonReference = useRef<HTMLButtonElement>(null);
+  const backgroundSettingsReference = useRef<HTMLDivElement>(null);
+  const backgroundSettingsButtonReference = useRef<HTMLButtonElement>(null);
+  const backgroundImageInputReference = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -271,7 +306,7 @@ export function IdentityFontsPage() {
         if (active) setFonts(catalog);
       })
       .catch(() => {
-        if (active) setErrorMessage("Could not load the private font catalog.");
+        if (active) setErrorMessage('Could not load the private font catalog.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -282,13 +317,75 @@ export function IdentityFontsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!typographySettingsOpen) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !typographySettingsReference.current?.contains(event.target)
+      ) {
+        setTypographySettingsOpen(false);
+      }
+    };
+
+    const closeOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setTypographySettingsOpen(false);
+      typographySettingsButtonReference.current?.focus();
+    };
+
+    document.addEventListener('pointerdown', closeOnPointerDown);
+    document.addEventListener('keydown', closeOnKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown);
+      document.removeEventListener('keydown', closeOnKeyDown);
+    };
+  }, [typographySettingsOpen]);
+
+  useEffect(() => {
+    if (!backgroundSettingsOpen) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !backgroundSettingsReference.current?.contains(event.target)
+      ) {
+        setBackgroundSettingsOpen(false);
+      }
+    };
+
+    const closeOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setBackgroundSettingsOpen(false);
+      backgroundSettingsButtonReference.current?.focus();
+    };
+
+    document.addEventListener('pointerdown', closeOnPointerDown);
+    document.addEventListener('keydown', closeOnKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown);
+      document.removeEventListener('keydown', closeOnKeyDown);
+    };
+  }, [backgroundSettingsOpen]);
+
+  useEffect(() => {
+    const imageUrl = backgroundImage?.url;
+
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [backgroundImage?.url]);
+
   const visibleFonts = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase();
 
     if (!term) return fonts;
 
     return fonts.filter((font) =>
-      `${font.name} ${font.formats.join(" ")}`
+      `${font.name} ${font.formats.join(' ')}`
         .toLocaleLowerCase()
         .includes(term),
     );
@@ -313,10 +410,31 @@ export function IdentityFontsPage() {
     }
   };
 
+  const selectBackgroundImage = (file?: File) => {
+    if (!file) return;
+
+    if (!ACCEPTED_BACKGROUND_IMAGE_TYPES.has(file.type)) {
+      setBackgroundImageError('Choose a JPG, PNG or WEBP image.');
+      return;
+    }
+
+    if (file.size > MAX_BACKGROUND_IMAGE_SIZE) {
+      setBackgroundImageError('Image must be 15 MB or smaller.');
+      return;
+    }
+
+    setBackgroundImageError(undefined);
+    setBackgroundImage({
+      name: file.name,
+      url: URL.createObjectURL(file),
+    });
+    setBackgroundMode('image');
+  };
+
   return (
     <main
       className="min-h-[100dvh] bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
-      style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
+      style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
     >
       <div className="mx-auto max-w-[92rem]">
         <header className="border-b border-white/65 pb-5 sm:pb-6">
@@ -337,18 +455,20 @@ export function IdentityFontsPage() {
             </nav>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_10rem]">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_12.5rem]">
             <label className="block">
               <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
                 Demo text
               </span>
-              <input
-                className="h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
-                maxLength={80}
-                type="text"
+              <textarea
+                className="block min-h-10 w-full resize-none overflow-hidden rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
+                maxLength={800}
+                rows={1}
                 value={specimen}
                 onChange={(event) => {
                   setSpecimen(event.target.value);
+                  event.currentTarget.style.height = 'auto';
+                  event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
                 }}
               />
             </label>
@@ -383,33 +503,194 @@ export function IdentityFontsPage() {
               </span>
             </label>
 
-            <label className="block">
+            <div
+              ref={backgroundSettingsReference}
+              className="relative self-start"
+            >
               <span className="mb-2 block whitespace-nowrap text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
-                Background color
+                Background
               </span>
               <span className="flex h-10 items-center">
-                <input
-                  className="identity-color-picker"
-                  type="color"
-                  value={backgroundColor}
-                  onChange={(event) => {
-                    setBackgroundColor(event.target.value);
+                <button
+                  ref={backgroundSettingsButtonReference}
+                  aria-controls="background-settings"
+                  aria-expanded={backgroundSettingsOpen}
+                  aria-label="Background settings"
+                  className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
+                  style={{
+                    backgroundColor:
+                      backgroundMode === 'color' ? backgroundColor : '#000000',
+                    backgroundImage:
+                      backgroundMode === 'image' && backgroundImage
+                        ? `url(${backgroundImage.url})`
+                        : undefined,
+                  }}
+                  type="button"
+                  onClick={() => {
+                    setBackgroundSettingsOpen((open) => !open);
+                    setTypographySettingsOpen(false);
                   }}
                 />
               </span>
-            </label>
 
-            <label className="flex h-full items-end justify-self-start">
-              <span className="sr-only">Text size</span>
-              <span className="flex h-10 w-40 items-center gap-3 text-white/70">
+              {backgroundSettingsOpen ? (
+                <div
+                  className="absolute top-full left-0 z-50 mt-2 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4"
+                  id="background-settings"
+                >
+                  <div
+                    aria-label="Background type"
+                    className="grid grid-cols-2 border border-white/35"
+                    role="group"
+                  >
+                    <button
+                      aria-pressed={backgroundMode === 'color'}
+                      className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === 'color' ? 'bg-white text-black' : 'bg-black text-white/60 hover:text-white'}`}
+                      type="button"
+                      onClick={() => {
+                        setBackgroundMode('color');
+                      }}
+                    >
+                      Color
+                    </button>
+                    <button
+                      aria-pressed={backgroundMode === 'image'}
+                      className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === 'image' ? 'bg-white text-black' : 'bg-black text-white/60 hover:text-white'}`}
+                      type="button"
+                      onClick={() => {
+                        setBackgroundMode('image');
+                      }}
+                    >
+                      Image
+                    </button>
+                  </div>
+
+                  {backgroundMode === 'color' ? (
+                    <label className="mt-5 flex items-center justify-between gap-4">
+                      <span className="text-[0.625rem] tracking-[0.08em] text-white/60 uppercase">
+                        Fill color
+                      </span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-[0.625rem] text-white/55 uppercase">
+                          {backgroundColor}
+                        </span>
+                        <input
+                          className="identity-color-picker"
+                          type="color"
+                          value={backgroundColor}
+                          onChange={(event) => {
+                            setBackgroundColor(event.target.value);
+                          }}
+                        />
+                      </span>
+                    </label>
+                  ) : (
+                    <div className="mt-5">
+                      <input
+                        ref={backgroundImageInputReference}
+                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                        className="sr-only"
+                        type="file"
+                        onChange={(event) => {
+                          selectBackgroundImage(event.target.files?.[0]);
+                          event.currentTarget.value = '';
+                        }}
+                      />
+
+                      {backgroundImage ? (
+                        <>
+                          <div
+                            aria-label={`Selected background image: ${backgroundImage.name}`}
+                            className="h-24 border border-white/35 bg-cover bg-center"
+                            role="img"
+                            style={{
+                              backgroundImage: `url(${backgroundImage.url})`,
+                            }}
+                          />
+                          <p
+                            className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
+                            title={backgroundImage.name}
+                          >
+                            {backgroundImage.name}
+                          </p>
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                              type="button"
+                              onClick={() => {
+                                backgroundImageInputReference.current?.click();
+                              }}
+                            >
+                              <Upload aria-hidden="true" className="size-3" />
+                              Replace
+                            </button>
+                            <button
+                              className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                              type="button"
+                              onClick={() => {
+                                setBackgroundImage(undefined);
+                                setBackgroundImageError(undefined);
+                                setBackgroundMode('color');
+                              }}
+                            >
+                              <X aria-hidden="true" className="size-3" />
+                              Remove
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-3 border border-white/35 px-4 text-center text-white/60 hover:border-white/60 hover:text-white"
+                          type="button"
+                          onClick={() => {
+                            backgroundImageInputReference.current?.click();
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            selectBackgroundImage(event.dataTransfer.files[0]);
+                          }}
+                        >
+                          <ImageIcon aria-hidden="true" className="size-5" />
+                          <span className="text-[0.625rem] tracking-[0.08em] uppercase">
+                            Choose or drop image
+                          </span>
+                          <span className="text-[0.5625rem] text-white/40 uppercase">
+                            JPG, PNG or WEBP · max 15 MB
+                          </span>
+                        </button>
+                      )}
+
+                      {backgroundImageError ? (
+                        <p
+                          className="mt-3 text-[0.625rem] text-white/65"
+                          role="alert"
+                        >
+                          {backgroundImageError}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              ref={typographySettingsReference}
+              className="relative flex items-start self-start gap-2 justify-self-start pt-[1.125rem]"
+            >
+              <label className="flex h-10 w-40 items-center gap-3 text-white/70">
                 <span aria-hidden="true" className="text-sm">
                   A
                 </span>
+                <span className="sr-only">Text size</span>
                 <input
                   aria-label="Text size"
                   className="identity-font-size-slider w-full"
                   max="140"
-                  min="24"
+                  min="8"
                   step="1"
                   type="range"
                   value={fontSize}
@@ -420,8 +701,81 @@ export function IdentityFontsPage() {
                 <span aria-hidden="true" className="text-2xl leading-none">
                   A
                 </span>
-              </span>
-            </label>
+              </label>
+
+              <button
+                ref={typographySettingsButtonReference}
+                aria-controls="typography-settings"
+                aria-expanded={typographySettingsOpen}
+                aria-label="Typography settings"
+                className="flex size-10 shrink-0 cursor-pointer items-center justify-center bg-transparent text-white/65 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
+                type="button"
+                onClick={() => {
+                  setTypographySettingsOpen((open) => !open);
+                }}
+              >
+                <Settings aria-hidden="true" className="size-4" />
+              </button>
+
+              {typographySettingsOpen ? (
+                <div
+                  className="absolute top-full right-0 z-50 mt-2 w-64 border border-white/45 bg-black p-4"
+                  id="typography-settings"
+                >
+                  <div className="mb-5 flex items-center justify-between gap-4">
+                    <span className="text-[0.625rem] tracking-[0.12em] text-white/55 uppercase">
+                      Typography
+                    </span>
+                    <button
+                      className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 uppercase hover:text-white"
+                      type="button"
+                      onClick={() => {
+                        setLineHeight(1.5);
+                        setLetterSpacing(0);
+                      }}
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <label className="block">
+                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                      <span>Line height</span>
+                      <span>{lineHeight.toFixed(2)}</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="2.5"
+                      min="0.8"
+                      step="0.05"
+                      type="range"
+                      value={lineHeight}
+                      onChange={(event) => {
+                        setLineHeight(Number(event.target.value));
+                      }}
+                    />
+                  </label>
+
+                  <label className="mt-6 block">
+                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                      <span>Letter spacing</span>
+                      <span>{letterSpacing.toFixed(2)} em</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="0.5"
+                      min="-0.1"
+                      step="0.01"
+                      type="range"
+                      value={letterSpacing}
+                      onChange={(event) => {
+                        setLetterSpacing(Number(event.target.value));
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -434,8 +788,8 @@ export function IdentityFontsPage() {
         ) : visibleFonts.length === 0 ? (
           <p className="py-6 text-xs text-white/50">
             {fonts.length === 0
-              ? "The catalog is empty."
-              : "No matching fonts. Try a shorter name or format."}
+              ? 'The catalog is empty.'
+              : 'No matching fonts. Try a shorter name or format.'}
           </p>
         ) : (
           <section
@@ -446,10 +800,15 @@ export function IdentityFontsPage() {
               <FontSpecimen
                 key={font.id}
                 backgroundColor={backgroundColor}
+                backgroundImageUrl={
+                  backgroundMode === 'image' ? backgroundImage?.url : undefined
+                }
                 deleting={deletingFontIds.has(font.id)}
                 font={font}
                 fontColor={fontColor}
                 fontSize={fontSize}
+                letterSpacing={letterSpacing}
+                lineHeight={lineHeight}
                 onDelete={setFontPendingDeletion}
                 specimen={specimen}
               />

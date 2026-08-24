@@ -66,6 +66,12 @@ export type FontVariant = {
 };
 
 const fontLoads = new Map<string, Promise<string>>();
+const FONT_FORMAT_PRIORITY: Record<string, number> = {
+  woff2: 4,
+  woff: 3,
+  otf: 2,
+  ttf: 1,
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -148,7 +154,7 @@ export async function listFontVariants(font: FontCatalogItem) {
     collection(firebaseDb, 'fonts', font.id, 'files'),
   );
 
-  return snapshot.docs
+  const variants = snapshot.docs
     .map((documentSnapshot) => {
       const value = documentSnapshot.data() as FontFileDocument;
 
@@ -176,12 +182,30 @@ export async function listFontVariants(font: FontCatalogItem) {
         storagePath: value.storagePath,
       } satisfies FontVariant;
     })
-    .filter((variant): variant is FontVariant => variant !== null)
-    .sort((left, right) =>
-      left.relativePath.localeCompare(right.relativePath, undefined, {
-        sensitivity: 'base',
-      }),
-    );
+    .filter((variant): variant is FontVariant => variant !== null);
+  const variantsByStyle = new Map<string, FontVariant>();
+
+  for (const variant of variants) {
+    const styleKey = variant.relativePath
+      .replace(/\.[^/.]+$/, '')
+      .toLocaleLowerCase();
+    const currentVariant = variantsByStyle.get(styleKey);
+
+    if (
+      !currentVariant ||
+      (FONT_FORMAT_PRIORITY[variant.extension.toLocaleLowerCase()] ?? 0) >
+        (FONT_FORMAT_PRIORITY[currentVariant.extension.toLocaleLowerCase()] ??
+          0)
+    ) {
+      variantsByStyle.set(styleKey, variant);
+    }
+  }
+
+  return [...variantsByStyle.values()].sort((left, right) =>
+    left.relativePath.localeCompare(right.relativePath, undefined, {
+      sensitivity: 'base',
+    }),
+  );
 }
 
 export async function loadFontVariant(
@@ -215,19 +239,45 @@ export async function loadFontVariant(
   return load;
 }
 
-export async function downloadFontVariant(variant: FontVariant) {
-  const bytes = await getBytes(
-    ref(firebaseStorage, variant.storagePath),
-    MAX_PREVIEW_SIZE_BYTES,
+export async function downloadFontFamily(font: FontCatalogItem) {
+  const {default: JSZip} = await import('jszip');
+  const snapshot = await getDocs(
+    collection(firebaseDb, 'fonts', font.id, 'files'),
   );
-  const blob = new Blob([bytes], {
-    type: variant.contentType,
+  const files = snapshot.docs
+    .map((documentSnapshot) => documentSnapshot.data() as FontFileDocument)
+    .filter(
+      (file) =>
+        file.enabled === true &&
+        typeof file.relativePath === 'string' &&
+        !file.relativePath.startsWith('/') &&
+        !file.relativePath.split('/').includes('..') &&
+        typeof file.storagePath === 'string' &&
+        file.storagePath.startsWith('media/private/fonts/'),
+    );
+
+  if (files.length === 0) throw new Error(`Font family ${font.id} is empty.`);
+
+  const archive = new JSZip();
+
+  await Promise.all(
+    files.map(async (file) => {
+      const bytes = await getBytes(ref(firebaseStorage, file.storagePath));
+
+      archive.file(file.relativePath as string, bytes);
+    }),
+  );
+
+  const blob = await archive.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: {level: 6},
   });
   const downloadUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
 
   anchor.href = downloadUrl;
-  anchor.download = variant.fileName;
+  anchor.download = `${font.id}.zip`;
   anchor.click();
   setTimeout(() => {
     URL.revokeObjectURL(downloadUrl);
