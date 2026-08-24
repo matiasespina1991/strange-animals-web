@@ -2,8 +2,11 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
+  serverTimestamp,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import {deleteObject, getBytes, ref} from 'firebase/storage';
@@ -26,6 +29,7 @@ type FontCatalogDocument = {
   formats?: unknown;
   kind?: unknown;
   name?: unknown;
+  parentCategory?: unknown;
   preview?: unknown;
   sortName?: unknown;
   variantCount?: unknown;
@@ -44,6 +48,7 @@ type FontFileDocument = {
 export type FontCatalogItem = {
   id: string;
   name: string;
+  parentCategory: string | null;
   sortName: string;
   kind: 'collection' | 'family';
   formats: string[];
@@ -115,6 +120,10 @@ function readFont(id: string, value: FontCatalogDocument) {
   return {
     id,
     name: displayName,
+    parentCategory:
+      typeof value.parentCategory === 'string' && value.parentCategory.trim()
+        ? value.parentCategory.trim()
+        : null,
     sortName:
       typeof value.sortName === 'string'
         ? value.sortName
@@ -147,6 +156,16 @@ export async function listFontCatalog() {
         sensitivity: 'base',
       }),
     );
+}
+
+export async function updateFontParentCategory(
+  font: FontCatalogItem,
+  parentCategory: string | null,
+) {
+  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+    parentCategory: parentCategory ?? deleteField(),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function listFontVariants(font: FontCatalogItem) {

@@ -3,7 +3,8 @@ rules_version='2'
 service cloud.firestore {
   match /databases/{database}/documents {
     // The identity catalog is readable only by the fixed Firebase Auth account.
-    // Client writes remain disabled; catalog synchronization uses Admin access.
+    // Catalog synchronization uses Admin access. The fixed identity may only
+    // assign the bounded parent-category metadata used by the catalog UI.
     function hasIdentityAccess() {
       return request.auth != null
         && request.auth.token.email is string
@@ -40,7 +41,14 @@ service cloud.firestore {
     match /fonts/{fontId} {
       allow read: if hasIdentityAccess();
       allow delete: if hasIdentityAccess();
-      allow create, update: if false;
+      allow update: if hasIdentityAccess()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['parentCategory', 'updatedAt'])
+        && (!('parentCategory' in request.resource.data)
+          || (request.resource.data.parentCategory is string
+            && request.resource.data.parentCategory.size() <= 64))
+        && request.resource.data.updatedAt == request.time;
+      allow create: if false;
 
       match /files/{fileId} {
         allow read: if hasIdentityAccess();
