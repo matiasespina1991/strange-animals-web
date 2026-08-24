@@ -22,7 +22,11 @@ const GCLOUD_CANDIDATE =
   '/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud';
 const GCLOUD = existsSync(GCLOUD_CANDIDATE) ? GCLOUD_CANDIDATE : 'gcloud';
 const FONT_EXTENSIONS = new Set(['otf', 'ttf', 'woff', 'woff2']);
-const WRITE_FIRESTORE = process.argv.includes('--write-firestore');
+const WRITE_FIRESTORE_FILES_ONLY = process.argv.includes(
+  '--write-firestore-files-only',
+);
+const WRITE_FIRESTORE =
+  process.argv.includes('--write-firestore') || WRITE_FIRESTORE_FILES_ONLY;
 const UPLOAD_STORAGE = process.argv.includes('--upload-storage');
 const INCLUDED_SOURCE_FOLDERS = new Set(readOptions('--include-folder'));
 
@@ -131,7 +135,7 @@ function getFileId(relativePath) {
 
 function previewScore(file) {
   const name = file.fileName.toLowerCase();
-  const formatScore = {woff2: 0, woff: 1, ttf: 2, otf: 3}[file.extension] ?? 9;
+  const formatScore = {otf: 0, woff2: 1, woff: 2, ttf: 3}[file.extension] ?? 9;
   const regularBonus = /(^|[-_ ])(regular|normal)([-_. ]|$)/.test(name)
     ? -4
     : 0;
@@ -352,10 +356,12 @@ async function writeFirestore(catalog) {
   const writes = [];
 
   for (const font of catalog) {
-    writes.push({
-      documentPath: `fonts/${font.id}`,
-      data: font.document,
-    });
+    if (!WRITE_FIRESTORE_FILES_ONLY) {
+      writes.push({
+        documentPath: `fonts/${font.id}`,
+        data: font.document,
+      });
+    }
 
     for (const file of font.files) {
       writes.push({
@@ -412,6 +418,7 @@ console.log(
       fileDocuments: fileCount,
       storageUploaded: UPLOAD_STORAGE,
       firestoreWritten: WRITE_FIRESTORE,
+      firestoreFilesOnly: WRITE_FIRESTORE_FILES_ONLY,
       sample: catalog.slice(0, 3).map((font) => font.document),
     },
     null,
