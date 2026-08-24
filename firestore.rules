@@ -63,6 +63,102 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isHexColor(value) {
+      return value is string && value.matches('^#[A-Fa-f0-9]{6}$');
+    }
+
+    function isValidBackgroundImagePath(value, browserId, setId) {
+      return value is string
+        && value.matches('^media/private/identity-font-sets/' + browserId + '/' + setId + '/v[0-9]+/[A-Za-z0-9_.-]{1,180}$');
+    }
+
+    function isValidIdentityFontSet(data, browserId, setId) {
+      return data.keys().hasAll([
+          'version',
+          'label',
+          'specimen',
+          'search',
+          'favoriteFontKeys',
+          'pinnedFontKeys',
+          'fontColor',
+          'backgroundColor',
+          'backgroundMode',
+          'fontSize',
+          'fontWeight',
+          'lineHeight',
+          'letterSpacing',
+          'textAlignment',
+          'showOnlyFavorites',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'version',
+          'label',
+          'specimen',
+          'search',
+          'favoriteFontKeys',
+          'pinnedFontKeys',
+          'fontColor',
+          'backgroundColor',
+          'backgroundMode',
+          'backgroundImageName',
+          'backgroundImageStoragePath',
+          'fontSize',
+          'fontWeight',
+          'lineHeight',
+          'letterSpacing',
+          'textAlignment',
+          'showOnlyFavorites',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.version is int
+        && data.version == 1
+        && data.label is string
+        && data.label.size() > 0
+        && data.label.size() <= 120
+        && data.specimen is string
+        && data.specimen.size() <= 800
+        && data.search is string
+        && data.search.size() <= 140
+        && isValidFontKeyString(data.favoriteFontKeys)
+        && isValidFontKeyString(data.pinnedFontKeys)
+        && isHexColor(data.fontColor)
+        && isHexColor(data.backgroundColor)
+        && data.backgroundMode in ['color', 'image']
+        && (!('backgroundImageName' in data)
+          || (data.backgroundImageName is string
+            && data.backgroundImageName.size() > 0
+            && data.backgroundImageName.size() <= 180))
+        && (!('backgroundImageStoragePath' in data)
+          || isValidBackgroundImagePath(
+            data.backgroundImageStoragePath,
+            browserId,
+            setId,
+          ))
+        && ((data.backgroundMode == 'image'
+            && ('backgroundImageName' in data)
+            && ('backgroundImageStoragePath' in data))
+          || (data.backgroundMode == 'color'
+            && !('backgroundImageName' in data)
+            && !('backgroundImageStoragePath' in data)))
+        && data.fontSize is number
+        && data.fontSize >= 8
+        && data.fontSize <= 140
+        && data.fontWeight in ['300', 'normal', '800']
+        && data.lineHeight is number
+        && data.lineHeight >= 0.8
+        && data.lineHeight <= 2.5
+        && data.letterSpacing is number
+        && data.letterSpacing >= -0.1
+        && data.letterSpacing <= 0.5
+        && data.textAlignment in ['left', 'center', 'right']
+        && data.showOnlyFavorites is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{browserId} {
       // Listing is intentionally denied. The random cookie ID acts as the
       // document capability for users sharing the fixed identity Auth account.
@@ -85,6 +181,23 @@ service cloud.firestore {
           'updatedAt'
         ]);
       allow list, delete: if false;
+
+      match /fontSets/{setId} {
+        allow get, list: if hasIdentityAccess() && isIdentityBrowserId(browserId);
+        allow create: if hasIdentityAccess()
+          && isIdentityBrowserId(browserId)
+          && isIdentityBrowserId(setId)
+          && isValidIdentityFontSet(request.resource.data, browserId, setId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow update: if hasIdentityAccess()
+          && isIdentityBrowserId(browserId)
+          && isIdentityBrowserId(setId)
+          && isValidIdentityFontSet(request.resource.data, browserId, setId)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
     }
 
     match /images/{imageId} {

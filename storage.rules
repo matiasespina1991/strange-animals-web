@@ -8,6 +8,10 @@ service firebase.storage {
         && request.auth.token.email == 'identity-access@strangeanimals.de';
     }
 
+    function isIdentityBrowserId(value) {
+      return value.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+    }
+
     match /media/public/{allPaths=**} {
       allow read: if true;
       allow write: if false;
@@ -23,6 +27,20 @@ service firebase.storage {
       allow read: if hasIdentityAccess();
       allow delete: if hasIdentityAccess();
       allow create, update: if false;
+    }
+
+    match /media/private/identity-font-sets/{browserId}/{setId}/{version}/{fileName} {
+      allow read: if hasIdentityAccess()
+        && isIdentityBrowserId(browserId)
+        && isIdentityBrowserId(setId)
+        && version.matches('^v[0-9]+$');
+      allow write: if hasIdentityAccess()
+        && isIdentityBrowserId(browserId)
+        && isIdentityBrowserId(setId)
+        && version.matches('^v[0-9]+$')
+        && request.resource != null
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('^image/(jpeg|png|webp)$');
     }
 
     match /{allPaths=**} {

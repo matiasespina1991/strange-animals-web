@@ -4,6 +4,8 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -28,7 +30,13 @@ import {
   type FontVariant,
 } from './font-catalog-repository';
 import {
+  listIdentityFontSets,
+  saveIdentityFontSet,
+  type IdentityFontSet,
+} from './identity-font-sets-repository';
+import {
   EMPTY_IDENTITY_FONT_PREFERENCES,
+  getIdentityBrowserId,
   loadIdentityFontPreferences,
   saveIdentityFontPreferences,
   type IdentityFontPreferences,
@@ -64,7 +72,10 @@ const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
 ]);
 
 type BackgroundImage = {
+  file?: File;
   name: string;
+  source: 'local' | 'remote';
+  storagePath?: string;
   url: string;
 };
 
@@ -80,6 +91,21 @@ function readFontWeight(value: string): FontWeight {
   if (value === '800') return 800;
 
   return 'normal';
+}
+
+function serializeFontWeight(fontWeight: FontWeight): '300' | 'normal' | '800' {
+  if (fontWeight === 300) return '300';
+  if (fontWeight === 800) return '800';
+  return 'normal';
+}
+
+function formatSavedSetTime(value: Date | null) {
+  if (!value) return 'just now';
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(value);
 }
 
 function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
@@ -503,7 +529,7 @@ function FontSpecimen({
           return (
             <div key={variant.id}>
               <p
-                className={`px-4 py-8 leading-normal break-words whitespace-pre-wrap text-white ${familyName ? 'visible' : 'invisible'}`}
+                className={`min-w-0 max-w-full overflow-hidden px-4 py-8 leading-normal whitespace-pre-wrap break-all [overflow-wrap:anywhere] text-white ${familyName ? 'visible' : 'invisible'}`}
                 style={{
                   backgroundColor,
                   backgroundImage: backgroundImageUrl
@@ -638,6 +664,15 @@ export function IdentityFontsPage() {
   const [backgroundImage, setBackgroundImage] = useState<BackgroundImage>();
   const [backgroundSettingsOpen, setBackgroundSettingsOpen] = useState(false);
   const [backgroundImageError, setBackgroundImageError] = useState<string>();
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const [savedSetsOpen, setSavedSetsOpen] = useState(false);
+  const [savedSets, setSavedSets] = useState<IdentityFontSet[]>([]);
+  const [savedSetsLoading, setSavedSetsLoading] = useState(false);
+  const [selectedSavedSetId, setSelectedSavedSetId] = useState<string>();
+  const [loadSetConfirmationOpen, setLoadSetConfirmationOpen] = useState(false);
+  const [setActionMessage, setSetActionMessage] = useState<string>();
+  const [setActionError, setSetActionError] = useState<string>();
+  const [savingSet, setSavingSet] = useState(false);
   const [fontPendingDeletion, setFontPendingDeletion] =
     useState<FontCatalogItem>();
   const [deletingFontIds, setDeletingFontIds] = useState<Set<string>>(
@@ -663,6 +698,9 @@ export function IdentityFontsPage() {
   const backgroundSettingsReference = useRef<HTMLDivElement>(null);
   const backgroundSettingsButtonReference = useRef<HTMLButtonElement>(null);
   const backgroundImageInputReference = useRef<HTMLInputElement>(null);
+  const specimenInputReference = useRef<HTMLTextAreaElement>(null);
+  const fileMenuReference = useRef<HTMLDivElement>(null);
+  const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
   const fontPreferencesReference = useRef(fontPreferences);
   const {
@@ -812,12 +850,49 @@ export function IdentityFontsPage() {
   }, [backgroundSettingsOpen]);
 
   useEffect(() => {
-    const imageUrl = backgroundImage?.url;
+    if (!fileMenuOpen) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !fileMenuReference.current?.contains(event.target)
+      ) {
+        setFileMenuOpen(false);
+      }
+    };
+
+    const closeOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setFileMenuOpen(false);
+      fileMenuButtonReference.current?.focus();
+    };
+
+    document.addEventListener('pointerdown', closeOnPointerDown);
+    document.addEventListener('keydown', closeOnKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown);
+      document.removeEventListener('keydown', closeOnKeyDown);
+    };
+  }, [fileMenuOpen]);
+
+  useEffect(() => {
+    const imageUrl =
+      backgroundImage?.source === 'local' ? backgroundImage.url : undefined;
 
     return () => {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
     };
-  }, [backgroundImage?.url]);
+  }, [backgroundImage?.source, backgroundImage?.url]);
+
+  useEffect(() => {
+    const specimenInput = specimenInputReference.current;
+
+    if (!specimenInput) return;
+
+    specimenInput.style.height = 'auto';
+    specimenInput.style.height = `${specimenInput.scrollHeight}px`;
+  }, [specimen]);
 
   const fontSections = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase();
@@ -1030,15 +1105,133 @@ export function IdentityFontsPage() {
 
     setBackgroundImageError(undefined);
     setBackgroundImage({
+      file,
       name: file.name,
+      source: 'local',
       url: URL.createObjectURL(file),
     });
     setBackgroundMode('image');
   };
 
+  const loadSavedSets = async () => {
+    setSavedSetsLoading(true);
+    setSetActionError(undefined);
+
+    try {
+      const browserId = getIdentityBrowserId();
+      const nextSavedSets = await listIdentityFontSets(browserId);
+      setSavedSets(nextSavedSets);
+      setSelectedSavedSetId((currentSelection) => {
+        if (currentSelection && nextSavedSets.some((set) => set.id === currentSelection)) {
+          return currentSelection;
+        }
+
+        return nextSavedSets[0]?.id;
+      });
+    } catch {
+      setSetActionError('Could not load saved sets. Try again.');
+    } finally {
+      setSavedSetsLoading(false);
+    }
+  };
+
+  const saveCurrentSet = async () => {
+    setSavingSet(true);
+    setSetActionMessage(undefined);
+    setSetActionError(undefined);
+
+    try {
+      const browserId = getIdentityBrowserId();
+
+      await saveIdentityFontSet({
+        backgroundColor,
+        backgroundImageFile: backgroundImage?.source === 'local' ? backgroundImage.file : undefined,
+        backgroundImageName: backgroundImage?.name,
+        backgroundImageStoragePath:
+          backgroundImage?.source === 'remote' ? backgroundImage.storagePath : undefined,
+        backgroundMode,
+        browserId,
+        favoriteFontIds: fontPreferences.favoriteFontIds,
+        fontColor,
+        fontSize,
+        fontWeight: serializeFontWeight(fontWeight),
+        letterSpacing,
+        lineHeight,
+        pinnedFontIds: fontPreferences.pinnedFontIds,
+        search,
+        showOnlyFavorites: fontPreferences.showOnlyFavorites,
+        specimen,
+        textAlignment,
+      });
+
+      setSetActionMessage('Set saved.');
+      if (savedSetsOpen) {
+        await loadSavedSets();
+      }
+    } catch {
+      setSetActionError('Could not save this set. Try again.');
+    } finally {
+      setSavingSet(false);
+      setFileMenuOpen(false);
+    }
+  };
+
+  const selectedSavedSet = savedSets.find((set) => set.id === selectedSavedSetId);
+
+  const applySelectedSet = () => {
+    if (!selectedSavedSet) return;
+
+    const loadedPreferences: IdentityFontPreferences = {
+      favoriteFontIds: selectedSavedSet.favoriteFontIds,
+      pinnedFontIds: selectedSavedSet.pinnedFontIds,
+      showOnlyFavorites: selectedSavedSet.showOnlyFavorites,
+    };
+
+    setSpecimen(selectedSavedSet.specimen);
+    setSearch(selectedSavedSet.search);
+    setFontColor(selectedSavedSet.fontColor);
+    setBackgroundColor(selectedSavedSet.background.color);
+    setFontSize(selectedSavedSet.fontSize);
+    setFontWeight(readFontWeight(selectedSavedSet.fontWeight));
+    setLineHeight(selectedSavedSet.lineHeight);
+    setLetterSpacing(selectedSavedSet.letterSpacing);
+    setTextAlignment(selectedSavedSet.textAlignment);
+
+    if (
+      selectedSavedSet.background.mode === 'image' &&
+      selectedSavedSet.background.imageUrl
+    ) {
+      setBackgroundImage({
+        name: selectedSavedSet.background.imageName ?? 'Saved image',
+        source: 'remote',
+        storagePath: selectedSavedSet.background.imageStoragePath,
+        url: selectedSavedSet.background.imageUrl,
+      });
+      setBackgroundMode('image');
+      setBackgroundImageError(undefined);
+    } else {
+      setBackgroundImage(undefined);
+      setBackgroundMode('color');
+      setBackgroundImageError(undefined);
+    }
+
+    // Loaded sets must apply immediately in UI even if persistence fails.
+    fontPreferencesReference.current = loadedPreferences;
+    setFontPreferences(loadedPreferences);
+    setFontPreferenceError(undefined);
+    void saveIdentityFontPreferences(loadedPreferences).catch(() => {
+      setFontPreferenceError('Could not save pins and favorites. Try again.');
+    });
+
+    setLoadSetConfirmationOpen(false);
+    setSavedSetsOpen(false);
+    setSetActionError(undefined);
+    setSetActionMessage('Set loaded.');
+  };
+
   return (
     <main
-      className="min-h-[100dvh] bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
+      className="min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
       style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
     >
       <ActiveCategoryRail
@@ -1065,6 +1258,56 @@ export function IdentityFontsPage() {
               </span>
               <h1 className="inline font-normal">fonts</h1>
             </nav>
+          </div>
+
+          <div className="mt-4 flex items-center gap-4">
+            <div ref={fileMenuReference} className="relative">
+              <button
+                ref={fileMenuButtonReference}
+                aria-controls="identity-file-menu"
+                aria-expanded={fileMenuOpen}
+                className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 uppercase underline-offset-4 hover:text-white hover:underline"
+                type="button"
+                onClick={() => {
+                  setFileMenuOpen((open) => !open);
+                  setBackgroundSettingsOpen(false);
+                  setTypographySettingsOpen(false);
+                }}
+              >
+                File
+                <ChevronDown aria-hidden="true" className="size-3" />
+              </button>
+
+              {fileMenuOpen ? (
+                <div
+                  className="absolute top-full left-0 z-50 mt-2 w-52 border border-white/45 bg-black py-2"
+                  id="identity-file-menu"
+                >
+                  <button
+                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 uppercase hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
+                    disabled={savingSet}
+                    type="button"
+                    onClick={() => {
+                      void saveCurrentSet();
+                    }}
+                  >
+                    Save set
+                  </button>
+                  <button
+                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 uppercase hover:bg-white hover:text-black"
+                    type="button"
+                    onClick={() => {
+                      setSavedSetsOpen(true);
+                      setLoadSetConfirmationOpen(false);
+                      setFileMenuOpen(false);
+                      void loadSavedSets();
+                    }}
+                  >
+                    View Saved Sets
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div
@@ -1099,14 +1342,13 @@ export function IdentityFontsPage() {
                 Demo text
               </span>
               <textarea
+                ref={specimenInputReference}
                 className="block min-h-10 w-full resize-none overflow-hidden rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
                 maxLength={800}
                 rows={1}
                 value={specimen}
                 onChange={(event) => {
                   setSpecimen(event.target.value);
-                  event.currentTarget.style.height = 'auto';
-                  event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`;
                 }}
               />
             </label>
@@ -1497,6 +1739,18 @@ export function IdentityFontsPage() {
           </p>
         ) : null}
 
+        {setActionError ? (
+          <p className="border-b border-white/25 py-3 text-[0.625rem] text-white/60" role="status">
+            {setActionError}
+          </p>
+        ) : null}
+
+        {setActionMessage ? (
+          <p className="border-b border-white/25 py-3 text-[0.625rem] text-white/60" role="status">
+            {setActionMessage}
+          </p>
+        ) : null}
+
         {errorMessage ? (
           <p className="border-b border-white/25 py-6 text-xs text-white/65">
             {errorMessage}
@@ -1610,6 +1864,173 @@ export function IdentityFontsPage() {
           setToolbarMinimized(false);
         }}
       />
+
+      {savedSetsOpen ? (
+        <div
+          aria-labelledby="saved-sets-title"
+          aria-modal="true"
+          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/85 px-5"
+          role="dialog"
+        >
+          <div className="w-full max-w-4xl border border-white/55 bg-black p-5">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-xs font-normal text-white" id="saved-sets-title">
+                Saved sets
+              </h2>
+              <button
+                aria-label="Close saved sets"
+                className="flex size-7 cursor-pointer items-center justify-center text-white/60 hover:text-white"
+                type="button"
+                onClick={() => {
+                  setSavedSetsOpen(false);
+                  setLoadSetConfirmationOpen(false);
+                }}
+              >
+                <X aria-hidden="true" className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 max-h-[60vh] overflow-auto border border-white/30">
+              {savedSetsLoading ? (
+                <p className="px-4 py-5 text-[0.625rem] text-white/60 uppercase">
+                  Loading saved sets...
+                </p>
+              ) : savedSets.length === 0 ? (
+                <p className="px-4 py-5 text-[0.625rem] text-white/60 uppercase">
+                  No saved sets yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-white/25">
+                  {savedSets.map((savedSet) => {
+                    const selected = savedSet.id === selectedSavedSetId;
+
+                    return (
+                      <button
+                        key={savedSet.id}
+                        aria-pressed={selected}
+                        className={`flex w-full cursor-pointer items-start justify-between gap-4 px-4 py-3 text-left ${selected ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSavedSetId(savedSet.id);
+                          setLoadSetConfirmationOpen(false);
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="overflow-hidden text-[0.7rem] tracking-[0.04em] text-white text-ellipsis whitespace-nowrap uppercase"
+                            title={savedSet.label}
+                          >
+                            {savedSet.label}
+                          </p>
+                          <p
+                            className="mt-1 overflow-hidden text-xs text-white/70 text-ellipsis whitespace-nowrap"
+                            title={savedSet.specimen || 'Empty demo text'}
+                          >
+                            {savedSet.specimen || 'Empty demo text'}
+                          </p>
+                          <p className="mt-1 text-[0.625rem] text-white/45 uppercase">
+                            {formatSavedSetTime(savedSet.updatedAt ?? savedSet.createdAt)}
+                          </p>
+                        </div>
+
+                        <div className="w-52 shrink-0 border border-white/25 p-2">
+                          <div className="mb-2 h-9 border border-white/30 bg-cover bg-center px-2 py-1 text-[0.625rem] leading-4"
+                            style={{
+                              backgroundColor: savedSet.background.color,
+                              backgroundImage:
+                                savedSet.background.mode === 'image' && savedSet.background.imageUrl
+                                  ? `url(${savedSet.background.imageUrl})`
+                                  : undefined,
+                              color: savedSet.fontColor,
+                            }}
+                          >
+                            Aa
+                          </div>
+                          <p className="flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
+                            <span>Font</span>
+                            <span className="text-right">{savedSet.fontColor}</span>
+                          </p>
+                          <p className="mt-1 flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
+                            <span>Background</span>
+                            <span className="text-right">
+                              {savedSet.background.mode === 'image'
+                                ? 'image'
+                                : savedSet.background.color}
+                            </span>
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                className="h-9 border border-white/35 px-4 text-[0.625rem] text-white/65 uppercase"
+                type="button"
+                onClick={() => {
+                  setSavedSetsOpen(false);
+                  setLoadSetConfirmationOpen(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex h-9 items-center gap-2 border border-white bg-white px-4 text-[0.625rem] text-black uppercase disabled:cursor-default disabled:border-white/30 disabled:bg-white/40 disabled:text-black/60"
+                disabled={!selectedSavedSet}
+                type="button"
+                onClick={() => {
+                  setLoadSetConfirmationOpen(true);
+                }}
+              >
+                <Check aria-hidden="true" className="size-3" />
+                Load set
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {loadSetConfirmationOpen && selectedSavedSet ? (
+        <div
+          aria-labelledby="load-set-title"
+          aria-modal="true"
+          className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/90 px-5"
+          role="dialog"
+        >
+          <div className="w-full max-w-md border border-white/55 bg-black p-5">
+            <h2 className="text-xs font-normal text-white" id="load-set-title">
+              Are you sure you want to load this set?
+            </h2>
+            <p
+              className="mt-3 overflow-hidden text-[0.625rem] text-white/55 text-ellipsis whitespace-nowrap uppercase"
+              title={selectedSavedSet.label}
+            >
+              {selectedSavedSet.label}
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                className="h-9 border border-white/35 px-4 text-[0.625rem] text-white/65 uppercase"
+                type="button"
+                onClick={() => {
+                  setLoadSetConfirmationOpen(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="h-9 border border-white bg-white px-4 text-[0.625rem] text-black uppercase"
+                type="button"
+                onClick={applySelectedSet}
+              >
+                Load set
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {SHOW_FONT_DELETE_CONTROLS && fontPendingDeletion ? (
         <div
