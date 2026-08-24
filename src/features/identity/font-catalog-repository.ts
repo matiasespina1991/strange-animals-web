@@ -72,9 +72,9 @@ export type FontVariant = {
 
 const fontLoads = new Map<string, Promise<string>>();
 const FONT_FORMAT_PRIORITY: Record<string, number> = {
-  woff2: 4,
-  woff: 3,
-  otf: 2,
+  otf: 4,
+  woff2: 3,
+  woff: 2,
   ttf: 1,
 };
 
@@ -116,14 +116,18 @@ function readFont(id: string, value: FontCatalogDocument) {
     typeof value.displayName === 'string' && value.displayName.trim()
       ? value.displayName.trim()
       : value.name;
+  const storedParentCategory =
+    typeof value.parentCategory === 'string' && value.parentCategory.trim()
+      ? value.parentCategory.trim()
+      : null;
 
   return {
     id,
     name: displayName,
     parentCategory:
-      typeof value.parentCategory === 'string' && value.parentCategory.trim()
-        ? value.parentCategory.trim()
-        : null,
+      storedParentCategory === 'Squared'
+        ? 'Squared / Tech'
+        : storedParentCategory,
     sortName:
       typeof value.sortName === 'string'
         ? value.sortName
@@ -220,10 +224,13 @@ export async function listFontVariants(font: FontCatalogItem) {
     }
   }
 
-  return [...variantsByStyle.values()].sort((left, right) =>
-    left.relativePath.localeCompare(right.relativePath, undefined, {
-      sensitivity: 'base',
-    }),
+  return [...variantsByStyle.values()].sort(
+    (left, right) =>
+      (FONT_FORMAT_PRIORITY[right.extension.toLocaleLowerCase()] ?? 0) -
+        (FONT_FORMAT_PRIORITY[left.extension.toLocaleLowerCase()] ?? 0) ||
+      left.relativePath.localeCompare(right.relativePath, undefined, {
+        sensitivity: 'base',
+      }),
   );
 }
 

@@ -1,5 +1,20 @@
 rules_version='2'
 
+// ===============================================================
+// Assumed Data Model (identity font browser preferences)
+// ===============================================================
+// Collection: users
+// Document ID: random UUID stored in a SameSite cookie scoped to /identity
+// Fields:
+//   - version: int (required, exactly 1)
+//   - favoriteFontKeys: string (required, comma-separated font IDs, <= 110 KB)
+//   - pinnedFontKeys: string (required, ordered comma-separated font IDs, <= 110 KB)
+//   - showOnlyFavorites: bool (required)
+//   - createdAt: timestamp (required, immutable)
+//   - updatedAt: timestamp (required)
+// This document contains no email, name, or other PII.
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
     // The identity catalog is readable only by the fixed Firebase Auth account.
@@ -9,6 +24,67 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email is string
         && request.auth.token.email == 'identity-access@strangeanimals.de';
+    }
+
+    function isIdentityBrowserId(browserId) {
+      return browserId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+    }
+
+    function isValidFontKeyString(value) {
+      return value is string
+        && value.size() <= 110000
+        && (value == ''
+          || value.matches('^[A-Za-z0-9_-]{1,200}(,[A-Za-z0-9_-]{1,200})*$'));
+    }
+
+    function isValidIdentityUserPreferences(data) {
+      return data.keys().hasAll([
+          'version',
+          'favoriteFontKeys',
+          'pinnedFontKeys',
+          'showOnlyFavorites',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'version',
+          'favoriteFontKeys',
+          'pinnedFontKeys',
+          'showOnlyFavorites',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.version is int
+        && data.version == 1
+        && isValidFontKeyString(data.favoriteFontKeys)
+        && isValidFontKeyString(data.pinnedFontKeys)
+        && data.showOnlyFavorites is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{browserId} {
+      // Listing is intentionally denied. The random cookie ID acts as the
+      // document capability for users sharing the fixed identity Auth account.
+      allow get: if hasIdentityAccess() && isIdentityBrowserId(browserId);
+      allow create: if hasIdentityAccess()
+        && isIdentityBrowserId(browserId)
+        && isValidIdentityUserPreferences(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if hasIdentityAccess()
+        && isIdentityBrowserId(browserId)
+        && isValidIdentityUserPreferences(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'version',
+          'favoriteFontKeys',
+          'pinnedFontKeys',
+          'showOnlyFavorites',
+          'updatedAt'
+        ]);
+      allow list, delete: if false;
     }
 
     match /images/{imageId} {

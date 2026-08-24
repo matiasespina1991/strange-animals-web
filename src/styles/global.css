@@ -266,6 +266,23 @@ input {
   width: 12px;
 }
 
+@media (max-width: 767px) {
+  .identity-font-size-control-slider {
+    height: 44px;
+  }
+
+  .identity-font-size-control-slider::-webkit-slider-thumb {
+    height: 18px;
+    margin-top: -8.5px;
+    width: 18px;
+  }
+
+  .identity-font-size-control-slider::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+  }
+}
+
 .identity-color-picker {
   appearance: none;
   background: transparent;
