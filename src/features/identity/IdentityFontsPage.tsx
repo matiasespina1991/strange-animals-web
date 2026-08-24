@@ -1,5 +1,8 @@
 import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -15,11 +18,19 @@ import {
   listFontCatalog,
   listFontVariants,
   loadFontVariant,
+  updateFontParentCategory,
   type FontCatalogItem,
   type FontVariant,
 } from './font-catalog-repository';
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
+const FONT_PARENT_CATEGORIES = [
+  'Abstract',
+  'Outlined',
+  'Pixel',
+  'Standard',
+  'Tridimensional',
+] as const;
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
@@ -33,6 +44,8 @@ type BackgroundImage = {
   url: string;
 };
 
+type TextAlignment = 'left' | 'center' | 'right';
+
 function FontSpecimen({
   backgroundColor,
   backgroundImageUrl,
@@ -41,8 +54,11 @@ function FontSpecimen({
   fontSize,
   letterSpacing,
   lineHeight,
+  textAlignment,
   deleting,
+  categoryUpdating,
   onDelete,
+  onParentCategoryChange,
   specimen,
 }: {
   backgroundColor: string;
@@ -52,8 +68,14 @@ function FontSpecimen({
   fontSize: number;
   letterSpacing: number;
   lineHeight: number;
+  textAlignment: TextAlignment;
   deleting: boolean;
+  categoryUpdating: boolean;
   onDelete: (font: FontCatalogItem) => void;
+  onParentCategoryChange: (
+    font: FontCatalogItem,
+    parentCategory: string | null,
+  ) => void;
   specimen: string;
 }) {
   const cardReference = useRef<HTMLElement>(null);
@@ -157,7 +179,7 @@ function FontSpecimen({
       className="flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
     >
       <div className="flex items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
-        <div className="flex max-w-[45%] items-start gap-2">
+        <div className="flex min-w-0 max-w-[45%] items-center gap-2">
           {SHOW_FONT_DELETE_CONTROLS ? (
             <button
               aria-label={`Delete ${font.name}`}
@@ -172,9 +194,38 @@ function FontSpecimen({
               <Trash2 aria-hidden="true" className="size-[0.7rem]" />
             </button>
           ) : null}
-          <h2 className="font-normal text-white/80">{font.name}</h2>
+          <h2 className="min-w-0 truncate font-normal text-white/80">
+            {font.name}
+          </h2>
         </div>
         <div className="flex min-w-0 items-center justify-end gap-2">
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <select
+              aria-label={`Parent category for ${font.name}`}
+              className="h-6 w-28 cursor-pointer rounded-none border border-white/25 bg-black px-1 text-[0.5625rem] tracking-[0.08em] text-white/60 normal-case shadow-none outline-none focus:border-white/55 focus:outline-none disabled:cursor-wait disabled:opacity-40 sm:w-32"
+              disabled={categoryUpdating}
+              title={`Parent category for ${font.name}`}
+              value={font.parentCategory ?? ''}
+              onChange={(event) => {
+                onParentCategoryChange(font, event.target.value || null);
+              }}
+            >
+              <option value="">—</option>
+              {font.parentCategory &&
+              !FONT_PARENT_CATEGORIES.includes(
+                font.parentCategory as (typeof FONT_PARENT_CATEGORIES)[number],
+              ) ? (
+                <option value={font.parentCategory}>
+                  {font.parentCategory}
+                </option>
+              ) : null}
+              {FONT_PARENT_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          ) : null}
           {pageTotal > 1 ? (
             <>
               <button
@@ -233,6 +284,7 @@ function FontSpecimen({
                   fontSize: `${fontSize}px`,
                   letterSpacing: `${letterSpacing}em`,
                   lineHeight,
+                  textAlign: textAlignment,
                 }}
               >
                 {specimen || font.name}
@@ -275,6 +327,7 @@ export function IdentityFontsPage() {
   const [fontSize, setFontSize] = useState(34);
   const [lineHeight, setLineHeight] = useState(1.5);
   const [letterSpacing, setLetterSpacing] = useState(0);
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>('left');
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState('#000000');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
@@ -289,6 +342,12 @@ export function IdentityFontsPage() {
   const [deletingFontIds, setDeletingFontIds] = useState<Set<string>>(
     new Set(),
   );
+  const [updatingCategoryIds, setUpdatingCategoryIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
+    Set<string>
+  >(new Set());
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const deferredSearch = useDeferredValue(search);
@@ -390,6 +449,78 @@ export function IdentityFontsPage() {
         .includes(term),
     );
   }, [deferredSearch, fonts]);
+
+  const fontSections = useMemo(() => {
+    const categorizedFonts = new Map<string, FontCatalogItem[]>();
+    const uncategorizedFonts: FontCatalogItem[] = [];
+
+    for (const font of visibleFonts) {
+      if (!font.parentCategory) {
+        uncategorizedFonts.push(font);
+        continue;
+      }
+
+      const categoryFonts = categorizedFonts.get(font.parentCategory) ?? [];
+      categoryFonts.push(font);
+      categorizedFonts.set(font.parentCategory, categoryFonts);
+    }
+
+    const sections = [...categorizedFonts.entries()]
+      .sort(([leftCategory], [rightCategory]) =>
+        leftCategory.localeCompare(rightCategory, undefined, {
+          sensitivity: 'base',
+        }),
+      )
+      .map(([name, sectionFonts]) => ({
+        key: `category-${name}`,
+        name,
+        fonts: sectionFonts,
+      }));
+
+    if (uncategorizedFonts.length > 0) {
+      sections.push({
+        key: 'uncategorized',
+        name: 'Uncategorized',
+        fonts: uncategorizedFonts,
+      });
+    }
+
+    return sections;
+  }, [visibleFonts]);
+
+  const changeParentCategory = async (
+    font: FontCatalogItem,
+    parentCategory: string | null,
+  ) => {
+    const previousCategory = font.parentCategory;
+
+    setErrorMessage(undefined);
+    setUpdatingCategoryIds((current) => new Set(current).add(font.id));
+    setFonts((current) =>
+      current.map((item) =>
+        item.id === font.id ? {...item, parentCategory} : item,
+      ),
+    );
+
+    try {
+      await updateFontParentCategory(font, parentCategory);
+    } catch {
+      setFonts((current) =>
+        current.map((item) =>
+          item.id === font.id
+            ? {...item, parentCategory: previousCategory}
+            : item,
+        ),
+      );
+      setErrorMessage(`Could not update “${font.name}”. Try again.`);
+    } finally {
+      setUpdatingCategoryIds((current) => {
+        const next = new Set(current);
+        next.delete(font.id);
+        return next;
+      });
+    }
+  };
 
   const deleteFont = async (font: FontCatalogItem) => {
     setFontPendingDeletion(undefined);
@@ -732,10 +863,59 @@ export function IdentityFontsPage() {
                       onClick={() => {
                         setLineHeight(1.5);
                         setLetterSpacing(0);
+                        setTextAlignment('left');
                       }}
                     >
                       Reset
                     </button>
+                  </div>
+
+                  <div className="mb-6">
+                    <span className="mb-3 block text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                      Alignment
+                    </span>
+                    <div
+                      aria-label="Text alignment"
+                      className="grid w-fit grid-cols-3 border border-white/35"
+                      role="group"
+                    >
+                      <button
+                        aria-label="Align text left"
+                        aria-pressed={textAlignment === 'left'}
+                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'left' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        title="Align left"
+                        type="button"
+                        onClick={() => {
+                          setTextAlignment('left');
+                        }}
+                      >
+                        <AlignLeft aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        aria-label="Align text center"
+                        aria-pressed={textAlignment === 'center'}
+                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'center' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        title="Align center"
+                        type="button"
+                        onClick={() => {
+                          setTextAlignment('center');
+                        }}
+                      >
+                        <AlignCenter aria-hidden="true" className="size-4" />
+                      </button>
+                      <button
+                        aria-label="Align text right"
+                        aria-pressed={textAlignment === 'right'}
+                        className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'right' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        title="Align right"
+                        type="button"
+                        onClick={() => {
+                          setTextAlignment('right');
+                        }}
+                      >
+                        <AlignRight aria-hidden="true" className="size-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <label className="block">
@@ -792,27 +972,82 @@ export function IdentityFontsPage() {
               : 'No matching fonts. Try a shorter name or format.'}
           </p>
         ) : (
-          <section
-            aria-label="Font catalog"
-            className="grid gap-x-8 lg:grid-cols-2"
-          >
-            {visibleFonts.map((font) => (
-              <FontSpecimen
-                key={font.id}
-                backgroundColor={backgroundColor}
-                backgroundImageUrl={
-                  backgroundMode === 'image' ? backgroundImage?.url : undefined
-                }
-                deleting={deletingFontIds.has(font.id)}
-                font={font}
-                fontColor={fontColor}
-                fontSize={fontSize}
-                letterSpacing={letterSpacing}
-                lineHeight={lineHeight}
-                onDelete={setFontPendingDeletion}
-                specimen={specimen}
-              />
-            ))}
+          <section aria-label="Font catalog">
+            {fontSections.map((section) => {
+              const collapsed = collapsedCategoryKeys.has(section.key);
+              const contentId = `font-section-${section.key
+                .toLocaleLowerCase()
+                .replace(/[^a-z\d]+/g, '-')}`;
+
+              return (
+                <section
+                  key={section.key}
+                  aria-label={`${section.name} fonts`}
+                  className="pt-8 first:pt-6"
+                >
+                  <header className="mb-2 flex items-center gap-4">
+                    <button
+                      aria-controls={contentId}
+                      aria-expanded={!collapsed}
+                      className="flex shrink-0 cursor-pointer items-center gap-2 text-[0.625rem] font-normal tracking-[0.12em] text-white uppercase outline-none hover:text-white/75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white/65"
+                      type="button"
+                      onClick={() => {
+                        setCollapsedCategoryKeys((current) => {
+                          const next = new Set(current);
+
+                          if (next.has(section.key)) {
+                            next.delete(section.key);
+                          } else {
+                            next.add(section.key);
+                          }
+
+                          return next;
+                        });
+                      }}
+                    >
+                      <ChevronRight
+                        aria-hidden="true"
+                        className={`size-3 ${collapsed ? '' : 'rotate-90'}`}
+                      />
+                      <span>category: {section.name}</span>
+                    </button>
+                    <span
+                      aria-hidden="true"
+                      className="h-px flex-1 bg-white/35"
+                    />
+                  </header>
+                  <div
+                    className={`${collapsed ? 'hidden' : 'grid'} gap-x-8 lg:grid-cols-2`}
+                    id={contentId}
+                  >
+                    {section.fonts.map((font) => (
+                      <FontSpecimen
+                        key={font.id}
+                        backgroundColor={backgroundColor}
+                        backgroundImageUrl={
+                          backgroundMode === 'image'
+                            ? backgroundImage?.url
+                            : undefined
+                        }
+                        categoryUpdating={updatingCategoryIds.has(font.id)}
+                        deleting={deletingFontIds.has(font.id)}
+                        font={font}
+                        fontColor={fontColor}
+                        fontSize={fontSize}
+                        letterSpacing={letterSpacing}
+                        lineHeight={lineHeight}
+                        textAlignment={textAlignment}
+                        onDelete={setFontPendingDeletion}
+                        onParentCategoryChange={(nextFont, parentCategory) => {
+                          void changeParentCategory(nextFont, parentCategory);
+                        }}
+                        specimen={specimen}
+                      />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </section>
         )}
       </div>
