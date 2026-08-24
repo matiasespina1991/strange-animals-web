@@ -94,6 +94,7 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
     >
       <form
         aria-label="Identity access"
+        aria-busy={isSubmitting}
         className="relative w-full max-w-[23rem]"
         onSubmit={handleSubmit}
       >
@@ -121,6 +122,13 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
             if (hasError) setHasError(false);
           }}
         />
+        <button
+          className="mt-3 ml-auto block cursor-pointer border border-white bg-white px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-black uppercase outline-none hover:bg-black hover:text-white disabled:cursor-wait disabled:border-white/35 disabled:bg-white/35 disabled:text-black/70"
+          disabled={isSubmitting}
+          type="submit"
+        >
+          Submit
+        </button>
         {statusMessage ? (
           <p
             aria-live="polite"
