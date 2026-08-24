@@ -44,7 +44,7 @@ function writeBrowserIdCookie(browserId: string) {
   document.cookie = `${encodeURIComponent(BROWSER_ID_COOKIE)}=${encodeURIComponent(browserId)}; Path=/identity; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Strict${secure}`;
 }
 
-function getOrCreateBrowserId() {
+export function getIdentityBrowserId() {
   const storedBrowserId = readCookie(BROWSER_ID_COOKIE);
   const browserId =
     storedBrowserId && BROWSER_ID_PATTERN.test(storedBrowserId)
@@ -84,7 +84,7 @@ function readPreferences(value: Record<string, unknown>) {
 }
 
 export async function loadIdentityFontPreferences() {
-  const browserId = getOrCreateBrowserId();
+  const browserId = getIdentityBrowserId();
   const preferenceReference = doc(firebaseDb, 'users', browserId);
   const snapshot = await getDoc(preferenceReference);
 
@@ -107,7 +107,7 @@ export async function loadIdentityFontPreferences() {
 export async function saveIdentityFontPreferences(
   preferences: IdentityFontPreferences,
 ) {
-  const browserId = getOrCreateBrowserId();
+  const browserId = getIdentityBrowserId();
   const preferenceReference = doc(firebaseDb, 'users', browserId);
 
   preferenceWriteQueue = preferenceWriteQueue

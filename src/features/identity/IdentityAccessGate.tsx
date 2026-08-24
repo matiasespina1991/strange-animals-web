@@ -4,10 +4,19 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import {type FormEvent, type ReactNode, useEffect, useState} from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {firebaseAuth} from '@/lib/firebase';
 
 const IDENTITY_EMAIL = 'identity-access@strangeanimals.de';
+const LAST_CHARACTER_REVEAL_MS = 900;
+const PASSWORD_MASK_CHARACTER = '*';
 
 type AuthStatus = 'checking' | 'signed-out' | 'authorized';
 
@@ -18,8 +27,34 @@ type IdentityAccessGateProperties = {
 export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
   const [password, setPassword] = useState('');
+  const [revealedCharacterIndex, setRevealedCharacterIndex] = useState<
+    number | undefined
+  >();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const revealTimeoutReference = useRef<number | undefined>(undefined);
+
+  const clearRevealTimeout = () => {
+    if (revealTimeoutReference.current === undefined) return;
+
+    window.clearTimeout(revealTimeoutReference.current);
+    revealTimeoutReference.current = undefined;
+  };
+
+  const scheduleRevealReset = () => {
+    clearRevealTimeout();
+    revealTimeoutReference.current = window.setTimeout(() => {
+      setRevealedCharacterIndex(undefined);
+      revealTimeoutReference.current = undefined;
+    }, LAST_CHARACTER_REVEAL_MS);
+  };
+
+  useEffect(
+    () => () => {
+      clearRevealTimeout();
+    },
+    [],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -71,9 +106,26 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
       setHasError(true);
     } finally {
       setPassword('');
+      setRevealedCharacterIndex(undefined);
+      clearRevealTimeout();
       setIsSubmitting(false);
     }
   };
+
+  const maskedPassword = useMemo(() => {
+    if (password.length === 0) return '';
+
+    return [...password]
+      .map((character, index) =>
+        index === revealedCharacterIndex ? character : PASSWORD_MASK_CHARACTER,
+      )
+      .join('');
+  }, [password, revealedCharacterIndex]);
+
+  const maskedPasswordCharacters = useMemo(
+    () => [...maskedPassword],
+    [maskedPassword],
+  );
 
   const statusMessage = isSubmitting
     ? 'Checking…'
@@ -104,40 +156,80 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
         >
           Enter key to access this section
         </label>
-        <input
-          aria-describedby={
-            statusMessage ? 'identity-access-status' : undefined
-          }
-          aria-invalid={hasError}
-          autoComplete="current-password"
-          className="block min-h-12 w-full cursor-text rounded-none border border-white/40 bg-black px-3 py-2 text-sm leading-6 text-white caret-white outline-none placeholder:text-[0.6375rem] placeholder:leading-none placeholder:tracking-[0.2em] placeholder:text-white/55 placeholder:uppercase disabled:cursor-wait disabled:opacity-55 sm:text-[0.9375rem]"
-          disabled={isSubmitting}
-          id="identity-access-key"
-          name="identity-access-key"
-          placeholder="Access key"
-          type="password"
-          value={password}
-          onChange={(event) => {
-            setPassword(event.target.value);
-            if (hasError) setHasError(false);
-          }}
-        />
-        <button
-          className="mt-3 ml-auto block cursor-pointer border border-white bg-white px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-black uppercase outline-none hover:bg-black hover:text-white disabled:cursor-wait disabled:border-white/35 disabled:bg-white/35 disabled:text-black/70"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          Submit
-        </button>
-        {statusMessage ? (
+        <div className="relative">
+          <input
+            aria-describedby={
+              statusMessage ? 'identity-access-status' : undefined
+            }
+            aria-invalid={hasError}
+            autoComplete="current-password"
+            className="block min-h-12 w-full cursor-text rounded-none border border-white/40 bg-black px-3 py-2 text-sm leading-6 text-transparent caret-white outline-none placeholder:text-[0.6375rem] placeholder:leading-none placeholder:tracking-[0.2em] placeholder:text-white/55 placeholder:uppercase disabled:cursor-wait disabled:opacity-55 sm:text-[0.9375rem]"
+            disabled={isSubmitting}
+            id="identity-access-key"
+            name="identity-access-key"
+            placeholder="Access key"
+            spellCheck={false}
+            type="text"
+            value={password}
+            onChange={(event) => {
+              const nextPassword = event.target.value;
+              const nativeEvent = event.nativeEvent as InputEvent;
+              const inputData = nativeEvent.data ?? '';
+              const selectionEnd = event.target.selectionEnd ?? nextPassword.length;
+
+              setPassword(nextPassword);
+
+              if (
+                inputData.length > 0 &&
+                nativeEvent.inputType.startsWith('insert') &&
+                selectionEnd > 0
+              ) {
+                setRevealedCharacterIndex(selectionEnd - 1);
+                scheduleRevealReset();
+              } else {
+                setRevealedCharacterIndex(undefined);
+                clearRevealTimeout();
+              }
+
+              if (hasError) setHasError(false);
+            }}
+          />
+          {password ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-3 right-3 flex items-center overflow-hidden text-sm leading-6 text-white sm:text-[0.9375rem]"
+            >
+              {maskedPasswordCharacters.map((character, index) => (
+                <span
+                  key={`${index}-${character}`}
+                  className={
+                    character === PASSWORD_MASK_CHARACTER
+                      ? 'text-white/45'
+                      : 'text-white'
+                  }
+                >
+                  {character}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
           <p
             aria-live="polite"
-            className="absolute top-full left-0 mt-3 text-xs leading-none text-white/70"
+            className="min-h-[1rem] text-xs leading-none text-white/70"
             id="identity-access-status"
           >
-            {statusMessage}
+            {statusMessage ?? ''}
           </p>
-        ) : null}
+          <button
+            className="ml-auto block cursor-pointer border border-white bg-white px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-black uppercase outline-none hover:bg-black hover:text-white disabled:cursor-wait disabled:border-white/35 disabled:bg-white/35 disabled:text-black/70"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            Submit
+          </button>
+        </div>
       </form>
     </main>
   );
