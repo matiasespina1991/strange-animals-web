@@ -1,4 +1,5 @@
 import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {motion, useReducedMotion} from 'framer-motion';
 import {
   AlignCenter,
   AlignLeft,
@@ -53,6 +54,7 @@ const FONT_PARENT_CATEGORIES = [
 const FONT_CATEGORY_BOTTOM_ORDER = ['Pixel', 'Handwritten', 'Standard'];
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
+const DEFAULT_LETTER_SPACING = 0.03;
 const FONT_TOOLBAR_GRID_CLASS =
   'grid grid-cols-2 gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_12.5rem]';
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
@@ -132,19 +134,39 @@ function FloatingToolbarRestoreButton({
   );
 }
 
-function ActiveCategoryRail({label}: {label?: string}) {
+function ActiveCategoryRail({
+  label,
+  toolbarFloating,
+  toolbarHeight,
+  toolbarMinimized,
+}: {
+  label?: string;
+  toolbarFloating: boolean;
+  toolbarHeight: number;
+  toolbarMinimized: boolean;
+}) {
+  const reducedMotion = useReducedMotion();
+  const raised = toolbarFloating && !toolbarMinimized;
+
   if (!label) return null;
 
   return (
-    <aside
+    <motion.aside
       key={label}
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed inset-y-0 left-0 z-20 flex w-5 items-center justify-end pr-[0.55rem] sm:w-8 lg:w-10"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-16 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
+      initial={false}
+      animate={{y: raised ? -toolbarHeight : 0}}
+      transition={
+        reducedMotion
+          ? {duration: 0}
+          : {type: 'spring', stiffness: 360, damping: 34, mass: 0.8}
+      }
     >
       <span className="rotate-180 text-[0.7875rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
         {label}
       </span>
-    </aside>
+    </motion.aside>
   );
 }
 
@@ -605,7 +627,7 @@ export function IdentityFontsPage() {
   const [fontSize, setFontSize] = useState(34);
   const [fontWeight, setFontWeight] = useState<FontWeight>('normal');
   const [lineHeight, setLineHeight] = useState(1.5);
-  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>('left');
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState('#000000');
@@ -1019,7 +1041,12 @@ export function IdentityFontsPage() {
       className="min-h-[100dvh] bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
       style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
     >
-      <ActiveCategoryRail label={activeCategoryLabel} />
+      <ActiveCategoryRail
+        label={activeCategoryLabel}
+        toolbarFloating={toolbarFloating}
+        toolbarHeight={toolbarHeight}
+        toolbarMinimized={toolbarMinimized}
+      />
 
       <div className="mx-auto max-w-[92rem]">
         <header className="relative border-b border-white/65 pb-5 sm:pb-6">
@@ -1342,7 +1369,7 @@ export function IdentityFontsPage() {
                       type="button"
                       onClick={() => {
                         setLineHeight(1.5);
-                        setLetterSpacing(0);
+                        setLetterSpacing(DEFAULT_LETTER_SPACING);
                         setTextAlignment('left');
                         setFontWeight('normal');
                       }}
