@@ -7,6 +7,8 @@ import {
   ChevronRight,
   Download,
   ImageIcon,
+  Menu,
+  Minus,
   Settings,
   Trash2,
   Upload,
@@ -26,13 +28,20 @@ import {
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
   'Abstract',
+  'Dotted',
+  'Handwritten',
   'Outlined',
   'Pixel',
+  'Semi-Abstract',
+  'Squared',
   'Standard',
   'Tridimensional',
 ] as const;
+const FONT_CATEGORY_BOTTOM_ORDER = ['Pixel', 'Handwritten', 'Standard'];
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
+const FONT_TOOLBAR_GRID_CLASS =
+  'grid gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_12.5rem]';
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -45,6 +54,122 @@ type BackgroundImage = {
 };
 
 type TextAlignment = 'left' | 'center' | 'right';
+type FontWeight = 300 | 'normal' | 800;
+
+function getPreviewFontWeight(fontWeight: FontWeight) {
+  return fontWeight === 'normal' ? undefined : fontWeight;
+}
+
+function readFontWeight(value: string): FontWeight {
+  if (value === '300') return 300;
+  if (value === '800') return 800;
+
+  return 'normal';
+}
+
+function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
+  if (!floating) return 'mt-10';
+
+  return minimized
+    ? 'identity-font-toolbar-minimized'
+    : 'identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4 pr-12';
+}
+
+function getToolbarPopoverPlacementClass(floating: boolean) {
+  return floating ? 'bottom-full mb-2' : 'top-full mt-2';
+}
+
+function getToolbarMinimizeButtonClass(floating: boolean) {
+  return floating
+    ? 'absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white'
+    : 'hidden';
+}
+
+function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
+  return floating && minimized;
+}
+
+function FloatingToolbarRestoreButton({
+  visible,
+  onRestore,
+}: {
+  visible: boolean;
+  onRestore: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <button
+      aria-controls="font-toolbar"
+      aria-label="Restore font toolbar"
+      className="identity-font-toolbar-fade-in fixed right-4 bottom-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/55 bg-black text-white/75 outline-none hover:border-white hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      title="Restore toolbar"
+      type="button"
+      onClick={onRestore}
+    >
+      <Menu aria-hidden="true" className="size-5" />
+    </button>
+  );
+}
+
+function useFloatingToolbar() {
+  const [floating, setFloating] = useState(false);
+  const [height, setHeight] = useState(0);
+  const toolbarReference = useRef<HTMLDivElement>(null);
+  const boundaryReference = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (floating) return;
+
+    const toolbar = toolbarReference.current;
+
+    if (!toolbar) return;
+
+    const updateHeight = () => {
+      setHeight(toolbar.offsetHeight);
+    };
+
+    updateHeight();
+
+    if (!('ResizeObserver' in window)) {
+      window.addEventListener('resize', updateHeight);
+      return () => {
+        window.removeEventListener('resize', updateHeight);
+      };
+    }
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(toolbar);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [floating]);
+
+  useEffect(() => {
+    const updateFloatingState = () => {
+      const boundary = boundaryReference.current;
+
+      if (boundary) setFloating(boundary.getBoundingClientRect().top <= 0);
+    };
+
+    updateFloatingState();
+    window.addEventListener('scroll', updateFloatingState, {passive: true});
+    window.addEventListener('resize', updateFloatingState);
+
+    return () => {
+      window.removeEventListener('scroll', updateFloatingState);
+      window.removeEventListener('resize', updateFloatingState);
+    };
+  }, []);
+
+  return {
+    toolbarBoundaryReference: boundaryReference,
+    toolbarFloating: floating,
+    toolbarHeight: height,
+    toolbarReference,
+  };
+}
 
 function FontSpecimen({
   backgroundColor,
@@ -52,6 +177,7 @@ function FontSpecimen({
   font,
   fontColor,
   fontSize,
+  fontWeight,
   letterSpacing,
   lineHeight,
   textAlignment,
@@ -66,6 +192,7 @@ function FontSpecimen({
   font: FontCatalogItem;
   fontColor: string;
   fontSize: number;
+  fontWeight: FontWeight;
   letterSpacing: number;
   lineHeight: number;
   textAlignment: TextAlignment;
@@ -282,6 +409,7 @@ function FontSpecimen({
                   color: fontColor,
                   fontFamily: familyName,
                   fontSize: `${fontSize}px`,
+                  fontWeight: getPreviewFontWeight(fontWeight),
                   letterSpacing: `${letterSpacing}em`,
                   lineHeight,
                   textAlign: textAlignment,
@@ -320,11 +448,40 @@ function FontSpecimen({
   );
 }
 
+function FontWeightControl({
+  value,
+  onChange,
+}: {
+  value: FontWeight;
+  onChange: (fontWeight: FontWeight) => void;
+}) {
+  return (
+    <label className="mb-6 flex items-center justify-between gap-4">
+      <span className="text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+        Font weight
+      </span>
+      <select
+        aria-label="Font weight"
+        className="h-7 w-28 cursor-pointer rounded-none border border-white/35 bg-black px-2 text-[0.5625rem] tracking-[0.06em] text-white/70 uppercase shadow-none outline-none focus:border-white/60 focus:outline-none"
+        value={value}
+        onChange={(event) => {
+          onChange(readFontWeight(event.target.value));
+        }}
+      >
+        <option value="300">Light</option>
+        <option value="normal">Normal</option>
+        <option value="800">Bold</option>
+      </select>
+    </label>
+  );
+}
+
 export function IdentityFontsPage() {
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
   const [search, setSearch] = useState('');
   const [specimen, setSpecimen] = useState('');
   const [fontSize, setFontSize] = useState(34);
+  const [fontWeight, setFontWeight] = useState<FontWeight>('normal');
   const [lineHeight, setLineHeight] = useState(1.5);
   const [letterSpacing, setLetterSpacing] = useState(0);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>('left');
@@ -348,6 +505,7 @@ export function IdentityFontsPage() {
   const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
     Set<string>
   >(new Set());
+  const [toolbarMinimized, setToolbarMinimized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const deferredSearch = useDeferredValue(search);
@@ -356,6 +514,12 @@ export function IdentityFontsPage() {
   const backgroundSettingsReference = useRef<HTMLDivElement>(null);
   const backgroundSettingsButtonReference = useRef<HTMLButtonElement>(null);
   const backgroundImageInputReference = useRef<HTMLInputElement>(null);
+  const {
+    toolbarBoundaryReference,
+    toolbarFloating,
+    toolbarHeight,
+    toolbarReference,
+  } = useFloatingToolbar();
 
   useEffect(() => {
     let active = true;
@@ -466,11 +630,23 @@ export function IdentityFontsPage() {
     }
 
     const sections = [...categorizedFonts.entries()]
-      .sort(([leftCategory], [rightCategory]) =>
-        leftCategory.localeCompare(rightCategory, undefined, {
+      .sort(([leftCategory], [rightCategory]) => {
+        const leftBottomIndex =
+          FONT_CATEGORY_BOTTOM_ORDER.indexOf(leftCategory);
+        const rightBottomIndex =
+          FONT_CATEGORY_BOTTOM_ORDER.indexOf(rightCategory);
+
+        if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
+          return leftBottomIndex - rightBottomIndex;
+        }
+
+        if (leftBottomIndex !== -1) return 1;
+        if (rightBottomIndex !== -1) return -1;
+
+        return leftCategory.localeCompare(rightCategory, undefined, {
           sensitivity: 'base',
-        }),
-      )
+        });
+      })
       .map(([name, sectionFonts]) => ({
         key: `category-${name}`,
         name,
@@ -568,7 +744,7 @@ export function IdentityFontsPage() {
       style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
     >
       <div className="mx-auto max-w-[92rem]">
-        <header className="border-b border-white/65 pb-5 sm:pb-6">
+        <header className="relative border-b border-white/65 pb-5 sm:pb-6">
           <div className="flex items-baseline justify-between gap-6">
             <nav
               aria-label="Breadcrumb"
@@ -586,7 +762,33 @@ export function IdentityFontsPage() {
             </nav>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_12.5rem]">
+          <div
+            hidden={!toolbarFloating}
+            aria-hidden="true"
+            className="mt-10"
+            style={{height: `${toolbarHeight}px`}}
+          />
+
+          <div
+            ref={toolbarReference}
+            className={`${FONT_TOOLBAR_GRID_CLASS} ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
+            id="font-toolbar"
+          >
+            <button
+              aria-label="Minimize font toolbar"
+              className={getToolbarMinimizeButtonClass(toolbarFloating)}
+              disabled={!toolbarFloating}
+              title="Minimize toolbar"
+              type="button"
+              onClick={() => {
+                setBackgroundSettingsOpen(false);
+                setTypographySettingsOpen(false);
+                setToolbarMinimized(true);
+              }}
+            >
+              <Minus aria-hidden="true" className="size-4" />
+            </button>
+
             <label className="block">
               <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
                 Demo text
@@ -666,7 +868,7 @@ export function IdentityFontsPage() {
 
               {backgroundSettingsOpen ? (
                 <div
-                  className="absolute top-full left-0 z-50 mt-2 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4"
+                  className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="background-settings"
                 >
                   <div
@@ -850,7 +1052,7 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen ? (
                 <div
-                  className="absolute top-full right-0 z-50 mt-2 w-64 border border-white/45 bg-black p-4"
+                  className={`absolute right-0 z-50 w-64 border border-white/45 bg-black p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="typography-settings"
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
@@ -864,19 +1066,20 @@ export function IdentityFontsPage() {
                         setLineHeight(1.5);
                         setLetterSpacing(0);
                         setTextAlignment('left');
+                        setFontWeight('normal');
                       }}
                     >
                       Reset
                     </button>
                   </div>
 
-                  <div className="mb-6">
-                    <span className="mb-3 block text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                  <div className="mb-6 flex items-center justify-between gap-4">
+                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
                       Alignment
                     </span>
                     <div
                       aria-label="Text alignment"
-                      className="grid w-fit grid-cols-3 border border-white/35"
+                      className="grid shrink-0 grid-cols-3 border border-white/35"
                       role="group"
                     >
                       <button
@@ -918,6 +1121,11 @@ export function IdentityFontsPage() {
                     </div>
                   </div>
 
+                  <FontWeightControl
+                    value={fontWeight}
+                    onChange={setFontWeight}
+                  />
+
                   <label className="block">
                     <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
                       <span>Line height</span>
@@ -957,6 +1165,11 @@ export function IdentityFontsPage() {
               ) : null}
             </div>
           </div>
+          <span
+            ref={toolbarBoundaryReference}
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 bottom-0 left-0 h-px"
+          />
         </header>
 
         {errorMessage ? (
@@ -1034,6 +1247,7 @@ export function IdentityFontsPage() {
                         font={font}
                         fontColor={fontColor}
                         fontSize={fontSize}
+                        fontWeight={fontWeight}
                         letterSpacing={letterSpacing}
                         lineHeight={lineHeight}
                         textAlignment={textAlignment}
@@ -1051,6 +1265,13 @@ export function IdentityFontsPage() {
           </section>
         )}
       </div>
+
+      <FloatingToolbarRestoreButton
+        visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
+        onRestore={() => {
+          setToolbarMinimized(false);
+        }}
+      />
 
       {SHOW_FONT_DELETE_CONTROLS && fontPendingDeletion ? (
         <div

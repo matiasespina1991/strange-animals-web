@@ -293,6 +293,30 @@ input {
   border-radius: 0;
 }
 
+.identity-font-toolbar-fade-in {
+  animation: identity-font-toolbar-fade-in 180ms ease-out both;
+}
+
+.identity-font-toolbar-minimized {
+  display: none !important;
+}
+
+@keyframes identity-font-toolbar-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-font-toolbar-fade-in {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   .listen-volume-slider::-webkit-slider-thumb {
     height: 13px;
