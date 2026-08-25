@@ -14,7 +14,6 @@ import {
   Menu,
   Minus,
   Pin,
-  Search,
   Settings,
   Star,
   Trash2,
@@ -163,7 +162,7 @@ function FloatingToolbarRestoreButton({
     >
       <span aria-hidden="true" className="relative flex size-6 items-center justify-center">
         <Menu className="size-5" />
-        <Search className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px]" />
+        <Settings className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px] text-white/80" />
       </span>
     </button>
   );
