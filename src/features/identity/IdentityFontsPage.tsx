@@ -65,8 +65,8 @@ const UNCATEGORIZED_LABEL = "Uncategorized";
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LETTER_SPACING = 0.03;
-const MOBILE_FONT_SIZE_DEFAULT = 28;
-const DESKTOP_FONT_SIZE_DEFAULT = 34;
+const MOBILE_FONT_SIZE_DEFAULT = 31;
+const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 96;
 const DESKTOP_FONT_SIZE_MAX = 140;
 const FONT_TOOLBAR_GRID_CLASS =
@@ -670,6 +670,7 @@ export function IdentityFontsPage() {
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
   const [lineHeight, setLineHeight] = useState(0.8);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
+  const [showFontSizeValue, setShowFontSizeValue] = useState(false);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState("#ffffff");
@@ -722,6 +723,7 @@ export function IdentityFontsPage() {
   const fileMenuReference = useRef<HTMLDivElement>(null);
   const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
+  const fontSizeValueTimeoutReference = useRef<number>();
   const fontPreferencesReference = useRef(fontPreferences);
   const snackbarTimeoutReference = useRef<number>();
   const {
@@ -769,6 +771,29 @@ export function IdentityFontsPage() {
       window.removeEventListener("resize", onResize);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (fontSizeValueTimeoutReference.current !== undefined) {
+        window.clearTimeout(fontSizeValueTimeoutReference.current);
+      }
+    };
+  }, []);
+
+  const clearFontSizeValueTimeout = () => {
+    if (fontSizeValueTimeoutReference.current === undefined) return;
+
+    window.clearTimeout(fontSizeValueTimeoutReference.current);
+    fontSizeValueTimeoutReference.current = undefined;
+  };
+
+  const scheduleHideFontSizeValue = (delay = 900) => {
+    clearFontSizeValueTimeout();
+    fontSizeValueTimeoutReference.current = window.setTimeout(() => {
+      setShowFontSizeValue(false);
+      fontSizeValueTimeoutReference.current = undefined;
+    }, delay);
+  };
 
   useEffect(() => {
     if (!isSmallViewport) return;
@@ -986,6 +1011,8 @@ export function IdentityFontsPage() {
       });
     });
   }, [fonts]);
+  const allCategoriesSelected =
+    categoriesInUse.length > 0 && hiddenCategoryLabels.size === 0;
 
   const fontSections = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase();
@@ -1702,22 +1729,44 @@ export function IdentityFontsPage() {
                   A
                 </span>
                 <span className="sr-only">Text size</span>
-                <input
-                  aria-label="Text size"
-                  className="identity-font-size-control-slider identity-font-size-slider w-full"
-                  max={
-                    isSmallViewport
-                      ? MOBILE_FONT_SIZE_MAX
-                      : DESKTOP_FONT_SIZE_MAX
-                  }
-                  min="8"
-                  step="1"
-                  type="range"
-                  value={fontSize}
-                  onChange={(event) => {
-                    setFontSize(Number(event.target.value));
-                  }}
-                />
+                <span className="relative flex flex-1 items-center">
+                  {showFontSizeValue ? (
+                    <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 border border-white/35 bg-black px-2 py-[1px] text-[0.5rem] leading-none tracking-[0.08em] text-white/70 uppercase">
+                      {fontSize}px
+                    </span>
+                  ) : null}
+                  <input
+                    aria-label="Text size"
+                    className="identity-font-size-control-slider identity-font-size-slider w-full"
+                    max={
+                      isSmallViewport
+                        ? MOBILE_FONT_SIZE_MAX
+                        : DESKTOP_FONT_SIZE_MAX
+                    }
+                    min="8"
+                    step="1"
+                    type="range"
+                    value={fontSize}
+                    onBlur={() => {
+                      scheduleHideFontSizeValue(250);
+                    }}
+                    onChange={(event) => {
+                      setShowFontSizeValue(true);
+                      setFontSize(Number(event.target.value));
+                      scheduleHideFontSizeValue();
+                    }}
+                    onFocus={() => {
+                      setShowFontSizeValue(true);
+                    }}
+                    onPointerDown={() => {
+                      setShowFontSizeValue(true);
+                      clearFontSizeValueTimeout();
+                    }}
+                    onPointerUp={() => {
+                      scheduleHideFontSizeValue(250);
+                    }}
+                  />
+                </span>
                 <span aria-hidden="true" className="text-2xl leading-none">
                   A
                 </span>
@@ -1895,6 +1944,23 @@ export function IdentityFontsPage() {
                   </label>
                 );
               })}
+              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white">
+                <input
+                  checked={allCategoriesSelected}
+                  className="size-3 accent-white"
+                  type="checkbox"
+                  onChange={() => {
+                    setHiddenCategoryLabels((current) => {
+                      if (current.size === 0) {
+                        return new Set(categoriesInUse);
+                      }
+
+                      return new Set();
+                    });
+                  }}
+                />
+                <span className="font-bold">All</span>
+              </label>
             </div>
           ) : null}
           <span
