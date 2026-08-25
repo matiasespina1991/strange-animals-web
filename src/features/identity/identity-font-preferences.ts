@@ -1,9 +1,9 @@
 /* eslint-disable unicorn/no-document-cookie -- The browser identifier intentionally uses a scoped, persistent cookie. */
-import {doc, getDoc, serverTimestamp, setDoc} from 'firebase/firestore';
-import {firebaseDb} from '@/lib/firebase';
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { firebaseDb } from "@/lib/firebase";
 
 const PREFERENCES_VERSION = 1;
-const BROWSER_ID_COOKIE = 'sa_identity_browser_id';
+const BROWSER_ID_COOKIE = "sa_identity_browser_id";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const MAX_STORED_FONT_IDS = 500;
 const FONT_ID_PATTERN = /^[\w-]{1,200}$/i;
@@ -26,7 +26,7 @@ let preferenceWriteQueue: Promise<void> = Promise.resolve();
 function readCookie(name: string) {
   const prefix = `${encodeURIComponent(name)}=`;
   const cookie = document.cookie
-    .split('; ')
+    .split("; ")
     .find((item) => item.startsWith(prefix));
 
   if (!cookie) return undefined;
@@ -39,7 +39,7 @@ function readCookie(name: string) {
 }
 
 function writeBrowserIdCookie(browserId: string) {
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
 
   document.cookie = `${encodeURIComponent(BROWSER_ID_COOKIE)}=${encodeURIComponent(browserId)}; Path=/identity; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Strict${secure}`;
 }
@@ -57,9 +57,9 @@ export function getIdentityBrowserId() {
 }
 
 function readStoredFontIds(value: unknown) {
-  if (typeof value !== 'string' || value.length === 0) return [];
+  if (typeof value !== "string" || value.length === 0) return [];
 
-  return [...new Set(value.split(','))]
+  return [...new Set(value.split(","))]
     .filter((fontId) => FONT_ID_PATTERN.test(fontId))
     .slice(0, MAX_STORED_FONT_IDS);
 }
@@ -68,7 +68,7 @@ function serializeFontIds(fontIds: string[]) {
   return [...new Set(fontIds)]
     .filter((fontId) => FONT_ID_PATTERN.test(fontId))
     .slice(0, MAX_STORED_FONT_IDS)
-    .join(',');
+    .join(",");
 }
 
 function readPreferences(value: Record<string, unknown>) {
@@ -85,7 +85,7 @@ function readPreferences(value: Record<string, unknown>) {
 
 export async function loadIdentityFontPreferences() {
   const browserId = getIdentityBrowserId();
-  const preferenceReference = doc(firebaseDb, 'users', browserId);
+  const preferenceReference = doc(firebaseDb, "users", browserId);
   const snapshot = await getDoc(preferenceReference);
 
   if (snapshot.exists()) {
@@ -94,8 +94,8 @@ export async function loadIdentityFontPreferences() {
 
   await setDoc(preferenceReference, {
     version: PREFERENCES_VERSION,
-    favoriteFontKeys: '',
-    pinnedFontKeys: '',
+    favoriteFontKeys: "",
+    pinnedFontKeys: "",
     showOnlyFavorites: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -108,7 +108,7 @@ export async function saveIdentityFontPreferences(
   preferences: IdentityFontPreferences,
 ) {
   const browserId = getIdentityBrowserId();
-  const preferenceReference = doc(firebaseDb, 'users', browserId);
+  const preferenceReference = doc(firebaseDb, "users", browserId);
 
   preferenceWriteQueue = preferenceWriteQueue
     .catch(() => undefined)
@@ -122,7 +122,7 @@ export async function saveIdentityFontPreferences(
           showOnlyFavorites: preferences.showOnlyFavorites,
           updatedAt: serverTimestamp(),
         },
-        {merge: true},
+        { merge: true },
       );
     });
 

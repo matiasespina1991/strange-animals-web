@@ -3,7 +3,7 @@ import {
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
-} from 'firebase/auth';
+} from "firebase/auth";
 import {
   type FormEvent,
   type ReactNode,
@@ -11,22 +11,22 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import {firebaseAuth} from '@/lib/firebase';
+} from "react";
+import { firebaseAuth } from "@/lib/firebase";
 
-const IDENTITY_EMAIL = 'identity-access@strangeanimals.de';
+const IDENTITY_EMAIL = "identity-access@strangeanimals.de";
 const LAST_CHARACTER_REVEAL_MS = 900;
-const PASSWORD_MASK_CHARACTER = '*';
+const PASSWORD_MASK_CHARACTER = "*";
 
-type AuthStatus = 'checking' | 'signed-out' | 'authorized';
+type AuthStatus = "checking" | "signed-out" | "authorized";
 
 type IdentityAccessGateProperties = {
   children: ReactNode;
 };
 
-export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
-  const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
-  const [password, setPassword] = useState('');
+export function IdentityAccessGate({ children }: IdentityAccessGateProperties) {
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
+  const [password, setPassword] = useState("");
   const [revealedCharacterIndex, setRevealedCharacterIndex] = useState<
     number | undefined
   >();
@@ -69,13 +69,13 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
 
           setAuthStatus(
             user?.email?.toLowerCase() === IDENTITY_EMAIL
-              ? 'authorized'
-              : 'signed-out',
+              ? "authorized"
+              : "signed-out",
           );
         });
       })
       .catch(() => {
-        if (isActive) setAuthStatus('signed-out');
+        if (isActive) setAuthStatus("signed-out");
       });
 
     return () => {
@@ -105,7 +105,7 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
     } catch {
       setHasError(true);
     } finally {
-      setPassword('');
+      setPassword("");
       setRevealedCharacterIndex(undefined);
       clearRevealTimeout();
       setIsSubmitting(false);
@@ -113,13 +113,13 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
   };
 
   const maskedPassword = useMemo(() => {
-    if (password.length === 0) return '';
+    if (password.length === 0) return "";
 
     return [...password]
       .map((character, index) =>
         index === revealedCharacterIndex ? character : PASSWORD_MASK_CHARACTER,
       )
-      .join('');
+      .join("");
   }, [password, revealedCharacterIndex]);
 
   const maskedPasswordCharacters = useMemo(
@@ -128,21 +128,21 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
   );
 
   const statusMessage = isSubmitting
-    ? 'Checking…'
+    ? "Checking…"
     : hasError
-      ? 'Invalid key'
+      ? "Invalid key"
       : undefined;
 
-  if (authStatus === 'authorized') return children;
+  if (authStatus === "authorized") return children;
 
-  if (authStatus === 'checking') {
+  if (authStatus === "checking") {
     return <main className="min-h-[100dvh] bg-black" />;
   }
 
   return (
     <main
       className="grid min-h-[100dvh] select-text place-items-center bg-black px-6 py-10 text-white"
-      style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
+      style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
       <form
         aria-label="Identity access"
@@ -159,7 +159,7 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
         <div className="relative">
           <input
             aria-describedby={
-              statusMessage ? 'identity-access-status' : undefined
+              statusMessage ? "identity-access-status" : undefined
             }
             aria-invalid={hasError}
             autoComplete="current-password"
@@ -174,14 +174,15 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
             onChange={(event) => {
               const nextPassword = event.target.value;
               const nativeEvent = event.nativeEvent as InputEvent;
-              const inputData = nativeEvent.data ?? '';
-              const selectionEnd = event.target.selectionEnd ?? nextPassword.length;
+              const inputData = nativeEvent.data ?? "";
+              const selectionEnd =
+                event.target.selectionEnd ?? nextPassword.length;
 
               setPassword(nextPassword);
 
               if (
                 inputData.length > 0 &&
-                nativeEvent.inputType.startsWith('insert') &&
+                nativeEvent.inputType.startsWith("insert") &&
                 selectionEnd > 0
               ) {
                 setRevealedCharacterIndex(selectionEnd - 1);
@@ -204,8 +205,8 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
                   key={`${index}-${character}`}
                   className={
                     character === PASSWORD_MASK_CHARACTER
-                      ? 'text-white/45'
-                      : 'text-white'
+                      ? "text-white/45"
+                      : "text-white"
                   }
                 >
                   {character}
@@ -220,7 +221,7 @@ export function IdentityAccessGate({children}: IdentityAccessGateProperties) {
             className="min-h-[1rem] text-xs leading-none text-white/70"
             id="identity-access-status"
           >
-            {statusMessage ?? ''}
+            {statusMessage ?? ""}
           </p>
           <button
             className="ml-auto block cursor-pointer border border-white bg-white px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-black uppercase outline-none hover:bg-black hover:text-white disabled:cursor-wait disabled:border-white/35 disabled:bg-white/35 disabled:text-black/70"

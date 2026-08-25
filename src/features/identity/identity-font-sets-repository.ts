@@ -5,9 +5,9 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
-} from 'firebase/firestore';
-import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
-import {firebaseDb, firebaseStorage} from '@/lib/firebase';
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { firebaseDb, firebaseStorage } from "@/lib/firebase";
 
 const FONT_SET_VERSION = 1;
 const MAX_LABEL_LENGTH = 120;
@@ -18,7 +18,7 @@ const FONT_ID_PATTERN = /^[\w-]{1,200}$/i;
 
 type FontSetBackground = {
   color: string;
-  mode: 'color' | 'image';
+  mode: "color" | "image";
   imageName?: string;
   imageStoragePath?: string;
   imageUrl?: string;
@@ -53,7 +53,7 @@ export type IdentityFontSet = {
   favoriteFontIds: string[];
   fontColor: string;
   fontSize: number;
-  fontWeight: '300' | 'normal' | '800';
+  fontWeight: "300" | "normal" | "800";
   label: string;
   letterSpacing: number;
   lineHeight: number;
@@ -61,7 +61,7 @@ export type IdentityFontSet = {
   search: string;
   showOnlyFavorites: boolean;
   specimen: string;
-  textAlignment: 'left' | 'center' | 'right';
+  textAlignment: "left" | "center" | "right";
   updatedAt: Date | null;
 };
 
@@ -70,19 +70,19 @@ export type SaveIdentityFontSetInput = {
   backgroundImageFile?: File;
   backgroundImageName?: string;
   backgroundImageStoragePath?: string;
-  backgroundMode: 'color' | 'image';
+  backgroundMode: "color" | "image";
   browserId: string;
   favoriteFontIds: string[];
   fontColor: string;
   fontSize: number;
-  fontWeight: '300' | 'normal' | '800';
+  fontWeight: "300" | "normal" | "800";
   letterSpacing: number;
   lineHeight: number;
   pinnedFontIds: string[];
   search: string;
   showOnlyFavorites: boolean;
   specimen: string;
-  textAlignment: 'left' | 'center' | 'right';
+  textAlignment: "left" | "center" | "right";
 };
 
 function truncateText(value: string, maxLength: number) {
@@ -96,9 +96,9 @@ function toDateOrNull(value: unknown) {
 }
 
 function readStoredFontIds(value: unknown) {
-  if (typeof value !== 'string' || value.length === 0) return [];
+  if (typeof value !== "string" || value.length === 0) return [];
 
-  return [...new Set(value.split(','))]
+  return [...new Set(value.split(","))]
     .filter((fontId) => FONT_ID_PATTERN.test(fontId))
     .slice(0, MAX_STORED_FONT_IDS);
 }
@@ -107,22 +107,22 @@ function serializeFontIds(fontIds: string[]) {
   return [...new Set(fontIds)]
     .filter((fontId) => FONT_ID_PATTERN.test(fontId))
     .slice(0, MAX_STORED_FONT_IDS)
-    .join(',');
+    .join(",");
 }
 
 function normalizeFileName(fileName: string) {
   const trimmedName = fileName.trim();
-  const parts = trimmedName.split('.');
+  const parts = trimmedName.split(".");
   const extension = parts.length > 1 ? parts.pop() : undefined;
-  const stem = (parts.join('.') || trimmedName || 'background')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9_-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
+  const stem = (parts.join(".") || trimmedName || "background")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .toLowerCase();
 
-  const normalizedStem = stem || 'background';
+  const normalizedStem = stem || "background";
   const normalizedExtension =
     extension && /^[a-zA-Z0-9]{1,10}$/.test(extension)
       ? extension.toLowerCase()
@@ -134,46 +134,49 @@ function normalizeFileName(fileName: string) {
 }
 
 function deriveLabel(specimen: string, search: string) {
-  const normalizedSpecimen = specimen.trim().replace(/\s+/g, ' ');
+  const normalizedSpecimen = specimen.trim().replace(/\s+/g, " ");
 
   if (normalizedSpecimen.length > 0) {
     return truncateText(normalizedSpecimen, MAX_LABEL_LENGTH);
   }
 
-  const normalizedSearch = search.trim().replace(/\s+/g, ' ');
+  const normalizedSearch = search.trim().replace(/\s+/g, " ");
 
   if (normalizedSearch.length > 0) {
     return truncateText(`Search: ${normalizedSearch}`, MAX_LABEL_LENGTH);
   }
 
-  return 'Untitled set';
+  return "Untitled set";
 }
 
-function readFontSet(id: string, value: FontSetDocument): IdentityFontSet | null {
+function readFontSet(
+  id: string,
+  value: FontSetDocument,
+): IdentityFontSet | null {
   if (value.version !== FONT_SET_VERSION) return null;
-  if (typeof value.label !== 'string') return null;
-  if (typeof value.specimen !== 'string') return null;
-  if (typeof value.search !== 'string') return null;
-  if (typeof value.fontColor !== 'string') return null;
-  if (typeof value.backgroundColor !== 'string') return null;
-  if (typeof value.fontSize !== 'number') return null;
-  if (typeof value.lineHeight !== 'number') return null;
-  if (typeof value.letterSpacing !== 'number') return null;
+  if (typeof value.label !== "string") return null;
+  if (typeof value.specimen !== "string") return null;
+  if (typeof value.search !== "string") return null;
+  if (typeof value.fontColor !== "string") return null;
+  if (typeof value.backgroundColor !== "string") return null;
+  if (typeof value.fontSize !== "number") return null;
+  if (typeof value.lineHeight !== "number") return null;
+  if (typeof value.letterSpacing !== "number") return null;
   if (
-    value.fontWeight !== '300' &&
-    value.fontWeight !== 'normal' &&
-    value.fontWeight !== '800'
+    value.fontWeight !== "300" &&
+    value.fontWeight !== "normal" &&
+    value.fontWeight !== "800"
   ) {
     return null;
   }
   if (
-    value.textAlignment !== 'left' &&
-    value.textAlignment !== 'center' &&
-    value.textAlignment !== 'right'
+    value.textAlignment !== "left" &&
+    value.textAlignment !== "center" &&
+    value.textAlignment !== "right"
   ) {
     return null;
   }
-  if (value.backgroundMode !== 'color' && value.backgroundMode !== 'image') {
+  if (value.backgroundMode !== "color" && value.backgroundMode !== "image") {
     return null;
   }
 
@@ -181,11 +184,11 @@ function readFontSet(id: string, value: FontSetDocument): IdentityFontSet | null
     color: value.backgroundColor,
     mode: value.backgroundMode,
     imageName:
-      typeof value.backgroundImageName === 'string'
+      typeof value.backgroundImageName === "string"
         ? value.backgroundImageName
         : undefined,
     imageStoragePath:
-      typeof value.backgroundImageStoragePath === 'string'
+      typeof value.backgroundImageStoragePath === "string"
         ? value.backgroundImageStoragePath
         : undefined,
   } satisfies FontSetBackground;
@@ -219,7 +222,7 @@ async function uploadBackgroundImage(
   const storagePath = `media/private/identity-font-sets/${browserId}/${setId}/v1/${normalizedFileName}`;
 
   await uploadBytes(ref(firebaseStorage, storagePath), backgroundImageFile, {
-    contentType: backgroundImageFile.type || 'application/octet-stream',
+    contentType: backgroundImageFile.type || "application/octet-stream",
     customMetadata: {
       browserId,
       setId,
@@ -235,7 +238,7 @@ async function uploadBackgroundImage(
 
 export async function listIdentityFontSets(browserId: string) {
   const snapshot = await getDocs(
-    collection(firebaseDb, 'users', browserId, 'fontSets'),
+    collection(firebaseDb, "users", browserId, "fontSets"),
   );
 
   const sets = await Promise.all(
@@ -247,7 +250,10 @@ export async function listIdentityFontSets(browserId: string) {
 
       if (!data) return null;
 
-      if (data.background.mode === 'image' && data.background.imageStoragePath) {
+      if (
+        data.background.mode === "image" &&
+        data.background.imageStoragePath
+      ) {
         const imageUrl = await getDownloadURL(
           ref(firebaseStorage, data.background.imageStoragePath),
         ).catch(() => undefined);
@@ -272,7 +278,8 @@ export async function listIdentityFontSets(browserId: string) {
   return sets
     .filter((set): set is IdentityFontSet => set !== null)
     .sort((left, right) => {
-      const leftTime = left.updatedAt?.getTime() ?? left.createdAt?.getTime() ?? 0;
+      const leftTime =
+        left.updatedAt?.getTime() ?? left.createdAt?.getTime() ?? 0;
       const rightTime =
         right.updatedAt?.getTime() ?? right.createdAt?.getTime() ?? 0;
 
@@ -282,7 +289,13 @@ export async function listIdentityFontSets(browserId: string) {
 
 export async function saveIdentityFontSet(input: SaveIdentityFontSetInput) {
   const setId = crypto.randomUUID();
-  const setReference = doc(firebaseDb, 'users', input.browserId, 'fontSets', setId);
+  const setReference = doc(
+    firebaseDb,
+    "users",
+    input.browserId,
+    "fontSets",
+    setId,
+  );
 
   const specimen = truncateText(input.specimen, MAX_SPECIMEN_LENGTH);
   const search = truncateText(input.search, MAX_SEARCH_LENGTH);
@@ -291,7 +304,7 @@ export async function saveIdentityFontSet(input: SaveIdentityFontSetInput) {
   let backgroundImageName: string | undefined;
   let backgroundImageStoragePath: string | undefined;
 
-  if (input.backgroundMode === 'image') {
+  if (input.backgroundMode === "image") {
     if (input.backgroundImageFile) {
       const uploadedImage = await uploadBackgroundImage(
         input.browserId,
@@ -301,15 +314,15 @@ export async function saveIdentityFontSet(input: SaveIdentityFontSetInput) {
       backgroundImageName = uploadedImage.imageName;
       backgroundImageStoragePath = uploadedImage.imageStoragePath;
     } else if (input.backgroundImageStoragePath) {
-      backgroundImageName = input.backgroundImageName ?? 'Saved image';
+      backgroundImageName = input.backgroundImageName ?? "Saved image";
       backgroundImageStoragePath = input.backgroundImageStoragePath;
     }
   }
 
   const effectiveBackgroundMode =
-    input.backgroundMode === 'image' && backgroundImageStoragePath
-      ? 'image'
-      : 'color';
+    input.backgroundMode === "image" && backgroundImageStoragePath
+      ? "image"
+      : "color";
 
   await setDoc(setReference, {
     backgroundColor: input.backgroundColor,
