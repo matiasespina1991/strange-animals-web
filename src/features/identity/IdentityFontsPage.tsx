@@ -1731,13 +1731,13 @@ export function IdentityFontsPage() {
                 <span className="sr-only">Text size</span>
                 <span className="relative flex flex-1 items-center">
                   {showFontSizeValue ? (
-                    <span className="pointer-events-none absolute -top-4 left-1/2 -translate-x-1/2 border border-white/35 bg-black px-2 py-[1px] text-[0.5rem] leading-none tracking-[0.08em] text-white/70 uppercase">
+                    <span className="pointer-events-none absolute -top-4 left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2 py-[1px] text-[0.5rem] leading-none tracking-[0.08em] text-white/70 uppercase">
                       {fontSize}px
                     </span>
                   ) : null}
                   <input
                     aria-label="Text size"
-                    className="identity-font-size-control-slider identity-font-size-slider w-full"
+                    className="identity-font-size-control-slider identity-font-size-slider relative z-10 w-full"
                     max={
                       isSmallViewport
                         ? MOBILE_FONT_SIZE_MAX
