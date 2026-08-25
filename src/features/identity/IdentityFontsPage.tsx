@@ -1,6 +1,7 @@
-import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
-import {motion, useReducedMotion} from 'framer-motion';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeftRight,
   AlignCenter,
   AlignLeft,
   AlignRight,
@@ -18,7 +19,7 @@ import {
   Trash2,
   Upload,
   X,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   deleteFontCatalogItem,
   downloadFontFamily,
@@ -28,109 +29,109 @@ import {
   updateFontParentCategory,
   type FontCatalogItem,
   type FontVariant,
-} from './font-catalog-repository';
+} from "./font-catalog-repository";
 import {
   listIdentityFontSets,
   saveIdentityFontSet,
   type IdentityFontSet,
-} from './identity-font-sets-repository';
+} from "./identity-font-sets-repository";
 import {
   EMPTY_IDENTITY_FONT_PREFERENCES,
   getIdentityBrowserId,
   loadIdentityFontPreferences,
   saveIdentityFontPreferences,
   type IdentityFontPreferences,
-} from './identity-font-preferences';
+} from "./identity-font-preferences";
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
-  'Abstract',
-  'Bold',
-  'Dotted',
-  'Grunge',
-  'Handwritten',
-  'LCD Display',
-  'Outlined',
-  'Pixel',
-  'Semi-Abstract',
-  'Squared / Tech',
-  'Standard',
-  'Tridimensional',
-  'Vintage',
-  'Wide',
+  "Abstract",
+  "Bold",
+  "Dotted",
+  "Grunge",
+  "Handwritten",
+  "LCD Display",
+  "Outlined",
+  "Pixel",
+  "Semi-Abstract",
+  "Squared / Tech",
+  "Standard",
+  "Tridimensional",
+  "Vintage",
+  "Wide",
 ] as const;
-const FONT_CATEGORY_BOTTOM_ORDER = ['Pixel', 'Handwritten', 'Standard'];
+const FONT_CATEGORY_BOTTOM_ORDER = ["Pixel", "Handwritten", "Standard"];
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LETTER_SPACING = 0.03;
 const FONT_TOOLBAR_GRID_CLASS =
-  'grid grid-cols-2 gap-5 md:grid-cols-2 md:gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_12.5rem]';
+  "grid grid-cols-2 gap-5 md:grid-cols-2 md:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_auto_auto]";
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
+  "image/jpeg",
+  "image/png",
+  "image/webp",
 ]);
 
 type BackgroundImage = {
   file?: File;
   name: string;
-  source: 'local' | 'remote';
+  source: "local" | "remote";
   storagePath?: string;
   url: string;
 };
 
-type TextAlignment = 'left' | 'center' | 'right';
-type FontWeight = 300 | 'normal' | 800;
+type TextAlignment = "left" | "center" | "right";
+type FontWeight = 300 | "normal" | 800;
 
 function getPreviewFontWeight(fontWeight: FontWeight) {
-  return fontWeight === 'normal' ? undefined : fontWeight;
+  return fontWeight === "normal" ? undefined : fontWeight;
 }
 
 function readFontWeight(value: string): FontWeight {
-  if (value === '300') return 300;
-  if (value === '800') return 800;
+  if (value === "300") return 300;
+  if (value === "800") return 800;
 
-  return 'normal';
+  return "normal";
 }
 
-function serializeFontWeight(fontWeight: FontWeight): '300' | 'normal' | '800' {
-  if (fontWeight === 300) return '300';
-  if (fontWeight === 800) return '800';
-  return 'normal';
+function serializeFontWeight(fontWeight: FontWeight): "300" | "normal" | "800" {
+  if (fontWeight === 300) return "300";
+  if (fontWeight === 800) return "800";
+  return "normal";
 }
 
 function formatSavedSetTime(value: Date | null) {
-  if (!value) return 'just now';
+  if (!value) return "just now";
 
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(value);
 }
 
 function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
-  if (fontCount === 0) return 'The catalog is empty.';
-  if (showOnlyFavorites) return 'No favorite fonts yet.';
+  if (fontCount === 0) return "The catalog is empty.";
+  if (showOnlyFavorites) return "No favorite fonts yet.";
 
-  return 'No matching fonts. Try a shorter name or format.';
+  return "No matching fonts. Try a shorter name or format.";
 }
 
 function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return 'mt-10';
+  if (!floating) return "mt-10";
 
   return minimized
-    ? 'identity-font-toolbar-minimized'
-    : 'identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4 pr-12';
+    ? "identity-font-toolbar-minimized"
+    : "identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4 pr-12";
 }
 
 function getToolbarPopoverPlacementClass(floating: boolean) {
-  return floating ? 'bottom-full mb-2' : 'top-full mt-2';
+  return floating ? "bottom-full mb-2" : "top-full mt-2";
 }
 
 function getToolbarMinimizeButtonClass(floating: boolean) {
   return floating
-    ? 'absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white'
-    : 'hidden';
+    ? "absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+    : "hidden";
 }
 
 function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
@@ -182,11 +183,11 @@ function ActiveCategoryRail({
       aria-hidden="true"
       className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-16 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
       initial={false}
-      animate={{y: raised ? -toolbarHeight : 0}}
+      animate={{ y: raised ? -toolbarHeight : 0 }}
       transition={
         reducedMotion
-          ? {duration: 0}
-          : {type: 'spring', stiffness: 360, damping: 34, mass: 0.8}
+          ? { duration: 0 }
+          : { type: "spring", stiffness: 360, damping: 34, mass: 0.8 }
       }
     >
       <span className="rotate-180 text-[0.7875rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
@@ -215,10 +216,10 @@ function useFloatingToolbar() {
 
     updateHeight();
 
-    if (!('ResizeObserver' in window)) {
-      window.addEventListener('resize', updateHeight);
+    if (!("ResizeObserver" in window)) {
+      window.addEventListener("resize", updateHeight);
       return () => {
-        window.removeEventListener('resize', updateHeight);
+        window.removeEventListener("resize", updateHeight);
       };
     }
 
@@ -238,12 +239,12 @@ function useFloatingToolbar() {
     };
 
     updateFloatingState();
-    window.addEventListener('scroll', updateFloatingState, {passive: true});
-    window.addEventListener('resize', updateFloatingState);
+    window.addEventListener("scroll", updateFloatingState, { passive: true });
+    window.addEventListener("resize", updateFloatingState);
 
     return () => {
-      window.removeEventListener('scroll', updateFloatingState);
-      window.removeEventListener('resize', updateFloatingState);
+      window.removeEventListener("scroll", updateFloatingState);
+      window.removeEventListener("resize", updateFloatingState);
     };
   }, []);
 
@@ -327,7 +328,7 @@ function FontSpecimen({
         .catch(() => undefined);
     };
 
-    if (!('IntersectionObserver' in window)) {
+    if (!("IntersectionObserver" in window)) {
       load();
       return () => {
         active = false;
@@ -341,7 +342,7 @@ function FontSpecimen({
           observer.disconnect();
         }
       },
-      {rootMargin: '240px'},
+      { rootMargin: "240px" },
     );
 
     observer.observe(card);
@@ -426,9 +427,9 @@ function FontSpecimen({
                   : `Add ${font.name} to favorites`
               }
               aria-pressed={favorite}
-              className={`flex size-5 cursor-pointer items-center justify-center bg-transparent outline-none transition-[color,opacity] duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white ${pinned ? 'order-2' : 'order-1'} ${favorite ? 'text-[#d4af37] opacity-100' : 'text-white/50 opacity-0 hover:text-white group-hover/font-card:opacity-100 focus-visible:opacity-100'}`}
+              className={`flex size-5 cursor-pointer items-center justify-center bg-transparent outline-none transition-[color,opacity] duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white ${pinned ? "order-2" : "order-1"} ${favorite ? "text-[#d4af37] opacity-100" : "text-white/50 opacity-0 hover:text-white group-hover/font-card:opacity-100 focus-visible:opacity-100"}`}
               disabled={!preferenceControlsEnabled}
-              title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+              title={favorite ? "Remove from favorites" : "Add to favorites"}
               type="button"
               onClick={() => {
                 onFavoriteChange(font);
@@ -436,15 +437,15 @@ function FontSpecimen({
             >
               <Star
                 aria-hidden="true"
-                className={`size-3 ${favorite ? 'fill-current' : 'fill-white/10'}`}
+                className={`size-3 ${favorite ? "fill-current" : "fill-white/10"}`}
               />
             </button>
             <button
               aria-label={pinned ? `Unpin ${font.name}` : `Pin ${font.name}`}
               aria-pressed={pinned}
-              className={`flex size-5 cursor-pointer items-center justify-center bg-transparent outline-none transition-[color,opacity] duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white ${pinned ? 'order-1 text-[#2563eb] opacity-100' : 'order-2 text-white/50 opacity-0 hover:text-white group-hover/font-card:opacity-100 focus-visible:opacity-100'}`}
+              className={`flex size-5 cursor-pointer items-center justify-center bg-transparent outline-none transition-[color,opacity] duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white ${pinned ? "order-1 text-[#2563eb] opacity-100" : "order-2 text-white/50 opacity-0 hover:text-white group-hover/font-card:opacity-100 focus-visible:opacity-100"}`}
               disabled={!preferenceControlsEnabled}
-              title={pinned ? 'Unpin font' : 'Pin font'}
+              title={pinned ? "Unpin font" : "Pin font"}
               type="button"
               onClick={() => {
                 onPinnedChange(font);
@@ -452,7 +453,7 @@ function FontSpecimen({
             >
               <Pin
                 aria-hidden="true"
-                className={`size-3 rotate-[25deg] ${pinned ? 'fill-current' : 'fill-white/10'}`}
+                className={`size-3 rotate-[25deg] ${pinned ? "fill-current" : "fill-white/10"}`}
               />
             </button>
           </div>
@@ -464,7 +465,7 @@ function FontSpecimen({
               className="h-6 w-28 cursor-pointer rounded-none border border-white/25 bg-black px-1 text-[0.5625rem] tracking-[0.08em] text-white/60 normal-case shadow-none outline-none focus:border-white/55 focus:outline-none disabled:cursor-wait disabled:opacity-40 sm:w-32"
               disabled={categoryUpdating}
               title={`Parent category for ${font.name}`}
-              value={font.parentCategory ?? ''}
+              value={font.parentCategory ?? ""}
               onChange={(event) => {
                 onParentCategoryChange(font, event.target.value || null);
               }}
@@ -521,23 +522,23 @@ function FontSpecimen({
         {visibleVariants.map((variant) => {
           const familyName = familyNames[variant.id];
           const variantName = variant.fileName
-            .replace(/\.[^/.]+$/, '')
-            .replaceAll('-', ' ')
-            .replace(/\s+/g, ' ')
+            .replace(/\.[^/.]+$/, "")
+            .replaceAll("-", " ")
+            .replace(/\s+/g, " ")
             .trim();
 
           return (
             <div key={variant.id}>
               <p
-                className={`min-w-0 max-w-full overflow-hidden px-4 py-8 leading-normal whitespace-pre-wrap break-all [overflow-wrap:anywhere] text-white ${familyName ? 'visible' : 'invisible'}`}
+                className={`min-w-0 max-w-full overflow-hidden px-4 py-8 leading-normal whitespace-pre-wrap break-all [overflow-wrap:anywhere] text-white ${familyName ? "visible" : "invisible"}`}
                 style={{
                   backgroundColor,
                   backgroundImage: backgroundImageUrl
                     ? `url(${backgroundImageUrl})`
                     : undefined,
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: 'cover',
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "cover",
                   color: fontColor,
                   fontFamily: familyName,
                   fontSize: `${fontSize}px`,
@@ -639,7 +640,7 @@ function FavoriteFilterControl({
         />
         <span
           aria-hidden="true"
-          className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${value ? 'translate-x-[1.375rem]' : 'translate-x-0'}`}
+          className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${value ? "translate-x-[1.375rem]" : "translate-x-0"}`}
         />
       </button>
     </div>
@@ -648,18 +649,18 @@ function FavoriteFilterControl({
 
 export function IdentityFontsPage() {
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
-  const [search, setSearch] = useState('');
-  const [specimen, setSpecimen] = useState('');
+  const [search, setSearch] = useState("");
+  const [specimen, setSpecimen] = useState("");
   const [fontSize, setFontSize] = useState(34);
-  const [fontWeight, setFontWeight] = useState<FontWeight>('normal');
+  const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
   const [lineHeight, setLineHeight] = useState(1.5);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
-  const [textAlignment, setTextAlignment] = useState<TextAlignment>('left');
+  const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
-  const [fontColor, setFontColor] = useState('#000000');
-  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-  const [backgroundMode, setBackgroundMode] = useState<'color' | 'image'>(
-    'color',
+  const [fontColor, setFontColor] = useState("#000000");
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
+    "color",
   );
   const [backgroundImage, setBackgroundImage] = useState<BackgroundImage>();
   const [backgroundSettingsOpen, setBackgroundSettingsOpen] = useState(false);
@@ -718,7 +719,7 @@ export function IdentityFontsPage() {
         if (active) setFonts(catalog);
       })
       .catch(() => {
-        if (active) setErrorMessage('Could not load the private font catalog.');
+        if (active) setErrorMessage("Could not load the private font catalog.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -742,7 +743,7 @@ export function IdentityFontsPage() {
       .catch(() => {
         if (active) {
           setFontPreferenceError(
-            'Could not load saved pins and favorites. Changes may not persist.',
+            "Could not load saved pins and favorites. Changes may not persist.",
           );
         }
       })
@@ -771,7 +772,7 @@ export function IdentityFontsPage() {
         setFontPreferences(previous);
       }
 
-      setFontPreferenceError('Could not save pins and favorites. Try again.');
+      setFontPreferenceError("Could not save pins and favorites. Try again.");
     });
   };
 
@@ -781,7 +782,7 @@ export function IdentityFontsPage() {
         ? current.favoriteFontIds.filter((fontId) => fontId !== font.id)
         : [...current.favoriteFontIds, font.id];
 
-      return {...current, favoriteFontIds};
+      return { ...current, favoriteFontIds };
     });
   };
 
@@ -791,7 +792,7 @@ export function IdentityFontsPage() {
         ? current.pinnedFontIds.filter((fontId) => fontId !== font.id)
         : [...current.pinnedFontIds, font.id];
 
-      return {...current, pinnedFontIds};
+      return { ...current, pinnedFontIds };
     });
   };
 
@@ -808,17 +809,17 @@ export function IdentityFontsPage() {
     };
 
     const closeOnKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== "Escape") return;
       setTypographySettingsOpen(false);
       typographySettingsButtonReference.current?.focus();
     };
 
-    document.addEventListener('pointerdown', closeOnPointerDown);
-    document.addEventListener('keydown', closeOnKeyDown);
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', closeOnPointerDown);
-      document.removeEventListener('keydown', closeOnKeyDown);
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnKeyDown);
     };
   }, [typographySettingsOpen]);
 
@@ -835,17 +836,17 @@ export function IdentityFontsPage() {
     };
 
     const closeOnKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== "Escape") return;
       setBackgroundSettingsOpen(false);
       backgroundSettingsButtonReference.current?.focus();
     };
 
-    document.addEventListener('pointerdown', closeOnPointerDown);
-    document.addEventListener('keydown', closeOnKeyDown);
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', closeOnPointerDown);
-      document.removeEventListener('keydown', closeOnKeyDown);
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnKeyDown);
     };
   }, [backgroundSettingsOpen]);
 
@@ -862,23 +863,23 @@ export function IdentityFontsPage() {
     };
 
     const closeOnKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+      if (event.key !== "Escape") return;
       setFileMenuOpen(false);
       fileMenuButtonReference.current?.focus();
     };
 
-    document.addEventListener('pointerdown', closeOnPointerDown);
-    document.addEventListener('keydown', closeOnKeyDown);
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnKeyDown);
 
     return () => {
-      document.removeEventListener('pointerdown', closeOnPointerDown);
-      document.removeEventListener('keydown', closeOnKeyDown);
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnKeyDown);
     };
   }, [fileMenuOpen]);
 
   useEffect(() => {
     const imageUrl =
-      backgroundImage?.source === 'local' ? backgroundImage.url : undefined;
+      backgroundImage?.source === "local" ? backgroundImage.url : undefined;
 
     return () => {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -890,7 +891,7 @@ export function IdentityFontsPage() {
 
     if (!specimenInput) return;
 
-    specimenInput.style.height = 'auto';
+    specimenInput.style.height = "auto";
     specimenInput.style.height = `${specimenInput.scrollHeight}px`;
   }, [specimen]);
 
@@ -912,7 +913,7 @@ export function IdentityFontsPage() {
         !pinnedFontIds.has(font.id) &&
         isEligible(font) &&
         (!term ||
-          `${font.name} ${font.formats.join(' ')}`
+          `${font.name} ${font.formats.join(" ")}`
             .toLocaleLowerCase()
             .includes(term)),
     );
@@ -945,7 +946,7 @@ export function IdentityFontsPage() {
         if (rightBottomIndex !== -1) return -1;
 
         return leftCategory.localeCompare(rightCategory, undefined, {
-          sensitivity: 'base',
+          sensitivity: "base",
         });
       })
       .map(([name, sectionFonts]) => ({
@@ -957,18 +958,18 @@ export function IdentityFontsPage() {
 
     if (pinnedFonts.length > 0) {
       sections.unshift({
-        key: 'pinned',
-        label: 'pinned fonts',
-        name: 'Pinned',
+        key: "pinned",
+        label: "pinned fonts",
+        name: "Pinned",
         fonts: pinnedFonts,
       });
     }
 
     if (uncategorizedFonts.length > 0) {
       sections.push({
-        key: 'uncategorized',
-        label: 'category: Uncategorized',
-        name: 'Uncategorized',
+        key: "uncategorized",
+        label: "category: Uncategorized",
+        name: "Uncategorized",
         fonts: uncategorizedFonts,
       });
     }
@@ -984,7 +985,7 @@ export function IdentityFontsPage() {
 
       const categoryHeaders =
         fontCatalogReference.current?.querySelectorAll<HTMLElement>(
-          '[data-font-category-label]',
+          "[data-font-category-label]",
         );
       const firstCategoryHeader = categoryHeaders?.item(0);
 
@@ -1015,8 +1016,8 @@ export function IdentityFontsPage() {
     };
 
     scheduleUpdate();
-    window.addEventListener('scroll', scheduleUpdate, {passive: true});
-    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
 
     const resizeObserver = new ResizeObserver(scheduleUpdate);
     const catalog = fontCatalogReference.current;
@@ -1025,8 +1026,8 @@ export function IdentityFontsPage() {
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
-      window.removeEventListener('scroll', scheduleUpdate);
-      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
       resizeObserver.disconnect();
     };
   }, [collapsedCategoryKeys, fontSections]);
@@ -1047,7 +1048,7 @@ export function IdentityFontsPage() {
     setUpdatingCategoryIds((current) => new Set(current).add(font.id));
     setFonts((current) =>
       current.map((item) =>
-        item.id === font.id ? {...item, parentCategory} : item,
+        item.id === font.id ? { ...item, parentCategory } : item,
       ),
     );
 
@@ -1057,7 +1058,7 @@ export function IdentityFontsPage() {
       setFonts((current) =>
         current.map((item) =>
           item.id === font.id
-            ? {...item, parentCategory: previousCategory}
+            ? { ...item, parentCategory: previousCategory }
             : item,
         ),
       );
@@ -1094,12 +1095,12 @@ export function IdentityFontsPage() {
     if (!file) return;
 
     if (!ACCEPTED_BACKGROUND_IMAGE_TYPES.has(file.type)) {
-      setBackgroundImageError('Choose a JPG, PNG or WEBP image.');
+      setBackgroundImageError("Choose a JPG, PNG or WEBP image.");
       return;
     }
 
     if (file.size > MAX_BACKGROUND_IMAGE_SIZE) {
-      setBackgroundImageError('Image must be 15 MB or smaller.');
+      setBackgroundImageError("Image must be 15 MB or smaller.");
       return;
     }
 
@@ -1107,10 +1108,10 @@ export function IdentityFontsPage() {
     setBackgroundImage({
       file,
       name: file.name,
-      source: 'local',
+      source: "local",
       url: URL.createObjectURL(file),
     });
-    setBackgroundMode('image');
+    setBackgroundMode("image");
   };
 
   const loadSavedSets = async () => {
@@ -1122,14 +1123,17 @@ export function IdentityFontsPage() {
       const nextSavedSets = await listIdentityFontSets(browserId);
       setSavedSets(nextSavedSets);
       setSelectedSavedSetId((currentSelection) => {
-        if (currentSelection && nextSavedSets.some((set) => set.id === currentSelection)) {
+        if (
+          currentSelection &&
+          nextSavedSets.some((set) => set.id === currentSelection)
+        ) {
           return currentSelection;
         }
 
         return nextSavedSets[0]?.id;
       });
     } catch {
-      setSetActionError('Could not load saved sets. Try again.');
+      setSetActionError("Could not load saved sets. Try again.");
     } finally {
       setSavedSetsLoading(false);
     }
@@ -1145,10 +1149,15 @@ export function IdentityFontsPage() {
 
       await saveIdentityFontSet({
         backgroundColor,
-        backgroundImageFile: backgroundImage?.source === 'local' ? backgroundImage.file : undefined,
+        backgroundImageFile:
+          backgroundImage?.source === "local"
+            ? backgroundImage.file
+            : undefined,
         backgroundImageName: backgroundImage?.name,
         backgroundImageStoragePath:
-          backgroundImage?.source === 'remote' ? backgroundImage.storagePath : undefined,
+          backgroundImage?.source === "remote"
+            ? backgroundImage.storagePath
+            : undefined,
         backgroundMode,
         browserId,
         favoriteFontIds: fontPreferences.favoriteFontIds,
@@ -1164,19 +1173,21 @@ export function IdentityFontsPage() {
         textAlignment,
       });
 
-      setSetActionMessage('Set saved.');
+      setSetActionMessage("Set saved.");
       if (savedSetsOpen) {
         await loadSavedSets();
       }
     } catch {
-      setSetActionError('Could not save this set. Try again.');
+      setSetActionError("Could not save this set. Try again.");
     } finally {
       setSavingSet(false);
       setFileMenuOpen(false);
     }
   };
 
-  const selectedSavedSet = savedSets.find((set) => set.id === selectedSavedSetId);
+  const selectedSavedSet = savedSets.find(
+    (set) => set.id === selectedSavedSetId,
+  );
 
   const applySelectedSet = () => {
     if (!selectedSavedSet) return;
@@ -1198,20 +1209,20 @@ export function IdentityFontsPage() {
     setTextAlignment(selectedSavedSet.textAlignment);
 
     if (
-      selectedSavedSet.background.mode === 'image' &&
+      selectedSavedSet.background.mode === "image" &&
       selectedSavedSet.background.imageUrl
     ) {
       setBackgroundImage({
-        name: selectedSavedSet.background.imageName ?? 'Saved image',
-        source: 'remote',
+        name: selectedSavedSet.background.imageName ?? "Saved image",
+        source: "remote",
         storagePath: selectedSavedSet.background.imageStoragePath,
         url: selectedSavedSet.background.imageUrl,
       });
-      setBackgroundMode('image');
+      setBackgroundMode("image");
       setBackgroundImageError(undefined);
     } else {
       setBackgroundImage(undefined);
-      setBackgroundMode('color');
+      setBackgroundMode("color");
       setBackgroundImageError(undefined);
     }
 
@@ -1220,19 +1231,19 @@ export function IdentityFontsPage() {
     setFontPreferences(loadedPreferences);
     setFontPreferenceError(undefined);
     void saveIdentityFontPreferences(loadedPreferences).catch(() => {
-      setFontPreferenceError('Could not save pins and favorites. Try again.');
+      setFontPreferenceError("Could not save pins and favorites. Try again.");
     });
 
     setLoadSetConfirmationOpen(false);
     setSavedSetsOpen(false);
     setSetActionError(undefined);
-    setSetActionMessage('Set loaded.');
+    setSetActionMessage("Set loaded.");
   };
 
   return (
     <main
       className="min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
-      style={{fontFamily: "'Departure Mono', 'Courier New', monospace"}}
+      style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
       <ActiveCategoryRail
         label={activeCategoryLabel}
@@ -1314,7 +1325,7 @@ export function IdentityFontsPage() {
             hidden={!toolbarFloating}
             aria-hidden="true"
             className="mt-10"
-            style={{height: `${toolbarHeight}px`}}
+            style={{ height: `${toolbarHeight}px` }}
           />
 
           <div
@@ -1367,7 +1378,7 @@ export function IdentityFontsPage() {
               />
             </label>
 
-            <label className="block">
+            <label className="block w-[7rem] xl:-mr-4">
               <span className="mb-2 block whitespace-nowrap text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
                 Font color
               </span>
@@ -1383,9 +1394,35 @@ export function IdentityFontsPage() {
               </span>
             </label>
 
+            <div className="self-start xl:-mr-4 xl:-translate-x-9">
+              <span
+                aria-hidden="true"
+                className="mb-2 block text-[0.625rem] tracking-[0.12em] text-transparent uppercase"
+              >
+                Swap
+              </span>
+              <span className="flex h-10 items-center">
+                <button
+                  aria-label="Swap font and background colors"
+                  className="flex h-5 w-6 cursor-pointer items-center justify-center border border-white/35 text-white/65 outline-none hover:border-white/60 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  title="Swap colors"
+                  type="button"
+                  onClick={() => {
+                    setFontColor(backgroundColor);
+                    setBackgroundColor(fontColor);
+                  }}
+                >
+                  <ArrowLeftRight
+                    aria-hidden="true"
+                    className="size-[0.8rem]"
+                  />
+                </button>
+              </span>
+            </div>
+
             <div
               ref={backgroundSettingsReference}
-              className="relative self-start"
+              className="relative w-[7rem] self-start xl:-mr-2"
             >
               <span className="mb-2 block whitespace-nowrap text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
                 Background
@@ -1399,9 +1436,9 @@ export function IdentityFontsPage() {
                   className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
                   style={{
                     backgroundColor:
-                      backgroundMode === 'color' ? backgroundColor : '#000000',
+                      backgroundMode === "color" ? backgroundColor : "#000000",
                     backgroundImage:
-                      backgroundMode === 'image' && backgroundImage
+                      backgroundMode === "image" && backgroundImage
                         ? `url(${backgroundImage.url})`
                         : undefined,
                   }}
@@ -1424,28 +1461,28 @@ export function IdentityFontsPage() {
                     role="group"
                   >
                     <button
-                      aria-pressed={backgroundMode === 'color'}
-                      className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === 'color' ? 'bg-white text-black' : 'bg-black text-white/60 hover:text-white'}`}
+                      aria-pressed={backgroundMode === "color"}
+                      className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "color" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
                       type="button"
                       onClick={() => {
-                        setBackgroundMode('color');
+                        setBackgroundMode("color");
                       }}
                     >
                       Color
                     </button>
                     <button
-                      aria-pressed={backgroundMode === 'image'}
-                      className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === 'image' ? 'bg-white text-black' : 'bg-black text-white/60 hover:text-white'}`}
+                      aria-pressed={backgroundMode === "image"}
+                      className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "image" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
                       type="button"
                       onClick={() => {
-                        setBackgroundMode('image');
+                        setBackgroundMode("image");
                       }}
                     >
                       Image
                     </button>
                   </div>
 
-                  {backgroundMode === 'color' ? (
+                  {backgroundMode === "color" ? (
                     <label className="mt-5 flex items-center justify-between gap-4">
                       <span className="text-[0.625rem] tracking-[0.08em] text-white/60 uppercase">
                         Fill color
@@ -1473,7 +1510,7 @@ export function IdentityFontsPage() {
                         type="file"
                         onChange={(event) => {
                           selectBackgroundImage(event.target.files?.[0]);
-                          event.currentTarget.value = '';
+                          event.currentTarget.value = "";
                         }}
                       />
 
@@ -1510,7 +1547,7 @@ export function IdentityFontsPage() {
                               onClick={() => {
                                 setBackgroundImage(undefined);
                                 setBackgroundImageError(undefined);
-                                setBackgroundMode('color');
+                                setBackgroundMode("color");
                               }}
                             >
                               <X aria-hidden="true" className="size-3" />
@@ -1559,7 +1596,7 @@ export function IdentityFontsPage() {
 
             <div
               ref={typographySettingsReference}
-              className="relative col-span-2 flex items-start self-start gap-2 justify-self-start pt-[1.125rem] xl:col-span-1"
+              className="relative col-span-2 flex items-start self-start gap-6 justify-self-start pt-[1.125rem] xl:-ml-4 xl:col-span-1"
             >
               <label className="flex h-11 w-52 items-center gap-3 text-white/70 md:h-10 md:w-28">
                 <span aria-hidden="true" className="text-sm">
@@ -1612,8 +1649,8 @@ export function IdentityFontsPage() {
                       onClick={() => {
                         setLineHeight(1.5);
                         setLetterSpacing(DEFAULT_LETTER_SPACING);
-                        setTextAlignment('left');
-                        setFontWeight('normal');
+                        setTextAlignment("left");
+                        setFontWeight("normal");
                       }}
                     >
                       Reset
@@ -1642,36 +1679,36 @@ export function IdentityFontsPage() {
                     >
                       <button
                         aria-label="Align text left"
-                        aria-pressed={textAlignment === 'left'}
-                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'left' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        aria-pressed={textAlignment === "left"}
+                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                         title="Align left"
                         type="button"
                         onClick={() => {
-                          setTextAlignment('left');
+                          setTextAlignment("left");
                         }}
                       >
                         <AlignLeft aria-hidden="true" className="size-4" />
                       </button>
                       <button
                         aria-label="Align text center"
-                        aria-pressed={textAlignment === 'center'}
-                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'center' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        aria-pressed={textAlignment === "center"}
+                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                         title="Align center"
                         type="button"
                         onClick={() => {
-                          setTextAlignment('center');
+                          setTextAlignment("center");
                         }}
                       >
                         <AlignCenter aria-hidden="true" className="size-4" />
                       </button>
                       <button
                         aria-label="Align text right"
-                        aria-pressed={textAlignment === 'right'}
-                        className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === 'right' ? 'bg-white text-black hover:text-black' : 'bg-black text-white/55'}`}
+                        aria-pressed={textAlignment === "right"}
+                        className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                         title="Align right"
                         type="button"
                         onClick={() => {
-                          setTextAlignment('right');
+                          setTextAlignment("right");
                         }}
                       >
                         <AlignRight aria-hidden="true" className="size-4" />
@@ -1740,13 +1777,19 @@ export function IdentityFontsPage() {
         ) : null}
 
         {setActionError ? (
-          <p className="border-b border-white/25 py-3 text-[0.625rem] text-white/60" role="status">
+          <p
+            className="border-b border-white/25 py-3 text-[0.625rem] text-white/60"
+            role="status"
+          >
             {setActionError}
           </p>
         ) : null}
 
         {setActionMessage ? (
-          <p className="border-b border-white/25 py-3 text-[0.625rem] text-white/60" role="status">
+          <p
+            className="border-b border-white/25 py-3 text-[0.625rem] text-white/60"
+            role="status"
+          >
             {setActionMessage}
           </p>
         ) : null}
@@ -1770,7 +1813,7 @@ export function IdentityFontsPage() {
               const collapsed = collapsedCategoryKeys.has(section.key);
               const contentId = `font-section-${section.key
                 .toLocaleLowerCase()
-                .replace(/[^a-z\d]+/g, '-')}`;
+                .replace(/[^a-z\d]+/g, "-")}`;
 
               return (
                 <section
@@ -1781,7 +1824,7 @@ export function IdentityFontsPage() {
                   <header
                     className="mb-2 flex items-center gap-4"
                     data-font-category-label={
-                      section.key === 'pinned' ? undefined : section.label
+                      section.key === "pinned" ? undefined : section.label
                     }
                   >
                     <button
@@ -1805,7 +1848,7 @@ export function IdentityFontsPage() {
                     >
                       <ChevronRight
                         aria-hidden="true"
-                        className={`size-3 ${collapsed ? '' : 'rotate-90'}`}
+                        className={`size-3 ${collapsed ? "" : "rotate-90"}`}
                       />
                       <span>{section.label}</span>
                     </button>
@@ -1815,7 +1858,7 @@ export function IdentityFontsPage() {
                     />
                   </header>
                   <div
-                    className={`${collapsed ? 'hidden' : 'grid'} gap-x-8 lg:grid-cols-2`}
+                    className={`${collapsed ? "hidden" : "grid"} gap-x-8 lg:grid-cols-2`}
                     id={contentId}
                   >
                     {section.fonts.map((font) => (
@@ -1823,7 +1866,7 @@ export function IdentityFontsPage() {
                         key={font.id}
                         backgroundColor={backgroundColor}
                         backgroundImageUrl={
-                          backgroundMode === 'image'
+                          backgroundMode === "image"
                             ? backgroundImage?.url
                             : undefined
                         }
@@ -1874,7 +1917,10 @@ export function IdentityFontsPage() {
         >
           <div className="w-full max-w-4xl border border-white/55 bg-black p-5">
             <div className="flex items-start justify-between gap-4">
-              <h2 className="text-xs font-normal text-white" id="saved-sets-title">
+              <h2
+                className="text-xs font-normal text-white"
+                id="saved-sets-title"
+              >
                 Saved sets
               </h2>
               <button
@@ -1908,7 +1954,7 @@ export function IdentityFontsPage() {
                       <button
                         key={savedSet.id}
                         aria-pressed={selected}
-                        className={`flex w-full cursor-pointer items-start justify-between gap-4 px-4 py-3 text-left ${selected ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'}`}
+                        className={`flex w-full cursor-pointer items-start justify-between gap-4 px-4 py-3 text-left ${selected ? "bg-white/10" : "bg-transparent hover:bg-white/5"}`}
                         type="button"
                         onClick={() => {
                           setSelectedSavedSetId(savedSet.id);
@@ -1924,21 +1970,25 @@ export function IdentityFontsPage() {
                           </p>
                           <p
                             className="mt-1 overflow-hidden text-xs text-white/70 text-ellipsis whitespace-nowrap"
-                            title={savedSet.specimen || 'Empty demo text'}
+                            title={savedSet.specimen || "Empty demo text"}
                           >
-                            {savedSet.specimen || 'Empty demo text'}
+                            {savedSet.specimen || "Empty demo text"}
                           </p>
                           <p className="mt-1 text-[0.625rem] text-white/45 uppercase">
-                            {formatSavedSetTime(savedSet.updatedAt ?? savedSet.createdAt)}
+                            {formatSavedSetTime(
+                              savedSet.updatedAt ?? savedSet.createdAt,
+                            )}
                           </p>
                         </div>
 
                         <div className="w-52 shrink-0 border border-white/25 p-2">
-                          <div className="mb-2 h-9 border border-white/30 bg-cover bg-center px-2 py-1 text-[0.625rem] leading-4"
+                          <div
+                            className="mb-2 h-9 border border-white/30 bg-cover bg-center px-2 py-1 text-[0.625rem] leading-4"
                             style={{
                               backgroundColor: savedSet.background.color,
                               backgroundImage:
-                                savedSet.background.mode === 'image' && savedSet.background.imageUrl
+                                savedSet.background.mode === "image" &&
+                                savedSet.background.imageUrl
                                   ? `url(${savedSet.background.imageUrl})`
                                   : undefined,
                               color: savedSet.fontColor,
@@ -1948,13 +1998,15 @@ export function IdentityFontsPage() {
                           </div>
                           <p className="flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
                             <span>Font</span>
-                            <span className="text-right">{savedSet.fontColor}</span>
+                            <span className="text-right">
+                              {savedSet.fontColor}
+                            </span>
                           </p>
                           <p className="mt-1 flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
                             <span>Background</span>
                             <span className="text-right">
-                              {savedSet.background.mode === 'image'
-                                ? 'image'
+                              {savedSet.background.mode === "image"
+                                ? "image"
                                 : savedSet.background.color}
                             </span>
                           </p>
