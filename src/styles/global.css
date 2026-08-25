@@ -72,6 +72,16 @@ input {
   font: inherit;
 }
 
+#identity-access-key:-webkit-autofill,
+#identity-access-key:-webkit-autofill:hover,
+#identity-access-key:-webkit-autofill:focus,
+#identity-access-key:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #000 inset;
+  -webkit-text-fill-color: rgb(255 255 255 / 0.92);
+  caret-color: #fff;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 #webamp {
   cursor: auto !important;
   pointer-events: auto !important;
