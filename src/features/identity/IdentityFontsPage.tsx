@@ -61,6 +61,7 @@ const FONT_PARENT_CATEGORIES = [
   "Wide",
 ] as const;
 const FONT_CATEGORY_BOTTOM_ORDER = ["Pixel", "Handwritten", "Standard"];
+const UNCATEGORIZED_LABEL = "Uncategorized";
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LETTER_SPACING = 0.03;
@@ -699,12 +700,16 @@ export function IdentityFontsPage() {
   const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
     Set<string>
   >(new Set());
+  const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
+    new Set(),
+  );
   const [activeCategoryLabel, setActiveCategoryLabel] = useState<string>();
   const [toolbarMinimized, setToolbarMinimized] = useState(false);
   const [fontPreferences, setFontPreferences] =
     useState<IdentityFontPreferences>(EMPTY_IDENTITY_FONT_PREFERENCES);
   const [fontPreferencesReady, setFontPreferencesReady] = useState(false);
   const [fontPreferenceError, setFontPreferenceError] = useState<string>();
+  const [snackbarMessage, setSnackbarMessage] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const deferredSearch = useDeferredValue(search);
@@ -718,12 +723,39 @@ export function IdentityFontsPage() {
   const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
   const fontPreferencesReference = useRef(fontPreferences);
+  const snackbarTimeoutReference = useRef<number>();
   const {
     toolbarBoundaryReference,
     toolbarFloating,
     toolbarHeight,
     toolbarReference,
   } = useFloatingToolbar();
+
+  useEffect(() => {
+    const clearSnackbarTimeout = () => {
+      if (snackbarTimeoutReference.current === undefined) return;
+
+      window.clearTimeout(snackbarTimeoutReference.current);
+      snackbarTimeoutReference.current = undefined;
+    };
+
+    if (!fontPreferenceError && !setActionError && !setActionMessage) {
+      return clearSnackbarTimeout;
+    }
+
+    const message = fontPreferenceError ?? setActionError ?? setActionMessage;
+
+    if (!message) return clearSnackbarTimeout;
+
+    setSnackbarMessage(message);
+    clearSnackbarTimeout();
+    snackbarTimeoutReference.current = window.setTimeout(() => {
+      setSnackbarMessage(undefined);
+      snackbarTimeoutReference.current = undefined;
+    }, 2600);
+
+    return clearSnackbarTimeout;
+  }, [fontPreferenceError, setActionError, setActionMessage]);
 
   useEffect(() => {
     const onResize = () => {
@@ -929,23 +961,54 @@ export function IdentityFontsPage() {
     specimenInput.style.height = `${specimenInput.scrollHeight}px`;
   }, [specimen]);
 
+  const categoriesInUse = useMemo(() => {
+    const labels = new Set<string>();
+
+    for (const font of fonts) {
+      labels.add(font.parentCategory ?? UNCATEGORIZED_LABEL);
+    }
+
+    const entries = [...labels];
+
+    return entries.sort((left, right) => {
+      const leftBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(left);
+      const rightBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(right);
+
+      if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
+        return leftBottomIndex - rightBottomIndex;
+      }
+
+      if (leftBottomIndex !== -1) return 1;
+      if (rightBottomIndex !== -1) return -1;
+
+      return left.localeCompare(right, undefined, {
+        sensitivity: "base",
+      });
+    });
+  }, [fonts]);
+
   const fontSections = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase();
     const favoriteFontIds = new Set(fontPreferences.favoriteFontIds);
     const pinnedFontIds = new Set(fontPreferences.pinnedFontIds);
     const fontsById = new Map(fonts.map((font) => [font.id, font]));
+    const getFontCategoryLabel = (font: FontCatalogItem) =>
+      font.parentCategory ?? UNCATEGORIZED_LABEL;
     const isEligible = (font: FontCatalogItem) =>
       !fontPreferences.showOnlyFavorites || favoriteFontIds.has(font.id);
+    const isVisibleCategory = (font: FontCatalogItem) =>
+      !hiddenCategoryLabels.has(getFontCategoryLabel(font));
     const pinnedFonts = fontPreferences.pinnedFontIds
       .map((fontId) => fontsById.get(fontId))
       .filter(
         (font): font is FontCatalogItem =>
-          font !== undefined && isEligible(font),
+          font !== undefined && isEligible(font) && isVisibleCategory(font),
       );
     const visibleFonts = fonts.filter(
       (font) =>
         !pinnedFontIds.has(font.id) &&
         isEligible(font) &&
+        isVisibleCategory(font) &&
         (!term ||
           `${font.name} ${font.formats.join(" ")}`
             .toLocaleLowerCase()
@@ -1009,7 +1072,7 @@ export function IdentityFontsPage() {
     }
 
     return sections;
-  }, [deferredSearch, fontPreferences, fonts]);
+  }, [deferredSearch, fontPreferences, fonts, hiddenCategoryLabels]);
 
   useEffect(() => {
     let animationFrame = 0;
@@ -1800,39 +1863,46 @@ export function IdentityFontsPage() {
               ) : null}
             </div>
           </div>
+          {categoriesInUse.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/20 pt-3">
+              {categoriesInUse.map((categoryLabel) => {
+                const checked = !hiddenCategoryLabels.has(categoryLabel);
+
+                return (
+                  <label
+                    key={categoryLabel}
+                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white"
+                  >
+                    <input
+                      checked={checked}
+                      className="size-3 accent-white"
+                      type="checkbox"
+                      onChange={() => {
+                        setHiddenCategoryLabels((current) => {
+                          const next = new Set(current);
+
+                          if (checked) {
+                            next.add(categoryLabel);
+                          } else {
+                            next.delete(categoryLabel);
+                          }
+
+                          return next;
+                        });
+                      }}
+                    />
+                    <span>{categoryLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : null}
           <span
             ref={toolbarBoundaryReference}
             aria-hidden="true"
             className="pointer-events-none absolute right-0 bottom-0 left-0 h-px"
           />
         </header>
-
-        {fontPreferenceError ? (
-          <p
-            className="border-b border-white/25 py-3 text-[0.625rem] text-white/60"
-            role="status"
-          >
-            {fontPreferenceError}
-          </p>
-        ) : null}
-
-        {setActionError ? (
-          <p
-            className="border-b border-white/25 py-3 text-[0.625rem] text-white/60"
-            role="status"
-          >
-            {setActionError}
-          </p>
-        ) : null}
-
-        {setActionMessage ? (
-          <p
-            className="border-b border-white/25 py-3 text-[0.625rem] text-white/60"
-            role="status"
-          >
-            {setActionMessage}
-          </p>
-        ) : null}
 
         {errorMessage ? (
           <p className="border-b border-white/25 py-6 text-xs text-white/65">
@@ -1944,6 +2014,18 @@ export function IdentityFontsPage() {
           </section>
         )}
       </div>
+
+      {snackbarMessage ? (
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed right-4 bottom-4 left-4 z-[10003] flex justify-center"
+          role="status"
+        >
+          <div className="max-w-[42rem] border border-white/45 bg-black/95 px-4 py-2 text-[0.625rem] tracking-[0.08em] text-white/75 uppercase">
+            {snackbarMessage}
+          </div>
+        </div>
+      ) : null}
 
       <FloatingToolbarRestoreButton
         visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
