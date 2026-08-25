@@ -155,7 +155,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="identity-font-toolbar-fade-in fixed right-4 bottom-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/55 bg-black text-white/75 outline-none hover:border-white hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      className="identity-font-toolbar-fade-in fixed right-4 bottom-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/40 bg-black text-white/75 outline-none hover:border-white/80 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
