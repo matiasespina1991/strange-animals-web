@@ -14,6 +14,7 @@ import {
   Menu,
   Minus,
   Pin,
+  Search,
   Settings,
   Star,
   Trash2,
@@ -117,7 +118,7 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
 }
 
 function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return "mt-10";
+  if (!floating) return 'xl:mt-5';
 
   return minimized
     ? "identity-font-toolbar-minimized"
@@ -156,7 +157,10 @@ function FloatingToolbarRestoreButton({
       type="button"
       onClick={onRestore}
     >
-      <Menu aria-hidden="true" className="size-5" />
+      <span aria-hidden="true" className="relative flex size-6 items-center justify-center">
+        <Menu className="size-5" />
+        <Search className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px]" />
+      </span>
     </button>
   );
 }
@@ -653,7 +657,7 @@ export function IdentityFontsPage() {
   const [specimen, setSpecimen] = useState("");
   const [fontSize, setFontSize] = useState(34);
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
-  const [lineHeight, setLineHeight] = useState(1.5);
+  const [lineHeight, setLineHeight] = useState(0.8);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
@@ -1647,7 +1651,7 @@ export function IdentityFontsPage() {
                       className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 uppercase hover:text-white"
                       type="button"
                       onClick={() => {
-                        setLineHeight(1.5);
+                        setLineHeight(0.8);
                         setLetterSpacing(DEFAULT_LETTER_SPACING);
                         setTextAlignment("left");
                         setFontWeight("normal");
@@ -1857,42 +1861,46 @@ export function IdentityFontsPage() {
                       className="h-px flex-1 bg-white/35"
                     />
                   </header>
-                  <div
-                    className={`${collapsed ? "hidden" : "grid"} gap-x-8 lg:grid-cols-2`}
-                    id={contentId}
-                  >
-                    {section.fonts.map((font) => (
-                      <FontSpecimen
-                        key={font.id}
-                        backgroundColor={backgroundColor}
-                        backgroundImageUrl={
-                          backgroundMode === "image"
-                            ? backgroundImage?.url
-                            : undefined
-                        }
-                        categoryUpdating={updatingCategoryIds.has(font.id)}
-                        deleting={deletingFontIds.has(font.id)}
-                        favorite={fontPreferences.favoriteFontIds.includes(
-                          font.id,
-                        )}
-                        font={font}
-                        fontColor={fontColor}
-                        fontSize={fontSize}
-                        fontWeight={fontWeight}
-                        letterSpacing={letterSpacing}
-                        lineHeight={lineHeight}
-                        pinned={fontPreferences.pinnedFontIds.includes(font.id)}
-                        preferenceControlsEnabled={fontPreferencesReady}
-                        textAlignment={textAlignment}
-                        onDelete={setFontPendingDeletion}
-                        onFavoriteChange={toggleFavorite}
-                        onParentCategoryChange={(nextFont, parentCategory) => {
-                          void changeParentCategory(nextFont, parentCategory);
-                        }}
-                        onPinnedChange={togglePinned}
-                        specimen={specimen}
-                      />
-                    ))}
+                  <div className={collapsed ? "hidden" : "relative"} id={contentId}>
+                    <div className="grid gap-x-8 lg:grid-cols-2">
+                      {section.fonts.map((font) => (
+                        <FontSpecimen
+                          key={font.id}
+                          backgroundColor={backgroundColor}
+                          backgroundImageUrl={
+                            backgroundMode === "image"
+                              ? backgroundImage?.url
+                              : undefined
+                          }
+                          categoryUpdating={updatingCategoryIds.has(font.id)}
+                          deleting={deletingFontIds.has(font.id)}
+                          favorite={fontPreferences.favoriteFontIds.includes(
+                            font.id,
+                          )}
+                          font={font}
+                          fontColor={fontColor}
+                          fontSize={fontSize}
+                          fontWeight={fontWeight}
+                          letterSpacing={letterSpacing}
+                          lineHeight={lineHeight}
+                          pinned={fontPreferences.pinnedFontIds.includes(font.id)}
+                          preferenceControlsEnabled={fontPreferencesReady}
+                          textAlignment={textAlignment}
+                          onDelete={setFontPendingDeletion}
+                          onFavoriteChange={toggleFavorite}
+                          onParentCategoryChange={(nextFont, parentCategory) => {
+                            void changeParentCategory(nextFont, parentCategory);
+                          }}
+                          onPinnedChange={togglePinned}
+                          specimen={specimen}
+                        />
+                      ))}
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-20 hidden w-[3px] -translate-x-1/2 lg:block"
+                      style={{ backgroundColor: "rgb(255 255 255 / 0.17)" }}
+                    />
                   </div>
                 </section>
               );

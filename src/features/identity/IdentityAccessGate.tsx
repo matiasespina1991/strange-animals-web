@@ -224,7 +224,7 @@ export function IdentityAccessGate({ children }: IdentityAccessGateProperties) {
             {statusMessage ?? ""}
           </p>
           <button
-            className="ml-auto block cursor-pointer border border-white bg-white px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-black uppercase outline-none hover:bg-black hover:text-white disabled:cursor-wait disabled:border-white/35 disabled:bg-white/35 disabled:text-black/70"
+            className="ml-auto block cursor-pointer border border-white/40 bg-transparent px-4 py-2 text-[0.6375rem] tracking-[0.16em] text-white/60 uppercase outline-none hover:border-white/60 hover:text-white/75 disabled:cursor-wait disabled:border-white/25 disabled:text-white/35"
             disabled={isSubmitting}
             type="submit"
           >
