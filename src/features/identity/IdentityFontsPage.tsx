@@ -671,8 +671,8 @@ export function IdentityFontsPage() {
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
-  const [fontColor, setFontColor] = useState("#000000");
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [fontColor, setFontColor] = useState("#ffffff");
+  const [backgroundColor, setBackgroundColor] = useState("#000000");
   const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
     "color",
   );
