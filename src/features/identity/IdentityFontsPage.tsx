@@ -65,6 +65,10 @@ const FONT_CATEGORY_BOTTOM_ORDER = ["Pixel", "Handwritten", "Standard"];
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LETTER_SPACING = 0.03;
+const MOBILE_FONT_SIZE_DEFAULT = 28;
+const DESKTOP_FONT_SIZE_DEFAULT = 34;
+const MOBILE_FONT_SIZE_MAX = 96;
+const DESKTOP_FONT_SIZE_MAX = 140;
 const FONT_TOOLBAR_GRID_CLASS =
   "grid grid-cols-2 gap-5 md:grid-cols-2 md:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_auto_auto]";
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
@@ -122,7 +126,7 @@ function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
 
   return minimized
     ? "identity-font-toolbar-minimized"
-    : "identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4 pr-12";
+    : "identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4";
 }
 
 function getToolbarPopoverPlacementClass(floating: boolean) {
@@ -402,9 +406,9 @@ function FontSpecimen({
   return (
     <article
       ref={cardReference}
-      className="group/font-card flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
+      className="group/font-card min-w-0 overflow-x-hidden flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
     >
-      <div className="flex items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
+      <div className="flex min-w-0 items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex min-w-0 max-w-[45%] items-center gap-2">
           {SHOW_FONT_DELETE_CONTROLS ? (
             <button
@@ -522,7 +526,7 @@ function FontSpecimen({
         </div>
       </div>
 
-      <div className="mt-8 mb-[1.4rem] space-y-6">
+      <div className="mt-8 mb-[1.4rem] min-w-0 space-y-6">
         {visibleVariants.map((variant) => {
           const familyName = familyNames[variant.id];
           const variantName = variant.fileName
@@ -534,7 +538,7 @@ function FontSpecimen({
           return (
             <div key={variant.id}>
               <p
-                className={`min-w-0 max-w-full overflow-hidden px-4 py-8 leading-normal whitespace-pre-wrap break-all [overflow-wrap:anywhere] text-white ${familyName ? "visible" : "invisible"}`}
+                className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white ${familyName ? "visible" : "invisible"}`}
                 style={{
                   backgroundColor,
                   backgroundImage: backgroundImageUrl
@@ -569,10 +573,10 @@ function FontSpecimen({
         })}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex min-w-0 justify-end overflow-x-hidden">
         <button
           aria-busy={downloading}
-          className="flex h-6 shrink-0 cursor-pointer items-center gap-2 bg-white px-2 text-[0.625rem] tracking-[0.08em] text-black uppercase transition-colors duration-150 hover:bg-white/80 disabled:cursor-wait disabled:opacity-50"
+          className="flex h-6 max-w-full shrink-0 cursor-pointer items-center gap-2 bg-white px-2 text-[0.625rem] tracking-[0.08em] text-black uppercase transition-colors duration-150 hover:bg-white/80 disabled:cursor-wait disabled:opacity-50"
           disabled={downloading || font.fileCount === 0}
           type="button"
           onClick={downloadFamily}
@@ -655,7 +659,14 @@ export function IdentityFontsPage() {
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
   const [search, setSearch] = useState("");
   const [specimen, setSpecimen] = useState("");
-  const [fontSize, setFontSize] = useState(34);
+  const [fontSize, setFontSize] = useState(() =>
+    typeof window !== "undefined" && window.innerWidth < 768
+      ? MOBILE_FONT_SIZE_DEFAULT
+      : DESKTOP_FONT_SIZE_DEFAULT,
+  );
+  const [isSmallViewport, setIsSmallViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+  );
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
   const [lineHeight, setLineHeight] = useState(0.8);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
@@ -714,6 +725,26 @@ export function IdentityFontsPage() {
     toolbarHeight,
     toolbarReference,
   } = useFloatingToolbar();
+
+  useEffect(() => {
+    const onResize = () => {
+      setIsSmallViewport(window.innerWidth < 768);
+    };
+
+    onResize();
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSmallViewport) return;
+    if (fontSize <= MOBILE_FONT_SIZE_MAX) return;
+
+    setFontSize(MOBILE_FONT_SIZE_MAX);
+  }, [fontSize, isSmallViewport]);
 
   useEffect(() => {
     let active = true;
@@ -1602,7 +1633,7 @@ export function IdentityFontsPage() {
 
             <div
               ref={typographySettingsReference}
-              className="relative col-span-2 flex items-start self-start gap-6 justify-self-center pt-[1.125rem] xl:justify-self-start xl:-ml-4 xl:col-span-1"
+              className="relative col-span-2 flex items-start self-start gap-6 justify-self-center pt-0 xl:justify-self-start xl:pt-[1.125rem] xl:-ml-4 xl:col-span-1"
             >
               <label className="flex h-11 w-52 items-center gap-3 text-white/70 md:h-10 md:w-28">
                 <span aria-hidden="true" className="text-sm">
@@ -1612,7 +1643,11 @@ export function IdentityFontsPage() {
                 <input
                   aria-label="Text size"
                   className="identity-font-size-control-slider identity-font-size-slider w-full"
-                  max="140"
+                  max={
+                    isSmallViewport
+                      ? MOBILE_FONT_SIZE_MAX
+                      : DESKTOP_FONT_SIZE_MAX
+                  }
                   min="8"
                   step="1"
                   type="range"
@@ -1814,7 +1849,7 @@ export function IdentityFontsPage() {
             )}
           </p>
         ) : (
-          <section ref={fontCatalogReference} aria-label="Font catalog">
+          <section ref={fontCatalogReference} aria-label="Font catalog" className="pb-20 lg:pb-0">
             {fontSections.map((section) => {
               const collapsed = collapsedCategoryKeys.has(section.key);
               const contentId = `font-section-${section.key
