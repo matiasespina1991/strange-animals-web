@@ -1382,79 +1382,80 @@ export function IdentityFontsPage() {
               />
             </label>
 
-            <label className="block w-[7rem] xl:-mr-4">
-              <span className="mb-2 block whitespace-nowrap text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
-                Font color
-              </span>
-              <span className="flex h-10 items-center">
-                <input
-                  className="identity-color-picker"
-                  type="color"
-                  value={fontColor}
-                  onChange={(event) => {
-                    setFontColor(event.target.value);
-                  }}
-                />
-              </span>
-            </label>
-
-            <div className="self-start xl:-mr-4 xl:-translate-x-9">
-              <span
-                aria-hidden="true"
-                className="mb-2 block text-[0.625rem] tracking-[0.12em] text-transparent uppercase"
-              >
-                Swap
-              </span>
-              <span className="flex h-10 items-center">
-                <button
-                  aria-label="Swap font and background colors"
-                  className="flex h-5 w-6 cursor-pointer items-center justify-center border border-white/35 text-white/65 outline-none hover:border-white/60 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  title="Swap colors"
-                  type="button"
-                  onClick={() => {
-                    setFontColor(backgroundColor);
-                    setBackgroundColor(fontColor);
-                  }}
-                >
-                  <ArrowLeftRight
-                    aria-hidden="true"
-                    className="size-[0.8rem]"
+            <div className="col-span-2 flex flex-nowrap items-start justify-center gap-3 xl:justify-start">
+              <label className="block w-[5.25rem] shrink-0 sm:w-[7rem] xl:-mr-4">
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 uppercase xl:text-left">
+                  Font color
+                </span>
+                <span className="flex h-10 items-center justify-center xl:justify-start">
+                  <input
+                    className="identity-color-picker"
+                    type="color"
+                    value={fontColor}
+                    onChange={(event) => {
+                      setFontColor(event.target.value);
+                    }}
                   />
-                </button>
-              </span>
-            </div>
+                </span>
+              </label>
 
-            <div
-              ref={backgroundSettingsReference}
-              className="relative w-[7rem] self-start xl:-mr-2"
-            >
-              <span className="mb-2 block whitespace-nowrap text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
-                Background
-              </span>
-              <span className="flex h-10 items-center">
-                <button
-                  ref={backgroundSettingsButtonReference}
-                  aria-controls="background-settings"
-                  aria-expanded={backgroundSettingsOpen}
-                  aria-label="Background settings"
-                  className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
-                  style={{
-                    backgroundColor:
-                      backgroundMode === "color" ? backgroundColor : "#000000",
-                    backgroundImage:
-                      backgroundMode === "image" && backgroundImage
-                        ? `url(${backgroundImage.url})`
-                        : undefined,
-                  }}
-                  type="button"
-                  onClick={() => {
-                    setBackgroundSettingsOpen((open) => !open);
-                    setTypographySettingsOpen(false);
-                  }}
-                />
-              </span>
+              <div className="shrink-0 self-start xl:-mr-4 xl:-translate-x-9">
+                <span
+                  aria-hidden="true"
+                  className="mb-2 block text-[0.625rem] tracking-[0.12em] text-transparent uppercase"
+                >
+                  Swap
+                </span>
+                <span className="flex h-10 items-center justify-center">
+                  <button
+                    aria-label="Swap font and background colors"
+                    className="flex h-5 w-6 cursor-pointer items-center justify-center border border-white/35 text-white/65 outline-none hover:border-white/60 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    title="Swap colors"
+                    type="button"
+                    onClick={() => {
+                      setFontColor(backgroundColor);
+                      setBackgroundColor(fontColor);
+                    }}
+                  >
+                    <ArrowLeftRight
+                      aria-hidden="true"
+                      className="size-[0.8rem]"
+                    />
+                  </button>
+                </span>
+              </div>
 
-              {backgroundSettingsOpen ? (
+              <div
+                ref={backgroundSettingsReference}
+                className="relative w-[5.25rem] shrink-0 self-start sm:w-[7rem] xl:-mr-2"
+              >
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 uppercase xl:text-left">
+                  Background
+                </span>
+                <span className="flex h-10 items-center justify-center xl:justify-start">
+                  <button
+                    ref={backgroundSettingsButtonReference}
+                    aria-controls="background-settings"
+                    aria-expanded={backgroundSettingsOpen}
+                    aria-label="Background settings"
+                    className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
+                    style={{
+                      backgroundColor:
+                        backgroundMode === "color" ? backgroundColor : "#000000",
+                      backgroundImage:
+                        backgroundMode === "image" && backgroundImage
+                          ? `url(${backgroundImage.url})`
+                          : undefined,
+                    }}
+                    type="button"
+                    onClick={() => {
+                      setBackgroundSettingsOpen((open) => !open);
+                      setTypographySettingsOpen(false);
+                    }}
+                  />
+                </span>
+
+                {backgroundSettingsOpen ? (
                 <div
                   className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="background-settings"
@@ -1595,12 +1596,13 @@ export function IdentityFontsPage() {
                     </div>
                   )}
                 </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
 
             <div
               ref={typographySettingsReference}
-              className="relative col-span-2 flex items-start self-start gap-6 justify-self-start pt-[1.125rem] xl:-ml-4 xl:col-span-1"
+              className="relative col-span-2 flex items-start self-start gap-6 justify-self-center pt-[1.125rem] xl:justify-self-start xl:-ml-4 xl:col-span-1"
             >
               <label className="flex h-11 w-52 items-center gap-3 text-white/70 md:h-10 md:w-28">
                 <span aria-hidden="true" className="text-sm">
