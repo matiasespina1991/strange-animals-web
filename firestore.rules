@@ -13,13 +13,23 @@ rules_version='2'
 //   - createdAt: timestamp (required, immutable)
 //   - updatedAt: timestamp (required)
 // This document contains no email, name, or other PII.
+//
+// Collection: fonts
+// Document ID: normalized font-family ID
+// Client-editable metadata fields:
+//   - parentCategory: string (optional, <= 64 characters)
+//   - useCases: list<string> (optional, <= 3 enum values)
+//   - useCase: string (legacy optional field; may only remain unchanged or be deleted)
+//   - updatedAt: timestamp (required on metadata updates, server time)
+// All remaining catalog fields are immutable to the client. Catalog creation
+// is performed with administrative credentials; client creation is denied.
 // ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
     // The identity catalog is readable only by the fixed Firebase Auth account.
     // Catalog synchronization uses Admin access. The fixed identity may only
-    // assign the bounded parent-category metadata used by the catalog UI.
+    // assign the bounded category and use-case metadata used by the catalog UI.
     function hasIdentityAccess() {
       return request.auth != null
         && request.auth.token.email is string
@@ -159,6 +169,26 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidFontCatalogMetadataUpdate(data) {
+      return data.diff(resource.data).affectedKeys()
+          .hasOnly(['parentCategory', 'useCase', 'useCases', 'updatedAt'])
+        && (!('parentCategory' in data)
+          || (data.parentCategory is string
+            && data.parentCategory.size() <= 64))
+        && (!('useCases' in data)
+          || (data.useCases is list
+            && data.useCases.size() <= 3
+            && data.useCases.hasOnly([
+              'CD Print',
+              'Clothing',
+              'Vinyl print'
+            ])))
+        && (!('useCase' in data)
+          || (('useCase' in resource.data)
+            && data.useCase == resource.data.useCase))
+        && data.updatedAt == request.time;
+    }
+
     match /users/{browserId} {
       // Listing is intentionally denied. The random cookie ID acts as the
       // document capability for users sharing the fixed identity Auth account.
@@ -231,12 +261,7 @@ service cloud.firestore {
       allow read: if hasIdentityAccess();
       allow delete: if hasIdentityAccess();
       allow update: if hasIdentityAccess()
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['parentCategory', 'updatedAt'])
-        && (!('parentCategory' in request.resource.data)
-          || (request.resource.data.parentCategory is string
-            && request.resource.data.parentCategory.size() <= 64))
-        && request.resource.data.updatedAt == request.time;
+        && isValidFontCatalogMetadataUpdate(request.resource.data);
       allow create: if false;
 
       match /files/{fileId} {
