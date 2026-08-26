@@ -1663,7 +1663,7 @@ export function IdentityFontsPage() {
                 </span>
               </label>
 
-              <div className="shrink-0 self-start xl:-mr-4 xl:-translate-x-9">
+              <div className="shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
                 <span
                   aria-hidden="true"
                   className="mb-2 block text-[0.625rem] tracking-[0.12em] text-transparent uppercase"
