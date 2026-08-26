@@ -27,6 +27,7 @@ import {
   listFontVariants,
   loadFontVariant,
   updateFontParentCategory,
+  updateFontUseCases,
   type FontCatalogItem,
   type FontVariant,
 } from "./font-catalog-repository";
@@ -62,6 +63,8 @@ const FONT_PARENT_CATEGORIES = [
 ] as const;
 const FONT_CATEGORY_BOTTOM_ORDER = ["Pixel", "Handwritten", "Standard"];
 const UNCATEGORIZED_LABEL = "Uncategorized";
+const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
+const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LETTER_SPACING = 0.03;
@@ -122,7 +125,7 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
 }
 
 function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return 'xl:mt-5';
+  if (!floating) return "xl:mt-5";
 
   return minimized
     ? "identity-font-toolbar-minimized"
@@ -161,7 +164,10 @@ function FloatingToolbarRestoreButton({
       type="button"
       onClick={onRestore}
     >
-      <span aria-hidden="true" className="relative flex size-6 items-center justify-center">
+      <span
+        aria-hidden="true"
+        className="relative flex size-6 items-center justify-center"
+      >
         <Menu className="size-5" />
         <Settings className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px] text-white/80" />
       </span>
@@ -276,12 +282,14 @@ function FontSpecimen({
   textAlignment,
   deleting,
   categoryUpdating,
+  useCasesUpdating,
   favorite,
   pinned,
   preferenceControlsEnabled,
   onDelete,
   onFavoriteChange,
   onParentCategoryChange,
+  onUseCasesChange,
   onPinnedChange,
   specimen,
 }: {
@@ -296,6 +304,7 @@ function FontSpecimen({
   textAlignment: TextAlignment;
   deleting: boolean;
   categoryUpdating: boolean;
+  useCasesUpdating: boolean;
   favorite: boolean;
   pinned: boolean;
   preferenceControlsEnabled: boolean;
@@ -305,6 +314,7 @@ function FontSpecimen({
     font: FontCatalogItem,
     parentCategory: string | null,
   ) => void;
+  onUseCasesChange: (font: FontCatalogItem, useCases: string[]) => void;
   onPinnedChange: (font: FontCatalogItem) => void;
   specimen: string;
 }) {
@@ -406,7 +416,7 @@ function FontSpecimen({
   return (
     <article
       ref={cardReference}
-      className="group/font-card min-w-0 overflow-x-hidden flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
+      className="group/font-card min-w-0 overflow-x-clip flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
     >
       <div className="flex min-w-0 items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex min-w-0 max-w-[45%] items-center gap-2">
@@ -468,31 +478,92 @@ function FontSpecimen({
         </div>
         <div className="flex min-w-0 items-center justify-end gap-2">
           {SHOW_FONT_DELETE_CONTROLS ? (
-            <select
-              aria-label={`Parent category for ${font.name}`}
-              className="h-6 w-28 cursor-pointer rounded-none border border-white/25 bg-black px-1 text-[0.5625rem] tracking-[0.08em] text-white/60 normal-case shadow-none outline-none focus:border-white/55 focus:outline-none disabled:cursor-wait disabled:opacity-40 sm:w-32"
-              disabled={categoryUpdating}
-              title={`Parent category for ${font.name}`}
-              value={font.parentCategory ?? ""}
-              onChange={(event) => {
-                onParentCategoryChange(font, event.target.value || null);
-              }}
-            >
-              <option value="">—</option>
-              {font.parentCategory &&
-              !FONT_PARENT_CATEGORIES.includes(
-                font.parentCategory as (typeof FONT_PARENT_CATEGORIES)[number],
-              ) ? (
-                <option value={font.parentCategory}>
-                  {font.parentCategory}
-                </option>
-              ) : null}
-              {FONT_PARENT_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div className="flex min-w-0 items-center gap-2">
+              <select
+                aria-label={`Parent category for ${font.name}`}
+                className="h-6 w-20 cursor-pointer rounded-none border border-white/25 bg-black px-1 text-[0.5625rem] tracking-[0.08em] text-white/60 normal-case shadow-none outline-none focus:border-white/55 focus:outline-none disabled:cursor-wait disabled:opacity-40 sm:w-28"
+                disabled={categoryUpdating}
+                title={`Parent category for ${font.name}`}
+                value={font.parentCategory ?? ""}
+                onChange={(event) => {
+                  onParentCategoryChange(font, event.target.value || null);
+                }}
+              >
+                <option value="">—</option>
+                {font.parentCategory &&
+                !FONT_PARENT_CATEGORIES.includes(
+                  font.parentCategory as (typeof FONT_PARENT_CATEGORIES)[number],
+                ) ? (
+                  <option value={font.parentCategory}>
+                    {font.parentCategory}
+                  </option>
+                ) : null}
+                {FONT_PARENT_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              <details className="group/use-cases relative w-20 sm:w-28">
+                <summary
+                  aria-label={`Use cases for ${font.name}`}
+                  aria-disabled={useCasesUpdating}
+                  className={`flex h-6 list-none items-center justify-between gap-1 rounded-none border border-white/25 bg-black px-1 text-[0.5625rem] tracking-[0.08em] text-white/60 normal-case shadow-none outline-none [&::-webkit-details-marker]:hidden ${useCasesUpdating ? "cursor-wait opacity-40" : "cursor-pointer hover:border-white/45"}`}
+                  title={
+                    font.useCases.length > 0
+                      ? font.useCases.join(", ")
+                      : `Use cases for ${font.name}`
+                  }
+                  onClick={(event) => {
+                    if (useCasesUpdating) event.preventDefault();
+                  }}
+                >
+                  <span className="truncate">
+                    {font.useCases.length === 0
+                      ? "—"
+                      : font.useCases.join(", ")}
+                  </span>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="size-3 shrink-0 transition-transform duration-150 group-open/use-cases:rotate-180 motion-reduce:transition-none"
+                  />
+                </summary>
+                <fieldset
+                  aria-label={`Select use cases for ${font.name}`}
+                  className="absolute top-[calc(100%+0.25rem)] right-0 z-30 m-0 grid min-w-36 gap-0 border border-white/35 bg-black p-1 shadow-none"
+                >
+                  {FONT_USE_CASES.map((useCase) => {
+                    const checked = font.useCases.includes(useCase);
+
+                    return (
+                      <label
+                        key={useCase}
+                        className="flex min-h-7 cursor-pointer items-center gap-2 px-1.5 text-[0.5625rem] tracking-[0.08em] text-white/65 normal-case hover:bg-white/10 hover:text-white"
+                      >
+                        <input
+                          checked={checked}
+                          className="size-3 shrink-0 cursor-pointer accent-white"
+                          disabled={useCasesUpdating}
+                          type="checkbox"
+                          onChange={() => {
+                            onUseCasesChange(
+                              font,
+                              checked
+                                ? font.useCases.filter(
+                                    (currentUseCase) =>
+                                      currentUseCase !== useCase,
+                                  )
+                                : [...font.useCases, useCase],
+                            );
+                          }}
+                        />
+                        <span>{useCase}</span>
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              </details>
+            </div>
           ) : null}
           {pageTotal > 1 ? (
             <>
@@ -698,10 +769,18 @@ export function IdentityFontsPage() {
   const [updatingCategoryIds, setUpdatingCategoryIds] = useState<Set<string>>(
     new Set(),
   );
+  const [updatingUseCasesIds, setUpdatingUseCasesIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(false);
+  const [useCaseFiltersOpen, setUseCaseFiltersOpen] = useState(false);
   const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
     Set<string>
   >(new Set());
   const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
+    new Set(),
+  );
+  const [hiddenUseCaseLabels, setHiddenUseCaseLabels] = useState<Set<string>>(
     new Set(),
   );
   const [activeCategoryLabel, setActiveCategoryLabel] = useState<string>();
@@ -1013,6 +1092,26 @@ export function IdentityFontsPage() {
   }, [fonts]);
   const allCategoriesSelected =
     categoriesInUse.length > 0 && hiddenCategoryLabels.size === 0;
+  const useCasesInUse = useMemo(() => {
+    const labels = new Set<string>(FONT_USE_CASES);
+
+    for (const font of fonts) {
+      if (font.useCases.length === 0) {
+        labels.add(UNASSIGNED_USE_CASE_LABEL);
+      } else {
+        for (const useCase of font.useCases) labels.add(useCase);
+      }
+    }
+
+    return [...labels].sort((left, right) => {
+      if (left === UNASSIGNED_USE_CASE_LABEL) return 1;
+      if (right === UNASSIGNED_USE_CASE_LABEL) return -1;
+
+      return left.localeCompare(right, undefined, { sensitivity: "base" });
+    });
+  }, [fonts]);
+  const allUseCasesSelected =
+    useCasesInUse.length > 0 && hiddenUseCaseLabels.size === 0;
 
   const fontSections = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase();
@@ -1021,21 +1120,31 @@ export function IdentityFontsPage() {
     const fontsById = new Map(fonts.map((font) => [font.id, font]));
     const getFontCategoryLabel = (font: FontCatalogItem) =>
       font.parentCategory ?? UNCATEGORIZED_LABEL;
+    const getFontUseCaseLabels = (font: FontCatalogItem) =>
+      font.useCases.length > 0 ? font.useCases : [UNASSIGNED_USE_CASE_LABEL];
     const isEligible = (font: FontCatalogItem) =>
       !fontPreferences.showOnlyFavorites || favoriteFontIds.has(font.id);
     const isVisibleCategory = (font: FontCatalogItem) =>
       !hiddenCategoryLabels.has(getFontCategoryLabel(font));
+    const isVisibleUseCase = (font: FontCatalogItem) =>
+      getFontUseCaseLabels(font).some(
+        (useCaseLabel) => !hiddenUseCaseLabels.has(useCaseLabel),
+      );
     const pinnedFonts = fontPreferences.pinnedFontIds
       .map((fontId) => fontsById.get(fontId))
       .filter(
         (font): font is FontCatalogItem =>
-          font !== undefined && isEligible(font) && isVisibleCategory(font),
+          font !== undefined &&
+          isEligible(font) &&
+          isVisibleCategory(font) &&
+          isVisibleUseCase(font),
       );
     const visibleFonts = fonts.filter(
       (font) =>
         !pinnedFontIds.has(font.id) &&
         isEligible(font) &&
         isVisibleCategory(font) &&
+        isVisibleUseCase(font) &&
         (!term ||
           `${font.name} ${font.formats.join(" ")}`
             .toLocaleLowerCase()
@@ -1099,7 +1208,13 @@ export function IdentityFontsPage() {
     }
 
     return sections;
-  }, [deferredSearch, fontPreferences, fonts, hiddenCategoryLabels]);
+  }, [
+    deferredSearch,
+    fontPreferences,
+    fonts,
+    hiddenCategoryLabels,
+    hiddenUseCaseLabels,
+  ]);
 
   useEffect(() => {
     let animationFrame = 0;
@@ -1189,6 +1304,35 @@ export function IdentityFontsPage() {
       setErrorMessage(`Could not update “${font.name}”. Try again.`);
     } finally {
       setUpdatingCategoryIds((current) => {
+        const next = new Set(current);
+        next.delete(font.id);
+        return next;
+      });
+    }
+  };
+
+  const changeUseCases = async (font: FontCatalogItem, useCases: string[]) => {
+    const previousUseCases = font.useCases;
+
+    setErrorMessage(undefined);
+    setUpdatingUseCasesIds((current) => new Set(current).add(font.id));
+    setFonts((current) =>
+      current.map((item) =>
+        item.id === font.id ? { ...item, useCases } : item,
+      ),
+    );
+
+    try {
+      await updateFontUseCases(font, useCases);
+    } catch {
+      setFonts((current) =>
+        current.map((item) =>
+          item.id === font.id ? { ...item, useCases: previousUseCases } : item,
+        ),
+      );
+      setErrorMessage(`Could not update “${font.name}”. Try again.`);
+    } finally {
+      setUpdatingUseCasesIds((current) => {
         const next = new Set(current);
         next.delete(font.id);
         return next;
@@ -1377,7 +1521,7 @@ export function IdentityFontsPage() {
       />
 
       <div className="mx-auto max-w-[92rem]">
-        <header className="relative border-b border-white/65 pb-5 sm:pb-6">
+        <header className="relative border-b border-white/50 pb-0">
           <div className="flex items-baseline justify-between gap-6">
             <nav
               aria-label="Breadcrumb"
@@ -1561,7 +1705,9 @@ export function IdentityFontsPage() {
                     className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
                     style={{
                       backgroundColor:
-                        backgroundMode === "color" ? backgroundColor : "#000000",
+                        backgroundMode === "color"
+                          ? backgroundColor
+                          : "#000000",
                       backgroundImage:
                         backgroundMode === "image" && backgroundImage
                           ? `url(${backgroundImage.url})`
@@ -1576,146 +1722,148 @@ export function IdentityFontsPage() {
                 </span>
 
                 {backgroundSettingsOpen ? (
-                <div
-                  className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
-                  id="background-settings"
-                >
                   <div
-                    aria-label="Background type"
-                    className="grid grid-cols-2 border border-white/35"
-                    role="group"
+                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                    id="background-settings"
                   >
-                    <button
-                      aria-pressed={backgroundMode === "color"}
-                      className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "color" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
-                      type="button"
-                      onClick={() => {
-                        setBackgroundMode("color");
-                      }}
+                    <div
+                      aria-label="Background type"
+                      className="grid grid-cols-2 border border-white/35"
+                      role="group"
                     >
-                      Color
-                    </button>
-                    <button
-                      aria-pressed={backgroundMode === "image"}
-                      className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "image" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
-                      type="button"
-                      onClick={() => {
-                        setBackgroundMode("image");
-                      }}
-                    >
-                      Image
-                    </button>
-                  </div>
-
-                  {backgroundMode === "color" ? (
-                    <label className="mt-5 flex items-center justify-between gap-4">
-                      <span className="text-[0.625rem] tracking-[0.08em] text-white/60 uppercase">
-                        Fill color
-                      </span>
-                      <span className="flex items-center gap-3">
-                        <span className="text-[0.625rem] text-white/55 uppercase">
-                          {backgroundColor}
-                        </span>
-                        <input
-                          className="identity-color-picker"
-                          type="color"
-                          value={backgroundColor}
-                          onChange={(event) => {
-                            setBackgroundColor(event.target.value);
-                          }}
-                        />
-                      </span>
-                    </label>
-                  ) : (
-                    <div className="mt-5">
-                      <input
-                        ref={backgroundImageInputReference}
-                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                        className="sr-only"
-                        type="file"
-                        onChange={(event) => {
-                          selectBackgroundImage(event.target.files?.[0]);
-                          event.currentTarget.value = "";
+                      <button
+                        aria-pressed={backgroundMode === "color"}
+                        className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "color" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
+                        type="button"
+                        onClick={() => {
+                          setBackgroundMode("color");
                         }}
-                      />
+                      >
+                        Color
+                      </button>
+                      <button
+                        aria-pressed={backgroundMode === "image"}
+                        className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "image" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
+                        type="button"
+                        onClick={() => {
+                          setBackgroundMode("image");
+                        }}
+                      >
+                        Image
+                      </button>
+                    </div>
 
-                      {backgroundImage ? (
-                        <>
-                          <div
-                            aria-label={`Selected background image: ${backgroundImage.name}`}
-                            className="h-24 border border-white/35 bg-cover bg-center"
-                            role="img"
-                            style={{
-                              backgroundImage: `url(${backgroundImage.url})`,
+                    {backgroundMode === "color" ? (
+                      <label className="mt-5 flex items-center justify-between gap-4">
+                        <span className="text-[0.625rem] tracking-[0.08em] text-white/60 uppercase">
+                          Fill color
+                        </span>
+                        <span className="flex items-center gap-3">
+                          <span className="text-[0.625rem] text-white/55 uppercase">
+                            {backgroundColor}
+                          </span>
+                          <input
+                            className="identity-color-picker"
+                            type="color"
+                            value={backgroundColor}
+                            onChange={(event) => {
+                              setBackgroundColor(event.target.value);
                             }}
                           />
-                          <p
-                            className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
-                            title={backgroundImage.name}
-                          >
-                            {backgroundImage.name}
-                          </p>
-                          <div className="mt-4 grid grid-cols-2 gap-2">
-                            <button
-                              className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
-                              type="button"
-                              onClick={() => {
-                                backgroundImageInputReference.current?.click();
-                              }}
-                            >
-                              <Upload aria-hidden="true" className="size-3" />
-                              Replace
-                            </button>
-                            <button
-                              className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
-                              type="button"
-                              onClick={() => {
-                                setBackgroundImage(undefined);
-                                setBackgroundImageError(undefined);
-                                setBackgroundMode("color");
-                              }}
-                            >
-                              <X aria-hidden="true" className="size-3" />
-                              Remove
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <button
-                          className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-3 border border-white/35 px-4 text-center text-white/60 hover:border-white/60 hover:text-white"
-                          type="button"
-                          onClick={() => {
-                            backgroundImageInputReference.current?.click();
+                        </span>
+                      </label>
+                    ) : (
+                      <div className="mt-5">
+                        <input
+                          ref={backgroundImageInputReference}
+                          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                          className="sr-only"
+                          type="file"
+                          onChange={(event) => {
+                            selectBackgroundImage(event.target.files?.[0]);
+                            event.currentTarget.value = "";
                           }}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                          }}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            selectBackgroundImage(event.dataTransfer.files[0]);
-                          }}
-                        >
-                          <ImageIcon aria-hidden="true" className="size-5" />
-                          <span className="text-[0.625rem] tracking-[0.08em] uppercase">
-                            Choose or drop image
-                          </span>
-                          <span className="text-[0.5625rem] text-white/40 uppercase">
-                            JPG, PNG or WEBP · max 15 MB
-                          </span>
-                        </button>
-                      )}
+                        />
 
-                      {backgroundImageError ? (
-                        <p
-                          className="mt-3 text-[0.625rem] text-white/65"
-                          role="alert"
-                        >
-                          {backgroundImageError}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
+                        {backgroundImage ? (
+                          <>
+                            <div
+                              aria-label={`Selected background image: ${backgroundImage.name}`}
+                              className="h-24 border border-white/35 bg-cover bg-center"
+                              role="img"
+                              style={{
+                                backgroundImage: `url(${backgroundImage.url})`,
+                              }}
+                            />
+                            <p
+                              className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
+                              title={backgroundImage.name}
+                            >
+                              {backgroundImage.name}
+                            </p>
+                            <div className="mt-4 grid grid-cols-2 gap-2">
+                              <button
+                                className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                                type="button"
+                                onClick={() => {
+                                  backgroundImageInputReference.current?.click();
+                                }}
+                              >
+                                <Upload aria-hidden="true" className="size-3" />
+                                Replace
+                              </button>
+                              <button
+                                className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                                type="button"
+                                onClick={() => {
+                                  setBackgroundImage(undefined);
+                                  setBackgroundImageError(undefined);
+                                  setBackgroundMode("color");
+                                }}
+                              >
+                                <X aria-hidden="true" className="size-3" />
+                                Remove
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-3 border border-white/35 px-4 text-center text-white/60 hover:border-white/60 hover:text-white"
+                            type="button"
+                            onClick={() => {
+                              backgroundImageInputReference.current?.click();
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              selectBackgroundImage(
+                                event.dataTransfer.files[0],
+                              );
+                            }}
+                          >
+                            <ImageIcon aria-hidden="true" className="size-5" />
+                            <span className="text-[0.625rem] tracking-[0.08em] uppercase">
+                              Choose or drop image
+                            </span>
+                            <span className="text-[0.5625rem] text-white/40 uppercase">
+                              JPG, PNG or WEBP · max 15 MB
+                            </span>
+                          </button>
+                        )}
+
+                        {backgroundImageError ? (
+                          <p
+                            className="mt-3 text-[0.625rem] text-white/65"
+                            role="alert"
+                          >
+                            {backgroundImageError}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -1913,13 +2061,100 @@ export function IdentityFontsPage() {
             </div>
           </div>
           {categoriesInUse.length > 0 ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/20 pt-3">
-              {categoriesInUse.map((categoryLabel) => {
-                const checked = !hiddenCategoryLabels.has(categoryLabel);
+            <div className="mt-4 border-t border-white/20">
+              <button
+                aria-controls="font-category-filters"
+                aria-expanded={categoryFiltersOpen}
+                className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-[0.12em] text-white/75 uppercase outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/65"
+                type="button"
+                onClick={() => {
+                  setCategoryFiltersOpen((open) => !open);
+                }}
+              >
+                <ChevronRight
+                  aria-hidden="true"
+                  className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${categoryFiltersOpen ? "rotate-90" : ""}`}
+                />
+                <span>Categories</span>
+              </button>
+              <div
+                className={`flex flex-wrap items-center gap-2 pb-3 ${categoryFiltersOpen ? "" : "hidden"}`}
+                id="font-category-filters"
+              >
+                {categoriesInUse.map((categoryLabel) => {
+                  const checked = !hiddenCategoryLabels.has(categoryLabel);
+
+                  return (
+                    <label
+                      key={categoryLabel}
+                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white"
+                    >
+                      <input
+                        checked={checked}
+                        className="size-3 accent-white"
+                        type="checkbox"
+                        onChange={() => {
+                          setHiddenCategoryLabels((current) => {
+                            const next = new Set(current);
+
+                            if (checked) {
+                              next.add(categoryLabel);
+                            } else {
+                              next.delete(categoryLabel);
+                            }
+
+                            return next;
+                          });
+                        }}
+                      />
+                      <span>{categoryLabel}</span>
+                    </label>
+                  );
+                })}
+                <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white">
+                  <input
+                    checked={allCategoriesSelected}
+                    className="size-3 accent-white"
+                    type="checkbox"
+                    onChange={() => {
+                      setHiddenCategoryLabels((current) =>
+                        current.size === 0
+                          ? new Set(categoriesInUse)
+                          : new Set(),
+                      );
+                    }}
+                  />
+                  <span className="font-bold">All</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
+          <div className="border-t border-white/20">
+            <button
+              aria-controls="font-use-case-filters"
+              aria-expanded={useCaseFiltersOpen}
+              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-[0.12em] text-white/75 uppercase outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/65"
+              type="button"
+              onClick={() => {
+                setUseCaseFiltersOpen((open) => !open);
+              }}
+            >
+              <ChevronRight
+                aria-hidden="true"
+                className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${useCaseFiltersOpen ? "rotate-90" : ""}`}
+              />
+              <span>Use cases</span>
+            </button>
+            <div
+              className={`flex flex-wrap items-center gap-2 pb-3 ${useCaseFiltersOpen ? "" : "hidden"}`}
+              id="font-use-case-filters"
+            >
+              {useCasesInUse.map((useCaseLabel) => {
+                const checked = !hiddenUseCaseLabels.has(useCaseLabel);
 
                 return (
                   <label
-                    key={categoryLabel}
+                    key={useCaseLabel}
                     className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white"
                   >
                     <input
@@ -1927,42 +2162,38 @@ export function IdentityFontsPage() {
                       className="size-3 accent-white"
                       type="checkbox"
                       onChange={() => {
-                        setHiddenCategoryLabels((current) => {
+                        setHiddenUseCaseLabels((current) => {
                           const next = new Set(current);
 
                           if (checked) {
-                            next.add(categoryLabel);
+                            next.add(useCaseLabel);
                           } else {
-                            next.delete(categoryLabel);
+                            next.delete(useCaseLabel);
                           }
 
                           return next;
                         });
                       }}
                     />
-                    <span>{categoryLabel}</span>
+                    <span>{useCaseLabel}</span>
                   </label>
                 );
               })}
               <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white">
                 <input
-                  checked={allCategoriesSelected}
+                  checked={allUseCasesSelected}
                   className="size-3 accent-white"
                   type="checkbox"
                   onChange={() => {
-                    setHiddenCategoryLabels((current) => {
-                      if (current.size === 0) {
-                        return new Set(categoriesInUse);
-                      }
-
-                      return new Set();
-                    });
+                    setHiddenUseCaseLabels((current) =>
+                      current.size === 0 ? new Set(useCasesInUse) : new Set(),
+                    );
                   }}
                 />
                 <span className="font-bold">All</span>
               </label>
             </div>
-          ) : null}
+          </div>
           <span
             ref={toolbarBoundaryReference}
             aria-hidden="true"
@@ -1984,7 +2215,11 @@ export function IdentityFontsPage() {
             )}
           </p>
         ) : (
-          <section ref={fontCatalogReference} aria-label="Font catalog" className="pb-20 lg:pb-0">
+          <section
+            ref={fontCatalogReference}
+            aria-label="Font catalog"
+            className="pb-20 lg:pb-0"
+          >
             {fontSections.map((section) => {
               const collapsed = collapsedCategoryKeys.has(section.key);
               const contentId = `font-section-${section.key
@@ -1995,10 +2230,10 @@ export function IdentityFontsPage() {
                 <section
                   key={section.key}
                   aria-label={`${section.name} fonts`}
-                  className="pt-8 first:pt-6"
+                  className="pt-2"
                 >
                   <header
-                    className="mb-2 flex items-center gap-4"
+                    className={`flex items-center gap-4 ${collapsed ? "" : "mb-2"}`}
                     data-font-category-label={
                       section.key === "pinned" ? undefined : section.label
                     }
@@ -2033,7 +2268,10 @@ export function IdentityFontsPage() {
                       className="h-px flex-1 bg-white/35"
                     />
                   </header>
-                  <div className={collapsed ? "hidden" : "relative"} id={contentId}>
+                  <div
+                    className={collapsed ? "hidden" : "relative"}
+                    id={contentId}
+                  >
                     <div className="grid gap-x-8 lg:grid-cols-2">
                       {section.fonts.map((font) => (
                         <FontSpecimen
@@ -2045,6 +2283,7 @@ export function IdentityFontsPage() {
                               : undefined
                           }
                           categoryUpdating={updatingCategoryIds.has(font.id)}
+                          useCasesUpdating={updatingUseCasesIds.has(font.id)}
                           deleting={deletingFontIds.has(font.id)}
                           favorite={fontPreferences.favoriteFontIds.includes(
                             font.id,
@@ -2055,13 +2294,21 @@ export function IdentityFontsPage() {
                           fontWeight={fontWeight}
                           letterSpacing={letterSpacing}
                           lineHeight={lineHeight}
-                          pinned={fontPreferences.pinnedFontIds.includes(font.id)}
+                          pinned={fontPreferences.pinnedFontIds.includes(
+                            font.id,
+                          )}
                           preferenceControlsEnabled={fontPreferencesReady}
                           textAlignment={textAlignment}
                           onDelete={setFontPendingDeletion}
                           onFavoriteChange={toggleFavorite}
-                          onParentCategoryChange={(nextFont, parentCategory) => {
+                          onParentCategoryChange={(
+                            nextFont,
+                            parentCategory,
+                          ) => {
                             void changeParentCategory(nextFont, parentCategory);
+                          }}
+                          onUseCasesChange={(nextFont, useCases) => {
+                            void changeUseCases(nextFont, useCases);
                           }}
                           onPinnedChange={togglePinned}
                           specimen={specimen}

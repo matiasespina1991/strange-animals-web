@@ -32,6 +32,8 @@ type FontCatalogDocument = {
   parentCategory?: unknown;
   preview?: unknown;
   sortName?: unknown;
+  useCase?: unknown;
+  useCases?: unknown;
   variantCount?: unknown;
 };
 
@@ -49,6 +51,7 @@ export type FontCatalogItem = {
   id: string;
   name: string;
   parentCategory: string | null;
+  useCases: string[];
   sortName: string;
   kind: 'collection' | 'family';
   formats: string[];
@@ -120,6 +123,16 @@ function readFont(id: string, value: FontCatalogDocument) {
     typeof value.parentCategory === 'string' && value.parentCategory.trim()
       ? value.parentCategory.trim()
       : null;
+  const storedUseCases = Array.isArray(value.useCases)
+    ? value.useCases.filter(
+        (useCase): useCase is string =>
+          typeof useCase === 'string' && useCase.trim().length > 0,
+      )
+    : [];
+  const legacyUseCase =
+    typeof value.useCase === 'string' && value.useCase.trim()
+      ? value.useCase.trim()
+      : null;
 
   return {
     id,
@@ -128,6 +141,15 @@ function readFont(id: string, value: FontCatalogDocument) {
       storedParentCategory === 'Squared'
         ? 'Squared / Tech'
         : storedParentCategory,
+    useCases: [
+      ...new Set(
+        storedUseCases.length > 0
+          ? storedUseCases
+          : legacyUseCase
+            ? [legacyUseCase]
+            : [],
+      ),
+    ],
     sortName:
       typeof value.sortName === 'string'
         ? value.sortName
@@ -168,6 +190,23 @@ export async function updateFontParentCategory(
 ) {
   await updateDoc(doc(firebaseDb, 'fonts', font.id), {
     parentCategory: parentCategory ?? deleteField(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateFontUseCases(
+  font: FontCatalogItem,
+  useCases: string[],
+) {
+  const normalizedUseCases = [
+    ...new Set(useCases.map((useCase) => useCase.trim())),
+  ]
+    .filter(Boolean)
+    .slice(0, 3);
+
+  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+    useCase: deleteField(),
+    useCases: normalizedUseCases,
     updatedAt: serverTimestamp(),
   });
 }
