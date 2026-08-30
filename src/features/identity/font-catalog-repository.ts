@@ -10,9 +10,9 @@ import {
   updateDoc,
   where,
   writeBatch,
-} from 'firebase/firestore';
-import {deleteObject, getBytes, ref} from 'firebase/storage';
-import {firebaseDb, firebaseStorage} from '@/lib/firebase';
+} from "firebase/firestore";
+import { deleteObject, getBytes, ref } from "firebase/storage";
+import { firebaseDb, firebaseStorage } from "@/lib/firebase";
 
 const MAX_PREVIEW_SIZE_BYTES = 20 * 1024 * 1024;
 const DELETE_CONCURRENCY = 8;
@@ -56,7 +56,7 @@ export type FontCatalogItem = {
   parentCategory: string | null;
   useCases: string[];
   sortName: string;
-  kind: 'collection' | 'family';
+  kind: "collection" | "family";
   formats: string[];
   fileCount: number;
   variantCount: number;
@@ -76,7 +76,12 @@ export type FontVariant = {
   storagePath: string;
 };
 
-const fontLoads = new Map<string, Promise<string>>();
+export type LoadedFontVariant = {
+  familyName: string;
+  supportedCodePoints: ReadonlySet<number> | null;
+};
+
+const fontLoads = new Map<string, Promise<LoadedFontVariant>>();
 const FONT_FORMAT_PRIORITY: Record<string, number> = {
   otf: 4,
   woff2: 3,
@@ -84,12 +89,180 @@ const FONT_FORMAT_PRIORITY: Record<string, number> = {
   ttf: 1,
 };
 
+function isWithinBounds(view: DataView, offset: number, length: number) {
+  return offset >= 0 && length >= 0 && offset + length <= view.byteLength;
+}
+
+function toUint16(value: number) {
+  return ((value % 65_536) + 65_536) % 65_536;
+}
+
+function addFormat4CodePoints(
+  view: DataView,
+  offset: number,
+  end: number,
+  codePoints: Set<number>,
+) {
+  if (!isWithinBounds(view, offset, 16) || offset + 16 > end) return;
+
+  const formatLength = view.getUint16(offset + 2);
+  const tableEnd = Math.min(end, offset + formatLength);
+  const segmentCount = view.getUint16(offset + 6) / 2;
+  const endCodesOffset = offset + 14;
+  const startCodesOffset = endCodesOffset + segmentCount * 2 + 2;
+  const deltasOffset = startCodesOffset + segmentCount * 2;
+  const rangeOffsetsOffset = deltasOffset + segmentCount * 2;
+
+  if (
+    !Number.isInteger(segmentCount) ||
+    !isWithinBounds(view, endCodesOffset, segmentCount * 2) ||
+    !isWithinBounds(view, startCodesOffset, segmentCount * 2) ||
+    !isWithinBounds(view, deltasOffset, segmentCount * 2) ||
+    !isWithinBounds(view, rangeOffsetsOffset, segmentCount * 2) ||
+    rangeOffsetsOffset + segmentCount * 2 > tableEnd
+  ) {
+    return;
+  }
+
+  for (let index = 0; index < segmentCount; index += 1) {
+    const start = view.getUint16(startCodesOffset + index * 2);
+    const finish = view.getUint16(endCodesOffset + index * 2);
+    const delta = view.getInt16(deltasOffset + index * 2);
+    const rangeOffsetEntry = rangeOffsetsOffset + index * 2;
+    const rangeOffset = view.getUint16(rangeOffsetEntry);
+
+    if (start > finish) continue;
+
+    for (let codePoint = start; codePoint <= finish; codePoint += 1) {
+      if (codePoint === 65_535) continue;
+
+      let glyphIndex: number;
+      if (rangeOffset === 0) {
+        glyphIndex = toUint16(codePoint + delta);
+      } else {
+        const glyphIndexOffset =
+          rangeOffsetEntry + rangeOffset + (codePoint - start) * 2;
+
+        if (
+          !isWithinBounds(view, glyphIndexOffset, 2) ||
+          glyphIndexOffset + 2 > tableEnd
+        ) {
+          continue;
+        }
+
+        glyphIndex = view.getUint16(glyphIndexOffset);
+        if (glyphIndex !== 0) glyphIndex = toUint16(glyphIndex + delta);
+      }
+
+      if (glyphIndex !== 0) codePoints.add(codePoint);
+    }
+  }
+}
+
+function addFormat12CodePoints(
+  view: DataView,
+  offset: number,
+  end: number,
+  codePoints: Set<number>,
+) {
+  if (!isWithinBounds(view, offset, 16) || offset + 16 > end) return;
+
+  const formatLength = view.getUint32(offset + 4);
+  const tableEnd = Math.min(end, offset + formatLength);
+  const groupCount = view.getUint32(offset + 12);
+  const groupsOffset = offset + 16;
+
+  if (
+    !isWithinBounds(view, groupsOffset, groupCount * 12) ||
+    groupsOffset + groupCount * 12 > tableEnd
+  ) {
+    return;
+  }
+
+  for (let index = 0; index < groupCount; index += 1) {
+    const groupOffset = groupsOffset + index * 12;
+    const start = view.getUint32(groupOffset);
+    const finish = view.getUint32(groupOffset + 4);
+    const glyphStart = view.getUint32(groupOffset + 8);
+
+    if (start > finish || start > 1_114_111) continue;
+
+    for (
+      let codePoint = start;
+      codePoint <= Math.min(finish, 1_114_111);
+      codePoint += 1
+    ) {
+      if (glyphStart + codePoint - start !== 0) codePoints.add(codePoint);
+    }
+  }
+}
+
+function getSupportedCodePoints(bytes: Uint8Array) {
+  try {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+    if (!isWithinBounds(view, 0, 12)) return null;
+
+    const tableCount = view.getUint16(4);
+    const recordsOffset = 12;
+    if (!isWithinBounds(view, recordsOffset, tableCount * 16)) return null;
+
+    for (let index = 0; index < tableCount; index += 1) {
+      const recordOffset = recordsOffset + index * 16;
+      const tag = String.fromCharCode(
+        view.getUint8(recordOffset),
+        view.getUint8(recordOffset + 1),
+        view.getUint8(recordOffset + 2),
+        view.getUint8(recordOffset + 3),
+      );
+
+      if (tag !== "cmap") continue;
+
+      const cmapOffset = view.getUint32(recordOffset + 8);
+      const cmapLength = view.getUint32(recordOffset + 12);
+      const cmapEnd = cmapOffset + cmapLength;
+      if (!isWithinBounds(view, cmapOffset, 4) || cmapEnd > view.byteLength)
+        return null;
+
+      const encodingCount = view.getUint16(cmapOffset + 2);
+      const encodingsOffset = cmapOffset + 4;
+      if (!isWithinBounds(view, encodingsOffset, encodingCount * 8))
+        return null;
+
+      const codePoints = new Set<number>();
+      for (let encoding = 0; encoding < encodingCount; encoding += 1) {
+        const encodingOffset = encodingsOffset + encoding * 8;
+        const subtableOffset = cmapOffset + view.getUint32(encodingOffset + 4);
+        if (
+          !isWithinBounds(view, subtableOffset, 2) ||
+          subtableOffset >= cmapEnd
+        ) {
+          continue;
+        }
+
+        const format = view.getUint16(subtableOffset);
+        if (format === 4) {
+          addFormat4CodePoints(view, subtableOffset, cmapEnd, codePoints);
+        } else if (format === 12) {
+          addFormat12CodePoints(view, subtableOffset, cmapEnd, codePoints);
+        }
+      }
+
+      return codePoints.size > 0 ? codePoints : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function readPositiveInteger(value: unknown) {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
     ? value
     : 0;
 }
@@ -100,10 +273,10 @@ function readPreview(value: unknown) {
   const preview = value as FontPreviewDocument;
 
   if (
-    typeof preview.fileName !== 'string' ||
-    typeof preview.format !== 'string' ||
-    typeof preview.storagePath !== 'string' ||
-    !preview.storagePath.startsWith('media/private/fonts/')
+    typeof preview.fileName !== "string" ||
+    typeof preview.format !== "string" ||
+    typeof preview.storagePath !== "string" ||
+    !preview.storagePath.startsWith("media/private/fonts/")
   ) {
     return null;
   }
@@ -116,38 +289,38 @@ function readPreview(value: unknown) {
 }
 
 function readFont(id: string, value: FontCatalogDocument) {
-  if (typeof value.name !== 'string') return null;
+  if (typeof value.name !== "string") return null;
 
   const enabled = value.enabled === true;
 
   if (!import.meta.env.DEV && !enabled) return null;
 
   const displayName =
-    typeof value.displayName === 'string' && value.displayName.trim()
+    typeof value.displayName === "string" && value.displayName.trim()
       ? value.displayName.trim()
       : value.name;
   const storedParentCategory =
-    typeof value.parentCategory === 'string' && value.parentCategory.trim()
+    typeof value.parentCategory === "string" && value.parentCategory.trim()
       ? value.parentCategory.trim()
       : null;
   const parentCategory =
-    storedParentCategory === 'Tridimensional'
-      ? '3D'
-      : storedParentCategory === 'Squared'
-      ? 'Squared / Tech'
-      : storedParentCategory === 'Standard'
-        ? 'Paragraph / Standard'
-        : storedParentCategory === 'Bold'
-          ? 'Title / Bold'
-          : storedParentCategory;
+    storedParentCategory === "Tridimensional"
+      ? "3D"
+      : storedParentCategory === "Squared"
+        ? "Squared / Tech"
+        : storedParentCategory === "Standard"
+          ? "Paragraph / Standard"
+          : storedParentCategory === "Bold"
+            ? "Title / Bold"
+            : storedParentCategory;
   const storedUseCases = Array.isArray(value.useCases)
     ? value.useCases.filter(
         (useCase): useCase is string =>
-          typeof useCase === 'string' && useCase.trim().length > 0,
+          typeof useCase === "string" && useCase.trim().length > 0,
       )
     : [];
   const legacyUseCase =
-    typeof value.useCase === 'string' && value.useCase.trim()
+    typeof value.useCase === "string" && value.useCase.trim()
       ? value.useCase.trim()
       : null;
 
@@ -166,13 +339,13 @@ function readFont(id: string, value: FontCatalogDocument) {
       ),
     ],
     sortName:
-      typeof value.sortName === 'string'
+      typeof value.sortName === "string"
         ? value.sortName
         : displayName.toLocaleLowerCase(),
-    kind: value.kind === 'collection' ? 'collection' : 'family',
+    kind: value.kind === "collection" ? "collection" : "family",
     formats: Array.isArray(value.formats)
       ? value.formats.filter(
-          (format): format is string => typeof format === 'string',
+          (format): format is string => typeof format === "string",
         )
       : [],
     fileCount: readPositiveInteger(value.fileCount),
@@ -182,11 +355,11 @@ function readFont(id: string, value: FontCatalogDocument) {
 }
 
 export async function listFontCatalog() {
-  const fontsReference = collection(firebaseDb, 'fonts');
+  const fontsReference = collection(firebaseDb, "fonts");
   const snapshot = await getDocs(
     import.meta.env.DEV
       ? fontsReference
-      : query(fontsReference, where('enabled', '==', true)),
+      : query(fontsReference, where("enabled", "==", true)),
   );
 
   return snapshot.docs
@@ -199,7 +372,7 @@ export async function listFontCatalog() {
     .filter((font): font is FontCatalogItem => font !== null)
     .sort((left, right) =>
       left.sortName.localeCompare(right.sortName, undefined, {
-        sensitivity: 'base',
+        sensitivity: "base",
       }),
     );
 }
@@ -208,7 +381,7 @@ export async function updateFontParentCategory(
   font: FontCatalogItem,
   parentCategory: string | null,
 ) {
-  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+  await updateDoc(doc(firebaseDb, "fonts", font.id), {
     parentCategory: parentCategory ?? deleteField(),
     updatedAt: serverTimestamp(),
   });
@@ -218,7 +391,7 @@ export async function updateFontEnabled(
   font: FontCatalogItem,
   enabled: boolean,
 ) {
-  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+  await updateDoc(doc(firebaseDb, "fonts", font.id), {
     enabled,
     updatedAt: serverTimestamp(),
   });
@@ -234,7 +407,7 @@ export async function updateFontUseCases(
     .filter(Boolean)
     .slice(0, 3);
 
-  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+  await updateDoc(doc(firebaseDb, "fonts", font.id), {
     useCase: deleteField(),
     useCases: normalizedUseCases,
     updatedAt: serverTimestamp(),
@@ -243,7 +416,7 @@ export async function updateFontUseCases(
 
 export async function listFontVariants(font: FontCatalogItem) {
   const snapshot = await getDocs(
-    collection(firebaseDb, 'fonts', font.id, 'files'),
+    collection(firebaseDb, "fonts", font.id, "files"),
   );
 
   const variants = snapshot.docs
@@ -252,12 +425,12 @@ export async function listFontVariants(font: FontCatalogItem) {
 
       if (
         value.enabled !== true ||
-        value.kind !== 'font' ||
-        typeof value.fileName !== 'string' ||
-        typeof value.relativePath !== 'string' ||
-        typeof value.storagePath !== 'string' ||
-        !value.storagePath.startsWith('media/private/fonts/') ||
-        typeof value.extension !== 'string'
+        value.kind !== "font" ||
+        typeof value.fileName !== "string" ||
+        typeof value.relativePath !== "string" ||
+        typeof value.storagePath !== "string" ||
+        !value.storagePath.startsWith("media/private/fonts/") ||
+        typeof value.extension !== "string"
       ) {
         return null;
       }
@@ -265,7 +438,7 @@ export async function listFontVariants(font: FontCatalogItem) {
       return {
         id: documentSnapshot.id,
         contentType:
-          typeof value.contentType === 'string'
+          typeof value.contentType === "string"
             ? value.contentType
             : `font/${value.extension}`,
         extension: value.extension,
@@ -279,7 +452,7 @@ export async function listFontVariants(font: FontCatalogItem) {
 
   for (const variant of variants) {
     const styleKey = variant.relativePath
-      .replace(/\.[^/.]+$/, '')
+      .replace(/\.[^/.]+$/, "")
       .toLocaleLowerCase();
     const currentVariant = variantsByStyle.get(styleKey);
 
@@ -298,7 +471,7 @@ export async function listFontVariants(font: FontCatalogItem) {
       (FONT_FORMAT_PRIORITY[right.extension.toLocaleLowerCase()] ?? 0) -
         (FONT_FORMAT_PRIORITY[left.extension.toLocaleLowerCase()] ?? 0) ||
       left.relativePath.localeCompare(right.relativePath, undefined, {
-        sensitivity: 'base',
+        sensitivity: "base",
       }),
   );
 }
@@ -318,12 +491,15 @@ export async function loadFontVariant(
       ref(firebaseStorage, variant.storagePath),
       MAX_PREVIEW_SIZE_BYTES,
     );
-    const fontFace = new FontFace(familyName, bytes, {display: 'swap'});
+    const fontFace = new FontFace(familyName, bytes, { display: "swap" });
 
     await fontFace.load();
     document.fonts.add(fontFace);
 
-    return familyName;
+    return {
+      familyName,
+      supportedCodePoints: getSupportedCodePoints(bytes),
+    };
   })();
 
   fontLoads.set(loadKey, load);
@@ -335,20 +511,20 @@ export async function loadFontVariant(
 }
 
 export async function downloadFontFamily(font: FontCatalogItem) {
-  const {default: JSZip} = await import('jszip');
+  const { default: JSZip } = await import("jszip");
   const snapshot = await getDocs(
-    collection(firebaseDb, 'fonts', font.id, 'files'),
+    collection(firebaseDb, "fonts", font.id, "files"),
   );
   const files = snapshot.docs
     .map((documentSnapshot) => documentSnapshot.data() as FontFileDocument)
     .filter(
       (file) =>
         file.enabled === true &&
-        typeof file.relativePath === 'string' &&
-        !file.relativePath.startsWith('/') &&
-        !file.relativePath.split('/').includes('..') &&
-        typeof file.storagePath === 'string' &&
-        file.storagePath.startsWith('media/private/fonts/'),
+        typeof file.relativePath === "string" &&
+        !file.relativePath.startsWith("/") &&
+        !file.relativePath.split("/").includes("..") &&
+        typeof file.storagePath === "string" &&
+        file.storagePath.startsWith("media/private/fonts/"),
     );
 
   if (files.length === 0) throw new Error(`Font family ${font.id} is empty.`);
@@ -364,12 +540,12 @@ export async function downloadFontFamily(font: FontCatalogItem) {
   );
 
   const blob = await archive.generateAsync({
-    type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: {level: 6},
+    type: "blob",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
   });
   const downloadUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
+  const anchor = document.createElement("a");
 
   anchor.href = downloadUrl;
   anchor.download = `${font.id}.zip`;
@@ -380,12 +556,12 @@ export async function downloadFontFamily(font: FontCatalogItem) {
 }
 
 function isMissingStorageObject(error: unknown) {
-  return isRecord(error) && error.code === 'storage/object-not-found';
+  return isRecord(error) && error.code === "storage/object-not-found";
 }
 
 export async function deleteFontCatalogItem(font: FontCatalogItem) {
   const filesSnapshot = await getDocs(
-    collection(firebaseDb, 'fonts', font.id, 'files'),
+    collection(firebaseDb, "fonts", font.id, "files"),
   );
   const storagePaths = [
     ...new Set(
@@ -393,8 +569,8 @@ export async function deleteFontCatalogItem(font: FontCatalogItem) {
         .map((fileDocument) => fileDocument.data().storagePath)
         .filter(
           (storagePath): storagePath is string =>
-            typeof storagePath === 'string' &&
-            storagePath.startsWith('media/private/fonts/'),
+            typeof storagePath === "string" &&
+            storagePath.startsWith("media/private/fonts/"),
         ),
     ),
   ];
@@ -434,7 +610,7 @@ export async function deleteFontCatalogItem(font: FontCatalogItem) {
     await batch.commit();
   }
 
-  await deleteDoc(doc(firebaseDb, 'fonts', font.id));
+  await deleteDoc(doc(firebaseDb, "fonts", font.id));
 
   for (const loadKey of fontLoads.keys()) {
     if (loadKey.startsWith(`${font.id}:`)) fontLoads.delete(loadKey);

@@ -29,6 +29,7 @@ import {
   updateFontParentCategory,
   updateFontUseCases,
   type FontCatalogItem,
+  type LoadedFontVariant,
   type FontVariant,
 } from "./font-catalog-repository";
 import {
@@ -46,8 +47,8 @@ import {
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
-  "3D",
   "Abstract",
+  "Cyber",
   "Dotted",
   "Goth",
   "Grunge",
@@ -57,19 +58,55 @@ const FONT_PARENT_CATEGORIES = [
   "Outlined",
   "Paragraph / Standard",
   "Pixel",
+  "Playful",
   "Semi-Abstract",
+  "Serif",
   "Squared / Tech",
+  "3D",
   "Title / Bold",
   "Vintage",
   "Wide",
 ] as const;
+
+function getSupportedPreviewText(
+  value: string,
+  supportedCodePoints: ReadonlySet<number> | null | undefined,
+) {
+  if (!supportedCodePoints) return value;
+
+  return Array.from(value)
+    .filter((character) => {
+      const codePoint = character.codePointAt(0);
+
+      return (
+        codePoint === undefined ||
+        /\s/u.test(character) ||
+        supportedCodePoints.has(codePoint)
+      );
+    })
+    .join("");
+}
+
+function SupportedPreviewText({
+  supportedCodePoints,
+  value,
+}: {
+  supportedCodePoints: ReadonlySet<number> | null | undefined;
+  value: string;
+}) {
+  const previewText = useMemo(
+    () => getSupportedPreviewText(value, supportedCodePoints),
+    [supportedCodePoints, value],
+  );
+
+  return previewText;
+}
 const FONT_CATEGORY_BOTTOM_ORDER = [
   "Pixel",
   "Handwritten",
   "Paragraph / Standard",
 ];
 const UNCATEGORIZED_LABEL = "Uncategorized";
-const TITLE_BOLD_CATEGORY_LABEL = "Title / Bold";
 const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
@@ -80,7 +117,34 @@ const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 96;
 
-function compareFontCategoryLabels(left: string, right: string) {
+function compareCategoryNames(left: string, right: string) {
+  if (left === "3D") {
+    return right.localeCompare("Squared / Tech", undefined, {
+      sensitivity: "base",
+    }) <= 0
+      ? 1
+      : -1;
+  }
+
+  if (right === "3D") {
+    return left.localeCompare("Squared / Tech", undefined, {
+      sensitivity: "base",
+    }) <= 0
+      ? -1
+      : 1;
+  }
+
+  return left.localeCompare(right, undefined, { sensitivity: "base" });
+}
+
+function compareFontFilterCategoryLabels(left: string, right: string) {
+  if (left === UNCATEGORIZED_LABEL) return 1;
+  if (right === UNCATEGORIZED_LABEL) return -1;
+
+  return compareCategoryNames(left, right);
+}
+
+function compareFontSectionCategoryLabels(left: string, right: string) {
   const leftBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(left);
   const rightBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(right);
 
@@ -91,23 +155,7 @@ function compareFontCategoryLabels(left: string, right: string) {
   if (leftBottomIndex !== -1) return 1;
   if (rightBottomIndex !== -1) return -1;
 
-  if (left === UNCATEGORIZED_LABEL) {
-    if (right === TITLE_BOLD_CATEGORY_LABEL) return -1;
-
-    return TITLE_BOLD_CATEGORY_LABEL.localeCompare(right, undefined, {
-      sensitivity: "base",
-    });
-  }
-
-  if (right === UNCATEGORIZED_LABEL) {
-    if (left === TITLE_BOLD_CATEGORY_LABEL) return 1;
-
-    return left.localeCompare(TITLE_BOLD_CATEGORY_LABEL, undefined, {
-      sensitivity: "base",
-    });
-  }
-
-  return left.localeCompare(right, undefined, { sensitivity: "base" });
+  return compareCategoryNames(left, right);
 }
 const DESKTOP_FONT_SIZE_MAX = 140;
 const FONT_TOOLBAR_GRID_CLASS =
@@ -163,7 +211,7 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
 }
 
 function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return "xl:mt-5";
+  if (!floating) return "xl:mt-2";
 
   return minimized
     ? "identity-font-toolbar-minimized"
@@ -190,15 +238,18 @@ function FloatingToolbarBrand({ visible }: { visible: boolean }) {
   return (
     <div
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none  fixed top-4 left-10 z-[10000] flex h-12 items-center"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed top-4 left-10 z-[10000] flex w-48 flex-col items-end sm:w-59"
     >
       <img
         alt=""
-        className="pointer-events-auto h-auto w-48 select-none opacity-90 transition-opacity duration-200 hover:opacity-100 motion-reduce:transition-none sm:w-59"
+        className="pointer-events-auto h-auto w-full select-none opacity-90 transition-opacity duration-200 hover:opacity-100 motion-reduce:transition-none"
         decoding="async"
         draggable={false}
         src="/media/images/logos/sa-logo.png"
       />
+      <span className="mt-1 mr-[2px] text-[0.5rem] font-normal tracking-[0.04em] lowercase">
+        identity &gt; typography
+      </span>
     </div>
   );
 }
@@ -216,7 +267,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/40 bg-black text-white/75 outline-none hover:border-white/80 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black text-white/75 outline-none transition-[border-color,color] duration-150 hover:border-white/25 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
@@ -371,7 +422,9 @@ function FontSpecimen({
   const cardReference = useRef<HTMLElement>(null);
   const [variants, setVariants] = useState<FontVariant[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const [familyNames, setFamilyNames] = useState<Record<string, string>>({});
+  const [loadedVariants, setLoadedVariants] = useState<
+    Record<string, LoadedFontVariant>
+  >({});
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -438,11 +491,11 @@ function FontSpecimen({
     void Promise.all(
       visibleVariants.map(async (variant) =>
         loadFontVariant(font, variant)
-          .then((familyName) => {
+          .then((loadedVariant) => {
             if (!active) return;
-            setFamilyNames((current) => ({
+            setLoadedVariants((current) => ({
               ...current,
-              [variant.id]: familyName,
+              [variant.id]: loadedVariant,
             }));
           })
           .catch(() => undefined),
@@ -672,7 +725,8 @@ function FontSpecimen({
 
       <div className="mt-8 mb-[1.4rem] min-w-0 space-y-6">
         {visibleVariants.map((variant) => {
-          const familyName = familyNames[variant.id];
+          const loadedVariant = loadedVariants[variant.id];
+          const familyName = loadedVariant?.familyName;
           const variantName = variant.fileName
             .replace(/\.[^/.]+$/, "")
             .replaceAll("-", " ")
@@ -700,7 +754,10 @@ function FontSpecimen({
                   textAlign: textAlignment,
                 }}
               >
-                {specimen || font.name}
+                <SupportedPreviewText
+                  supportedCodePoints={loadedVariant?.supportedCodePoints}
+                  value={specimen || font.name}
+                />
               </p>
               {variantTotal > 1 ? (
                 <div className="mt-2 flex min-w-0 justify-end text-[0.625rem] tracking-[0.08em] uppercase">
@@ -882,7 +939,7 @@ export function IdentityFontsPage() {
   const [updatingUseCasesIds, setUpdatingUseCasesIds] = useState<Set<string>>(
     new Set(),
   );
-  const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(false);
+  const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(true);
   const [useCaseFiltersOpen, setUseCaseFiltersOpen] = useState(false);
   const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
     Set<string>
@@ -1213,7 +1270,7 @@ export function IdentityFontsPage() {
 
     const entries = [...labels];
 
-    return entries.sort(compareFontCategoryLabels);
+    return entries.sort(compareFontFilterCategoryLabels);
   }, [fonts]);
   const allCategoriesSelected =
     categoriesInUse.length > 0 && hiddenCategoryLabels.size === 0;
@@ -1291,7 +1348,7 @@ export function IdentityFontsPage() {
 
     const sections = [...categorizedFonts.entries()]
       .sort(([leftCategory], [rightCategory]) =>
-        compareFontCategoryLabels(leftCategory, rightCategory),
+        compareFontSectionCategoryLabels(leftCategory, rightCategory),
       )
       .map(([name, sectionFonts]) => ({
         key: `category-${name}`,
@@ -1310,21 +1367,12 @@ export function IdentityFontsPage() {
     }
 
     if (uncategorizedFonts.length > 0) {
-      const titleBoldSectionIndex = sections.findIndex(
-        (section) => section.name === TITLE_BOLD_CATEGORY_LABEL,
-      );
-      const uncategorizedSection = {
+      sections.push({
         key: "uncategorized",
         label: "category: Uncategorized",
         name: "Uncategorized",
         fonts: uncategorizedFonts,
-      };
-
-      if (titleBoldSectionIndex === -1) {
-        sections.push(uncategorizedSection);
-      } else {
-        sections.splice(titleBoldSectionIndex, 0, uncategorizedSection);
-      }
+      });
     }
 
     return sections;
@@ -1674,70 +1722,80 @@ export function IdentityFontsPage() {
           <div className="flex items-baseline justify-between gap-6">
             <nav
               aria-label="Breadcrumb"
-              className="text-[0.8rem] font-normal tracking-[0.02em] text-white/70 lowercase"
+              className="flex items-center text-[0.7rem] font-normal tracking-[0.02em] text-white/70 lowercase"
             >
-              <span>strange animals</span>
-              <span aria-hidden="true" className="mx-2 text-white/45">
-                &gt;
+              <img
+                alt="Strange Animals"
+                className="h-auto w-32 opacity-80"
+                decoding="async"
+                src="/media/images/logos/sa-logo.png"
+              />
+              <span
+                aria-hidden="true"
+                className="ml-[9px] mr-[7px] text-white/45"
+              >
+                |
               </span>
               <span>identity</span>
               <span aria-hidden="true" className="mx-2 text-white/45">
                 &gt;
               </span>
-              <h1 className="inline font-normal">fonts</h1>
+              <h1 className="inline font-normal">typography</h1>
             </nav>
           </div>
 
-          <div className="mt-4 flex items-center gap-4">
-            <div ref={fileMenuReference} className="relative">
-              <button
-                ref={fileMenuButtonReference}
-                aria-controls="identity-file-menu"
-                aria-expanded={fileMenuOpen}
-                className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 underline-offset-4 hover:text-white hover:underline"
-                type="button"
-                onClick={() => {
-                  setFileMenuOpen((open) => !open);
-                  setFontColorSettingsOpen(false);
-                  setBackgroundSettingsOpen(false);
-                  setTypographySettingsOpen(false);
-                }}
-              >
-                File
-                <ChevronDown aria-hidden="true" className="size-3" />
-              </button>
-
-              {fileMenuOpen ? (
-                <div
-                  className="absolute top-full left-0 z-50 mt-2 w-52 border border-white/45 bg-black py-2"
-                  id="identity-file-menu"
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <div className="mt-4 flex items-center gap-4">
+              <div ref={fileMenuReference} className="relative">
+                <button
+                  ref={fileMenuButtonReference}
+                  aria-controls="identity-file-menu"
+                  aria-expanded={fileMenuOpen}
+                  className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 underline-offset-4 hover:text-white hover:underline"
+                  type="button"
+                  onClick={() => {
+                    setFileMenuOpen((open) => !open);
+                    setFontColorSettingsOpen(false);
+                    setBackgroundSettingsOpen(false);
+                    setTypographySettingsOpen(false);
+                  }}
                 >
-                  <button
-                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
-                    disabled={savingSet}
-                    type="button"
-                    onClick={() => {
-                      void saveCurrentSet();
-                    }}
+                  File
+                  <ChevronDown aria-hidden="true" className="size-3" />
+                </button>
+
+                {fileMenuOpen ? (
+                  <div
+                    className="absolute top-full left-0 z-50 mt-2 w-52 border border-white/45 bg-black py-2"
+                    id="identity-file-menu"
                   >
-                    Save set
-                  </button>
-                  <button
-                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black"
-                    type="button"
-                    onClick={() => {
-                      setSavedSetsOpen(true);
-                      setLoadSetConfirmationOpen(false);
-                      setFileMenuOpen(false);
-                      void loadSavedSets();
-                    }}
-                  >
-                    View Saved Sets
-                  </button>
-                </div>
-              ) : null}
+                    <button
+                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
+                      disabled={savingSet}
+                      type="button"
+                      onClick={() => {
+                        void saveCurrentSet();
+                      }}
+                    >
+                      Save set
+                    </button>
+                    <button
+                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black"
+                      type="button"
+                      onClick={() => {
+                        setSavedSetsOpen(true);
+                        setLoadSetConfirmationOpen(false);
+                        setFileMenuOpen(false);
+                        void loadSavedSets();
+                      }}
+                    >
+                      View Saved Sets
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div
             hidden={!toolbarFloating}
@@ -2291,7 +2349,7 @@ export function IdentityFontsPage() {
                   return (
                     <label
                       key={categoryLabel}
-                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white"
+                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
                     >
                       <input
                         checked={checked}
@@ -2328,7 +2386,7 @@ export function IdentityFontsPage() {
                       );
                     }}
                   />
-                  <span className="font-bold">All</span>
+                  <span className="font-bold uppercase">All</span>
                 </label>
               </div>
             </div>
@@ -2359,7 +2417,7 @@ export function IdentityFontsPage() {
                 return (
                   <label
                     key={useCaseLabel}
-                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white"
+                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
                   >
                     <input
                       checked={checked}
@@ -2394,7 +2452,9 @@ export function IdentityFontsPage() {
                     );
                   }}
                 />
-                <span className="font-bold">All</span>
+                <span className="font-semibold tracking-[0.1em] uppercase">
+                  All
+                </span>
               </label>
             </div>
           </div>
