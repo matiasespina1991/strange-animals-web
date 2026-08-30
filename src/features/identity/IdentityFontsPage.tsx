@@ -211,7 +211,7 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
 }
 
 function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return "xl:mt-2";
+  if (!floating) return "xl:mt-[1.8rem]";
 
   return minimized
     ? "identity-font-toolbar-minimized"
