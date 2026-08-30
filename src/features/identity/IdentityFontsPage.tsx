@@ -1,4 +1,11 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeftRight,
   AlignCenter,
@@ -267,7 +274,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-transparent bg-black text-white/75 outline-none transition-[border-color,color] duration-150 hover:border-white/25 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/75 outline-none transition-[border-color,color] duration-150 hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
@@ -290,7 +297,7 @@ function ActiveCategoryRail({ label }: { label?: string }) {
     <aside
       key={label}
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-0 z-20 flex w-5 justify-end pr-[0.75rem] sm:w-8 lg:w-10"
     >
       <span className="rotate-180 text-[0.70rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
         {label.startsWith("category: ") ? (
@@ -1252,13 +1259,28 @@ export function IdentityFontsPage() {
     };
   }, [backgroundImage?.source, backgroundImage?.url]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const specimenInput = specimenInputReference.current;
 
     if (!specimenInput) return;
 
     specimenInput.style.height = "auto";
-    specimenInput.style.height = `${specimenInput.scrollHeight}px`;
+
+    const styles = window.getComputedStyle(specimenInput);
+    const fontSize = Number.parseFloat(styles.fontSize);
+    const lineHeight = Number.parseFloat(styles.lineHeight) || fontSize * 1.2;
+    const verticalPadding =
+      Number.parseFloat(styles.paddingTop) +
+      Number.parseFloat(styles.paddingBottom);
+    const verticalBorder =
+      Number.parseFloat(styles.borderTopWidth) +
+      Number.parseFloat(styles.borderBottomWidth);
+    const maximumHeight = lineHeight * 3 + verticalPadding + verticalBorder;
+    const nextHeight = Math.min(specimenInput.scrollHeight, maximumHeight);
+
+    specimenInput.style.height = `${nextHeight}px`;
+    specimenInput.style.overflowY =
+      specimenInput.scrollHeight > maximumHeight ? "auto" : "hidden";
   }, [specimen]);
 
   const categoriesInUse = useMemo(() => {
@@ -1831,8 +1853,7 @@ export function IdentityFontsPage() {
               </span>
               <textarea
                 ref={specimenInputReference}
-                className="block min-h-10 w-full resize-none overflow-hidden rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
-                maxLength={800}
+                className="block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
                 rows={1}
                 value={specimen}
                 onChange={(event) => {
