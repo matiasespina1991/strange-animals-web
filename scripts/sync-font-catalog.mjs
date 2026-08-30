@@ -81,6 +81,14 @@ function slugify(value) {
     .replaceAll(/^-+|-+$/g, '');
 }
 
+function toDisplayName(value) {
+  return value
+    .replaceAll(/[-_]/g, ' ')
+    .replace(/^\d{6,}\s+/, '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+}
+
 function toStoragePath(...segments) {
   return segments.join('/').replaceAll(path.sep, '/');
 }
@@ -213,6 +221,7 @@ async function buildCatalog() {
 
   for (const [index, sourceFolder] of folders.entries()) {
     const id = slugify(sourceFolder);
+    const displayName = toDisplayName(sourceFolder);
 
     if (!id || ids.has(id)) {
       throw new Error(`Invalid or duplicate font id: ${sourceFolder} -> ${id}`);
@@ -233,8 +242,8 @@ async function buildCatalog() {
       id,
       document: {
         id,
-        name: sourceFolder,
-        sortName: sourceFolder.normalize('NFKD').toLocaleLowerCase(),
+        name: displayName,
+        sortName: displayName.normalize('NFKD').toLocaleLowerCase(),
         sourceFolder,
         storagePrefix,
         enabled: true,

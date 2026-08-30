@@ -34,7 +34,7 @@ const routeMetadata = new Map<
     },
   ],
   [
-    "/identity/fonts",
+    "/identity/typography/fonts",
     {
       title: "FONTS | Strange Animals | Identity",
       description: "Strange Animals identity font archive.",
