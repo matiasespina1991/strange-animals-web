@@ -1,5 +1,5 @@
 import {
-  browserSessionPersistence,
+  browserLocalPersistence,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
@@ -60,7 +60,7 @@ export function IdentityAccessGate({ children }: IdentityAccessGateProperties) {
     let isActive = true;
     let unsubscribe: ReturnType<typeof onAuthStateChanged> | undefined;
 
-    void setPersistence(firebaseAuth, browserSessionPersistence)
+    void setPersistence(firebaseAuth, browserLocalPersistence)
       .then(() => {
         if (!isActive) return;
 

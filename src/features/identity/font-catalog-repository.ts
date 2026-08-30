@@ -5,8 +5,10 @@ import {
   deleteField,
   doc,
   getDocs,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import {deleteObject, getBytes, ref} from 'firebase/storage';
@@ -48,6 +50,7 @@ type FontFileDocument = {
 };
 
 export type FontCatalogItem = {
+  enabled: boolean;
   id: string;
   name: string;
   parentCategory: string | null;
@@ -113,7 +116,11 @@ function readPreview(value: unknown) {
 }
 
 function readFont(id: string, value: FontCatalogDocument) {
-  if (value.enabled !== true || typeof value.name !== 'string') return null;
+  if (typeof value.name !== 'string') return null;
+
+  const enabled = value.enabled === true;
+
+  if (!import.meta.env.DEV && !enabled) return null;
 
   const displayName =
     typeof value.displayName === 'string' && value.displayName.trim()
@@ -123,6 +130,14 @@ function readFont(id: string, value: FontCatalogDocument) {
     typeof value.parentCategory === 'string' && value.parentCategory.trim()
       ? value.parentCategory.trim()
       : null;
+  const parentCategory =
+    storedParentCategory === 'Squared'
+      ? 'Squared / Tech'
+      : storedParentCategory === 'Standard'
+        ? 'Paragraph / Standard'
+        : storedParentCategory === 'Bold'
+          ? 'Title / Bold'
+          : storedParentCategory;
   const storedUseCases = Array.isArray(value.useCases)
     ? value.useCases.filter(
         (useCase): useCase is string =>
@@ -135,12 +150,10 @@ function readFont(id: string, value: FontCatalogDocument) {
       : null;
 
   return {
+    enabled,
     id,
     name: displayName,
-    parentCategory:
-      storedParentCategory === 'Squared'
-        ? 'Squared / Tech'
-        : storedParentCategory,
+    parentCategory,
     useCases: [
       ...new Set(
         storedUseCases.length > 0
@@ -167,7 +180,12 @@ function readFont(id: string, value: FontCatalogDocument) {
 }
 
 export async function listFontCatalog() {
-  const snapshot = await getDocs(collection(firebaseDb, 'fonts'));
+  const fontsReference = collection(firebaseDb, 'fonts');
+  const snapshot = await getDocs(
+    import.meta.env.DEV
+      ? fontsReference
+      : query(fontsReference, where('enabled', '==', true)),
+  );
 
   return snapshot.docs
     .map((documentSnapshot) =>
@@ -190,6 +208,16 @@ export async function updateFontParentCategory(
 ) {
   await updateDoc(doc(firebaseDb, 'fonts', font.id), {
     parentCategory: parentCategory ?? deleteField(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateFontEnabled(
+  font: FontCatalogItem,
+  enabled: boolean,
+) {
+  await updateDoc(doc(firebaseDb, 'fonts', font.id), {
+    enabled,
     updatedAt: serverTimestamp(),
   });
 }

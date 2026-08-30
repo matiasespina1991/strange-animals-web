@@ -26,6 +26,7 @@ import {
   listFontCatalog,
   listFontVariants,
   loadFontVariant,
+  updateFontEnabled,
   updateFontParentCategory,
   updateFontUseCases,
   type FontCatalogItem,
@@ -47,27 +48,34 @@ import {
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
   "Abstract",
-  "Bold",
   "Dotted",
+  "Goth",
   "Grunge",
   "Handwritten",
   "LCD Display",
+  "Ornamental",
   "Outlined",
+  "Paragraph / Standard",
   "Pixel",
   "Semi-Abstract",
   "Squared / Tech",
-  "Standard",
+  "Title / Bold",
   "Tridimensional",
   "Vintage",
   "Wide",
 ] as const;
-const FONT_CATEGORY_BOTTOM_ORDER = ["Pixel", "Handwritten", "Standard"];
+const FONT_CATEGORY_BOTTOM_ORDER = [
+  "Pixel",
+  "Handwritten",
+  "Paragraph / Standard",
+];
 const UNCATEGORIZED_LABEL = "Uncategorized";
 const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
-const DEFAULT_LETTER_SPACING = 0.03;
+const DEFAULT_LINE_HEIGHT = 1;
+const DEFAULT_LETTER_SPACING = 0;
 const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 96;
@@ -195,7 +203,7 @@ function ActiveCategoryRail({
     <motion.aside
       key={label}
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-16 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
       initial={false}
       animate={{ y: raised ? -toolbarHeight : 0 }}
       transition={
@@ -204,8 +212,17 @@ function ActiveCategoryRail({
           : { type: "spring", stiffness: 360, damping: 34, mass: 0.8 }
       }
     >
-      <span className="rotate-180 text-[0.7875rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
-        {label}
+      <span className="rotate-180 text-[0.70rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
+        {label.startsWith("category: ") ? (
+          <>
+            category:{" "}
+            <strong className="font-bold">
+              {label.slice("category: ".length).toLocaleUpperCase()}
+            </strong>
+          </>
+        ) : (
+          label
+        )}
       </span>
     </motion.aside>
   );
@@ -282,12 +299,14 @@ function FontSpecimen({
   textAlignment,
   deleting,
   categoryUpdating,
+  visibilityUpdating,
   useCasesUpdating,
   favorite,
   pinned,
   preferenceControlsEnabled,
   onDelete,
   onFavoriteChange,
+  onEnabledChange,
   onParentCategoryChange,
   onUseCasesChange,
   onPinnedChange,
@@ -304,12 +323,14 @@ function FontSpecimen({
   textAlignment: TextAlignment;
   deleting: boolean;
   categoryUpdating: boolean;
+  visibilityUpdating: boolean;
   useCasesUpdating: boolean;
   favorite: boolean;
   pinned: boolean;
   preferenceControlsEnabled: boolean;
   onDelete: (font: FontCatalogItem) => void;
   onFavoriteChange: (font: FontCatalogItem) => void;
+  onEnabledChange: (font: FontCatalogItem, enabled: boolean) => void;
   onParentCategoryChange: (
     font: FontCatalogItem,
     parentCategory: string | null,
@@ -437,6 +458,29 @@ function FontSpecimen({
           <h2 className="min-w-0 truncate font-normal text-white/80">
             {font.name}
           </h2>
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <button
+              aria-checked={font.enabled}
+              aria-label={`${font.enabled ? "Hide" : "Show"} ${font.name} in production`}
+              className="flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] text-white/40 normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35"
+              disabled={visibilityUpdating}
+              role="switch"
+              title={`${font.enabled ? "Visible" : "Hidden"} in production`}
+              type="button"
+              onClick={() => {
+                onEnabledChange(font, !font.enabled);
+              }}
+            >
+              <span className={font.enabled ? "" : "text-white/80"}>off</span>
+              <span className="relative h-3 w-6 border border-white/30">
+                <span
+                  aria-hidden="true"
+                  className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${font.enabled ? "translate-x-3" : "translate-x-0"}`}
+                />
+              </span>
+              <span className={font.enabled ? "text-white/80" : ""}>on</span>
+            </button>
+          ) : null}
           <div className="flex shrink-0 items-center gap-1">
             <button
               aria-label={
@@ -739,7 +783,7 @@ export function IdentityFontsPage() {
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
-  const [lineHeight, setLineHeight] = useState(0.8);
+  const [lineHeight, setLineHeight] = useState(DEFAULT_LINE_HEIGHT);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [showFontSizeValue, setShowFontSizeValue] = useState(false);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
@@ -769,6 +813,9 @@ export function IdentityFontsPage() {
   const [updatingCategoryIds, setUpdatingCategoryIds] = useState<Set<string>>(
     new Set(),
   );
+  const [updatingVisibilityIds, setUpdatingVisibilityIds] = useState<
+    Set<string>
+  >(new Set());
   const [updatingUseCasesIds, setUpdatingUseCasesIds] = useState<Set<string>>(
     new Set(),
   );
@@ -1311,6 +1358,40 @@ export function IdentityFontsPage() {
     }
   };
 
+  const changeFontVisibility = async (
+    font: FontCatalogItem,
+    enabled: boolean,
+  ) => {
+    const previousEnabled = font.enabled;
+
+    setErrorMessage(undefined);
+    setUpdatingVisibilityIds((current) => new Set(current).add(font.id));
+    setFonts((current) =>
+      current.map((item) =>
+        item.id === font.id ? { ...item, enabled } : item,
+      ),
+    );
+
+    try {
+      await updateFontEnabled(font, enabled);
+    } catch {
+      setFonts((current) =>
+        current.map((item) =>
+          item.id === font.id ? { ...item, enabled: previousEnabled } : item,
+        ),
+      );
+      setErrorMessage(
+        `Could not update production visibility for “${font.name}”. Try again.`,
+      );
+    } finally {
+      setUpdatingVisibilityIds((current) => {
+        const next = new Set(current);
+        next.delete(font.id);
+        return next;
+      });
+    }
+  };
+
   const changeUseCases = async (font: FontCatalogItem, useCases: string[]) => {
     const previousUseCases = font.useCases;
 
@@ -1545,7 +1626,7 @@ export function IdentityFontsPage() {
                 ref={fileMenuButtonReference}
                 aria-controls="identity-file-menu"
                 aria-expanded={fileMenuOpen}
-                className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 uppercase underline-offset-4 hover:text-white hover:underline"
+                className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 underline-offset-4 hover:text-white hover:underline"
                 type="button"
                 onClick={() => {
                   setFileMenuOpen((open) => !open);
@@ -1563,7 +1644,7 @@ export function IdentityFontsPage() {
                   id="identity-file-menu"
                 >
                   <button
-                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 uppercase hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
+                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
                     disabled={savingSet}
                     type="button"
                     onClick={() => {
@@ -1573,7 +1654,7 @@ export function IdentityFontsPage() {
                     Save set
                   </button>
                   <button
-                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 uppercase hover:bg-white hover:text-black"
+                    className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black"
                     type="button"
                     onClick={() => {
                       setSavedSetsOpen(true);
@@ -1617,7 +1698,7 @@ export function IdentityFontsPage() {
             </button>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
+              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50">
                 Demo text
               </span>
               <textarea
@@ -1633,7 +1714,7 @@ export function IdentityFontsPage() {
             </label>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50 uppercase">
+              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50">
                 Search fonts
               </span>
               <input
@@ -1648,7 +1729,7 @@ export function IdentityFontsPage() {
 
             <div className="col-span-2 flex flex-nowrap items-start justify-center gap-3 xl:justify-start">
               <label className="block w-[5.25rem] shrink-0 sm:w-[7rem] xl:-mr-4">
-                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 uppercase xl:text-left">
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 xl:text-left">
                   Font color
                 </span>
                 <span className="flex h-10 items-center justify-center xl:justify-start">
@@ -1693,7 +1774,7 @@ export function IdentityFontsPage() {
                 ref={backgroundSettingsReference}
                 className="relative w-[5.25rem] shrink-0 self-start sm:w-[7rem] xl:-mr-2"
               >
-                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 uppercase xl:text-left">
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 xl:text-left">
                   Background
                 </span>
                 <span className="flex h-10 items-center justify-center xl:justify-start">
@@ -1947,7 +2028,7 @@ export function IdentityFontsPage() {
                       className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 uppercase hover:text-white"
                       type="button"
                       onClick={() => {
-                        setLineHeight(0.8);
+                        setLineHeight(DEFAULT_LINE_HEIGHT);
                         setLetterSpacing(DEFAULT_LETTER_SPACING);
                         setTextAlignment("left");
                         setFontWeight("normal");
@@ -2283,6 +2364,7 @@ export function IdentityFontsPage() {
                               : undefined
                           }
                           categoryUpdating={updatingCategoryIds.has(font.id)}
+                          visibilityUpdating={updatingVisibilityIds.has(font.id)}
                           useCasesUpdating={updatingUseCasesIds.has(font.id)}
                           deleting={deletingFontIds.has(font.id)}
                           favorite={fontPreferences.favoriteFontIds.includes(
@@ -2301,6 +2383,9 @@ export function IdentityFontsPage() {
                           textAlignment={textAlignment}
                           onDelete={setFontPendingDeletion}
                           onFavoriteChange={toggleFavorite}
+                          onEnabledChange={(nextFont, enabled) => {
+                            void changeFontVisibility(nextFont, enabled);
+                          }}
                           onParentCategoryChange={(
                             nextFont,
                             parentCategory,
@@ -2402,7 +2487,7 @@ export function IdentityFontsPage() {
                       >
                         <div className="min-w-0 flex-1">
                           <p
-                            className="overflow-hidden text-[0.7rem] tracking-[0.04em] text-white text-ellipsis whitespace-nowrap uppercase"
+                            className="overflow-hidden text-[0.7rem] tracking-[0.04em] text-white text-ellipsis whitespace-nowrap"
                             title={savedSet.label}
                           >
                             {savedSet.label}
@@ -2413,7 +2498,7 @@ export function IdentityFontsPage() {
                           >
                             {savedSet.specimen || "Empty demo text"}
                           </p>
-                          <p className="mt-1 text-[0.625rem] text-white/45 uppercase">
+                          <p className="mt-1 text-[0.625rem] text-white/45">
                             {formatSavedSetTime(
                               savedSet.updatedAt ?? savedSet.createdAt,
                             )}
@@ -2435,13 +2520,13 @@ export function IdentityFontsPage() {
                           >
                             Aa
                           </div>
-                          <p className="flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
+                          <p className="flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65">
                             <span>Font</span>
                             <span className="text-right">
                               {savedSet.fontColor}
                             </span>
                           </p>
-                          <p className="mt-1 flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65 uppercase">
+                          <p className="mt-1 flex items-center justify-between gap-3 text-[0.5625rem] tracking-[0.06em] text-white/65">
                             <span>Background</span>
                             <span className="text-right">
                               {savedSet.background.mode === "image"

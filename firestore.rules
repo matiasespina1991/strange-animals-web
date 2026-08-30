@@ -17,6 +17,7 @@ rules_version='2'
 // Collection: fonts
 // Document ID: normalized font-family ID
 // Client-editable metadata fields:
+//   - enabled: bool (required; controls production catalog visibility)
 //   - parentCategory: string (optional, <= 64 characters)
 //   - useCases: list<string> (optional, <= 3 enum values)
 //   - useCase: string (legacy optional field; may only remain unchanged or be deleted)
@@ -29,7 +30,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // The identity catalog is readable only by the fixed Firebase Auth account.
     // Catalog synchronization uses Admin access. The fixed identity may only
-    // assign the bounded category and use-case metadata used by the catalog UI.
+    // assign bounded visibility, category, and use-case metadata used by the catalog UI.
     function hasIdentityAccess() {
       return request.auth != null
         && request.auth.token.email is string
@@ -171,7 +172,8 @@ service cloud.firestore {
 
     function isValidFontCatalogMetadataUpdate(data) {
       return data.diff(resource.data).affectedKeys()
-          .hasOnly(['parentCategory', 'useCase', 'useCases', 'updatedAt'])
+          .hasOnly(['enabled', 'parentCategory', 'useCase', 'useCases', 'updatedAt'])
+        && data.enabled is bool
         && (!('parentCategory' in data)
           || (data.parentCategory is string
             && data.parentCategory.size() <= 64))
