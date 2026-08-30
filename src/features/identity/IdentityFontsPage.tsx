@@ -1,5 +1,4 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeftRight,
   AlignCenter,
@@ -47,6 +46,7 @@ import {
 
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
+  "3D",
   "Abstract",
   "Dotted",
   "Goth",
@@ -60,7 +60,6 @@ const FONT_PARENT_CATEGORIES = [
   "Semi-Abstract",
   "Squared / Tech",
   "Title / Bold",
-  "Tridimensional",
   "Vintage",
   "Wide",
 ] as const;
@@ -70,6 +69,7 @@ const FONT_CATEGORY_BOTTOM_ORDER = [
   "Paragraph / Standard",
 ];
 const UNCATEGORIZED_LABEL = "Uncategorized";
+const TITLE_BOLD_CATEGORY_LABEL = "Title / Bold";
 const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
@@ -79,6 +79,36 @@ const DEFAULT_LETTER_SPACING = 0;
 const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 96;
+
+function compareFontCategoryLabels(left: string, right: string) {
+  const leftBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(left);
+  const rightBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(right);
+
+  if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
+    return leftBottomIndex - rightBottomIndex;
+  }
+
+  if (leftBottomIndex !== -1) return 1;
+  if (rightBottomIndex !== -1) return -1;
+
+  if (left === UNCATEGORIZED_LABEL) {
+    if (right === TITLE_BOLD_CATEGORY_LABEL) return -1;
+
+    return TITLE_BOLD_CATEGORY_LABEL.localeCompare(right, undefined, {
+      sensitivity: "base",
+    });
+  }
+
+  if (right === UNCATEGORIZED_LABEL) {
+    if (left === TITLE_BOLD_CATEGORY_LABEL) return 1;
+
+    return left.localeCompare(TITLE_BOLD_CATEGORY_LABEL, undefined, {
+      sensitivity: "base",
+    });
+  }
+
+  return left.localeCompare(right, undefined, { sensitivity: "base" });
+}
 const DESKTOP_FONT_SIZE_MAX = 140;
 const FONT_TOOLBAR_GRID_CLASS =
   "grid grid-cols-2 gap-5 md:grid-cols-2 md:gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_auto_auto_auto_auto]";
@@ -137,11 +167,11 @@ function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
 
   return minimized
     ? "identity-font-toolbar-minimized"
-    : "identity-font-toolbar-fade-in fixed right-4 bottom-4 left-4 z-[10000] border border-white/45 bg-black p-4";
+    : "identity-font-toolbar-fade-in fixed top-4 right-4 left-4 z-[10000] border border-white/45 bg-black p-4";
 }
 
-function getToolbarPopoverPlacementClass(floating: boolean) {
-  return floating ? "bottom-full mb-2" : "top-full mt-2";
+function getToolbarPopoverPlacementClass() {
+  return "top-full mt-2";
 }
 
 function getToolbarMinimizeButtonClass(floating: boolean) {
@@ -152,6 +182,25 @@ function getToolbarMinimizeButtonClass(floating: boolean) {
 
 function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
   return floating && minimized;
+}
+
+function FloatingToolbarBrand({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="identity-font-toolbar-fade-in pointer-events-none  fixed top-4 left-10 z-[10000] flex h-12 items-center"
+    >
+      <img
+        alt=""
+        className="pointer-events-auto h-auto w-48 select-none opacity-90 transition-opacity duration-200 hover:opacity-100 motion-reduce:transition-none sm:w-59"
+        decoding="async"
+        draggable={false}
+        src="/media/images/logos/sa-logo.png"
+      />
+    </div>
+  );
 }
 
 function FloatingToolbarRestoreButton({
@@ -167,7 +216,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="identity-font-toolbar-fade-in fixed right-4 bottom-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/40 bg-black text-white/75 outline-none hover:border-white/80 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/40 bg-black text-white/75 outline-none hover:border-white/80 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
@@ -183,34 +232,14 @@ function FloatingToolbarRestoreButton({
   );
 }
 
-function ActiveCategoryRail({
-  label,
-  toolbarFloating,
-  toolbarHeight,
-  toolbarMinimized,
-}: {
-  label?: string;
-  toolbarFloating: boolean;
-  toolbarHeight: number;
-  toolbarMinimized: boolean;
-}) {
-  const reducedMotion = useReducedMotion();
-  const raised = toolbarFloating && !toolbarMinimized;
-
+function ActiveCategoryRail({ label }: { label?: string }) {
   if (!label) return null;
 
   return (
-    <motion.aside
+    <aside
       key={label}
       aria-hidden="true"
       className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-0 z-20 flex w-5 justify-end pr-[0.55rem] sm:w-8 lg:w-10"
-      initial={false}
-      animate={{ y: raised ? -toolbarHeight : 0 }}
-      transition={
-        reducedMotion
-          ? { duration: 0 }
-          : { type: "spring", stiffness: 360, damping: 34, mass: 0.8 }
-      }
     >
       <span className="rotate-180 text-[0.70rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
         {label.startsWith("category: ") ? (
@@ -224,7 +253,7 @@ function ActiveCategoryRail({
           label
         )}
       </span>
-    </motion.aside>
+    </aside>
   );
 }
 
@@ -712,23 +741,56 @@ function FontWeightControl({
   onChange: (fontWeight: FontWeight) => void;
 }) {
   return (
-    <label className="mb-6 flex items-center justify-between gap-4">
-      <span className="text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+    <div className="mb-6 flex items-center justify-between gap-4">
+      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
         Font weight
       </span>
-      <select
+      <div
         aria-label="Font weight"
-        className="h-7 w-28 cursor-pointer rounded-none border border-white/35 bg-black px-2 text-[0.5625rem] tracking-[0.06em] text-white/70 uppercase shadow-none outline-none focus:border-white/60 focus:outline-none"
-        value={value}
-        onChange={(event) => {
-          onChange(readFontWeight(event.target.value));
-        }}
+        className="grid shrink-0 grid-cols-3 border border-white/35"
+        role="group"
       >
-        <option value="300">Light</option>
-        <option value="normal">Normal</option>
-        <option value="800">Bold</option>
-      </select>
-    </label>
+        <button
+          aria-label="Light font weight"
+          aria-pressed={value === 300}
+          className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 300 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+          style={{ fontWeight: 300 }}
+          title="Light"
+          type="button"
+          onClick={() => {
+            onChange(300);
+          }}
+        >
+          <span aria-hidden="true">B</span>
+        </button>
+        <button
+          aria-label="Normal font weight"
+          aria-pressed={value === "normal"}
+          className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === "normal" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+          style={{ fontWeight: 400 }}
+          title="Normal"
+          type="button"
+          onClick={() => {
+            onChange("normal");
+          }}
+        >
+          <span aria-hidden="true">B</span>
+        </button>
+        <button
+          aria-label="Bold font weight"
+          aria-pressed={value === 800}
+          className={`flex size-8 cursor-pointer items-center justify-center text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 800 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+          style={{ fontWeight: 800 }}
+          title="Bold"
+          type="button"
+          onClick={() => {
+            onChange(800);
+          }}
+        >
+          <span aria-hidden="true">B</span>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -743,7 +805,7 @@ function FavoriteFilterControl({
 }) {
   return (
     <div className="mb-6 flex items-center justify-between gap-4">
-      <span className="text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
         Show only favorites
       </span>
       <button
@@ -789,6 +851,7 @@ export function IdentityFontsPage() {
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState("#ffffff");
+  const [fontColorSettingsOpen, setFontColorSettingsOpen] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#000000");
   const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
     "color",
@@ -842,6 +905,8 @@ export function IdentityFontsPage() {
   const deferredSearch = useDeferredValue(search);
   const typographySettingsReference = useRef<HTMLDivElement>(null);
   const typographySettingsButtonReference = useRef<HTMLButtonElement>(null);
+  const fontColorSettingsReference = useRef<HTMLDivElement>(null);
+  const fontColorSettingsButtonReference = useRef<HTMLButtonElement>(null);
   const backgroundSettingsReference = useRef<HTMLDivElement>(null);
   const backgroundSettingsButtonReference = useRef<HTMLButtonElement>(null);
   const backgroundImageInputReference = useRef<HTMLInputElement>(null);
@@ -1041,6 +1106,33 @@ export function IdentityFontsPage() {
   }, [typographySettingsOpen]);
 
   useEffect(() => {
+    if (!fontColorSettingsOpen) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !fontColorSettingsReference.current?.contains(event.target)
+      ) {
+        setFontColorSettingsOpen(false);
+      }
+    };
+
+    const closeOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setFontColorSettingsOpen(false);
+      fontColorSettingsButtonReference.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnKeyDown);
+    };
+  }, [fontColorSettingsOpen]);
+
+  useEffect(() => {
     if (!backgroundSettingsOpen) return;
 
     const closeOnPointerDown = (event: PointerEvent) => {
@@ -1121,21 +1213,7 @@ export function IdentityFontsPage() {
 
     const entries = [...labels];
 
-    return entries.sort((left, right) => {
-      const leftBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(left);
-      const rightBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(right);
-
-      if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
-        return leftBottomIndex - rightBottomIndex;
-      }
-
-      if (leftBottomIndex !== -1) return 1;
-      if (rightBottomIndex !== -1) return -1;
-
-      return left.localeCompare(right, undefined, {
-        sensitivity: "base",
-      });
-    });
+    return entries.sort(compareFontCategoryLabels);
   }, [fonts]);
   const allCategoriesSelected =
     categoriesInUse.length > 0 && hiddenCategoryLabels.size === 0;
@@ -1212,23 +1290,9 @@ export function IdentityFontsPage() {
     }
 
     const sections = [...categorizedFonts.entries()]
-      .sort(([leftCategory], [rightCategory]) => {
-        const leftBottomIndex =
-          FONT_CATEGORY_BOTTOM_ORDER.indexOf(leftCategory);
-        const rightBottomIndex =
-          FONT_CATEGORY_BOTTOM_ORDER.indexOf(rightCategory);
-
-        if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
-          return leftBottomIndex - rightBottomIndex;
-        }
-
-        if (leftBottomIndex !== -1) return 1;
-        if (rightBottomIndex !== -1) return -1;
-
-        return leftCategory.localeCompare(rightCategory, undefined, {
-          sensitivity: "base",
-        });
-      })
+      .sort(([leftCategory], [rightCategory]) =>
+        compareFontCategoryLabels(leftCategory, rightCategory),
+      )
       .map(([name, sectionFonts]) => ({
         key: `category-${name}`,
         label: `category: ${name}`,
@@ -1246,12 +1310,21 @@ export function IdentityFontsPage() {
     }
 
     if (uncategorizedFonts.length > 0) {
-      sections.push({
+      const titleBoldSectionIndex = sections.findIndex(
+        (section) => section.name === TITLE_BOLD_CATEGORY_LABEL,
+      );
+      const uncategorizedSection = {
         key: "uncategorized",
         label: "category: Uncategorized",
         name: "Uncategorized",
         fonts: uncategorizedFonts,
-      });
+      };
+
+      if (titleBoldSectionIndex === -1) {
+        sections.push(uncategorizedSection);
+      } else {
+        sections.splice(titleBoldSectionIndex, 0, uncategorizedSection);
+      }
     }
 
     return sections;
@@ -1594,12 +1667,7 @@ export function IdentityFontsPage() {
       className="min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
       style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
-      <ActiveCategoryRail
-        label={activeCategoryLabel}
-        toolbarFloating={toolbarFloating}
-        toolbarHeight={toolbarHeight}
-        toolbarMinimized={toolbarMinimized}
-      />
+      <ActiveCategoryRail label={activeCategoryLabel} />
 
       <div className="mx-auto max-w-[92rem]">
         <header className="relative border-b border-white/50 pb-0">
@@ -1630,6 +1698,7 @@ export function IdentityFontsPage() {
                 type="button"
                 onClick={() => {
                   setFileMenuOpen((open) => !open);
+                  setFontColorSettingsOpen(false);
                   setBackgroundSettingsOpen(false);
                   setTypographySettingsOpen(false);
                 }}
@@ -1679,7 +1748,7 @@ export function IdentityFontsPage() {
 
           <div
             ref={toolbarReference}
-            className={`${FONT_TOOLBAR_GRID_CLASS} ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
+            className={`${FONT_TOOLBAR_GRID_CLASS} [&_*]:!tracking-normal ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
             id="font-toolbar"
           >
             <button
@@ -1690,6 +1759,7 @@ export function IdentityFontsPage() {
               type="button"
               onClick={() => {
                 setBackgroundSettingsOpen(false);
+                setFontColorSettingsOpen(false);
                 setTypographySettingsOpen(false);
                 setToolbarMinimized(true);
               }}
@@ -1728,21 +1798,64 @@ export function IdentityFontsPage() {
             </label>
 
             <div className="col-span-2 flex flex-nowrap items-start justify-center gap-3 xl:justify-start">
-              <label className="block w-[5.25rem] shrink-0 sm:w-[7rem] xl:-mr-4">
+              <div
+                ref={fontColorSettingsReference}
+                className="relative block w-[5.25rem] shrink-0 sm:w-[7rem] xl:-mr-4"
+              >
                 <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 xl:text-left">
                   Font color
                 </span>
                 <span className="flex h-10 items-center justify-center xl:justify-start">
-                  <input
-                    className="identity-color-picker"
-                    type="color"
-                    value={fontColor}
-                    onChange={(event) => {
-                      setFontColor(event.target.value);
+                  <button
+                    ref={fontColorSettingsButtonReference}
+                    aria-controls="font-color-settings"
+                    aria-expanded={fontColorSettingsOpen}
+                    aria-label="Font color settings"
+                    className="size-6 cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
+                    style={{ backgroundColor: fontColor }}
+                    type="button"
+                    onClick={() => {
+                      setFontColorSettingsOpen((open) => !open);
+                      setBackgroundSettingsOpen(false);
+                      setTypographySettingsOpen(false);
                     }}
                   />
                 </span>
-              </label>
+
+                {fontColorSettingsOpen ? (
+                  <div
+                    aria-labelledby="font-color-settings-title"
+                    className={`absolute right-0 left-auto z-50 w-64 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass()}`}
+                    id="font-color-settings"
+                  >
+                    <h2
+                      className="text-[0.625rem] font-normal text-white/70"
+                      id="font-color-settings-title"
+                    >
+                      Font color
+                    </h2>
+                    <label className="mt-5 flex items-center justify-between gap-4">
+                      <span className="text-[0.625rem] text-white/60">
+                        Fill color
+                      </span>
+                      <span className="flex items-center gap-3">
+                        <span className="text-[0.625rem] text-white/55">
+                          {fontColor}
+                        </span>
+                        <input
+                          aria-label="Choose font color"
+                          className="identity-color-picker"
+                          type="color"
+                          value={fontColor}
+                          onChange={(event) => {
+                            setFontColor(event.target.value);
+                          }}
+                        />
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+              </div>
 
               <div className="shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
                 <span
@@ -1797,6 +1910,7 @@ export function IdentityFontsPage() {
                     type="button"
                     onClick={() => {
                       setBackgroundSettingsOpen((open) => !open);
+                      setFontColorSettingsOpen(false);
                       setTypographySettingsOpen(false);
                     }}
                   />
@@ -1804,9 +1918,16 @@ export function IdentityFontsPage() {
 
                 {backgroundSettingsOpen ? (
                   <div
-                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                    aria-labelledby="background-settings-title"
+                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass()}`}
                     id="background-settings"
                   >
+                    <h2
+                      className="mb-4 text-[0.625rem] font-normal text-white/70"
+                      id="background-settings-title"
+                    >
+                      Background
+                    </h2>
                     <div
                       aria-label="Background type"
                       className="grid grid-cols-2 border border-white/35"
@@ -2010,6 +2131,8 @@ export function IdentityFontsPage() {
                 type="button"
                 onClick={() => {
                   setTypographySettingsOpen((open) => !open);
+                  setFontColorSettingsOpen(false);
+                  setBackgroundSettingsOpen(false);
                 }}
               >
                 <Settings aria-hidden="true" className="size-4" />
@@ -2017,15 +2140,15 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen ? (
                 <div
-                  className={`absolute right-0 z-50 w-64 border border-white/45 bg-black p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                  className={`absolute right-0 z-50 w-64 border border-white/45 bg-black p-4 ${getToolbarPopoverPlacementClass()}`}
                   id="typography-settings"
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
-                    <span className="text-[0.625rem] tracking-[0.12em] text-white/55 uppercase">
+                    <span className="text-[0.625rem] tracking-[0.12em] text-white/55">
                       Typography
                     </span>
                     <button
-                      className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 uppercase hover:text-white"
+                      className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 hover:text-white"
                       type="button"
                       onClick={() => {
                         setLineHeight(DEFAULT_LINE_HEIGHT);
@@ -2050,7 +2173,7 @@ export function IdentityFontsPage() {
                   />
 
                   <div className="mb-6 flex items-center justify-between gap-4">
-                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                       Alignment
                     </span>
                     <div
@@ -2103,7 +2226,7 @@ export function IdentityFontsPage() {
                   />
 
                   <label className="block">
-                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
                       <span>Line height</span>
                       <span>{lineHeight.toFixed(2)}</span>
                     </span>
@@ -2121,7 +2244,7 @@ export function IdentityFontsPage() {
                   </label>
 
                   <label className="mt-6 block">
-                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65 uppercase">
+                    <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
                       <span>Letter spacing</span>
                       <span>{letterSpacing.toFixed(2)} em</span>
                     </span>
@@ -2146,7 +2269,7 @@ export function IdentityFontsPage() {
               <button
                 aria-controls="font-category-filters"
                 aria-expanded={categoryFiltersOpen}
-                className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-[0.12em] text-white/75 uppercase outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/65"
+                className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
                 type="button"
                 onClick={() => {
                   setCategoryFiltersOpen((open) => !open);
@@ -2168,11 +2291,11 @@ export function IdentityFontsPage() {
                   return (
                     <label
                       key={categoryLabel}
-                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white"
+                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white"
                     >
                       <input
                         checked={checked}
-                        className="size-3 accent-white"
+                        className="size-3 accent-white outline-none"
                         type="checkbox"
                         onChange={() => {
                           setHiddenCategoryLabels((current) => {
@@ -2192,10 +2315,10 @@ export function IdentityFontsPage() {
                     </label>
                   );
                 })}
-                <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white">
+                <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
                   <input
                     checked={allCategoriesSelected}
-                    className="size-3 accent-white"
+                    className="size-3 accent-white outline-none"
                     type="checkbox"
                     onChange={() => {
                       setHiddenCategoryLabels((current) =>
@@ -2214,7 +2337,7 @@ export function IdentityFontsPage() {
             <button
               aria-controls="font-use-case-filters"
               aria-expanded={useCaseFiltersOpen}
-              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-[0.12em] text-white/75 uppercase outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/65"
+              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
               type="button"
               onClick={() => {
                 setUseCaseFiltersOpen((open) => !open);
@@ -2236,11 +2359,11 @@ export function IdentityFontsPage() {
                 return (
                   <label
                     key={useCaseLabel}
-                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white"
+                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white"
                   >
                     <input
                       checked={checked}
-                      className="size-3 accent-white"
+                      className="size-3 accent-white outline-none"
                       type="checkbox"
                       onChange={() => {
                         setHiddenUseCaseLabels((current) => {
@@ -2260,10 +2383,10 @@ export function IdentityFontsPage() {
                   </label>
                 );
               })}
-              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 uppercase hover:text-white">
+              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
                 <input
                   checked={allUseCasesSelected}
-                  className="size-3 accent-white"
+                  className="size-3 accent-white outline-none"
                   type="checkbox"
                   onChange={() => {
                     setHiddenUseCaseLabels((current) =>
@@ -2322,7 +2445,7 @@ export function IdentityFontsPage() {
                     <button
                       aria-controls={contentId}
                       aria-expanded={!collapsed}
-                      className="flex shrink-0 cursor-pointer items-center gap-2 text-[0.625rem] font-normal tracking-[0.12em] text-white uppercase outline-none hover:text-white/75 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white/65"
+                      className={`flex shrink-0 cursor-pointer items-center gap-2 font-normal text-white outline-none hover:text-white/75 ${section.label.startsWith("category: ") ? "text-[0.7rem] tracking-normal" : "text-[0.625rem] tracking-[0.12em]"}`}
                       type="button"
                       onClick={() => {
                         setCollapsedCategoryKeys((current) => {
@@ -2342,7 +2465,18 @@ export function IdentityFontsPage() {
                         aria-hidden="true"
                         className={`size-3 ${collapsed ? "" : "rotate-90"}`}
                       />
-                      <span>{section.label}</span>
+                      <span>
+                        {section.label.startsWith("category: ") ? (
+                          <>
+                            Category:{" "}
+                            <span className="uppercase">
+                              {section.label.slice("category: ".length)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="uppercase">{section.label}</span>
+                        )}
+                      </span>
                     </button>
                     <span
                       aria-hidden="true"
@@ -2364,7 +2498,9 @@ export function IdentityFontsPage() {
                               : undefined
                           }
                           categoryUpdating={updatingCategoryIds.has(font.id)}
-                          visibilityUpdating={updatingVisibilityIds.has(font.id)}
+                          visibilityUpdating={updatingVisibilityIds.has(
+                            font.id,
+                          )}
                           useCasesUpdating={updatingUseCasesIds.has(font.id)}
                           deleting={deletingFontIds.has(font.id)}
                           favorite={fontPreferences.favoriteFontIds.includes(
@@ -2425,6 +2561,9 @@ export function IdentityFontsPage() {
         </div>
       ) : null}
 
+      <FloatingToolbarBrand
+        visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
+      />
       <FloatingToolbarRestoreButton
         visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
         onRestore={() => {

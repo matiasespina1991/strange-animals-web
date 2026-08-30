@@ -131,7 +131,9 @@ function readFont(id: string, value: FontCatalogDocument) {
       ? value.parentCategory.trim()
       : null;
   const parentCategory =
-    storedParentCategory === 'Squared'
+    storedParentCategory === 'Tridimensional'
+      ? '3D'
+      : storedParentCategory === 'Squared'
       ? 'Squared / Tech'
       : storedParentCategory === 'Standard'
         ? 'Paragraph / Standard'
