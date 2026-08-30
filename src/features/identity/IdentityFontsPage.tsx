@@ -297,9 +297,9 @@ function ActiveCategoryRail({ label }: { label?: string }) {
     <aside
       key={label}
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-0 z-20 flex w-5 justify-end pr-[0.75rem] sm:w-8 lg:w-10"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-2.5 z-20 flex -translate-x-1/2 sm:left-4 lg:left-5 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
     >
-      <span className="rotate-180 text-[0.70rem] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
+      <span className="rotate-180 text-[clamp(0.7rem,0.7vw,1rem)] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
         {label.startsWith("category: ") ? (
           <>
             category:{" "}
