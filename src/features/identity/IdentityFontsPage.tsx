@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { TypewriterText } from "@/components/TypewriterText";
 import {
   ArrowLeftRight,
   AlignCenter,
@@ -15,6 +16,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Download,
   ImageIcon,
   Menu,
@@ -125,6 +127,8 @@ const DEFAULT_LETTER_SPACING = 0;
 const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 96;
+const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
+  "strange-animals.identity-fonts-onboarding-dismissed.v1";
 
 function compareCategoryNames(left: string, right: string) {
   if (left === "3D") {
@@ -245,7 +249,7 @@ function FloatingToolbarBrand({ visible }: { visible: boolean }) {
   return (
     <div
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed top-4 left-10 z-[10000] flex w-48 flex-col items-end sm:w-59"
+      className="identity-font-toolbar-fade-in pointer-events-none fixed top-3 left-5 z-[10000] flex w-48 flex-col items-end sm:top-5 sm:left-8 sm:w-59 lg:left-10 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
     >
       <img
         alt=""
@@ -257,6 +261,286 @@ function FloatingToolbarBrand({ visible }: { visible: boolean }) {
       <span className="mt-1 mr-[2px] text-[0.5rem] font-normal tracking-[0.04em] lowercase">
         identity &gt; typography
       </span>
+    </div>
+  );
+}
+
+function ScrollControls() {
+  const scrollAnimationReference = useRef<number>();
+  const [activeDirection, setActiveDirection] = useState<"up" | "down">();
+  const [hoveredDirection, setHoveredDirection] = useState<"up" | "down">();
+  const [keyboardDirection, setKeyboardDirection] = useState<
+    "up" | "down"
+  >();
+
+  const stopScrolling = () => {
+    if (scrollAnimationReference.current !== undefined) {
+      window.cancelAnimationFrame(scrollAnimationReference.current);
+      scrollAnimationReference.current = undefined;
+    }
+
+    setActiveDirection(undefined);
+  };
+
+  const startScrolling = (direction: "up" | "down") => {
+    stopScrolling();
+    setActiveDirection(direction);
+
+    const scrollStep = () => {
+      window.scrollBy({
+        top: direction === "up" ? -8 : 8,
+        behavior: "auto",
+      });
+      scrollAnimationReference.current = window.requestAnimationFrame(scrollStep);
+    };
+
+    scrollAnimationReference.current = window.requestAnimationFrame(scrollStep);
+  };
+
+  useEffect(() => stopScrolling, []);
+
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) =>
+      target instanceof HTMLElement &&
+      Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || isEditableTarget(event.target)) return;
+
+      if (event.key === "ArrowUp") {
+        setKeyboardDirection("up");
+      } else if (event.key === "ArrowDown") {
+        setKeyboardDirection("down");
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        setKeyboardDirection(undefined);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  const isButtonHighlighted = (direction: "up" | "down") =>
+    activeDirection === direction ||
+    keyboardDirection === direction ||
+    hoveredDirection === direction;
+  const buttonClass = (direction: "up" | "down") =>
+    `flex h-7 w-12 cursor-pointer items-center justify-center rounded-sm border bg-black/90 backdrop-blur-[3px] outline-none transition-[border-color,background-color] duration-200 focus:outline-none focus-visible:outline-none motion-reduce:transition-none ${isButtonHighlighted(direction) ? "border-white/35 bg-[#111111]" : "border-white/25"}`;
+  const buttonStyle = (direction: "up" | "down") => ({
+    color: isButtonHighlighted(direction)
+      ? "rgb(255 255 255 / 0.65)"
+      : "rgb(255 255 255 / 0.25)",
+  });
+  const handlePointerLeave = () => {
+    setHoveredDirection(undefined);
+    stopScrolling();
+  };
+
+  return (
+    <nav
+      aria-label="Page scroll controls"
+      className="fixed right-6 bottom-5 z-[10000] flex flex-col gap-[7px] sm:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
+    >
+      <button
+        aria-label="Scroll up"
+        className={buttonClass("up")}
+        style={buttonStyle("up")}
+        title="Scroll up"
+        type="button"
+        onPointerCancel={stopScrolling}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          startScrolling("up");
+        }}
+        onPointerEnter={() => {
+          setHoveredDirection("up");
+        }}
+        onPointerLeave={handlePointerLeave}
+        onPointerUp={stopScrolling}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          startScrolling("up");
+        }}
+        onKeyUp={(event) => {
+          if (event.key === "Enter" || event.key === " ") stopScrolling();
+        }}
+      >
+        <ChevronUp aria-hidden="true" className="size-4" />
+      </button>
+      <button
+        aria-label="Scroll down"
+        className={buttonClass("down")}
+        style={buttonStyle("down")}
+        title="Scroll down"
+        type="button"
+        onPointerCancel={stopScrolling}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          startScrolling("down");
+        }}
+        onPointerEnter={() => {
+          setHoveredDirection("down");
+        }}
+        onPointerLeave={handlePointerLeave}
+        onPointerUp={stopScrolling}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          startScrolling("down");
+        }}
+        onKeyUp={(event) => {
+          if (event.key === "Enter" || event.key === " ") stopScrolling();
+        }}
+      >
+        <ChevronDown aria-hidden="true" className="size-4" />
+      </button>
+    </nav>
+  );
+}
+
+function IdentityFontsOnboarding() {
+  const [step, setStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [open, setOpen] = useState(() => {
+    if (!import.meta.env.DEV || typeof window === "undefined") return false;
+
+    return window.localStorage.getItem(IDENTITY_FONTS_ONBOARDING_STORAGE_KEY) !== "true";
+  });
+  const pages = [
+    {
+      eyebrow: "Typography as a voice",
+      title: "An evolving type library.",
+      body: "This space is a working collection of typefaces. Browse the families, test your own text, and use the controls to refine the view.",
+    },
+    {
+      eyebrow: "How it works",
+      title: "Make the collection yours.",
+      body: "Filter by category or use case, save a set while developing, and keep exploring. Previews load as they enter the page so the library stays light.",
+    },
+  ];
+  const currentPage = pages[step];
+  const isLastStep = step === pages.length - 1;
+
+  const close = () => {
+    if (dontShowAgain) {
+      window.localStorage.setItem(IDENTITY_FONTS_ONBOARDING_STORAGE_KEY, "true");
+    }
+
+    setOpen(false);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dontShowAgain, open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      aria-labelledby="identity-fonts-onboarding-title"
+      aria-modal="true"
+      className="fixed inset-0 z-[10001] flex items-center justify-center bg-transparent p-5 sm:p-8"
+      role="dialog"
+    >
+      <section
+        className="relative w-full max-w-lg border border-white/35 bg-black p-5 shadow-none sm:p-6"
+        style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
+      >
+        <div className="absolute top-4 right-14 flex h-7 items-center text-[0.625rem] tracking-[0.08em] text-white/45">
+          {step + 1} / {pages.length}
+        </div>
+        <button
+          aria-label="Close introduction"
+          className="absolute top-4 right-4 flex size-7 cursor-pointer items-center justify-center text-white/55 outline-none transition-colors duration-150 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+          type="button"
+          onClick={close}
+        >
+          <X aria-hidden="true" className="size-4" />
+        </button>
+
+        <div className="pr-10">
+          <p className="text-[0.625rem] tracking-[0.12em] text-white/55 uppercase">
+            {currentPage.eyebrow}
+          </p>
+          <h2
+            id="identity-fonts-onboarding-title"
+            className="mt-4 text-[calc(1.125rem-1px)] font-medium tracking-normal text-white"
+          >
+            {currentPage.title}
+          </h2>
+          <TypewriterText
+            className="mt-4 block max-w-md text-[0.75rem] leading-relaxed tracking-normal text-white/70"
+            text={currentPage.body}
+          />
+        </div>
+
+        <footer className="mt-6 flex items-center justify-between gap-4 border-t border-white/20 pt-4">
+          <label className="flex cursor-pointer items-center gap-2 text-[0.625rem] tracking-normal text-white/65">
+            <input
+              checked={dontShowAgain}
+              className="size-3 cursor-pointer accent-white"
+              type="checkbox"
+              onChange={(event) => {
+                setDontShowAgain(event.target.checked);
+              }}
+            />
+            <span>Don&apos;t show this again</span>
+          </label>
+          <div className="flex items-center gap-2">
+            {step > 0 ? (
+              <button
+                className="h-8 cursor-pointer border border-white/30 px-3 text-[0.625rem] tracking-[0.08em] text-white/65 outline-none transition-colors duration-150 hover:border-white/50 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+                type="button"
+                onClick={() => {
+                  setStep((current) => Math.max(current - 1, 0));
+                }}
+              >
+                Back
+              </button>
+            ) : (
+              <button
+                className="h-8 cursor-pointer border border-white/30 px-3 text-[0.625rem] tracking-[0.08em] text-white/65 outline-none transition-colors duration-150 hover:border-white/50 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+                type="button"
+                onClick={close}
+              >
+                Close
+              </button>
+            )}
+            <button
+              className="h-8 cursor-pointer bg-white px-3 text-[0.625rem] font-bold tracking-[0.08em] text-black outline-none transition-colors duration-150 hover:bg-white/85 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+              type="button"
+              onClick={() => {
+                if (isLastStep) {
+                  close();
+                } else {
+                  setStep((current) => current + 1);
+                }
+              }}
+            >
+              {isLastStep ? "Finish" : "Next"}
+            </button>
+          </div>
+        </footer>
+      </section>
     </div>
   );
 }
@@ -274,7 +558,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="identity-font-toolbar-fade-in fixed top-4 right-4 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/75 outline-none transition-[border-color,color] duration-150 hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+      className="group identity-font-toolbar-fade-in fixed top-3 right-6 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/50 outline-none transition-[border-color,color] duration-150 hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white sm:top-5 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
@@ -284,7 +568,7 @@ function FloatingToolbarRestoreButton({
         className="relative flex size-6 items-center justify-center"
       >
         <Menu className="size-5" />
-        <Settings className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px] text-white/80" />
+        <Settings className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px] text-white/45 transition-colors duration-150 group-hover:text-white/80 motion-reduce:transition-none" />
       </span>
     </button>
   );
@@ -491,6 +775,17 @@ function FontSpecimen({
     () => variants.slice(pageStart, pageStart + VARIANTS_PER_PAGE),
     [pageStart, variants],
   );
+  const previewVariants =
+    visibleVariants.length > 0
+      ? visibleVariants
+      : font.preview
+        ? [
+            {
+              id: `${font.id}-preview-placeholder-${currentPage}`,
+              fileName: font.preview.fileName,
+            },
+          ]
+        : [];
 
   useEffect(() => {
     if (visibleVariants.length === 0) return;
@@ -528,7 +823,7 @@ function FontSpecimen({
   return (
     <article
       ref={cardReference}
-      className="group/font-card min-w-0 overflow-x-clip flex min-h-60 flex-col border-t border-white/35 py-4 sm:min-h-[15rem] sm:py-5"
+      className="group/font-card min-w-0 overflow-x-clip flex min-h-60 flex-col border-t border-white/25 py-4 sm:min-h-[15rem] sm:py-5"
     >
       <div className="flex min-w-0 items-start justify-between gap-4 text-[0.625rem] leading-none tracking-[0.12em] text-white/55 uppercase">
         <div className="flex min-w-0 max-w-[45%] items-center gap-2">
@@ -733,9 +1028,10 @@ function FontSpecimen({
       </div>
 
       <div className="mt-8 mb-[1.4rem] min-w-0 space-y-6">
-        {visibleVariants.map((variant) => {
+        {previewVariants.map((variant) => {
           const loadedVariant = loadedVariants[variant.id];
           const familyName = loadedVariant?.familyName;
+          const previewText = specimen || font.name;
           const variantName = variant.fileName
             .replace(/\.[^/.]+$/, "")
             .replaceAll("-", " ")
@@ -744,8 +1040,9 @@ function FontSpecimen({
 
           return (
             <div key={variant.id}>
-              <p
-                className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white ${familyName ? "visible" : "invisible"}`}
+              <div
+                aria-busy={!familyName}
+                className="relative min-w-0 overflow-hidden"
                 style={{
                   backgroundColor,
                   backgroundImage: backgroundImageUrl
@@ -754,6 +1051,28 @@ function FontSpecimen({
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
                   backgroundSize: "cover",
+                }}
+              >
+                <p
+                  aria-hidden="true"
+                  className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
+                  style={{
+                    color: fontColor,
+                    fontSize: `${fontSize}px`,
+                    fontWeight: getPreviewFontWeight(fontWeight),
+                    letterSpacing: `${letterSpacing}em`,
+                    lineHeight,
+                    textAlign: textAlignment,
+                    textShadow: textShadow.enabled
+                      ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                      : undefined,
+                  }}
+                >
+                  {previewText}
+                </p>
+                <p
+                  className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
+                  style={{
                   color: fontColor,
                   fontFamily: familyName,
                   fontSize: `${fontSize}px`,
@@ -768,9 +1087,10 @@ function FontSpecimen({
               >
                 <SupportedPreviewText
                   supportedCodePoints={loadedVariant?.supportedCodePoints}
-                  value={specimen || font.name}
+                  value={previewText}
                 />
               </p>
+              </div>
               {variantTotal > 1 ? (
                 <div className="mt-2 flex min-w-0 justify-end text-[0.625rem] tracking-[0.08em] uppercase">
                   <span
@@ -1744,6 +2064,8 @@ export function IdentityFontsPage() {
       style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
       <ActiveCategoryRail label={activeCategoryLabel} />
+      <ScrollControls />
+      <IdentityFontsOnboarding />
 
       <div className="mx-auto max-w-[92rem]">
         <header className="relative border-b border-white/50 pb-0">
@@ -2659,7 +2981,7 @@ export function IdentityFontsPage() {
                     <button
                       aria-controls={contentId}
                       aria-expanded={!collapsed}
-                      className={`flex shrink-0 cursor-pointer items-center gap-2 font-normal text-white outline-none hover:text-white/75 ${section.label.startsWith("category: ") ? "text-[0.7rem] tracking-normal" : "text-[0.625rem] tracking-[0.12em]"}`}
+                      className={`flex shrink-0 cursor-pointer items-center gap-2 font-normal text-white outline-none ${section.label.startsWith("category: ") ? "text-[calc(0.7rem+1px)] tracking-normal hover:text-white" : "text-[0.625rem] tracking-[0.12em] hover:text-white/75"}`}
                       type="button"
                       onClick={() => {
                         setCollapsedCategoryKeys((current) => {
@@ -2682,10 +3004,10 @@ export function IdentityFontsPage() {
                       <span>
                         {section.label.startsWith("category: ") ? (
                           <>
-                            Category:{" "}
-                            <span className="uppercase">
+                            <strong className="font-medium">Category:</strong>{" "}
+                            <strong className="font-bold uppercase">
                               {section.label.slice("category: ".length)}
-                            </span>
+                            </strong>
                           </>
                         ) : (
                           <span className="uppercase">{section.label}</span>

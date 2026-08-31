@@ -328,6 +328,23 @@ input {
   display: none !important;
 }
 
+.typewriter-cursor {
+  animation: typewriter-cursor-blink 650ms steps(1, end) infinite;
+  font-weight: 500;
+}
+
+@keyframes typewriter-cursor-blink {
+  0%,
+  49.999% {
+    visibility: visible;
+  }
+
+  50%,
+  100% {
+    visibility: hidden;
+  }
+}
+
 @keyframes identity-font-toolbar-fade-in {
   from {
     opacity: 0;
@@ -340,6 +357,10 @@ input {
 
 @media (prefers-reduced-motion: reduce) {
   .identity-font-toolbar-fade-in {
+    animation: none;
+  }
+
+  .typewriter-cursor {
     animation: none;
   }
 }
