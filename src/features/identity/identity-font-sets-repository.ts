@@ -16,6 +16,22 @@ const MAX_SEARCH_LENGTH = 140;
 const MAX_STORED_FONT_IDS = 500;
 const FONT_ID_PATTERN = /^[\w-]{1,200}$/i;
 
+export type TextShadowSettings = {
+  blur: number;
+  enabled: boolean;
+  offsetX: number;
+  offsetY: number;
+  opacity: number;
+};
+
+export const DEFAULT_TEXT_SHADOW: TextShadowSettings = {
+  blur: 0,
+  enabled: false,
+  offsetX: 1,
+  offsetY: 0,
+  opacity: 1,
+};
+
 type FontSetBackground = {
   color: string;
   mode: "color" | "image";
@@ -42,6 +58,11 @@ type FontSetDocument = {
   showOnlyFavorites?: unknown;
   specimen?: unknown;
   textAlignment?: unknown;
+  textShadowBlur?: unknown;
+  textShadowEnabled?: unknown;
+  textShadowOffsetX?: unknown;
+  textShadowOffsetY?: unknown;
+  textShadowOpacity?: unknown;
   updatedAt?: unknown;
   version?: unknown;
 };
@@ -62,6 +83,7 @@ export type IdentityFontSet = {
   showOnlyFavorites: boolean;
   specimen: string;
   textAlignment: "left" | "center" | "right";
+  textShadow: TextShadowSettings;
   updatedAt: Date | null;
 };
 
@@ -83,6 +105,7 @@ export type SaveIdentityFontSetInput = {
   showOnlyFavorites: boolean;
   specimen: string;
   textAlignment: "left" | "center" | "right";
+  textShadow: TextShadowSettings;
 };
 
 function truncateText(value: string, maxLength: number) {
@@ -108,6 +131,28 @@ function serializeFontIds(fontIds: string[]) {
     .filter((fontId) => FONT_ID_PATTERN.test(fontId))
     .slice(0, MAX_STORED_FONT_IDS)
     .join(",");
+}
+
+function readTextShadow(value: FontSetDocument): TextShadowSettings {
+  return {
+    enabled: value.textShadowEnabled === true,
+    offsetX:
+      typeof value.textShadowOffsetX === "number"
+        ? value.textShadowOffsetX
+        : DEFAULT_TEXT_SHADOW.offsetX,
+    offsetY:
+      typeof value.textShadowOffsetY === "number"
+        ? value.textShadowOffsetY
+        : DEFAULT_TEXT_SHADOW.offsetY,
+    blur:
+      typeof value.textShadowBlur === "number"
+        ? value.textShadowBlur
+        : DEFAULT_TEXT_SHADOW.blur,
+    opacity:
+      typeof value.textShadowOpacity === "number"
+        ? value.textShadowOpacity
+        : DEFAULT_TEXT_SHADOW.opacity,
+  };
 }
 
 function normalizeFileName(fileName: string) {
@@ -209,6 +254,7 @@ function readFontSet(
     showOnlyFavorites: value.showOnlyFavorites === true,
     specimen: value.specimen,
     textAlignment: value.textAlignment,
+    textShadow: readTextShadow(value),
     updatedAt: toDateOrNull(value.updatedAt),
   } satisfies IdentityFontSet;
 }
@@ -346,6 +392,11 @@ export async function saveIdentityFontSet(input: SaveIdentityFontSetInput) {
     showOnlyFavorites: input.showOnlyFavorites,
     specimen,
     textAlignment: input.textAlignment,
+    textShadowBlur: input.textShadow.blur,
+    textShadowEnabled: input.textShadow.enabled,
+    textShadowOffsetX: input.textShadow.offsetX,
+    textShadowOffsetY: input.textShadow.offsetY,
+    textShadowOpacity: input.textShadow.opacity,
     updatedAt: serverTimestamp(),
     version: FONT_SET_VERSION,
   });

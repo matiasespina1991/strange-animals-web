@@ -40,9 +40,11 @@ import {
   type FontVariant,
 } from "./font-catalog-repository";
 import {
+  DEFAULT_TEXT_SHADOW,
   listIdentityFontSets,
   saveIdentityFontSet,
   type IdentityFontSet,
+  type TextShadowSettings,
 } from "./identity-font-sets-repository";
 import {
   EMPTY_IDENTITY_FONT_PREFERENCES,
@@ -182,21 +184,19 @@ type BackgroundImage = {
 };
 
 type TextAlignment = "left" | "center" | "right";
-type FontWeight = 300 | "normal" | 800;
+type FontWeight = "normal" | 800;
 
 function getPreviewFontWeight(fontWeight: FontWeight) {
   return fontWeight === "normal" ? undefined : fontWeight;
 }
 
 function readFontWeight(value: string): FontWeight {
-  if (value === "300") return 300;
   if (value === "800") return 800;
 
   return "normal";
 }
 
-function serializeFontWeight(fontWeight: FontWeight): "300" | "normal" | "800" {
-  if (fontWeight === 300) return "300";
+function serializeFontWeight(fontWeight: FontWeight): "normal" | "800" {
   if (fontWeight === 800) return "800";
   return "normal";
 }
@@ -384,6 +384,7 @@ function FontSpecimen({
   letterSpacing,
   lineHeight,
   textAlignment,
+  textShadow,
   deleting,
   categoryUpdating,
   visibilityUpdating,
@@ -408,6 +409,7 @@ function FontSpecimen({
   letterSpacing: number;
   lineHeight: number;
   textAlignment: TextAlignment;
+  textShadow: TextShadowSettings;
   deleting: boolean;
   categoryUpdating: boolean;
   visibilityUpdating: boolean;
@@ -759,6 +761,9 @@ function FontSpecimen({
                   letterSpacing: `${letterSpacing}em`,
                   lineHeight,
                   textAlign: textAlignment,
+                  textShadow: textShadow.enabled
+                    ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                    : undefined,
                 }}
               >
                 <SupportedPreviewText
@@ -811,27 +816,14 @@ function FontWeightControl({
       </span>
       <div
         aria-label="Font weight"
-        className="grid shrink-0 grid-cols-3 border border-white/35"
+        className="grid shrink-0 grid-cols-2 border border-white/35"
         role="group"
       >
-        <button
-          aria-label="Light font weight"
-          aria-pressed={value === 300}
-          className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 300 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontWeight: 300 }}
-          title="Light"
-          type="button"
-          onClick={() => {
-            onChange(300);
-          }}
-        >
-          <span aria-hidden="true">B</span>
-        </button>
         <button
           aria-label="Normal font weight"
           aria-pressed={value === "normal"}
           className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === "normal" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontWeight: 400 }}
+          style={{ fontWeight: 100 }}
           title="Normal"
           type="button"
           onClick={() => {
@@ -844,7 +836,7 @@ function FontWeightControl({
           aria-label="Bold font weight"
           aria-pressed={value === 800}
           className={`flex size-8 cursor-pointer items-center justify-center text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 800 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontWeight: 800 }}
+          style={{ fontWeight: 900 }}
           title="Bold"
           type="button"
           onClick={() => {
@@ -912,7 +904,10 @@ export function IdentityFontsPage() {
   const [lineHeight, setLineHeight] = useState(DEFAULT_LINE_HEIGHT);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [showFontSizeValue, setShowFontSizeValue] = useState(false);
+  const [pendingFontSize, setPendingFontSize] = useState<number>();
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
+  const [textShadow, setTextShadow] =
+    useState<TextShadowSettings>(DEFAULT_TEXT_SHADOW);
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState("#ffffff");
   const [fontColorSettingsOpen, setFontColorSettingsOpen] = useState(false);
@@ -989,6 +984,10 @@ export function IdentityFontsPage() {
   } = useFloatingToolbar();
 
   useEffect(() => {
+    setToolbarMinimized(toolbarFloating);
+  }, [toolbarFloating]);
+
+  useEffect(() => {
     const clearSnackbarTimeout = () => {
       if (snackbarTimeoutReference.current === undefined) return;
 
@@ -1048,6 +1047,11 @@ export function IdentityFontsPage() {
       setShowFontSizeValue(false);
       fontSizeValueTimeoutReference.current = undefined;
     }, delay);
+  };
+
+  const commitFontSize = (nextFontSize: number) => {
+    setFontSize(nextFontSize);
+    setPendingFontSize(undefined);
   };
 
   useEffect(() => {
@@ -1663,6 +1667,7 @@ export function IdentityFontsPage() {
         showOnlyFavorites: fontPreferences.showOnlyFavorites,
         specimen,
         textAlignment,
+        textShadow,
       });
 
       setSetActionMessage("Set saved.");
@@ -1699,6 +1704,7 @@ export function IdentityFontsPage() {
     setLineHeight(selectedSavedSet.lineHeight);
     setLetterSpacing(selectedSavedSet.letterSpacing);
     setTextAlignment(selectedSavedSet.textAlignment);
+    setTextShadow(selectedSavedSet.textShadow);
 
     if (
       selectedSavedSet.background.mode === "image" &&
@@ -1848,7 +1854,7 @@ export function IdentityFontsPage() {
             </button>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50">
+              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/75">
                 Demo text
               </span>
               <textarea
@@ -1863,7 +1869,7 @@ export function IdentityFontsPage() {
             </label>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/50">
+              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/75">
                 Search fonts
               </span>
               <input
@@ -1881,7 +1887,7 @@ export function IdentityFontsPage() {
                 ref={fontColorSettingsReference}
                 className="relative block w-[5.25rem] shrink-0 sm:w-[7rem] xl:-mr-4"
               >
-                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 xl:text-left">
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/75 xl:text-left">
                   Font color
                 </span>
                 <span className="flex h-10 items-center justify-center xl:justify-start">
@@ -1966,7 +1972,7 @@ export function IdentityFontsPage() {
                 ref={backgroundSettingsReference}
                 className="relative w-[5.25rem] shrink-0 self-start sm:w-[7rem] xl:-mr-2"
               >
-                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/50 xl:text-left">
+                <span className="mb-2 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.12em] text-white/75 xl:text-left">
                   Background
                 </span>
                 <span className="flex h-10 items-center justify-center xl:justify-start">
@@ -2153,15 +2159,15 @@ export function IdentityFontsPage() {
               ref={typographySettingsReference}
               className="relative col-span-2 flex items-start self-start gap-6 justify-self-center pt-0 xl:justify-self-start xl:pt-[1.125rem] xl:-ml-4 xl:col-span-1"
             >
-              <label className="flex h-11 w-52 items-center gap-3 text-white/70 md:h-10 md:w-28">
+              <label className="flex h-11 w-52 items-center gap-3 text-white/70 md:h-10 md:w-40">
                 <span aria-hidden="true" className="text-sm">
                   A
                 </span>
                 <span className="sr-only">Text size</span>
                 <span className="relative flex flex-1 items-center">
                   {showFontSizeValue ? (
-                    <span className="pointer-events-none absolute -top-4 left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2 py-[1px] text-[0.5rem] leading-none tracking-[0.08em] text-white/70 uppercase">
-                      {fontSize}px
+                    <span className="pointer-events-none absolute -top-[1.5625rem] left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2.5 py-px text-[0.625rem] leading-none tracking-[0.08em] text-white/70 uppercase">
+                      {pendingFontSize ?? fontSize}px
                     </span>
                   ) : null}
                   <input
@@ -2175,23 +2181,34 @@ export function IdentityFontsPage() {
                     min="8"
                     step="1"
                     type="range"
-                    value={fontSize}
+                    value={pendingFontSize ?? fontSize}
                     onBlur={() => {
+                      commitFontSize(pendingFontSize ?? fontSize);
                       scheduleHideFontSizeValue(250);
                     }}
                     onChange={(event) => {
                       setShowFontSizeValue(true);
-                      setFontSize(Number(event.target.value));
-                      scheduleHideFontSizeValue();
+                      setPendingFontSize(Number(event.target.value));
                     }}
                     onFocus={() => {
                       setShowFontSizeValue(true);
+                    }}
+                    onKeyUp={(event) => {
+                      commitFontSize(Number(event.currentTarget.value));
+                    }}
+                    onPointerEnter={() => {
+                      setShowFontSizeValue(true);
+                      clearFontSizeValueTimeout();
+                    }}
+                    onPointerLeave={() => {
+                      scheduleHideFontSizeValue(250);
                     }}
                     onPointerDown={() => {
                       setShowFontSizeValue(true);
                       clearFontSizeValueTimeout();
                     }}
-                    onPointerUp={() => {
+                    onPointerUp={(event) => {
+                      commitFontSize(Number(event.currentTarget.value));
                       scheduleHideFontSizeValue(250);
                     }}
                   />
@@ -2234,6 +2251,7 @@ export function IdentityFontsPage() {
                         setLetterSpacing(DEFAULT_LETTER_SPACING);
                         setTextAlignment("left");
                         setFontWeight("normal");
+                        setTextShadow(DEFAULT_TEXT_SHADOW);
                       }}
                     >
                       Reset
@@ -2303,6 +2321,121 @@ export function IdentityFontsPage() {
                     value={fontWeight}
                     onChange={setFontWeight}
                   />
+
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                        Text shadow
+                      </span>
+                      <button
+                        aria-checked={textShadow.enabled}
+                        aria-label="Toggle text shadow"
+                        className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        role="switch"
+                        type="button"
+                        onClick={() => {
+                          setTextShadow((current) => ({
+                            ...current,
+                            enabled: !current.enabled,
+                          }));
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
+                        />
+                        <span
+                          aria-hidden="true"
+                          className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${textShadow.enabled ? "translate-x-[1.375rem]" : "translate-x-0"}`}
+                        />
+                      </button>
+                    </div>
+
+                    {textShadow.enabled ? (
+                      <div className="mt-4 space-y-4 border-t border-white/15 pt-4">
+                        <label className="block">
+                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                            <span>X offset</span>
+                            <span>{textShadow.offsetX}px</span>
+                          </span>
+                          <input
+                            className="identity-font-size-slider block w-full"
+                            max="20"
+                            min="-20"
+                            step="1"
+                            type="range"
+                            value={textShadow.offsetX}
+                            onChange={(event) => {
+                              setTextShadow((current) => ({
+                                ...current,
+                                offsetX: Number(event.target.value),
+                              }));
+                            }}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                            <span>Y offset</span>
+                            <span>{textShadow.offsetY}px</span>
+                          </span>
+                          <input
+                            className="identity-font-size-slider block w-full"
+                            max="20"
+                            min="-20"
+                            step="1"
+                            type="range"
+                            value={textShadow.offsetY}
+                            onChange={(event) => {
+                              setTextShadow((current) => ({
+                                ...current,
+                                offsetY: Number(event.target.value),
+                              }));
+                            }}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                            <span>Blur</span>
+                            <span>{textShadow.blur}px</span>
+                          </span>
+                          <input
+                            className="identity-font-size-slider block w-full"
+                            max="20"
+                            min="0"
+                            step="1"
+                            type="range"
+                            value={textShadow.blur}
+                            onChange={(event) => {
+                              setTextShadow((current) => ({
+                                ...current,
+                                blur: Number(event.target.value),
+                              }));
+                            }}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                            <span>Opacity</span>
+                            <span>{Math.round(textShadow.opacity * 100)}%</span>
+                          </span>
+                          <input
+                            className="identity-font-size-slider block w-full"
+                            max="1"
+                            min="0"
+                            step="0.05"
+                            type="range"
+                            value={textShadow.opacity}
+                            onChange={(event) => {
+                              setTextShadow((current) => ({
+                                ...current,
+                                opacity: Number(event.target.value),
+                              }));
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ) : null}
+                  </div>
 
                   <label className="block">
                     <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
@@ -2598,6 +2731,7 @@ export function IdentityFontsPage() {
                           )}
                           preferenceControlsEnabled={fontPreferencesReady}
                           textAlignment={textAlignment}
+                          textShadow={textShadow}
                           onDelete={setFontPendingDeletion}
                           onFavoriteChange={toggleFavorite}
                           onEnabledChange={(nextFont, enabled) => {
