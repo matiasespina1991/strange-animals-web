@@ -462,7 +462,7 @@ function IdentityFontsOnboarding() {
       role="dialog"
     >
       <section
-        className="relative w-full max-w-lg border border-white/35 bg-black p-5 shadow-none sm:p-6"
+        className="relative w-full max-w-lg border border-white/25 bg-black p-5 shadow-none sm:p-6"
         style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
       >
         <div className="absolute top-4 right-14 flex h-7 items-center text-[0.625rem] tracking-[0.08em] text-white/45">
@@ -526,7 +526,7 @@ function IdentityFontsOnboarding() {
               </button>
             )}
             <button
-              className="h-8 cursor-pointer bg-white px-3 text-[0.625rem] font-bold tracking-[0.08em] text-black outline-none transition-colors duration-150 hover:bg-white/85 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+              className="h-8 cursor-pointer bg-white px-3 text-[0.625rem] font-bold tracking-[0.08em] text-black outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
               type="button"
               onClick={() => {
                 if (isLastStep) {
