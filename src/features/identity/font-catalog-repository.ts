@@ -46,6 +46,7 @@ type FontFileDocument = {
   fileName?: unknown;
   kind?: unknown;
   relativePath?: unknown;
+  previewEnabled?: unknown;
   storagePath?: unknown;
 };
 
@@ -73,6 +74,7 @@ export type FontVariant = {
   extension: string;
   fileName: string;
   relativePath: string;
+  previewEnabled: boolean;
   storagePath: string;
 };
 
@@ -397,6 +399,31 @@ export async function updateFontEnabled(
   });
 }
 
+export async function updateFontVariantPreviewEnabled(
+  font: FontCatalogItem,
+  variant: FontVariant,
+  previewEnabled: boolean,
+) {
+  await updateDoc(doc(firebaseDb, "fonts", font.id, "files", variant.id), {
+    previewEnabled,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteFontVariant(
+  font: FontCatalogItem,
+  variant: FontVariant,
+) {
+  try {
+    await deleteObject(ref(firebaseStorage, variant.storagePath));
+  } catch (error: unknown) {
+    if (!isMissingStorageObject(error)) throw error;
+  }
+
+  await deleteDoc(doc(firebaseDb, "fonts", font.id, "files", variant.id));
+  fontLoads.delete(`${font.id}:${variant.id}`);
+}
+
 export async function updateFontUseCases(
   font: FontCatalogItem,
   useCases: string[],
@@ -425,6 +452,7 @@ export async function listFontVariants(font: FontCatalogItem) {
 
       if (
         value.enabled !== true ||
+        (!import.meta.env.DEV && value.previewEnabled === false) ||
         value.kind !== "font" ||
         typeof value.fileName !== "string" ||
         typeof value.relativePath !== "string" ||
@@ -443,6 +471,7 @@ export async function listFontVariants(font: FontCatalogItem) {
             : `font/${value.extension}`,
         extension: value.extension,
         fileName: value.fileName,
+        previewEnabled: value.previewEnabled !== false,
         relativePath: value.relativePath,
         storagePath: value.storagePath,
       } satisfies FontVariant;

@@ -124,6 +124,16 @@ input {
   scrollbar-width: none;
 }
 
+.retro-scrollbar-content {
+  scrollbar-width: none;
+}
+
+.retro-scrollbar-content::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
 .webamp-skin-scrollbar .webamp-skin-tile {
   background: #000 !important;
   color: rgb(255 255 255 / 0.9) !important;
