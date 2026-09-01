@@ -39,11 +39,11 @@
         "destination": "/route-meta/listen-sajs001cd.html"
       },
       {
-        "source": "/identity/typography/fonts",
+        "source": "/identity/typography/typefaces",
         "destination": "/route-meta/identity-fonts.html"
       },
       {
-        "source": "/identity/typography/fonts/**",
+        "source": "/identity/typography/typefaces/**",
         "destination": "/route-meta/identity-fonts.html"
       },
       {
@@ -54,22 +54,32 @@
     "redirects": [
       {
         "source": "/identity/fonts",
-        "destination": "/identity/typography/fonts",
+        "destination": "/identity/typography/typefaces",
         "type": 301
       },
       {
         "source": "/identity/fonts/**",
-        "destination": "/identity/typography/fonts",
+        "destination": "/identity/typography/typefaces",
         "type": 301
       },
       {
         "source": "/identity/typefaces/fonts",
-        "destination": "/identity/typography/fonts",
+        "destination": "/identity/typography/typefaces",
         "type": 301
       },
       {
         "source": "/identity/typefaces/fonts/**",
-        "destination": "/identity/typography/fonts",
+        "destination": "/identity/typography/typefaces",
+        "type": 301
+      },
+      {
+        "source": "/fonts",
+        "destination": "/identity/typography/typefaces",
+        "type": 301
+      },
+      {
+        "source": "/fonts/**",
+        "destination": "/identity/typography/typefaces",
         "type": 301
       }
     ]
