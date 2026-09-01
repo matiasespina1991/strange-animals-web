@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { RetroScrollbar } from "@/components/RetroScrollbar";
 import { TypewriterText } from "@/components/TypewriterText";
+import { smoothWindowScrollTo } from "@/lib/smooth-scroll";
 import {
   ArrowLeftRight,
   AlignCenter,
@@ -30,12 +32,14 @@ import {
 } from "lucide-react";
 import {
   deleteFontCatalogItem,
+  deleteFontVariant,
   downloadFontFamily,
   listFontCatalog,
   listFontVariants,
   loadFontVariant,
   updateFontEnabled,
   updateFontParentCategory,
+  updateFontVariantPreviewEnabled,
   updateFontUseCases,
   type FontCatalogItem,
   type LoadedFontVariant,
@@ -574,27 +578,116 @@ function FloatingToolbarRestoreButton({
   );
 }
 
-function ActiveCategoryRail({ label }: { label?: string }) {
-  if (!label) return null;
+type CategoryRailItem = {
+  active: boolean;
+  name: string;
+  sectionKey?: string;
+};
+
+function ActiveCategoryRail({
+  categories,
+  label,
+  onCategorySelect,
+}: {
+  categories: CategoryRailItem[];
+  label?: string;
+  onCategorySelect: (sectionKey: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const railReference = useRef<HTMLElement>(null);
+  const categoryName = label?.startsWith("category: ")
+    ? label.slice("category: ".length)
+    : undefined;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !railReference.current?.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const closeOnKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnKeyDown);
+    };
+  }, [open]);
+
+  if (!categoryName) return null;
 
   return (
     <aside
-      key={label}
-      aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed bottom-6 left-2.5 z-20 flex -translate-x-1/2 sm:left-4 lg:left-5 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
+      ref={railReference}
+      className="identity-font-toolbar-fade-in fixed bottom-6 left-2.5 z-20 flex -translate-x-1/2 sm:left-4 lg:left-5 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
     >
       <span className="rotate-180 text-[clamp(0.7rem,0.7vw,1rem)] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
-        {label.startsWith("category: ") ? (
-          <>
-            category:{" "}
-            <strong className="font-bold">
-              {label.slice("category: ".length).toLocaleUpperCase()}
-            </strong>
-          </>
-        ) : (
-          label
-        )}
+        <button
+          aria-controls="active-category-menu"
+          aria-expanded={open}
+          className="group cursor-pointer border-0 bg-transparent p-0 font-inherit text-inherit outline-none"
+          type="button"
+          onClick={() => {
+            setOpen((current) => !current);
+          }}
+        >
+          <span className="transition-colors duration-150 group-hover:text-white group-focus-visible:text-white motion-reduce:transition-none">
+            category
+          </span>
+        </button>
+        :{" "}
+        <strong className="font-bold text-white">
+          {categoryName.toLocaleUpperCase()}
+        </strong>
       </span>
+
+      {open ? (
+        <div
+          className="absolute bottom-0 left-full ml-3 w-48 border border-white/25 bg-black p-1"
+          id="active-category-menu"
+        >
+          <p className="px-1 py-1 text-left text-[0.55rem] tracking-[0.1em] text-white/75">
+            Jump to:
+          </p>
+          <RetroScrollbar className="flex max-h-[calc(50vh-1.75rem)] flex-col gap-px">
+            {categories.map((category) => {
+              const selected = category.name === categoryName;
+
+              return (
+                <button
+                  key={category.name}
+                  aria-current={selected ? "true" : undefined}
+                  className={`min-h-8 border px-2 py-1 text-left text-[0.55rem] leading-tight tracking-[0.06em] uppercase outline-none transition-colors duration-150 motion-reduce:transition-none ${
+                    category.active
+                      ? `cursor-pointer border-white/15 text-white/65 hover:border-white/35 hover:bg-white/10 hover:text-white focus-visible:border-white/50 focus-visible:bg-white/10 focus-visible:text-white ${selected ? "bg-white/10 text-white" : ""}`
+                      : "cursor-not-allowed border-white/10 text-white/20"
+                  }`}
+                  disabled={!category.active}
+                  type="button"
+                  onClick={() => {
+                    if (!category.sectionKey) return;
+
+                    onCategorySelect(category.sectionKey);
+                    setOpen(false);
+                  }}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
+          </RetroScrollbar>
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -714,10 +807,17 @@ function FontSpecimen({
 }) {
   const cardReference = useRef<HTMLElement>(null);
   const [variants, setVariants] = useState<FontVariant[]>([]);
+  const [variantsLoaded, setVariantsLoaded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [loadedVariants, setLoadedVariants] = useState<
     Record<string, LoadedFontVariant>
   >({});
+  const [previewUpdatingVariantIds, setPreviewUpdatingVariantIds] = useState<
+    Set<string>
+  >(new Set());
+  const [deletingVariantIds, setDeletingVariantIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
@@ -731,6 +831,7 @@ function FontSpecimen({
     const load = () => {
       if (started) return;
       started = true;
+      setVariantsLoaded(false);
 
       listFontVariants(font)
         .then((nextVariants) => {
@@ -738,6 +839,7 @@ function FontSpecimen({
 
           setVariants(nextVariants);
           setCurrentPage(0);
+          setVariantsLoaded(true);
         })
         .catch(() => undefined);
     };
@@ -767,8 +869,7 @@ function FontSpecimen({
     };
   }, [font]);
 
-  const variantTotal =
-    variants.length > 0 ? variants.length : font.variantCount;
+  const variantTotal = variantsLoaded ? variants.length : font.variantCount;
   const pageTotal = Math.ceil(variantTotal / VARIANTS_PER_PAGE);
   const pageStart = currentPage * VARIANTS_PER_PAGE;
   const visibleVariants = useMemo(
@@ -778,11 +879,12 @@ function FontSpecimen({
   const previewVariants =
     visibleVariants.length > 0
       ? visibleVariants
-      : font.preview
+      : !variantsLoaded && font.preview
         ? [
             {
               id: `${font.id}-preview-placeholder-${currentPage}`,
               fileName: font.preview.fileName,
+              previewEnabled: true,
             },
           ]
         : [];
@@ -820,6 +922,60 @@ function FontSpecimen({
       });
   };
 
+  const changeVariantPreviewVisibility = (
+    variant: FontVariant,
+    previewEnabled: boolean,
+  ) => {
+    const previousValue = variant.previewEnabled;
+
+    setPreviewUpdatingVariantIds((current) => new Set(current).add(variant.id));
+    setVariants((current) =>
+      current.map((item) =>
+        item.id === variant.id ? { ...item, previewEnabled } : item,
+      ),
+    );
+
+    void updateFontVariantPreviewEnabled(font, variant, previewEnabled)
+      .catch(() => {
+        setVariants((current) =>
+          current.map((item) =>
+            item.id === variant.id
+              ? { ...item, previewEnabled: previousValue }
+              : item,
+          ),
+        );
+      })
+      .finally(() => {
+        setPreviewUpdatingVariantIds((current) => {
+          const next = new Set(current);
+          next.delete(variant.id);
+          return next;
+        });
+      });
+  };
+
+  const deleteVariant = (variant: FontVariant) => {
+    setDeletingVariantIds((current) => new Set(current).add(variant.id));
+
+    void deleteFontVariant(font, variant)
+      .then(() => {
+        setVariants((current) =>
+          current.filter((item) => item.id !== variant.id),
+        );
+        setLoadedVariants((current) => {
+          const { [variant.id]: _, ...next } = current;
+          return next;
+        });
+      })
+      .finally(() => {
+        setDeletingVariantIds((current) => {
+          const next = new Set(current);
+          next.delete(variant.id);
+          return next;
+        });
+      });
+  };
+
   return (
     <article
       ref={cardReference}
@@ -848,7 +1004,7 @@ function FontSpecimen({
             <button
               aria-checked={font.enabled}
               aria-label={`${font.enabled ? "Hide" : "Show"} ${font.name} in production`}
-              className="flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] text-white/40 normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35"
+              className={`flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35 ${font.enabled ? "text-white/40" : "text-red-400"}`}
               disabled={visibilityUpdating}
               role="switch"
               title={`${font.enabled ? "Visible" : "Hidden"} in production`}
@@ -857,8 +1013,8 @@ function FontSpecimen({
                 onEnabledChange(font, !font.enabled);
               }}
             >
-              <span className={font.enabled ? "" : "text-white/80"}>off</span>
-              <span className="relative h-3 w-6 border border-white/30">
+              <span className={font.enabled ? "" : "text-red-400"}>off</span>
+              <span className={`relative h-3 w-6 border ${font.enabled ? "border-white/30" : "border-red-400/70"}`}>
                 <span
                   aria-hidden="true"
                   className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${font.enabled ? "translate-x-3" : "translate-x-0"}`}
@@ -1037,22 +1193,24 @@ function FontSpecimen({
             .replaceAll("-", " ")
             .replace(/\s+/g, " ")
             .trim();
+          const isStoredVariant = "relativePath" in variant;
 
           return (
             <div key={variant.id}>
-              <div
-                aria-busy={!familyName}
-                className="relative min-w-0 overflow-hidden"
-                style={{
-                  backgroundColor,
-                  backgroundImage: backgroundImageUrl
-                    ? `url(${backgroundImageUrl})`
-                    : undefined,
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                  backgroundSize: "cover",
-                }}
-              >
+              {variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS ? (
+                <div
+                  aria-busy={!familyName}
+                  className="relative min-w-0 overflow-hidden"
+                  style={{
+                    backgroundColor,
+                    backgroundImage: backgroundImageUrl
+                      ? `url(${backgroundImageUrl})`
+                      : undefined,
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "cover",
+                  }}
+                >
                 <p
                   aria-hidden="true"
                   className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
@@ -1090,8 +1248,9 @@ function FontSpecimen({
                   value={previewText}
                 />
               </p>
-              </div>
-              {variantTotal > 1 ? (
+                </div>
+              ) : null}
+              {variantTotal > 1 || SHOW_FONT_DELETE_CONTROLS ? (
                 <div className="mt-2 flex min-w-0 justify-end text-[0.625rem] tracking-[0.08em] uppercase">
                   <span
                     className="min-w-0 overflow-hidden text-right text-white/70 text-ellipsis whitespace-nowrap"
@@ -1099,6 +1258,45 @@ function FontSpecimen({
                   >
                     {variantName}
                   </span>
+                  {SHOW_FONT_DELETE_CONTROLS && isStoredVariant ? (
+                    <>
+                    <button
+                      aria-checked={variant.previewEnabled}
+                      aria-label={`${variant.previewEnabled ? "Hide" : "Show"} ${variantName} preview`}
+                      className={`ml-3 flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35 ${variant.previewEnabled ? "text-white/40" : "text-red-400"}`}
+                      disabled={previewUpdatingVariantIds.has(variant.id)}
+                      role="switch"
+                      type="button"
+                      onClick={() => {
+                        changeVariantPreviewVisibility(
+                          variant,
+                          !variant.previewEnabled,
+                        );
+                      }}
+                    >
+                      <span className={variant.previewEnabled ? "" : "text-red-400"}>off</span>
+                      <span className={`relative h-3 w-6 border ${variant.previewEnabled ? "border-white/30" : "border-red-400/70"}`}>
+                        <span
+                          aria-hidden="true"
+                          className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${variant.previewEnabled ? "translate-x-3" : "translate-x-0"}`}
+                        />
+                      </span>
+                      <span className={variant.previewEnabled ? "text-white/80" : ""}>on</span>
+                    </button>
+                    <button
+                      aria-label={`Delete ${variantName}`}
+                      className="ml-2 flex size-5 shrink-0 cursor-pointer items-center justify-center text-white/40 outline-none transition-colors duration-150 hover:text-red-400 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:text-white/20"
+                      disabled={deletingVariantIds.has(variant.id)}
+                      title={`Delete ${variantName}`}
+                      type="button"
+                      onClick={() => {
+                        deleteVariant(variant);
+                      }}
+                    >
+                      <Trash2 aria-hidden="true" className="size-3" />
+                    </button>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -1293,6 +1491,7 @@ export function IdentityFontsPage() {
   const fileMenuReference = useRef<HTMLDivElement>(null);
   const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
+  const categoryNavigationCleanupReference = useRef<(() => void)>();
   const fontSizeValueTimeoutReference = useRef<number>();
   const fontPreferencesReference = useRef(fontPreferences);
   const snackbarTimeoutReference = useRef<number>();
@@ -1306,6 +1505,12 @@ export function IdentityFontsPage() {
   useEffect(() => {
     setToolbarMinimized(toolbarFloating);
   }, [toolbarFloating]);
+
+  useEffect(() => {
+    return () => {
+      categoryNavigationCleanupReference.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     const clearSnackbarTimeout = () => {
@@ -1791,6 +1996,104 @@ export function IdentityFontsPage() {
     [fontSections],
   );
 
+  const categoryRailItems = useMemo(() => {
+    const visibleSectionKeys = new Map(
+      fontSections
+        .filter((section) => section.label.startsWith("category: "))
+        .map((section) => [section.name, section.key]),
+    );
+
+    return categoriesInUse.map((name) => ({
+      active: visibleSectionKeys.has(name),
+      name,
+      sectionKey: visibleSectionKeys.get(name),
+    }));
+  }, [categoriesInUse, fontSections]);
+
+  const selectCategoryFromRail = (sectionKey: string) => {
+    categoryNavigationCleanupReference.current?.();
+
+    const categoryHeader = document.getElementById(
+      `font-category-${sectionKey}`,
+    );
+
+    if (!categoryHeader) return;
+
+    const rootFontSize = Number.parseFloat(
+      window.getComputedStyle(document.documentElement).fontSize,
+    );
+    const topOffset = rootFontSize * 5;
+    let disposed = false;
+    let initialAnimationFrame: number | undefined;
+    let realignTimeout: number | undefined;
+    let cancelScrollAnimation: (() => void) | undefined;
+    let requestedTop: number | undefined;
+
+    const alignToCategory = () => {
+      if (disposed) return;
+
+      const nextTop = Math.max(
+        categoryHeader.getBoundingClientRect().top +
+          window.scrollY -
+          topOffset,
+        0,
+      );
+
+      if (
+        requestedTop !== undefined &&
+        Math.abs(requestedTop - nextTop) < 2
+      ) {
+        return;
+      }
+
+      cancelScrollAnimation?.();
+      requestedTop = nextTop;
+      cancelScrollAnimation = smoothWindowScrollTo({ top: nextTop });
+    };
+    const scheduleRealignment = () => {
+      if (disposed) return;
+
+      if (realignTimeout !== undefined) {
+        window.clearTimeout(realignTimeout);
+      }
+
+      realignTimeout = window.setTimeout(alignToCategory, 180);
+    };
+
+    initialAnimationFrame = window.requestAnimationFrame(alignToCategory);
+
+    const catalog = fontCatalogReference.current;
+    const resizeObserver =
+      catalog && "ResizeObserver" in window
+        ? new ResizeObserver(scheduleRealignment)
+        : undefined;
+
+    if (catalog && resizeObserver) resizeObserver.observe(catalog);
+
+    const verificationTimeouts = [700, 1400, 2400].map((delay) =>
+      window.setTimeout(scheduleRealignment, delay),
+    );
+    let cleanupTimeout: number | undefined;
+    const cleanup = () => {
+      disposed = true;
+      resizeObserver?.disconnect();
+      if (initialAnimationFrame !== undefined) {
+        window.cancelAnimationFrame(initialAnimationFrame);
+      }
+      cancelScrollAnimation?.();
+      if (realignTimeout !== undefined) window.clearTimeout(realignTimeout);
+      verificationTimeouts.forEach((timeout) => window.clearTimeout(timeout));
+      if (cleanupTimeout !== undefined) window.clearTimeout(cleanupTimeout);
+
+      if (categoryNavigationCleanupReference.current === cleanup) {
+        categoryNavigationCleanupReference.current = undefined;
+      }
+    };
+
+    categoryNavigationCleanupReference.current = cleanup;
+    cleanupTimeout = window.setTimeout(cleanup, 3000);
+  };
+
   const changeParentCategory = async (
     font: FontCatalogItem,
     parentCategory: string | null,
@@ -2063,7 +2366,11 @@ export function IdentityFontsPage() {
       className="min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
       style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
-      <ActiveCategoryRail label={activeCategoryLabel} />
+      <ActiveCategoryRail
+        categories={categoryRailItems}
+        label={activeCategoryLabel}
+        onCategorySelect={selectCategoryFromRail}
+      />
       <ScrollControls />
       <IdentityFontsOnboarding />
 
@@ -2976,6 +3283,11 @@ export function IdentityFontsPage() {
                     className={`flex items-center gap-4 ${collapsed ? "" : "mb-2"}`}
                     data-font-category-label={
                       section.key === "pinned" ? undefined : section.label
+                    }
+                    id={
+                      section.key === "pinned"
+                        ? undefined
+                        : `font-category-${section.key}`
                     }
                   >
                     <button

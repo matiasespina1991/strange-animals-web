@@ -191,6 +191,13 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function isValidFontFilePreviewUpdate(data) {
+      return data.diff(resource.data).affectedKeys()
+          .hasOnly(['previewEnabled', 'updatedAt'])
+        && data.previewEnabled is bool
+        && data.updatedAt == request.time;
+    }
+
     match /users/{browserId} {
       // Listing is intentionally denied. The random cookie ID acts as the
       // document capability for users sharing the fixed identity Auth account.
@@ -269,7 +276,9 @@ service cloud.firestore {
       match /files/{fileId} {
         allow read: if hasIdentityAccess();
         allow delete: if hasIdentityAccess();
-        allow create, update: if false;
+        allow create: if false;
+        allow update: if hasIdentityAccess()
+          && isValidFontFilePreviewUpdate(request.resource.data);
       }
     }
 
