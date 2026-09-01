@@ -90,14 +90,25 @@ function getSupportedPreviewText(
   if (!supportedCodePoints) return value;
 
   return Array.from(value)
-    .filter((character) => {
+    .map((character) => {
       const codePoint = character.codePointAt(0);
 
-      return (
-        codePoint === undefined ||
-        /\s/u.test(character) ||
-        supportedCodePoints.has(codePoint)
-      );
+      if (codePoint === undefined || /\s/u.test(character)) return character;
+      if (supportedCodePoints.has(codePoint)) return character;
+
+      const upperCharacter = character.toLocaleUpperCase();
+      if (Array.from(upperCharacter).length !== 1) return "";
+
+      const upperCodePoint = upperCharacter.codePointAt(0);
+
+      if (
+        upperCodePoint !== undefined &&
+        supportedCodePoints.has(upperCodePoint)
+      ) {
+        return upperCharacter;
+      }
+
+      return "";
     })
     .join("");
 }
