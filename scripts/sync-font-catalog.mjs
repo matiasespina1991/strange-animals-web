@@ -28,6 +28,7 @@ const WRITE_FIRESTORE_FILES_ONLY = process.argv.includes(
 const WRITE_FIRESTORE =
   process.argv.includes('--write-firestore') || WRITE_FIRESTORE_FILES_ONLY;
 const UPLOAD_STORAGE = process.argv.includes('--upload-storage');
+const ENABLED = !process.argv.includes('--disabled');
 const INCLUDED_SOURCE_FOLDERS = new Set(readOptions('--include-folder'));
 
 function readOption(name) {
@@ -246,7 +247,7 @@ async function buildCatalog() {
         sortName: displayName.normalize('NFKD').toLocaleLowerCase(),
         sourceFolder,
         storagePrefix,
-        enabled: true,
+        enabled: ENABLED,
         kind: sourceFolder === 'VARIOUS' ? 'collection' : 'family',
         formats: [...new Set(fontFiles.map((file) => file.extension))].sort(),
         fileCount: files.length,
@@ -268,6 +269,8 @@ async function buildCatalog() {
           fontId: id,
           ...file,
           storagePath: toStoragePath(storagePrefix, file.relativePath),
+          // A disabled family must remain inspectable in Development. Individual
+          // files stay enabled; the parent document controls catalog visibility.
           enabled: true,
         },
       })),
@@ -294,31 +297,17 @@ function runGcloud(arguments_, options = {}) {
 }
 
 function uploadStorage(catalog) {
-  if (INCLUDED_SOURCE_FOLDERS.size > 0) {
-    for (const font of catalog) {
-      runGcloud([
-        'storage',
-        'rsync',
-        '--recursive',
-        '--exclude',
-        '(^|/)\\.DS_Store$',
-        path.join(LOCAL_ROOT, font.document.sourceFolder),
-        `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}`,
-      ]);
-    }
-
-    return;
+  for (const font of catalog) {
+    runGcloud([
+      'storage',
+      'rsync',
+      '--recursive',
+      '--exclude',
+      '(^|/)\\.DS_Store$',
+      path.join(LOCAL_ROOT, font.document.sourceFolder),
+      `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}`,
+    ]);
   }
-
-  runGcloud([
-    'storage',
-    'rsync',
-    '--recursive',
-    '--exclude',
-    '(^|/)\\.DS_Store$',
-    LOCAL_ROOT,
-    `gs://${PROJECT_ID}.firebasestorage.app/${STORAGE_ROOT}`,
-  ]);
 }
 
 function encodeFirestoreValue(value) {
@@ -428,6 +417,7 @@ console.log(
       storageUploaded: UPLOAD_STORAGE,
       firestoreWritten: WRITE_FIRESTORE,
       firestoreFilesOnly: WRITE_FIRESTORE_FILES_ONLY,
+      enabled: ENABLED,
       sample: catalog.slice(0, 3).map((font) => font.document),
     },
     null,

@@ -10,15 +10,16 @@ export function IdentityRoute({route}: IdentityRouteProperties) {
   useEffect(() => {
     if (
       route === '/identity/fonts' ||
-      route === '/identity/typefaces/fonts'
+      route === '/identity/typefaces/fonts' ||
+      route === '/identity/typography/fonts'
     ) {
-      window.location.replace('/identity/typography/fonts');
+      window.location.replace('/identity/typography/typefaces');
     }
   }, [route]);
 
   return (
     <IdentityAccessGate>
-      {route === '/identity/typography/fonts' ? (
+      {route === '/identity/typography/typefaces' ? (
         <IdentityFontsPage />
       ) : (
         <main className="min-h-[100dvh] bg-black" />
