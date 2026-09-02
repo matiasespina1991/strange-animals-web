@@ -64,23 +64,27 @@ const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
   "Abstract",
   "Cyber",
+  "Semi-Abstract",
   "Dotted",
   "Goth",
   "Grunge",
   "Handwritten",
   "LCD Display",
-  "Ornamental",
   "Outlined",
   "Paragraph / Standard",
+  "Serif",
+  "Rounded",
+  "Squared / Tech",
+  "Condensed",
+  "Cursive",
+  "Title / Bold",
+  "3D",
   "Pixel",
   "Playful",
-  "Semi-Abstract",
-  "Serif",
-  "Squared / Tech",
-  "3D",
-  "Title / Bold",
+  "Ornamental",
   "Vintage",
   "Wide",
+  "Symbols & Others",
 ] as const;
 
 function getSupportedPreviewText(
@@ -127,15 +131,16 @@ function SupportedPreviewText({
 
   return previewText;
 }
-const FONT_CATEGORY_BOTTOM_ORDER = [
-  "Pixel",
-  "Handwritten",
-  "Paragraph / Standard",
-];
 const UNCATEGORIZED_LABEL = "Uncategorized";
+const FONT_CATEGORY_DISPLAY_ORDER = [
+  ...FONT_PARENT_CATEGORIES,
+  UNCATEGORIZED_LABEL,
+] as const;
 const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
+const LOADING_CATEGORY_PLACEHOLDER_COUNT = 14;
+const LOADING_SPECIMEN_PLACEHOLDER_COUNT = 4;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LINE_HEIGHT = 1;
 const DEFAULT_LETTER_SPACING = 0;
@@ -166,24 +171,22 @@ function compareCategoryNames(left: string, right: string) {
 }
 
 function compareFontFilterCategoryLabels(left: string, right: string) {
-  if (left === UNCATEGORIZED_LABEL) return 1;
-  if (right === UNCATEGORIZED_LABEL) return -1;
+  const leftIndex = FONT_CATEGORY_DISPLAY_ORDER.indexOf(
+    left as (typeof FONT_CATEGORY_DISPLAY_ORDER)[number],
+  );
+  const rightIndex = FONT_CATEGORY_DISPLAY_ORDER.indexOf(
+    right as (typeof FONT_CATEGORY_DISPLAY_ORDER)[number],
+  );
+
+  if (leftIndex !== -1 && rightIndex !== -1) return leftIndex - rightIndex;
+  if (leftIndex !== -1) return -1;
+  if (rightIndex !== -1) return 1;
 
   return compareCategoryNames(left, right);
 }
 
 function compareFontSectionCategoryLabels(left: string, right: string) {
-  const leftBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(left);
-  const rightBottomIndex = FONT_CATEGORY_BOTTOM_ORDER.indexOf(right);
-
-  if (leftBottomIndex !== -1 && rightBottomIndex !== -1) {
-    return leftBottomIndex - rightBottomIndex;
-  }
-
-  if (leftBottomIndex !== -1) return 1;
-  if (rightBottomIndex !== -1) return -1;
-
-  return compareCategoryNames(left, right);
+  return compareFontFilterCategoryLabels(left, right);
 }
 const DESKTOP_FONT_SIZE_MAX = 140;
 const FONT_TOOLBAR_GRID_CLASS =
@@ -3116,7 +3119,7 @@ export function IdentityFontsPage() {
               ) : null}
             </div>
           </div>
-          {categoriesInUse.length > 0 ? (
+          {categoriesInUse.length > 0 || loading ? (
             <div className="mt-4 border-t border-white/20">
               <button
                 aria-controls="font-category-filters"
@@ -3124,6 +3127,8 @@ export function IdentityFontsPage() {
                 className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
                 type="button"
                 onClick={() => {
+                  if (loading) return;
+
                   setCategoryFiltersOpen((open) => !open);
                 }}
               >
@@ -3137,51 +3142,67 @@ export function IdentityFontsPage() {
                 className={`flex flex-wrap items-center gap-2 pb-3 ${categoryFiltersOpen ? "" : "hidden"}`}
                 id="font-category-filters"
               >
-                {categoriesInUse.map((categoryLabel) => {
-                  const checked = !hiddenCategoryLabels.has(categoryLabel);
+                {loading
+                  ? Array.from({ length: LOADING_CATEGORY_PLACEHOLDER_COUNT })
+                      .map((_, index) => (
+                        <span
+                          key={`category-placeholder-${index}`}
+                          aria-hidden="true"
+                          className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
+                        />
+                      ))
+                  : categoriesInUse.map((categoryLabel) => {
+                      const checked = !hiddenCategoryLabels.has(categoryLabel);
 
-                  return (
-                    <label
-                      key={categoryLabel}
-                      className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
-                    >
-                      <input
-                        checked={checked}
-                        className="size-3 accent-white outline-none"
-                        type="checkbox"
-                        onChange={() => {
-                          setHiddenCategoryLabels((current) => {
-                            const next = new Set(current);
+                      return (
+                        <label
+                          key={categoryLabel}
+                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
+                        >
+                          <input
+                            checked={checked}
+                            className="size-3 accent-white outline-none"
+                            type="checkbox"
+                            onChange={() => {
+                              setHiddenCategoryLabels((current) => {
+                                const next = new Set(current);
 
-                            if (checked) {
-                              next.add(categoryLabel);
-                            } else {
-                              next.delete(categoryLabel);
-                            }
+                                if (checked) {
+                                  next.add(categoryLabel);
+                                } else {
+                                  next.delete(categoryLabel);
+                                }
 
-                            return next;
-                          });
-                        }}
-                      />
-                      <span>{categoryLabel}</span>
-                    </label>
-                  );
-                })}
-                <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
-                  <input
-                    checked={allCategoriesSelected}
-                    className="size-3 accent-white outline-none"
-                    type="checkbox"
-                    onChange={() => {
-                      setHiddenCategoryLabels((current) =>
-                        current.size === 0
-                          ? new Set(categoriesInUse)
-                          : new Set(),
+                                return next;
+                              });
+                            }}
+                          />
+                          <span>{categoryLabel}</span>
+                        </label>
                       );
-                    }}
+                    })}
+                {loading ? (
+                  <span
+                    aria-hidden="true"
+                    className="ml-2 h-4 w-10 animate-pulse rounded-sm bg-white/10"
                   />
-                  <span className="font-bold uppercase">All</span>
-                </label>
+                ) : (
+                  <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
+                    <input
+                      checked={allCategoriesSelected}
+                      className="size-3 accent-white outline-none"
+                      type="checkbox"
+                      onChange={() => {
+                        setHiddenCategoryLabels((current) =>
+                          current.size === 0
+                            ? new Set(categoriesInUse)
+                            : new Set(),
+                        );
+                      }}
+                    />
+                    <span className="font-bold uppercase">All</span>
+                  </label>
+                )}
               </div>
             </div>
           ) : null}
@@ -3264,7 +3285,28 @@ export function IdentityFontsPage() {
             {errorMessage}
           </p>
         ) : loading ? (
-          <p className="py-6 text-xs text-white/50">loading catalog...</p>
+          <section
+            aria-label="Loading font catalog"
+            className="min-h-[55vh] pb-20 lg:pb-0"
+          >
+            <p className="py-6 text-xs text-white/50">loading catalog...</p>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {Array.from({ length: LOADING_SPECIMEN_PLACEHOLDER_COUNT }).map(
+                (_, index) => (
+                  <article
+                    key={`specimen-placeholder-${index}`}
+                    aria-hidden="true"
+                    className="border border-white/10 p-4"
+                  >
+                    <div className="mb-4 h-3 w-40 animate-pulse rounded bg-white/12" />
+                    <div className="mb-3 h-10 w-full animate-pulse rounded bg-white/8" />
+                    <div className="mb-3 h-10 w-5/6 animate-pulse rounded bg-white/8" />
+                    <div className="h-8 w-28 animate-pulse rounded bg-white/12" />
+                  </article>
+                ),
+              )}
+            </div>
+          </section>
         ) : displayedFontCount === 0 ? (
           <p className="py-6 text-xs text-white/50">
             {getEmptyCatalogMessage(
