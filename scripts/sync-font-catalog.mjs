@@ -30,6 +30,10 @@ const WRITE_FIRESTORE =
 const UPLOAD_STORAGE = process.argv.includes('--upload-storage');
 const ENABLED = !process.argv.includes('--disabled');
 const INCLUDED_SOURCE_FOLDERS = new Set(readOptions('--include-folder'));
+const DISPLAY_NAME_OVERRIDES = {
+  OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: 'kfontZ111W01-Regular',
+  OnlineWebFonts_COM_8fe15e6d5697c6e91c295fd95175a8b4: 'BloorW00-Regular',
+};
 
 function readOption(name) {
   const optionIndex = process.argv.indexOf(name);
@@ -222,7 +226,8 @@ async function buildCatalog() {
 
   for (const [index, sourceFolder] of folders.entries()) {
     const id = slugify(sourceFolder);
-    const displayName = toDisplayName(sourceFolder);
+    const displayName =
+      DISPLAY_NAME_OVERRIDES[sourceFolder] ?? toDisplayName(sourceFolder);
 
     if (!id || ids.has(id)) {
       throw new Error(`Invalid or duplicate font id: ${sourceFolder} -> ${id}`);
