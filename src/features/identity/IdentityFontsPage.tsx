@@ -63,13 +63,13 @@ import {
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 const FONT_PARENT_CATEGORIES = [
   "Abstract",
-  "Cyber",
   "Semi-Abstract",
+  "Cyber",
   "Dotted",
+  "LCD Display",
   "Goth",
   "Grunge",
   "Handwritten",
-  "LCD Display",
   "Outlined",
   "Paragraph / Standard",
   "Serif",
@@ -3121,23 +3121,45 @@ export function IdentityFontsPage() {
           </div>
           {categoriesInUse.length > 0 || loading ? (
             <div className="mt-4 border-t border-white/20">
-              <button
-                aria-controls="font-category-filters"
-                aria-expanded={categoryFiltersOpen}
-                className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
-                type="button"
-                onClick={() => {
-                  if (loading) return;
+              <div className="flex items-center justify-between gap-4 py-3">
+                <button
+                  aria-controls="font-category-filters"
+                  aria-expanded={categoryFiltersOpen}
+                  className="flex cursor-pointer items-center gap-2 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
+                  type="button"
+                  onClick={() => {
+                    if (loading) return;
 
-                  setCategoryFiltersOpen((open) => !open);
-                }}
-              >
-                <ChevronRight
-                  aria-hidden="true"
-                  className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${categoryFiltersOpen ? "rotate-90" : ""}`}
-                />
-                <span>Categories</span>
-              </button>
+                    setCategoryFiltersOpen((open) => !open);
+                  }}
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                    className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${categoryFiltersOpen ? "rotate-90" : ""}`}
+                  />
+                  <span>Categories</span>
+                </button>
+                {loading ? (
+                  <span
+                    aria-hidden="true"
+                    className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
+                  />
+                ) : (
+                  <label className="ml-6 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
+                    <input
+                      checked={allCategoriesSelected}
+                      className="size-3 accent-white outline-none"
+                      type="checkbox"
+                      onChange={() => {
+                        if (allCategoriesSelected) return;
+
+                        setHiddenCategoryLabels(new Set());
+                      }}
+                    />
+                    <span className="font-bold uppercase">All</span>
+                  </label>
+                )}
+              </div>
               <div
                 className={`flex flex-wrap items-center gap-2 pb-3 ${categoryFiltersOpen ? "" : "hidden"}`}
                 id="font-category-filters"
@@ -3157,14 +3179,22 @@ export function IdentityFontsPage() {
                       return (
                         <label
                           key={categoryLabel}
-                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
+                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
                         >
                           <input
                             checked={checked}
-                            className="size-3 accent-white outline-none"
+                            className={`size-3 accent-white outline-none ${allCategoriesSelected ? "opacity-65" : ""}`}
                             type="checkbox"
                             onChange={() => {
                               setHiddenCategoryLabels((current) => {
+                                if (current.size === 0) {
+                                  return new Set(
+                                    categoriesInUse.filter(
+                                      (label) => label !== categoryLabel,
+                                    ),
+                                  );
+                                }
+
                                 const next = new Set(current);
 
                                 if (checked) {
@@ -3181,28 +3211,6 @@ export function IdentityFontsPage() {
                         </label>
                       );
                     })}
-                {loading ? (
-                  <span
-                    aria-hidden="true"
-                    className="ml-2 h-4 w-10 animate-pulse rounded-sm bg-white/10"
-                  />
-                ) : (
-                  <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
-                    <input
-                      checked={allCategoriesSelected}
-                      className="size-3 accent-white outline-none"
-                      type="checkbox"
-                      onChange={() => {
-                        setHiddenCategoryLabels((current) =>
-                          current.size === 0
-                            ? new Set(categoriesInUse)
-                            : new Set(),
-                        );
-                      }}
-                    />
-                    <span className="font-bold uppercase">All</span>
-                  </label>
-                )}
               </div>
             </div>
           ) : null}
@@ -3440,7 +3448,7 @@ export function IdentityFontsPage() {
                     </div>
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-20 hidden w-[3px] -translate-x-1/2 lg:block"
+                      className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-20 hidden w-[2.5px] -translate-x-1/2 lg:block"
                       style={{ backgroundColor: "rgb(255 255 255 / 0.17)" }}
                     />
                   </div>
