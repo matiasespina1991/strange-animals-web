@@ -3121,7 +3121,7 @@ export function IdentityFontsPage() {
           </div>
           {categoriesInUse.length > 0 || loading ? (
             <div className="mt-4 border-t border-white/20">
-              <div className="flex items-center justify-between gap-4 py-3">
+              <div className="flex items-center gap-6 py-3">
                 <button
                   aria-controls="font-category-filters"
                   aria-expanded={categoryFiltersOpen}
@@ -3145,7 +3145,7 @@ export function IdentityFontsPage() {
                     className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
                   />
                 ) : (
-                  <label className="ml-6 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
+                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
                     <input
                       checked={allCategoriesSelected}
                       className="size-3 accent-white outline-none"
