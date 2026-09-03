@@ -31,6 +31,7 @@ const UPLOAD_STORAGE = process.argv.includes('--upload-storage');
 const ENABLED = !process.argv.includes('--disabled');
 const INCLUDED_SOURCE_FOLDERS = new Set(readOptions('--include-folder'));
 const DISPLAY_NAME_OVERRIDES = {
+  OnlineWebFonts_COM_1c11978277976bba95554a96608cb027: 'Otomo Round',
   OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: 'kfontZ111W01-Regular',
   OnlineWebFonts_COM_8fe15e6d5697c6e91c295fd95175a8b4: 'BloorW00-Regular',
 };
