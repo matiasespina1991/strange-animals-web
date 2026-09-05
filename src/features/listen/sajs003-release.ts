@@ -45,7 +45,7 @@ export const sajs003Release = {
       number: 4,
       slug: "ewan-jansen-jazz-mellow",
       storagePath:
-        "media/public/audio/tracks/sajs003-ewan-jansen-jazz-mellow/v1/source.mp3",
+        "media/public/audio/tracks/sajs003-ewan-jansen-jazz-mellow/v2/source.mp3",
       title: "Jazz Mellow",
     },
     {

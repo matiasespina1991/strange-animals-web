@@ -458,7 +458,7 @@ export function Sajs001cdListenPage() {
               </div>
             </div>
 
-            <div className="listen-playlist-scrollbar min-h-0 flex-1 overflow-y-auto">
+            <div className="listen-playlist-scrollbar pb-[3rem] min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
                 <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.84rem] uppercase tracking-[0.048em] text-white/60 md:text-[0.7rem]">
                   <Loader2 className="size-4 animate-spin" />
@@ -474,7 +474,7 @@ export function Sajs001cdListenPage() {
               ) : null}
 
               {trackUrlState.status === "ready" ? (
-                <ol className="divide-y divide-white/15">
+                <ol className="divide-y divide-white/15 border-b border-white/15">
                   {sajs001cdRelease.tracks.map((track, index) => {
                     const selected = index === currentTrackIndex;
 
