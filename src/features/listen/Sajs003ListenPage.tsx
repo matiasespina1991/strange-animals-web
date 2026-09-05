@@ -304,7 +304,7 @@ export function Sajs003ListenPage() {
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
-              <h1 className="mt-[0.65rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.8rem]">
+              <h1 className="mt-[0.65rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.7rem]">
                 V.A. Jazz Licks Vol. 1 (Vinyl Only)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -322,10 +322,10 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[0.894rem] leading-6 tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
+                <p className="max-w-sm text-[0.894rem] leading-[1.1rem] tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
                   Strange Animals presents Jazz Licks Vol. 1, a compilation
-                  release exploring jazz-infused jungle beats from producers
-                  around the world.
+                  release exploring jazz-infused jungle and drum n bass beats
+                  from producers around the world.
                   <span className="mt-3 block">Release date: TBA 2027</span>
                   <span className="mt-3 block">Format: Vinyl only</span>
                 </p>
@@ -333,13 +333,13 @@ export function Sajs003ListenPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/70 bg-black ring-inset ring-white/30 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.70)]">
-            <div className="border-b border-white/35 px-3 py-3 sm:px-4">
-              <div className="mb-4 border border-white/35 bg-white/[0.03] p-3">
+          <div className="mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
+            <div className="border-b border-white/25 p-2.5">
+              <div className="border border-white/30 bg-white/[0.03] p-2.5">
                 <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
                   Now Playing
                 </p>
-                <p className="mt-2 min-h-12 font-mono text-[1.0175rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
+                <p className="mt-1.5 min-h-[2.4rem] font-mono text-[1.0175rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
                   <span className="tabular-nums text-[1.1675rem] md:text-[1.025rem]">
                     {currentTrack.number.toString().padStart(2, "0")} /
                   </span>{" "}
@@ -348,7 +348,7 @@ export function Sajs003ListenPage() {
                 <button
                   type="button"
                   aria-label="Seek playback"
-                  className="mt-4 block h-2 w-full cursor-pointer border border-white/45 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-3 block h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!duration}
                   onClick={(event) => {
                     seekToPointerPosition(event.currentTarget, event.clientX);
@@ -370,61 +370,60 @@ export function Sajs003ListenPage() {
                     {formatTime(duration)}
                   </span>
                 </div>
-              </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/20 pt-2">
+                  <button
+                    type="button"
+                    aria-label="Previous track"
+                    className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    disabled={isFirstTrack || trackUrlState.status !== "ready"}
+                    onClick={goToPreviousTrack}
+                  >
+                    <SkipBack className="size-4 md:size-[0.82rem]" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                    className={[
+                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      isPlaying
+                        ? "translate-x-px translate-y-px bg-white text-black shadow-none"
+                        : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
+                    ].join(" ")}
+                    disabled={trackUrlState.status !== "ready"}
+                    onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
+                  >
+                    {isPlaying ? (
+                      <Pause className="size-4 md:size-[0.82rem]" />
+                    ) : (
+                      <Play className="size-4 fill-current md:size-[0.82rem]" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next track"
+                    className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    disabled={isLastTrack || trackUrlState.status !== "ready"}
+                    onClick={goToNextTrack}
+                  >
+                    <SkipForward className="size-4 md:size-[0.82rem]" />
+                  </button>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Previous track"
-                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
-                  disabled={isFirstTrack || trackUrlState.status !== "ready"}
-                  onClick={goToPreviousTrack}
-                >
-                  <SkipBack className="size-4 md:size-[0.82rem]" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                  className={[
-                    "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
-                    isPlaying
-                      ? "translate-x-px translate-y-px bg-white text-black shadow-none"
-                      : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
-                  ].join(" ")}
-                  disabled={trackUrlState.status !== "ready"}
-                  onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
-                >
-                  {isPlaying ? (
-                    <Pause className="size-4 md:size-[0.82rem]" />
-                  ) : (
-                    <Play className="size-4 fill-current md:size-[0.82rem]" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next track"
-                  className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
-                  disabled={isLastTrack || trackUrlState.status !== "ready"}
-                  onClick={goToNextTrack}
-                >
-                  <SkipForward className="size-4 md:size-[0.82rem]" />
-                </button>
-
-                <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
-                  <Volume2 className="size-4" />
-                  <span className="sr-only">Volume</span>
-                  <input
-                    className="listen-volume-slider h-1 w-full"
-                    max="1"
-                    min="0"
-                    step="0.01"
-                    type="range"
-                    value={volume}
-                    onChange={(event) => {
-                      setVolume(Number(event.target.value));
-                    }}
-                  />
-                </label>
+                  <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
+                    <Volume2 className="size-4" />
+                    <span className="sr-only">Volume</span>
+                    <input
+                      className="listen-volume-slider h-1 w-full"
+                      max="1"
+                      min="0"
+                      step="0.01"
+                      type="range"
+                      value={volume}
+                      onChange={(event) => {
+                        setVolume(Number(event.target.value));
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -444,7 +443,7 @@ export function Sajs003ListenPage() {
               ) : null}
 
               {trackUrlState.status === "ready" ? (
-                <ol className="divide-y divide-white/20">
+                <ol className="divide-y divide-white/15">
                   {sajs003Release.tracks.map((track, index) => {
                     const selected = index === currentTrackIndex;
 
@@ -453,9 +452,9 @@ export function Sajs003ListenPage() {
                         <button
                           type="button"
                           className={[
-                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
+                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
                             selected
-                              ? "bg-white/[0.82] text-black"
+                              ? "bg-white/[0.68] text-black"
                               : "bg-black text-white/82 hover:bg-white/[0.12]",
                           ].join(" ")}
                           onClick={() => {
