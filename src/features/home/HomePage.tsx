@@ -183,20 +183,21 @@ export function HomePage() {
       >
         <nav
           aria-label="Listen to releases"
-          className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-2 pb-2 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+          className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-4 pb-4 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
         >
-          <p className="mb-0.5 text-white/35">Releases</p>
-          <a
-            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
-            href="/listen/sajs003"
-          >
-            SAJS003 |
-          </a>
+          <p className="mb-0.5 text-white/55">Releases</p>
           <a
             className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001cd"
           >
-            SAJS001CD |
+            V.A. Odyssey Vol. 1 | TBA 2026
+          </a>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs003"
+          >
+            {" "}
+            V.A. Jazz Licks Vol. 1 | TBA 2027
           </a>
         </nav>
         <span className="cursor-default transition-colors duration-150 group-hover:text-white/85 group-focus-within:text-white/85 motion-reduce:transition-none">
