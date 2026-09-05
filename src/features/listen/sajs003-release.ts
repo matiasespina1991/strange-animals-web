@@ -40,7 +40,7 @@ export const sajs003Release = {
       title: "TestDrivePS1-8",
     },
     {
-      artist: "Ewan Jansen",
+      artist: "Bluejaye a.k.a. Ewan Jansen",
       durationLabel: "7:00",
       number: 4,
       slug: "ewan-jansen-jazz-mellow",
@@ -62,7 +62,8 @@ export const sajs003Release = {
       durationLabel: "2:49",
       number: 6,
       slug: "tade-untitled",
-      storagePath: "media/public/audio/tracks/sajs003-tade-untitled/v1/source.mp3",
+      storagePath:
+        "media/public/audio/tracks/sajs003-tade-untitled/v1/source.mp3",
       title: "Untitled",
     },
   ] satisfies Sajs003Track[],
