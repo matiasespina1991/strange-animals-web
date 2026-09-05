@@ -311,7 +311,7 @@ export function Sajs001cdListenPage() {
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full max-w-[12.6rem] shrink-0 border border-white/45 bg-black p-0 text-left"
+                  className="w-full max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
                   onClick={() => {
                     setIsCoverLightboxOpen(true);
                   }}

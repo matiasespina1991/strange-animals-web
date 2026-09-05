@@ -311,7 +311,7 @@ export function Sajs003ListenPage() {
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full max-w-[12.6rem] shrink-0 border border-white/45 bg-black p-0 text-left"
+                  className="w-full max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
                   onClick={() => {
                     setIsCoverLightboxOpen(true);
                   }}
@@ -324,8 +324,8 @@ export function Sajs003ListenPage() {
                 </button>
                 <p className="max-w-sm text-[0.894rem] leading-6 tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
                   Strange Animals presents Jazz Licks Vol. 1, a compilation
-                  release curated around warm jazz-infused rhythms and deep
-                  low-end club pressure.
+                  release exploring jazz-infused jungle beats from producers
+                  around the world.
                   <span className="mt-3 block">Release date: TBA 2027</span>
                   <span className="mt-3 block">Format: Vinyl only</span>
                 </p>
