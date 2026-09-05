@@ -287,9 +287,7 @@ function ScrollControls() {
   const scrollAnimationReference = useRef<number>();
   const [activeDirection, setActiveDirection] = useState<"up" | "down">();
   const [hoveredDirection, setHoveredDirection] = useState<"up" | "down">();
-  const [keyboardDirection, setKeyboardDirection] = useState<
-    "up" | "down"
-  >();
+  const [keyboardDirection, setKeyboardDirection] = useState<"up" | "down">();
 
   const stopScrolling = () => {
     if (scrollAnimationReference.current !== undefined) {
@@ -309,7 +307,8 @@ function ScrollControls() {
         top: direction === "up" ? -8 : 8,
         behavior: "auto",
       });
-      scrollAnimationReference.current = window.requestAnimationFrame(scrollStep);
+      scrollAnimationReference.current =
+        window.requestAnimationFrame(scrollStep);
     };
 
     scrollAnimationReference.current = window.requestAnimationFrame(scrollStep);
@@ -320,7 +319,9 @@ function ScrollControls() {
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) =>
       target instanceof HTMLElement &&
-      Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+      Boolean(
+        target.closest("input, textarea, select, [contenteditable='true']"),
+      );
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isEditableTarget(event.target)) return;
@@ -432,7 +433,10 @@ function IdentityFontsOnboarding() {
   const [open, setOpen] = useState(() => {
     if (!import.meta.env.DEV || typeof window === "undefined") return false;
 
-    return window.localStorage.getItem(IDENTITY_FONTS_ONBOARDING_STORAGE_KEY) !== "true";
+    return (
+      window.localStorage.getItem(IDENTITY_FONTS_ONBOARDING_STORAGE_KEY) !==
+      "true"
+    );
   });
   const pages = [
     {
@@ -451,7 +455,10 @@ function IdentityFontsOnboarding() {
 
   const close = () => {
     if (dontShowAgain) {
-      window.localStorage.setItem(IDENTITY_FONTS_ONBOARDING_STORAGE_KEY, "true");
+      window.localStorage.setItem(
+        IDENTITY_FONTS_ONBOARDING_STORAGE_KEY,
+        "true",
+      );
     }
 
     setOpen(false);
@@ -1028,7 +1035,9 @@ function FontSpecimen({
               }}
             >
               <span className={font.enabled ? "" : "text-red-400"}>off</span>
-              <span className={`relative h-3 w-6 border ${font.enabled ? "border-white/30" : "border-red-400/70"}`}>
+              <span
+                className={`relative h-3 w-6 border ${font.enabled ? "border-white/30" : "border-red-400/70"}`}
+              >
                 <span
                   aria-hidden="true"
                   className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${font.enabled ? "translate-x-3" : "translate-x-0"}`}
@@ -1225,43 +1234,43 @@ function FontSpecimen({
                     backgroundSize: "cover",
                   }}
                 >
-                <p
-                  aria-hidden="true"
-                  className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
-                  style={{
-                    color: fontColor,
-                    fontSize: `${fontSize}px`,
-                    fontWeight: getPreviewFontWeight(fontWeight),
-                    letterSpacing: `${letterSpacing}em`,
-                    lineHeight,
-                    textAlign: textAlignment,
-                    textShadow: textShadow.enabled
-                      ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
-                      : undefined,
-                  }}
-                >
-                  {previewText}
-                </p>
-                <p
-                  className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
-                  style={{
-                  color: fontColor,
-                  fontFamily: familyName,
-                  fontSize: `${fontSize}px`,
-                  fontWeight: getPreviewFontWeight(fontWeight),
-                  letterSpacing: `${letterSpacing}em`,
-                  lineHeight,
-                  textAlign: textAlignment,
-                  textShadow: textShadow.enabled
-                    ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
-                    : undefined,
-                }}
-              >
-                <SupportedPreviewText
-                  supportedCodePoints={loadedVariant?.supportedCodePoints}
-                  value={previewText}
-                />
-              </p>
+                  <p
+                    aria-hidden="true"
+                    className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
+                    style={{
+                      color: fontColor,
+                      fontSize: `${fontSize}px`,
+                      fontWeight: getPreviewFontWeight(fontWeight),
+                      letterSpacing: `${letterSpacing}em`,
+                      lineHeight,
+                      textAlign: textAlignment,
+                      textShadow: textShadow.enabled
+                        ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                        : undefined,
+                    }}
+                  >
+                    {previewText}
+                  </p>
+                  <p
+                    className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
+                    style={{
+                      color: fontColor,
+                      fontFamily: familyName,
+                      fontSize: `${fontSize}px`,
+                      fontWeight: getPreviewFontWeight(fontWeight),
+                      letterSpacing: `${letterSpacing}em`,
+                      lineHeight,
+                      textAlign: textAlignment,
+                      textShadow: textShadow.enabled
+                        ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                        : undefined,
+                    }}
+                  >
+                    <SupportedPreviewText
+                      supportedCodePoints={loadedVariant?.supportedCodePoints}
+                      value={previewText}
+                    />
+                  </p>
                 </div>
               ) : null}
               {variantTotal > 1 || SHOW_FONT_DELETE_CONTROLS ? (
@@ -1274,41 +1283,55 @@ function FontSpecimen({
                   </span>
                   {SHOW_FONT_DELETE_CONTROLS && isStoredVariant ? (
                     <>
-                    <button
-                      aria-checked={variant.previewEnabled}
-                      aria-label={`${variant.previewEnabled ? "Hide" : "Show"} ${variantName} preview`}
-                      className={`ml-3 flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35 ${variant.previewEnabled ? "text-white/40" : "text-red-400"}`}
-                      disabled={previewUpdatingVariantIds.has(variant.id)}
-                      role="switch"
-                      type="button"
-                      onClick={() => {
-                        changeVariantPreviewVisibility(
-                          variant,
-                          !variant.previewEnabled,
-                        );
-                      }}
-                    >
-                      <span className={variant.previewEnabled ? "" : "text-red-400"}>off</span>
-                      <span className={`relative h-3 w-6 border ${variant.previewEnabled ? "border-white/30" : "border-red-400/70"}`}>
+                      <button
+                        aria-checked={variant.previewEnabled}
+                        aria-label={`${variant.previewEnabled ? "Hide" : "Show"} ${variantName} preview`}
+                        className={`ml-3 flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent text-[0.5rem] tracking-[0.08em] normal-case outline-none hover:text-white/70 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-35 ${variant.previewEnabled ? "text-white/40" : "text-red-400"}`}
+                        disabled={previewUpdatingVariantIds.has(variant.id)}
+                        role="switch"
+                        type="button"
+                        onClick={() => {
+                          changeVariantPreviewVisibility(
+                            variant,
+                            !variant.previewEnabled,
+                          );
+                        }}
+                      >
                         <span
-                          aria-hidden="true"
-                          className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${variant.previewEnabled ? "translate-x-3" : "translate-x-0"}`}
-                        />
-                      </span>
-                      <span className={variant.previewEnabled ? "text-white/80" : ""}>on</span>
-                    </button>
-                    <button
-                      aria-label={`Delete ${variantName}`}
-                      className="ml-2 flex size-5 shrink-0 cursor-pointer items-center justify-center text-white/40 outline-none transition-colors duration-150 hover:text-red-400 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:text-white/20"
-                      disabled={deletingVariantIds.has(variant.id)}
-                      title={`Delete ${variantName}`}
-                      type="button"
-                      onClick={() => {
-                        deleteVariant(variant);
-                      }}
-                    >
-                      <Trash2 aria-hidden="true" className="size-3" />
-                    </button>
+                          className={
+                            variant.previewEnabled ? "" : "text-red-400"
+                          }
+                        >
+                          off
+                        </span>
+                        <span
+                          className={`relative h-3 w-6 border ${variant.previewEnabled ? "border-white/30" : "border-red-400/70"}`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`absolute top-1/2 left-0.5 size-2 -translate-y-1/2 bg-white transition-transform duration-150 motion-reduce:transition-none ${variant.previewEnabled ? "translate-x-3" : "translate-x-0"}`}
+                          />
+                        </span>
+                        <span
+                          className={
+                            variant.previewEnabled ? "text-white/80" : ""
+                          }
+                        >
+                          on
+                        </span>
+                      </button>
+                      <button
+                        aria-label={`Delete ${variantName}`}
+                        className="ml-2 flex size-5 shrink-0 cursor-pointer items-center justify-center text-white/40 outline-none transition-colors duration-150 hover:text-red-400 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:text-white/20"
+                        disabled={deletingVariantIds.has(variant.id)}
+                        title={`Delete ${variantName}`}
+                        type="button"
+                        onClick={() => {
+                          deleteVariant(variant);
+                        }}
+                      >
+                        <Trash2 aria-hidden="true" className="size-3" />
+                      </button>
                     </>
                   ) : null}
                 </div>
@@ -1505,7 +1528,7 @@ export function IdentityFontsPage() {
   const fileMenuReference = useRef<HTMLDivElement>(null);
   const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
-  const categoryNavigationCleanupReference = useRef<(() => void)>();
+  const categoryNavigationCleanupReference = useRef<() => void>();
   const fontSizeValueTimeoutReference = useRef<number>();
   const fontPreferencesReference = useRef(fontPreferences);
   const snackbarTimeoutReference = useRef<number>();
@@ -2047,16 +2070,11 @@ export function IdentityFontsPage() {
       if (disposed) return;
 
       const nextTop = Math.max(
-        categoryHeader.getBoundingClientRect().top +
-          window.scrollY -
-          topOffset,
+        categoryHeader.getBoundingClientRect().top + window.scrollY - topOffset,
         0,
       );
 
-      if (
-        requestedTop !== undefined &&
-        Math.abs(requestedTop - nextTop) < 2
-      ) {
+      if (requestedTop !== undefined && Math.abs(requestedTop - nextTop) < 2) {
         return;
       }
 
@@ -3165,14 +3183,15 @@ export function IdentityFontsPage() {
                 id="font-category-filters"
               >
                 {loading
-                  ? Array.from({ length: LOADING_CATEGORY_PLACEHOLDER_COUNT })
-                      .map((_, index) => (
-                        <span
-                          key={`category-placeholder-${index}`}
-                          aria-hidden="true"
-                          className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
-                        />
-                      ))
+                  ? Array.from({
+                      length: LOADING_CATEGORY_PLACEHOLDER_COUNT,
+                    }).map((_, index) => (
+                      <span
+                        key={`category-placeholder-${index}`}
+                        aria-hidden="true"
+                        className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
+                      />
+                    ))
                   : categoriesInUse.map((categoryLabel) => {
                       const checked = !hiddenCategoryLabels.has(categoryLabel);
 

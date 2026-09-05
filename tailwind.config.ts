@@ -15,6 +15,7 @@ export default {
         gruppo: ["Gruppo", "sans-serif"],
         kantumruy: ["Kantumruy Pro", "sans-serif"],
         lato: ["Lato", "sans-serif"],
+        microgramma: ["Microgramma", "sans-serif"],
         mono: ["Zekton", "Courier New", "monospace"],
         montserrat: ["Montserrat", "sans-serif"],
         "old-turkic": ["Noto Sans Old Turkic", "sans-serif"],
