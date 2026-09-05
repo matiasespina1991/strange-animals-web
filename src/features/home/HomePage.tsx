@@ -177,11 +177,31 @@ export function HomePage() {
       />
       <motion.div
         animate={{ opacity: 1 }}
-        className="pointer-events-auto fixed bottom-5 right-5 md:right-9 z-40 text-right font-puritan text-[0.70rem] font-light leading-none tracking-[0.035em] text-white/70 opacity-0 transition-colors duration-150 ease-out hover:text-white/85"
+        className="group pointer-events-auto fixed right-5 bottom-5 z-40 text-right font-mono text-[0.70rem] font-light leading-none tracking-[0.035em] text-white/70 opacity-0 md:right-9"
         initial={{ opacity: 0 }}
         transition={{ delay: 4.05, duration: 0.75, ease: "easeOut" }}
       >
-        strange animals, berlin |
+        <nav
+          aria-label="Listen to releases"
+          className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-2 pb-2 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+        >
+          <p className="mb-0.5 text-white/35">Releases</p>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs003"
+          >
+            SAJS003 |
+          </a>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs001cd"
+          >
+            SAJS001CD |
+          </a>
+        </nav>
+        <span className="cursor-default transition-colors duration-150 group-hover:text-white/85 group-focus-within:text-white/85 motion-reduce:transition-none">
+          strange animals, berlin |
+        </span>
       </motion.div>
     </main>
   );

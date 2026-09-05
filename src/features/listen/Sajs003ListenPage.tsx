@@ -322,7 +322,13 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[0.894rem] leading-[1.1rem] tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
+                <p
+                  className="max-w-sm text-[1.2rem] 
+                  
+                  leading-[1.9rem] 
+                md:leading-[1.3rem] tracking-[-0.008em] text-white/64 
+                md:text-[0.89rem]"
+                >
                   Strange Animals presents Jazz Licks Vol. 1, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.

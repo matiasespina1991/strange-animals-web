@@ -294,7 +294,7 @@ export function Sajs001cdListenPage() {
 
   return (
     <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
-      <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
+      <section className="mx-auto flex pb-40 min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
@@ -322,7 +322,13 @@ export function Sajs001cdListenPage() {
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[0.894rem] leading-[1.1rem] tracking-[-0.008em] text-white/64 md:text-[0.8125rem]">
+                <p
+                  className="max-w-sm text-[1.2rem] 
+                  
+                  leading-[1.9rem] 
+                md:leading-[1.3rem] tracking-[-0.008em] text-white/64 
+                md:text-[0.89rem]"
+                >
                   Strange Animals presents Odyssey Vol. 1, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds

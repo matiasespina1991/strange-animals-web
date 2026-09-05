@@ -1,6 +1,7 @@
 node_modules/
 /fonts to upload/
 fonts to upload/
+/public/temp/
 temp/
 dist/
 .DS_Store
