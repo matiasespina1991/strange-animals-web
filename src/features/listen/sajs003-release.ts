@@ -18,7 +18,7 @@ export const sajs003Release = {
       number: 1,
       slug: "michele-manzo-cinema-breaks-v1",
       storagePath:
-        "media/public/audio/tracks/sajs003-michele-manzo-cinema-breaks-v1/v1/source.wav",
+        "media/public/audio/tracks/sajs003-michele-manzo-cinema-breaks-v1/v2/source.mp3",
       title: "Cinema Breaks (v.1)",
     },
     {
@@ -27,7 +27,7 @@ export const sajs003Release = {
       number: 2,
       slug: "index-hazy-horizon-feat-german-rossi",
       storagePath:
-        "media/public/audio/tracks/sajs003-index-hazy-horizon-feat-german-rossi/v1/source.wav",
+        "media/public/audio/tracks/sajs003-index-hazy-horizon-feat-german-rossi/v2/source.mp3",
       title: "Hazy Horizon (feat. German Rossi)",
     },
     {
@@ -36,7 +36,7 @@ export const sajs003Release = {
       number: 3,
       slug: "silizium-test-drive-ps1-8",
       storagePath:
-        "media/public/audio/tracks/sajs003-silizium-test-drive-ps1-8/v1/source.wav",
+        "media/public/audio/tracks/sajs003-silizium-test-drive-ps1-8/v2/source.mp3",
       title: "TestDrivePS1-8",
     },
     {
