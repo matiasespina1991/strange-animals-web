@@ -26,7 +26,7 @@ export const sajs001cdRelease = {
       number: 2,
       slug: "taxiburon-shiro-kyo",
       storagePath:
-        "media/public/audio/tracks/taxiburon-shiro-kyo/v1/source.wav",
+        "media/public/audio/tracks/taxiburon-shiro-kyo/v2/source.mp3",
       title: "Shiro Kyo",
     },
     {
@@ -44,7 +44,7 @@ export const sajs001cdRelease = {
       number: 4,
       slug: "index-2nd-twilight-feat-tweety-gonzalez",
       storagePath:
-        "media/public/audio/tracks/index-2nd-twilight-feat-tweety-gonzalez/v1/source.wav",
+        "media/public/audio/tracks/index-2nd-twilight-feat-tweety-gonzalez/v2/source.mp3",
       title: "2nd Twilight (feat. Tweety Gonzalez)",
     },
     {
@@ -62,7 +62,7 @@ export const sajs001cdRelease = {
       number: 6,
       slug: "bbrainz-work-this-out-control",
       storagePath:
-        "media/public/audio/tracks/bbrainz-work-this-out-control/v1/source.wav",
+        "media/public/audio/tracks/bbrainz-work-this-out-control/v2/source.mp3",
       title: "Work This Out (Control)",
     },
     {
@@ -71,7 +71,7 @@ export const sajs001cdRelease = {
       number: 7,
       slug: "delazar-feat-lulu-matheu-mirame-bien-instrumental",
       storagePath:
-        "media/public/audio/tracks/delazar-feat-lulu-matheu-mirame-bien-instrumental/v1/source.wav",
+        "media/public/audio/tracks/delazar-feat-lulu-matheu-mirame-bien-instrumental/v2/source.mp3",
       title: "Mirame Bien (Instrumental)",
     },
     {
@@ -80,7 +80,7 @@ export const sajs001cdRelease = {
       number: 8,
       slug: "midu-nunca-deja-de-caer-interlude",
       storagePath:
-        "media/public/audio/tracks/midu-nunca-deja-de-caer-interlude/v1/source.wav",
+        "media/public/audio/tracks/midu-nunca-deja-de-caer-interlude/v2/source.mp3",
       title: "[Interlude] Nunca Deja De Caer",
     },
     {
@@ -89,7 +89,7 @@ export const sajs001cdRelease = {
       number: 9,
       slug: "bluejaye-beginning-1996-live-mix",
       storagePath:
-        "media/public/audio/tracks/bluejaye-beginning-1996-live-mix/v1/source.wav",
+        "media/public/audio/tracks/bluejaye-beginning-1996-live-mix/v2/source.mp3",
       title: "Beginning (1996 Live Mix)",
     },
     {
@@ -97,7 +97,7 @@ export const sajs001cdRelease = {
       durationLabel: "5:54",
       number: 10,
       slug: "estimulo-e-mulated",
-      storagePath: "media/public/audio/tracks/estimulo-e-mulated/v1/source.wav",
+      storagePath: "media/public/audio/tracks/estimulo-e-mulated/v2/source.mp3",
       title: "E-Mulated",
     },
     {
@@ -105,7 +105,7 @@ export const sajs001cdRelease = {
       durationLabel: "5:42",
       number: 11,
       slug: "gl3w-untitled",
-      storagePath: "media/public/audio/tracks/gl3w-untitled/v1/source.wav",
+      storagePath: "media/public/audio/tracks/gl3w-untitled/v2/source.mp3",
       title: "Immerse",
     },
   ] satisfies Sajs001cdTrack[],
