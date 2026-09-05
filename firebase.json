@@ -39,6 +39,14 @@
         "destination": "/route-meta/listen-sajs001cd.html"
       },
       {
+        "source": "/listen/sajs003",
+        "destination": "/route-meta/listen-sajs003.html"
+      },
+      {
+        "source": "/listen/sajs003/**",
+        "destination": "/route-meta/listen-sajs003.html"
+      },
+      {
         "source": "/identity/typography/typefaces",
         "destination": "/route-meta/identity-fonts.html"
       },
