@@ -17,7 +17,7 @@ export const sajs001cdRelease = {
       durationLabel: "2:05",
       number: 1,
       slug: "tade-kop-heroe",
-      storagePath: "media/public/audio/tracks/tade-kop-heroe/v1/source.wav",
+      storagePath: "media/public/audio/tracks/tade-kop-heroe/v2/source.mp3",
       title: "Heroe",
     },
     {
@@ -30,13 +30,13 @@ export const sajs001cdRelease = {
       title: "Shiro Kyo",
     },
     {
-      artist: "Indi Zone",
-      durationLabel: "7:42",
+      artist: "Indiezone",
+      durationLabel: "7:45",
       number: 3,
       slug: "indi-zone-imps-tale-eco-6-remix-edit",
       storagePath:
-        "media/public/audio/tracks/indi-zone-imps-tale-eco-6-remix-edit/v1/source.wav",
-      title: "Imp's Tale (Eco 6 Remix) [Edit]",
+        "media/public/audio/tracks/indi-zone-imps-tale-eco-6-remix-edit/v2/source.mp3",
+      title: "Imp's Tale (Eco 6 Remix)",
     },
     {
       artist: "Index",
@@ -49,12 +49,12 @@ export const sajs001cdRelease = {
     },
     {
       artist: "Sillizium",
-      durationLabel: "6:22",
+      durationLabel: "7:06",
       number: 5,
       slug: "sillizium-andropolis",
       storagePath:
-        "media/public/audio/tracks/sillizium-andropolis/v1/source.wav",
-      title: "Andropolis",
+        "media/public/audio/tracks/sillizium-andropolis/v2/source.mp3",
+      title: "Andropolis (Atmosphere Mix)",
     },
     {
       artist: "BBRAINZ",
