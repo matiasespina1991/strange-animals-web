@@ -3,6 +3,7 @@ import {HomePage} from '@/features/home/HomePage';
 import {CustomCursor} from '@/features/home/components/CustomCursor';
 import {IdentityRoute} from '@/features/identity';
 import {Sajs001cdListenPage} from '@/features/listen';
+import {Sajs003ListenPage} from '@/features/listen';
 import {MinesweeperPage} from '@/features/minesweeper';
 import {ReleaseIdVerifierPage} from '@/features/release-id-verifier/ReleaseIdVerifierPage';
 import {WinampSkinsStuffPicksPage} from '@/features/webamp-skins/WinampSkinsStuffPicksPage';
@@ -45,6 +46,10 @@ export function App() {
 
   if (route === '/listen/sajs001cd') {
     page = <Sajs001cdListenPage />;
+  }
+
+  if (route === '/listen/sajs003') {
+    page = <Sajs003ListenPage />;
   }
 
   return (

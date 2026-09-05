@@ -95,6 +95,19 @@ function toDisplayName(value) {
     .trim();
 }
 
+function normalizeFamilyDisplayName(value) {
+  const withSpacing = value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+
+  return toDisplayName(withSpacing)
+    .replace(/([A-Za-z0-9])W\d{2}\b/gi, '$1')
+    .replace(/\bW\d{2}(?=$|\s|[-_])/gi, '')
+    .replace(/\btfb\b/gi, '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+}
+
 function toStoragePath(...segments) {
   return segments.join('/').replaceAll(path.sep, '/');
 }
@@ -184,6 +197,7 @@ async function walkFiles(directory, relativeRoot = '') {
     const extension = getExtension(entry.name);
 
     files.push({
+      absolutePath,
       fileName: entry.name,
       relativePath: normalizedRelativePath,
       extension,
@@ -200,61 +214,182 @@ async function walkFiles(directory, relativeRoot = '') {
   );
 }
 
+async function readSingleFile(absolutePath, relativePath) {
+  const fileStat = await stat(absolutePath);
+  const fileName = path.basename(relativePath);
+  const extension = getExtension(fileName);
+
+  return [
+    {
+      absolutePath,
+      fileName,
+      relativePath: relativePath.replaceAll(path.sep, '/'),
+      extension,
+      contentType: getContentType(extension),
+      kind: getFileKind(extension, fileName),
+      sizeBytes: fileStat.size,
+    },
+  ];
+}
+
+function readFontFamilyFromFcScan(fontAbsolutePath) {
+  const result = spawnSync(
+    'fc-scan',
+    ['--format=%{family[0]}', fontAbsolutePath],
+    {
+      cwd: REPOSITORY_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    },
+  );
+
+  if (result.status !== 0) return null;
+
+  const value = result.stdout.trim();
+  return value.length > 0 ? value : null;
+}
+
+function inferDisplayName(sourceName, files, sourceKind) {
+  const fontFiles = files.filter((file) => file.kind === 'font');
+
+  if (DISPLAY_NAME_OVERRIDES[sourceName]) {
+    return normalizeFamilyDisplayName(DISPLAY_NAME_OVERRIDES[sourceName]);
+  }
+
+  if (
+    (sourceKind === 'file' || /^onlinewebfonts_com_/i.test(sourceName)) &&
+    fontFiles.length > 0
+  ) {
+    const bestFont = [...fontFiles].sort(
+      (left, right) =>
+        previewScore(left) - previewScore(right) ||
+        left.relativePath.localeCompare(right.relativePath),
+    )[0];
+    const detectedFamily = readFontFamilyFromFcScan(bestFont.absolutePath);
+
+    if (detectedFamily) {
+      return normalizeFamilyDisplayName(detectedFamily);
+    }
+
+    return normalizeFamilyDisplayName(
+      path.basename(bestFont.fileName, path.extname(bestFont.fileName)),
+    );
+  }
+
+  return normalizeFamilyDisplayName(sourceName);
+}
+
 async function buildCatalog() {
   const entries = await readdir(LOCAL_ROOT, {withFileTypes: true});
   const availableFolders = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
+  const availableLooseFontFiles = entries
+    .filter(
+      (entry) => entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
+    )
+    .map((entry) => entry.name);
+  const availableLooseSources = availableLooseFontFiles.map(
+    (fileName) => path.parse(fileName).name,
+  );
+  const availableSourceNames = new Set([
+    ...availableFolders,
+    ...availableLooseSources,
+  ]);
   const missingFolders = [...INCLUDED_SOURCE_FOLDERS].filter(
-    (folder) => !availableFolders.includes(folder),
+    (folder) => !availableSourceNames.has(folder),
   );
 
   if (missingFolders.length > 0) {
     throw new Error(`Included folders not found: ${missingFolders.join(', ')}`);
   }
 
-  const folders = availableFolders
+  const folderSources = availableFolders
     .filter(
       (folder) =>
         INCLUDED_SOURCE_FOLDERS.size === 0 ||
         INCLUDED_SOURCE_FOLDERS.has(folder),
     )
-    .sort((left, right) =>
-      left.localeCompare(right, undefined, {sensitivity: 'base'}),
+    .map((name) => ({
+      sourceName: name,
+      sourceKind: 'folder',
+      sourcePath: path.join(LOCAL_ROOT, name),
+    }));
+  const looseFileSources = entries
+    .filter(
+      (entry) => entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
+    )
+    .map((entry) => ({
+      sourceName: path.parse(entry.name).name,
+      sourceKind: 'file',
+      sourcePath: path.join(LOCAL_ROOT, entry.name),
+      sourceFileName: entry.name,
+    }))
+    .filter(
+      (source) =>
+        INCLUDED_SOURCE_FOLDERS.size === 0 ||
+        INCLUDED_SOURCE_FOLDERS.has(source.sourceName),
     );
+  const duplicateSourceNames = new Set(
+    looseFileSources
+      .map((source) => source.sourceName)
+      .filter((sourceName) => availableFolders.includes(sourceName)),
+    );
+
+  if (duplicateSourceNames.size > 0) {
+    throw new Error(
+      `Folder/file source name conflict: ${[...duplicateSourceNames].join(', ')}`,
+    );
+  }
+
+  const sources = [...folderSources, ...looseFileSources].sort((left, right) =>
+    left.sourceName.localeCompare(right.sourceName, undefined, {
+      sensitivity: 'base',
+    }),
+  );
   const ids = new Set();
   const catalog = [];
 
-  for (const [index, sourceFolder] of folders.entries()) {
-    const id = slugify(sourceFolder);
-    const displayName =
-      DISPLAY_NAME_OVERRIDES[sourceFolder] ?? toDisplayName(sourceFolder);
+  for (const [index, source] of sources.entries()) {
+    const id = slugify(source.sourceName);
 
     if (!id || ids.has(id)) {
-      throw new Error(`Invalid or duplicate font id: ${sourceFolder} -> ${id}`);
+      throw new Error(
+        `Invalid or duplicate font id: ${source.sourceName} -> ${id}`,
+      );
     }
 
     ids.add(id);
 
-    const files = await walkFiles(path.join(LOCAL_ROOT, sourceFolder));
+    const files =
+      source.sourceKind === 'folder'
+        ? await walkFiles(source.sourcePath)
+        : await readSingleFile(source.sourcePath, source.sourceFileName);
+    const displayName = inferDisplayName(
+      source.sourceName,
+      files,
+      source.sourceKind,
+    );
     const fontFiles = files.filter((file) => file.kind === 'font');
     const preview = [...fontFiles].sort(
       (left, right) =>
         previewScore(left) - previewScore(right) ||
         left.relativePath.localeCompare(right.relativePath),
     )[0];
-    const storagePrefix = toStoragePath(STORAGE_ROOT, sourceFolder);
+    const storagePrefix = toStoragePath(STORAGE_ROOT, source.sourceName);
 
     catalog.push({
       id,
+      sourcePath: source.sourcePath,
+      sourceKind: source.sourceKind,
       document: {
         id,
         name: displayName,
         sortName: displayName.normalize('NFKD').toLocaleLowerCase(),
-        sourceFolder,
+        sourceFolder: source.sourceName,
         storagePrefix,
         enabled: ENABLED,
-        kind: sourceFolder === 'VARIOUS' ? 'collection' : 'family',
+        kind: source.sourceName === 'VARIOUS' ? 'collection' : 'family',
         formats: [...new Set(fontFiles.map((file) => file.extension))].sort(),
         fileCount: files.length,
         variantCount: fontFiles.length,
@@ -304,14 +439,24 @@ function runGcloud(arguments_, options = {}) {
 
 function uploadStorage(catalog) {
   for (const font of catalog) {
+    if (font.sourceKind === 'folder') {
+      runGcloud([
+        'storage',
+        'rsync',
+        '--recursive',
+        '--exclude',
+        '(^|/)\\.DS_Store$',
+        font.sourcePath,
+        `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}`,
+      ]);
+      continue;
+    }
+
     runGcloud([
       'storage',
-      'rsync',
-      '--recursive',
-      '--exclude',
-      '(^|/)\\.DS_Store$',
-      path.join(LOCAL_ROOT, font.document.sourceFolder),
-      `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}`,
+      'cp',
+      font.sourcePath,
+      `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}/${path.basename(font.sourcePath)}`,
     ]);
   }
 }

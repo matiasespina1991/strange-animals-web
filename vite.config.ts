@@ -17,6 +17,8 @@ type PageMetadata = {
 
 const odysseyDescription =
   "Strange Animals presents Odyssey Vol. 1, a compilation album consisting of a selection of tracks from various artists, showcasing a wide spectrum of sounds inspired by liquid drum n bass/jungle.";
+const jazzLicksDescription =
+  "Strange Animals presents Jazz Licks Vol. 1 [SAJS003], a vinyl-only compilation centered on jazz-infused breaks and deep bass pressure.";
 
 const routeMetadata = new Map<
   string,
@@ -31,6 +33,17 @@ const routeMetadata = new Map<
         "https://strangeanimals.de/media/images/releases/sajs001/cover.png",
       imageAlt: "SAJS001CD Odyssey Vol. 1 cover",
       outputFile: "listen-sajs001cd.html",
+    },
+  ],
+  [
+    "/listen/sajs003",
+    {
+      title: "LISTEN | Strange Animals | Jazz Licks Vol. 1 [SAJS003]",
+      description: jazzLicksDescription,
+      image:
+        "https://strangeanimals.de/media/images/releases/sajs003/cover.png",
+      imageAlt: "SAJS003 Jazz Licks Vol. 1 cover",
+      outputFile: "listen-sajs003.html",
     },
   ],
   [
