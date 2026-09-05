@@ -295,7 +295,7 @@ export function Sajs003ListenPage() {
   return (
     <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
-        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(43%-5rem))_1fr] lg:items-stretch">
+        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
@@ -304,7 +304,7 @@ export function Sajs003ListenPage() {
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
-              <h1 className="mt-[0.65rem] font-mono text-[1.8rem] uppercase leading-[0.9] tracking-[-0.008em] text-white sm:text-[1.7rem]">
+              <h1 className="mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
                 V.A. Jazz Licks Vol. 1 (Vinyl Only)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -322,13 +322,7 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p
-                  className="max-w-sm text-[1.2rem] 
-                  
-                  leading-[1.9rem] 
-                md:leading-[1.3rem] tracking-[-0.008em] text-white/64 
-                md:text-[0.89rem]"
-                >
+                <p className="max-w-sm text-[1.2rem] leading-[1.9rem] tracking-[-0.008em] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
                   Strange Animals presents Jazz Licks Vol. 1, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.
@@ -339,14 +333,14 @@ export function Sajs003ListenPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
+          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
             <div className="border-b border-white/25 p-2.5">
               <div className="border border-white/30 bg-white/[0.03] p-2.5">
-                <p className="font-mono text-[0.803rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.669rem]">
+                <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   Now Playing
                 </p>
-                <p className="mt-1.5 min-h-[2.4rem] font-mono text-[1.0175rem] leading-tight tracking-[-0.008em] text-white md:text-[0.9rem]">
-                  <span className="tabular-nums text-[1.1675rem] md:text-[1.025rem]">
+                <p className="mt-1.5 min-h-[1.8rem] font-mono text-[0.967rem] leading-tight tracking-[-0.008em] text-white md:text-[0.855rem]">
+                  <span className="tabular-nums text-[1.109rem] md:text-[0.974rem]">
                     {currentTrack.number.toString().padStart(2, "0")} /
                   </span>{" "}
                   {currentTrack.artist} - {currentTrack.title}
@@ -368,11 +362,11 @@ export function Sajs003ListenPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </button>
-                <div className="mt-2 flex justify-between font-mono text-[0.691rem] text-white/55 md:text-[0.576rem]">
-                  <span className="tabular-nums text-[0.841rem] md:text-[0.701rem]">
+                <div className="mt-2 flex justify-between font-mono text-[0.656rem] text-white/55 md:text-[0.547rem]">
+                  <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
                     {formatTime(currentTime)}
                   </span>
-                  <span className="tabular-nums text-[0.841rem] md:text-[0.701rem]">
+                  <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
                     {formatTime(duration)}
                   </span>
                 </div>
@@ -380,7 +374,7 @@ export function Sajs003ListenPage() {
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
@@ -407,7 +401,7 @@ export function Sajs003ListenPage() {
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/70 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >
@@ -435,7 +429,7 @@ export function Sajs003ListenPage() {
 
             <div className="listen-playlist-scrollbar pb-[3rem] min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.84rem] uppercase tracking-[0.048em] text-white/60 md:text-[0.7rem]">
+                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.798rem] uppercase tracking-[0.048em] text-white/60 md:text-[0.665rem]">
                   <Loader2 className="size-4 animate-spin" />
                   Loading Audio
                 </div>
@@ -467,23 +461,25 @@ export function Sajs003ListenPage() {
                             selectTrack(index);
                           }}
                         >
-                          <span className="font-mono text-[0.915rem] tabular-nums opacity-70 md:text-[0.7625rem]">
+                          <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
                             {track.number.toString().padStart(2, "0")}
                           </span>
                           <span className="min-w-0">
-                            <span className="block truncate font-mono text-[0.908rem] uppercase tracking-[0.024em] md:text-[0.7625rem]">
+                            <span className="block truncate font-mono text-[0.863rem] uppercase tracking-[0.024em] md:text-[0.724rem]">
                               {track.title}
                             </span>
                             <span
                               className={[
-                                "mt-0.5 block truncate text-[0.901rem] font-semibold md:text-[0.751rem]",
-                                selected ? "text-black/68" : "text-white/48",
+                                "listen-artist mt-0.5 block truncate text-[0.95rem] font-semibold md:text-[0.79rem]",
+                                selected
+                                  ? "text-black/68"
+                                  : "text-white/[0.62]",
                               ].join(" ")}
                             >
                               {track.artist}
                             </span>
                           </span>
-                          <span className="text-right text-[0.87rem] tabular-nums opacity-60 md:text-[0.725rem]">
+                          <span className="text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
                             {track.durationLabel}
                           </span>
                         </button>
