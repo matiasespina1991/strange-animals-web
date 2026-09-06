@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
-  Loader2,
   Pause,
   Play,
   SkipBack,
@@ -11,6 +10,12 @@ import {
 import { getDownloadURL, ref } from "firebase/storage";
 import { firebaseStorage } from "@/lib/firebase";
 import { sajs001cdRelease } from "./sajs001cd-release";
+import { RetroTrackMarquee } from "./RetroTrackMarquee";
+import {
+  ReleasePageLoadingSkeleton,
+  ReleasePlaylistSkeleton,
+  useReleaseFontsReady,
+} from "./release-loading";
 
 const SAJS001CD_COVER_PATH = "/media/images/releases/sajs001/cover.png";
 
@@ -63,6 +68,7 @@ function Sajs001ReleasePage({
   edition,
   format,
 }: Sajs001ReleasePageProps) {
+  const releaseFontsReady = useReleaseFontsReady();
   const audioReference = useRef<HTMLAudioElement>(null);
   const [trackUrlState, setTrackUrlState] = useState<TrackUrlState>({
     status: "loading",
@@ -71,6 +77,7 @@ function Sajs001ReleasePage({
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [isCoverLightboxOpen, setIsCoverLightboxOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -160,6 +167,22 @@ function Sajs001ReleasePage({
   }, []);
 
   const selectTrack = (index: number) => {
+    if (index === currentTrackIndex) {
+      const audio = audioReference.current;
+
+      if (!audio || !currentTrackUrl) {
+        return;
+      }
+
+      audio.currentTime = 0;
+      setCurrentTime(0);
+      setIsPlaying(true);
+      void audio.play().catch(() => {
+        setIsPlaying(false);
+      });
+      return;
+    }
+
     setCurrentTrackIndex(index);
     setCurrentTime(0);
     setDuration(0);
@@ -322,6 +345,10 @@ function Sajs001ReleasePage({
     playCurrentTrack,
   ]);
 
+  if (!releaseFontsReady) {
+    return <ReleasePageLoadingSkeleton />;
+  }
+
   return (
     <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
       <section className="mx-auto flex pb-40 min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
@@ -387,7 +414,8 @@ function Sajs001ReleasePage({
                     .
                   </span>
                   <span className="mt-3 block">
-                    Release date: <strong className="font-semibold">TBA 2026</strong>
+                    Release date:{" "}
+                    <strong className="font-semibold">TBA 2026</strong>
                   </span>
                   <span className="mt-3 block">Catalog #: {catalogue}</span>
                   <span className="mt-3 block">
@@ -398,18 +426,20 @@ function Sajs001ReleasePage({
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-5.5rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
-                <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
-                  Now Playing
+                <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
+                  {isPlaying ? "Now Playing" : "Paused"}
+                  {isPlaying ? (
+                    <Play aria-hidden="true" className="size-2 fill-current" />
+                  ) : null}
                 </p>
-                <p className="listen-current-track mt-1.5 min-h-[1.8rem] font-mono text-[0.92rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.967rem] md:text-[0.855rem]">
-                  <span className="tabular-nums text-[1.109rem] md:text-[0.974rem]">
-                    {currentTrack.number.toString().padStart(2, "0")}
-                  </span>{" "}
-                  {currentTrack.artist} - {currentTrack.title}
-                </p>
+                <RetroTrackMarquee
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.84rem]"
+                  isPlaying={isPlaying}
+                  text={`${currentTrack.number.toString().padStart(2, "0")} ${currentTrack.artist} - ${currentTrack.title}`}
+                />
                 <button
                   type="button"
                   aria-label="Seek playback"
@@ -473,7 +503,7 @@ function Sajs001ReleasePage({
                     <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
 
-                  <label className="ml-auto flex min-w-[calc(9rem-9px)] items-center gap-2 text-white/65">
+                  <label className="ml-auto flex w-[calc(9rem-19px)] shrink-0 items-center gap-2 text-white/65">
                     <Volume2 className="size-[0.95rem] text-white/50" />
                     <span className="sr-only">Volume</span>
                     <input
@@ -494,10 +524,7 @@ function Sajs001ReleasePage({
 
             <div className="listen-playlist-scrollbar pb-[3rem] min-h-0 flex-1 overflow-y-auto">
               {trackUrlState.status === "loading" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 font-mono text-[0.798rem] uppercase tracking-[0.048em] text-white/60 md:text-[0.665rem]">
-                  <Loader2 className="size-4 animate-spin" />
-                  Loading WAVs
-                </div>
+                <ReleasePlaylistSkeleton />
               ) : null}
 
               {trackUrlState.status === "error" ? (
@@ -516,10 +543,11 @@ function Sajs001ReleasePage({
                       <li key={track.slug}>
                         <button
                           type="button"
+                          aria-current={selected ? "true" : undefined}
                           className={[
-                            "grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
+                            "relative grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
                             selected
-                              ? "bg-white/[0.68] text-black"
+                              ? "bg-black text-white/92 hover:bg-white/[0.12]"
                               : "bg-black text-white/82 hover:bg-white/[0.12]",
                           ].join(" ")}
                           onClick={() => {
@@ -529,6 +557,12 @@ function Sajs001ReleasePage({
                           <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
                             {track.number.toString().padStart(2, "0")}
                           </span>
+                          {selected && hasStartedPlayback ? (
+                            <Volume2
+                              aria-hidden="true"
+                              className="pointer-events-none absolute left-[2.725rem] top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 text-white/60 sm:left-[3.375rem]"
+                            />
+                          ) : null}
                           <span className="min-w-0">
                             <span className="block truncate font-mono text-[0.863rem] uppercase tracking-[0.024em] md:text-[0.724rem]">
                               {track.title}
@@ -537,7 +571,7 @@ function Sajs001ReleasePage({
                               className={[
                                 "listen-artist mt-0.5 block truncate text-[0.95rem] font-semibold md:text-[0.79rem]",
                                 selected
-                                  ? "text-black/68"
+                                  ? "text-white/[0.7]"
                                   : "text-white/[0.62]",
                               ].join(" ")}
                             >
@@ -567,6 +601,7 @@ function Sajs001ReleasePage({
                 setIsPlaying(false);
               }}
               onPlaying={() => {
+                setHasStartedPlayback(true);
                 setIsPlaying(true);
               }}
               onTimeUpdate={(event) => {

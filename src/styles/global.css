@@ -226,7 +226,7 @@ input {
 }
 
 .listen-playlist-scrollbar {
-  scrollbar-color: #fff #000;
+  scrollbar-color: rgb(255 255 255 / 62%) #000;
   scrollbar-width: thin;
 }
 
@@ -240,13 +240,14 @@ input {
 }
 
 .listen-playlist-scrollbar::-webkit-scrollbar-thumb {
-  background: #fff;
+  background: rgb(255 255 255 / 62%);
   border: 2px solid #000;
-  border-radius: 0;
+  border-radius: 0 !important;
 }
 
-.listen-playlist-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #d6d6d6;
+.listen-playlist-scrollbar::-webkit-scrollbar-thumb:hover,
+.listen-playlist-scrollbar::-webkit-scrollbar-thumb:active {
+  background: rgb(255 255 255 / 82%);
 }
 
 .listen-volume-slider {

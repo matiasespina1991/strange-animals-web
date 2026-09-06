@@ -1,7 +1,7 @@
 export type Sajs003Track = {
   artist: string;
   durationLabel?: string;
-  number: number;
+  number: string;
   slug: string;
   storagePath: string;
   title: string;
@@ -15,7 +15,7 @@ export const sajs003Release = {
     {
       artist: "Michele Manzo",
       durationLabel: "6:32",
-      number: 1,
+      number: "A1",
       slug: "michele-manzo-cinema-breaks-v1",
       storagePath:
         "media/public/audio/tracks/sajs003-michele-manzo-cinema-breaks-v1/v2/source.mp3",
@@ -24,7 +24,7 @@ export const sajs003Release = {
     {
       artist: "Index",
       durationLabel: "5:40",
-      number: 2,
+      number: "A2",
       slug: "index-hazy-horizon-feat-german-rossi",
       storagePath:
         "media/public/audio/tracks/sajs003-index-hazy-horizon-feat-german-rossi/v2/source.mp3",
@@ -33,7 +33,7 @@ export const sajs003Release = {
     {
       artist: "Silizium",
       durationLabel: "6:45",
-      number: 3,
+      number: "A3",
       slug: "silizium-test-drive-ps1-8",
       storagePath:
         "media/public/audio/tracks/sajs003-silizium-test-drive-ps1-8/v2/source.mp3",
@@ -42,7 +42,7 @@ export const sajs003Release = {
     {
       artist: "Bluejaye a.k.a. Ewan Jansen",
       durationLabel: "7:00",
-      number: 4,
+      number: "B1",
       slug: "ewan-jansen-jazz-mellow",
       storagePath:
         "media/public/audio/tracks/sajs003-ewan-jansen-jazz-mellow/v2/source.mp3",
@@ -51,7 +51,7 @@ export const sajs003Release = {
     {
       artist: "Ronan Portela",
       durationLabel: "6:31",
-      number: 5,
+      number: "B2",
       slug: "ronan-portela-smooth-index-deep-n-bass-mix",
       storagePath:
         "media/public/audio/tracks/sajs003-ronan-portela-smooth-index-deep-n-bass-mix/v1/source.mp3",
@@ -60,7 +60,7 @@ export const sajs003Release = {
     {
       artist: "Tade",
       durationLabel: "2:49",
-      number: 6,
+      number: "B3",
       slug: "tade-untitled",
       storagePath:
         "media/public/audio/tracks/sajs003-tade-untitled/v1/source.mp3",
