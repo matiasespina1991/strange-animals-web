@@ -52,7 +52,7 @@ export function Sajs001ListenPage() {
   return (
     <Sajs001ReleasePage
       catalogue="SAJS001"
-      edition="2 x Vinyl"
+      edition="Vinyl"
       format="2 x Vinyl"
     />
   );
@@ -334,9 +334,14 @@ function Sajs001ReleasePage({
                 </a>{" "}
                 &gt; Jungle Series &gt; {catalogue}
               </p>
-              <h1 className="release-title mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
-                V.A. Odyssey Vol. I ({edition})
-              </h1>
+              <div className="mt-[0.5rem] flex flex-col items-start gap-[0.7rem]">
+                <span className="border border-white/25 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.52rem] uppercase leading-none tracking-[0.08em] text-white/55">
+                  Out soon
+                </span>
+                <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem] md:leading-[1.2]">
+                  V.A. Odyssey Vol. I ({edition})
+                </h1>
+              </div>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <button
                   type="button"
@@ -352,7 +357,7 @@ function Sajs001ReleasePage({
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[1.2rem] leading-[1.9rem] tracking-[-0.008em] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
+                <p className="max-w-sm text-[1.2rem] leading-[1.9rem] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
                   Strange Animals presents Odyssey Vol. I, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
@@ -381,8 +386,13 @@ function Sajs001ReleasePage({
                     </a>
                     .
                   </span>
-                  <span className="mt-3 block">Release date: TBA 2026</span>
-                  <span className="mt-3 block">Format: {format}</span>
+                  <span className="mt-3 block">
+                    Release date: <strong className="font-semibold">TBA 2026</strong>
+                  </span>
+                  <span className="mt-3 block">Catalog #: {catalogue}</span>
+                  <span className="mt-3 block">
+                    Format: <strong className="font-semibold">{format}</strong>
+                  </span>
                 </p>
               </div>
             </div>

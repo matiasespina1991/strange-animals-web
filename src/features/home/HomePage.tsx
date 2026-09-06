@@ -22,7 +22,16 @@ function isEditableShortcutTarget(target: EventTarget | null) {
   );
 }
 
+function isHistoryReturn() {
+  const navigationEntry = performance.getEntriesByType("navigation").at(0) as
+    | PerformanceNavigationTiming
+    | undefined;
+
+  return navigationEntry?.type === "back_forward";
+}
+
 export function HomePage() {
+  const skipInitialEntrance = isHistoryReturn();
   const activateTade = useTadeGameStore((state) => state.activate);
   const { applySkin, layer, openWebamp } = useWebampLayer();
   const hasOpenedWinampSkinDialog = useRef(false);
@@ -135,7 +144,10 @@ export function HomePage() {
   return (
     <main className="min-h-screen overflow-hidden bg-black text-white">
       <TadeGame />
-      <BrandLogoExperience easterEggActive={easterEggActive} />
+      <BrandLogoExperience
+        easterEggActive={easterEggActive}
+        skipInitialEntrance={skipInitialEntrance}
+      />
       {layer}
       <DoomDialog
         open={doomDialogOpen}
@@ -178,25 +190,29 @@ export function HomePage() {
       <motion.div
         animate={{ opacity: 1 }}
         className="group pointer-events-auto fixed right-5 bottom-5 z-40 text-right font-mono text-[0.70rem] font-light leading-none tracking-[0.035em] text-white/70 opacity-0 md:right-9"
-        initial={{ opacity: 0 }}
-        transition={{ delay: 4.05, duration: 0.75, ease: "easeOut" }}
+        initial={{ opacity: skipInitialEntrance ? 1 : 0 }}
+        transition={{
+          delay: skipInitialEntrance ? 0 : 0.12 + 1,
+          duration: skipInitialEntrance ? 0 : 1.42,
+          ease: "easeOut",
+        }}
       >
         <nav
           aria-label="Listen to releases"
-          className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-4 pb-4 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
+          className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-4 pb-5 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
         >
-          <p className="mb-0.5 text-white/55">Releases</p>
-          <a
-            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
-            href="/listen/sajs001"
-          >
-            V.A. Odyssey Vol. I (2 x Vinyl) | TBA 2026
-          </a>
+          <p className="text-white/55">Releases</p>
           <a
             className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001cd"
           >
-            V.A. Odyssey Vol. I | TBA 2026
+            V.A. Odyssey Vol. I CD | TBA 2026
+          </a>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs001"
+          >
+            V.A. Odyssey Vol. I Double Vinyl | TBA 2027
           </a>
           <a
             className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
