@@ -365,7 +365,7 @@ function Sajs001ReleasePage({
                 <span className="border border-white/35 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/60">
                   Out soon
                 </span>
-                <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem] md:leading-[1.2]">
+                <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.06em] text-white sm:text-[1.3rem] md:leading-[1.2]">
                   V.A. Odyssey Vol. I ({edition})
                 </h1>
               </div>
