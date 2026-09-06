@@ -305,7 +305,7 @@ export function Sajs003ListenPage() {
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
               <h1 className="release-title mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
-                V.A. Jazz Licks Vol. 1 (Vinyl Only)
+                V.A. Jazz Licks Vol. I (Vinyl Only)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <button
@@ -317,13 +317,13 @@ export function Sajs003ListenPage() {
                   }}
                 >
                   <img
-                    alt="SAJS003 Jazz Licks Vol. 1 cover"
+                    alt="SAJS003 Jazz Licks Vol. I cover"
                     className="aspect-square w-full object-cover"
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
                 <p className="max-w-sm text-[1.2rem] leading-[1.9rem] tracking-[-0.008em] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
-                  Strange Animals presents Jazz Licks Vol. 1, a compilation
+                  Strange Animals presents Jazz Licks Vol. I, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.
                   <span className="mt-3 block">Release date: TBA 2027</span>
@@ -334,8 +334,8 @@ export function Sajs003ListenPage() {
           </div>
 
           <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
-            <div className="border-b border-white/25 p-2.5">
-              <div className="border border-white/30 bg-white/[0.03] p-2.5">
+            <div className="border-b border-white/25 p-[0.55rem]">
+              <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   Now Playing
                 </p>
@@ -374,17 +374,17 @@ export function Sajs003ListenPage() {
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
-                    <SkipBack className="size-4 md:size-[0.82rem]" />
+                    <SkipBack className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
                   <button
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     className={[
-                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                       isPlaying
                         ? "translate-x-px translate-y-px bg-white text-black shadow-none"
                         : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
@@ -393,23 +393,23 @@ export function Sajs003ListenPage() {
                     onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                   >
                     {isPlaying ? (
-                      <Pause className="size-4 md:size-[0.82rem]" />
+                      <Pause className="size-[0.88rem] md:size-[0.68rem]" />
                     ) : (
-                      <Play className="size-4 fill-current md:size-[0.82rem]" />
+                      <Play className="size-[0.88rem] fill-current md:size-[0.68rem]" />
                     )}
                   </button>
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >
-                    <SkipForward className="size-4 md:size-[0.82rem]" />
+                    <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
 
                   <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
-                    <Volume2 className="size-4" />
+                    <Volume2 className="size-[0.95rem]" />
                     <span className="sr-only">Volume</span>
                     <input
                       className="listen-volume-slider h-1 w-full"
@@ -546,7 +546,7 @@ export function Sajs003ListenPage() {
               />
             </button>
             <img
-              alt="SAJS003 Jazz Licks Vol. 1 cover preview"
+              alt="SAJS003 Jazz Licks Vol. I cover preview"
               className="max-h-[calc(100vh-4rem)] w-auto max-w-[calc(100vw-2rem)] object-contain"
               src={SAJS003_COVER_PATH}
             />

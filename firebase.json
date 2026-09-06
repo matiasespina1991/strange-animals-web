@@ -10,9 +10,7 @@
     {
       "source": "functions",
       "codebase": "default",
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"],
       "ignore": [
         "node_modules",
         ".git",
@@ -24,12 +22,16 @@
   ],
   "hosting": {
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      {
+        "source": "/listen/sajs001",
+        "destination": "/route-meta/listen-sajs001.html"
+      },
+      {
+        "source": "/listen/sajs001/**",
+        "destination": "/route-meta/listen-sajs001.html"
+      },
       {
         "source": "/listen/sajs001cd",
         "destination": "/route-meta/listen-sajs001cd.html"

@@ -1,39 +1,39 @@
 /* eslint-disable no-await-in-loop -- Firestore commit batches are intentionally sequential. */
-import {createHash} from 'node:crypto';
-import {spawnSync} from 'node:child_process';
-import {readdir, stat} from 'node:fs/promises';
-import {existsSync} from 'node:fs';
-import path from 'node:path';
-import process from 'node:process';
-import {fileURLToPath} from 'node:url';
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { readdir, stat } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
 
-const PROJECT_ID = 'strange-animals-web';
-const STORAGE_ROOT = 'media/private/fonts';
+const PROJECT_ID = "strange-animals-web";
+const STORAGE_ROOT = "media/private/fonts";
 const REPOSITORY_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '..',
+  "..",
 );
-const SOURCE_ROOT_ARGUMENT = readOption('--source-root');
+const SOURCE_ROOT_ARGUMENT = readOption("--source-root");
 const LOCAL_ROOT = path.resolve(
   REPOSITORY_ROOT,
-  SOURCE_ROOT_ARGUMENT ?? 'public/media/fonts',
+  SOURCE_ROOT_ARGUMENT ?? "public/media/fonts",
 );
 const GCLOUD_CANDIDATE =
-  '/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud';
-const GCLOUD = existsSync(GCLOUD_CANDIDATE) ? GCLOUD_CANDIDATE : 'gcloud';
-const FONT_EXTENSIONS = new Set(['otf', 'ttf', 'woff', 'woff2']);
+  "/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud";
+const GCLOUD = existsSync(GCLOUD_CANDIDATE) ? GCLOUD_CANDIDATE : "gcloud";
+const FONT_EXTENSIONS = new Set(["otf", "ttf", "woff", "woff2"]);
 const WRITE_FIRESTORE_FILES_ONLY = process.argv.includes(
-  '--write-firestore-files-only',
+  "--write-firestore-files-only",
 );
 const WRITE_FIRESTORE =
-  process.argv.includes('--write-firestore') || WRITE_FIRESTORE_FILES_ONLY;
-const UPLOAD_STORAGE = process.argv.includes('--upload-storage');
-const ENABLED = !process.argv.includes('--disabled');
-const INCLUDED_SOURCE_FOLDERS = new Set(readOptions('--include-folder'));
+  process.argv.includes("--write-firestore") || WRITE_FIRESTORE_FILES_ONLY;
+const UPLOAD_STORAGE = process.argv.includes("--upload-storage");
+const ENABLED = !process.argv.includes("--disabled");
+const INCLUDED_SOURCE_FOLDERS = new Set(readOptions("--include-folder"));
 const DISPLAY_NAME_OVERRIDES = {
-  OnlineWebFonts_COM_1c11978277976bba95554a96608cb027: 'Otomo Round',
-  OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: 'kfontZ111W01-Regular',
-  OnlineWebFonts_COM_8fe15e6d5697c6e91c295fd95175a8b4: 'BloorW00-Regular',
+  OnlineWebFonts_COM_1c11978277976bba95554a96608cb027: "Otomo Round",
+  OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: "kfontZ111W01-Regular",
+  OnlineWebFonts_COM_8fe15e6d5697c6e91c295fd95175a8b4: "BloorW00-Regular",
 };
 
 function readOption(name) {
@@ -43,7 +43,7 @@ function readOption(name) {
 
   const value = process.argv[optionIndex + 1];
 
-  if (!value || value.startsWith('--')) {
+  if (!value || value.startsWith("--")) {
     throw new Error(`${name} requires a path value`);
   }
 
@@ -56,7 +56,7 @@ function readOptions(name) {
 
     const value = process.argv[index + 1];
 
-    if (!value || value.startsWith('--')) {
+    if (!value || value.startsWith("--")) {
       throw new Error(`${name} requires a folder name`);
     }
 
@@ -78,38 +78,38 @@ if (
 
 function slugify(value) {
   return value
-    .replaceAll(/[™®©]/g, '')
-    .normalize('NFKD')
-    .replaceAll(/[\u0300-\u036F]/g, '')
+    .replaceAll(/[™®©]/g, "")
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
-    .replaceAll('&', ' and ')
-    .replaceAll(/[^a-z\d]+/g, '-')
-    .replaceAll(/^-+|-+$/g, '');
+    .replaceAll("&", " and ")
+    .replaceAll(/[^a-z\d]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "");
 }
 
 function toDisplayName(value) {
   return value
-    .replaceAll(/[-_]/g, ' ')
-    .replace(/^\d{6,}\s+/, '')
-    .replaceAll(/\s+/g, ' ')
+    .replaceAll(/[-_]/g, " ")
+    .replace(/^\d{6,}\s+/, "")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 
 function normalizeFamilyDisplayName(value) {
   const withSpacing = value
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
 
   return toDisplayName(withSpacing)
-    .replace(/([A-Za-z0-9])W\d{2}\b/gi, '$1')
-    .replace(/\bW\d{2}(?=$|\s|[-_])/gi, '')
-    .replace(/\btfb\b/gi, '')
-    .replaceAll(/\s+/g, ' ')
+    .replace(/([A-Za-z0-9])W\d{2}\b/gi, "$1")
+    .replace(/\bW\d{2}(?=$|\s|[-_])/gi, "")
+    .replace(/\btfb\b/gi, "")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 
 function toStoragePath(...segments) {
-  return segments.join('/').replaceAll(path.sep, '/');
+  return segments.join("/").replaceAll(path.sep, "/");
 }
 
 function getExtension(fileName) {
@@ -119,42 +119,42 @@ function getExtension(fileName) {
 function getContentType(extension) {
   return (
     {
-      otf: 'font/otf',
-      ttf: 'font/ttf',
-      woff: 'font/woff',
-      woff2: 'font/woff2',
-      zip: 'application/zip',
-      txt: 'text/plain',
-      md: 'text/markdown',
-      pdf: 'application/pdf',
-      png: 'image/png',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      webp: 'image/webp',
-    }[extension] ?? 'application/octet-stream'
+      otf: "font/otf",
+      ttf: "font/ttf",
+      woff: "font/woff",
+      woff2: "font/woff2",
+      zip: "application/zip",
+      txt: "text/plain",
+      md: "text/markdown",
+      pdf: "application/pdf",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      webp: "image/webp",
+    }[extension] ?? "application/octet-stream"
   );
 }
 
 function getFileKind(extension, fileName) {
   const lowerName = fileName.toLowerCase();
 
-  if (FONT_EXTENSIONS.has(extension)) return 'font';
-  if (extension === 'zip') return 'archive';
-  if (lowerName.includes('license') || lowerName.includes('licence')) {
-    return 'license';
+  if (FONT_EXTENSIONS.has(extension)) return "font";
+  if (extension === "zip") return "archive";
+  if (lowerName.includes("license") || lowerName.includes("licence")) {
+    return "license";
   }
 
-  if (['md', 'pdf', 'txt'].includes(extension)) return 'documentation';
-  if (['jpeg', 'jpg', 'png', 'webp'].includes(extension)) return 'image';
+  if (["md", "pdf", "txt"].includes(extension)) return "documentation";
+  if (["jpeg", "jpg", "png", "webp"].includes(extension)) return "image";
 
-  return 'other';
+  return "other";
 }
 
 function getFileId(relativePath) {
-  const baseSlug = slugify(relativePath.replace(/\.[^/.]+$/, '')) || 'file';
-  const hash = createHash('sha256')
+  const baseSlug = slugify(relativePath.replace(/\.[^/.]+$/, "")) || "file";
+  const hash = createHash("sha256")
     .update(relativePath)
-    .digest('hex')
+    .digest("hex")
     .slice(0, 10);
 
   return `${baseSlug.slice(0, 80)}-${hash}`;
@@ -162,11 +162,12 @@ function getFileId(relativePath) {
 
 function previewScore(file) {
   const name = file.fileName.toLowerCase();
-  const formatScore = {otf: 0, woff2: 1, woff: 2, ttf: 3}[file.extension] ?? 9;
+  const formatScore =
+    { otf: 0, woff2: 1, woff: 2, ttf: 3 }[file.extension] ?? 9;
   const regularBonus = /(^|[-_ ])(regular|normal)([-_. ]|$)/.test(name)
     ? -4
     : 0;
-  const sourceBonus = name.startsWith('source.') ? -3 : 0;
+  const sourceBonus = name.startsWith("source.") ? -3 : 0;
   const variantPenalty =
     /(italic|outline|display|rough|thin|bold|condensed|wide)/.test(name)
       ? 3
@@ -175,12 +176,12 @@ function previewScore(file) {
   return formatScore + regularBonus + sourceBonus + variantPenalty;
 }
 
-async function walkFiles(directory, relativeRoot = '') {
-  const entries = await readdir(directory, {withFileTypes: true});
+async function walkFiles(directory, relativeRoot = "") {
+  const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
-    if (entry.name === '.DS_Store') continue;
+    if (entry.name === ".DS_Store") continue;
 
     const relativePath = path.join(relativeRoot, entry.name);
     const absolutePath = path.join(directory, entry.name);
@@ -193,7 +194,7 @@ async function walkFiles(directory, relativeRoot = '') {
     if (!entry.isFile()) continue;
 
     const fileStat = await stat(absolutePath);
-    const normalizedRelativePath = relativePath.replaceAll(path.sep, '/');
+    const normalizedRelativePath = relativePath.replaceAll(path.sep, "/");
     const extension = getExtension(entry.name);
 
     files.push({
@@ -209,7 +210,7 @@ async function walkFiles(directory, relativeRoot = '') {
 
   return files.sort((left, right) =>
     left.relativePath.localeCompare(right.relativePath, undefined, {
-      sensitivity: 'base',
+      sensitivity: "base",
     }),
   );
 }
@@ -223,7 +224,7 @@ async function readSingleFile(absolutePath, relativePath) {
     {
       absolutePath,
       fileName,
-      relativePath: relativePath.replaceAll(path.sep, '/'),
+      relativePath: relativePath.replaceAll(path.sep, "/"),
       extension,
       contentType: getContentType(extension),
       kind: getFileKind(extension, fileName),
@@ -234,12 +235,12 @@ async function readSingleFile(absolutePath, relativePath) {
 
 function readFontFamilyFromFcScan(fontAbsolutePath) {
   const result = spawnSync(
-    'fc-scan',
-    ['--format=%{family[0]}', fontAbsolutePath],
+    "fc-scan",
+    ["--format=%{family[0]}", fontAbsolutePath],
     {
       cwd: REPOSITORY_ROOT,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
     },
   );
 
@@ -250,14 +251,14 @@ function readFontFamilyFromFcScan(fontAbsolutePath) {
 }
 
 function inferDisplayName(sourceName, files, sourceKind) {
-  const fontFiles = files.filter((file) => file.kind === 'font');
+  const fontFiles = files.filter((file) => file.kind === "font");
 
   if (DISPLAY_NAME_OVERRIDES[sourceName]) {
     return normalizeFamilyDisplayName(DISPLAY_NAME_OVERRIDES[sourceName]);
   }
 
   if (
-    (sourceKind === 'file' || /^onlinewebfonts_com_/i.test(sourceName)) &&
+    (sourceKind === "file" || /^onlinewebfonts_com_/i.test(sourceName)) &&
     fontFiles.length > 0
   ) {
     const bestFont = [...fontFiles].sort(
@@ -280,13 +281,14 @@ function inferDisplayName(sourceName, files, sourceKind) {
 }
 
 async function buildCatalog() {
-  const entries = await readdir(LOCAL_ROOT, {withFileTypes: true});
+  const entries = await readdir(LOCAL_ROOT, { withFileTypes: true });
   const availableFolders = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
   const availableLooseFontFiles = entries
     .filter(
-      (entry) => entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
+      (entry) =>
+        entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
     )
     .map((entry) => entry.name);
   const availableLooseSources = availableLooseFontFiles.map(
@@ -301,7 +303,7 @@ async function buildCatalog() {
   );
 
   if (missingFolders.length > 0) {
-    throw new Error(`Included folders not found: ${missingFolders.join(', ')}`);
+    throw new Error(`Included folders not found: ${missingFolders.join(", ")}`);
   }
 
   const folderSources = availableFolders
@@ -312,16 +314,17 @@ async function buildCatalog() {
     )
     .map((name) => ({
       sourceName: name,
-      sourceKind: 'folder',
+      sourceKind: "folder",
       sourcePath: path.join(LOCAL_ROOT, name),
     }));
   const looseFileSources = entries
     .filter(
-      (entry) => entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
+      (entry) =>
+        entry.isFile() && FONT_EXTENSIONS.has(getExtension(entry.name)),
     )
     .map((entry) => ({
       sourceName: path.parse(entry.name).name,
-      sourceKind: 'file',
+      sourceKind: "file",
       sourcePath: path.join(LOCAL_ROOT, entry.name),
       sourceFileName: entry.name,
     }))
@@ -334,17 +337,17 @@ async function buildCatalog() {
     looseFileSources
       .map((source) => source.sourceName)
       .filter((sourceName) => availableFolders.includes(sourceName)),
-    );
+  );
 
   if (duplicateSourceNames.size > 0) {
     throw new Error(
-      `Folder/file source name conflict: ${[...duplicateSourceNames].join(', ')}`,
+      `Folder/file source name conflict: ${[...duplicateSourceNames].join(", ")}`,
     );
   }
 
   const sources = [...folderSources, ...looseFileSources].sort((left, right) =>
     left.sourceName.localeCompare(right.sourceName, undefined, {
-      sensitivity: 'base',
+      sensitivity: "base",
     }),
   );
   const ids = new Set();
@@ -362,7 +365,7 @@ async function buildCatalog() {
     ids.add(id);
 
     const files =
-      source.sourceKind === 'folder'
+      source.sourceKind === "folder"
         ? await walkFiles(source.sourcePath)
         : await readSingleFile(source.sourcePath, source.sourceFileName);
     const displayName = inferDisplayName(
@@ -370,7 +373,7 @@ async function buildCatalog() {
       files,
       source.sourceKind,
     );
-    const fontFiles = files.filter((file) => file.kind === 'font');
+    const fontFiles = files.filter((file) => file.kind === "font");
     const preview = [...fontFiles].sort(
       (left, right) =>
         previewScore(left) - previewScore(right) ||
@@ -385,11 +388,11 @@ async function buildCatalog() {
       document: {
         id,
         name: displayName,
-        sortName: displayName.normalize('NFKD').toLocaleLowerCase(),
+        sortName: displayName.normalize("NFKD").toLocaleLowerCase(),
         sourceFolder: source.sourceName,
         storagePrefix,
         enabled: ENABLED,
-        kind: source.sourceName === 'VARIOUS' ? 'collection' : 'family',
+        kind: source.sourceName === "VARIOUS" ? "collection" : "family",
         formats: [...new Set(fontFiles.map((file) => file.extension))].sort(),
         fileCount: files.length,
         variantCount: fontFiles.length,
@@ -424,28 +427,28 @@ async function buildCatalog() {
 function runGcloud(arguments_, options = {}) {
   const result = spawnSync(GCLOUD, arguments_, {
     cwd: REPOSITORY_ROOT,
-    encoding: 'utf8',
-    stdio: options.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
+    encoding: "utf8",
+    stdio: options.capture ? ["ignore", "pipe", "inherit"] : "inherit",
   });
 
   if (result.status !== 0) {
     throw new Error(
-      `gcloud failed with exit code ${result.status ?? 'unknown'}`,
+      `gcloud failed with exit code ${result.status ?? "unknown"}`,
     );
   }
 
-  return options.capture ? result.stdout.trim() : '';
+  return options.capture ? result.stdout.trim() : "";
 }
 
 function uploadStorage(catalog) {
   for (const font of catalog) {
-    if (font.sourceKind === 'folder') {
+    if (font.sourceKind === "folder") {
       runGcloud([
-        'storage',
-        'rsync',
-        '--recursive',
-        '--exclude',
-        '(^|/)\\.DS_Store$',
+        "storage",
+        "rsync",
+        "--recursive",
+        "--exclude",
+        "(^|/)\\.DS_Store$",
         font.sourcePath,
         `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}`,
       ]);
@@ -453,8 +456,8 @@ function uploadStorage(catalog) {
     }
 
     runGcloud([
-      'storage',
-      'cp',
+      "storage",
+      "cp",
       font.sourcePath,
       `gs://${PROJECT_ID}.firebasestorage.app/${font.document.storagePrefix}/${path.basename(font.sourcePath)}`,
     ]);
@@ -462,18 +465,18 @@ function uploadStorage(catalog) {
 }
 
 function encodeFirestoreValue(value) {
-  if (value === null) return {nullValue: null};
-  if (typeof value === 'boolean') return {booleanValue: value};
-  if (typeof value === 'number') {
+  if (value === null) return { nullValue: null };
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (typeof value === "number") {
     return Number.isInteger(value)
-      ? {integerValue: String(value)}
-      : {doubleValue: value};
+      ? { integerValue: String(value) }
+      : { doubleValue: value };
   }
 
-  if (typeof value === 'string') return {stringValue: value};
+  if (typeof value === "string") return { stringValue: value };
   if (Array.isArray(value)) {
     return {
-      arrayValue: {values: value.map((item) => encodeFirestoreValue(item))},
+      arrayValue: { values: value.map((item) => encodeFirestoreValue(item)) },
     };
   }
 
@@ -499,7 +502,7 @@ function encodeFirestoreFields(data) {
 }
 
 async function writeFirestore(catalog) {
-  const accessToken = runGcloud(['auth', 'print-access-token'], {
+  const accessToken = runGcloud(["auth", "print-access-token"], {
     capture: true,
   });
   const writes = [];
@@ -526,20 +529,20 @@ async function writeFirestore(catalog) {
         name: `projects/${PROJECT_ID}/databases/(default)/documents/${write.documentPath}`,
         fields: encodeFirestoreFields(write.data),
       },
-      updateMask: {fieldPaths: Object.keys(write.data)},
+      updateMask: { fieldPaths: Object.keys(write.data) },
       updateTransforms: [
-        {fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME'},
+        { fieldPath: "updatedAt", setToServerValue: "REQUEST_TIME" },
       ],
     }));
     const response = await fetch(
       `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:commit`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
           authorization: `Bearer ${accessToken}`,
-          'content-type': 'application/json',
+          "content-type": "application/json",
         },
-        body: JSON.stringify({writes: commitWrites}),
+        body: JSON.stringify({ writes: commitWrites }),
       },
     );
 

@@ -188,16 +188,22 @@ export function HomePage() {
           <p className="mb-0.5 text-white/55">Releases</p>
           <a
             className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs001"
+          >
+            V.A. Odyssey Vol. I (2 x Vinyl) | TBA 2026
+          </a>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001cd"
           >
-            V.A. Odyssey Vol. 1 | TBA 2026
+            V.A. Odyssey Vol. I | TBA 2026
           </a>
           <a
             className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs003"
           >
             {" "}
-            V.A. Jazz Licks Vol. 1 | TBA 2027
+            V.A. Jazz Licks Vol. I | TBA 2027
           </a>
         </nav>
         <span className="cursor-default transition-colors duration-150 group-hover:text-white/85 group-focus-within:text-white/85 motion-reduce:transition-none">

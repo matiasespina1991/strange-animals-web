@@ -36,6 +36,17 @@ const routeMetadata = new Map<
     },
   ],
   [
+    "/listen/sajs001",
+    {
+      title: "LISTEN | Strange Animals | Odyssey Vol. I [SAJS001]",
+      description: odysseyDescription,
+      image:
+        "https://strangeanimals.de/media/images/releases/sajs001/cover.png",
+      imageAlt: "SAJS001 Odyssey Vol. I 2 x Vinyl cover",
+      outputFile: "listen-sajs001.html",
+    },
+  ],
+  [
     "/listen/sajs003",
     {
       title: "LISTEN | Strange Animals | Jazz Licks Vol. 1 [SAJS003]",
