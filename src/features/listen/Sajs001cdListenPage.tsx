@@ -418,9 +418,7 @@ function Sajs001ReleasePage({
                     <strong className="font-semibold">TBA 2026</strong>
                   </span>
                   <span className="mt-3 block">Catalog #: {catalogue}</span>
-                  <span className="mt-3 block">
-                    Format: <strong className="font-semibold">{format}</strong>
-                  </span>
+                  <span className="mt-3 block">Format: {format}</span>
                 </p>
               </div>
             </div>
