@@ -365,10 +365,7 @@ export function Sajs003ListenPage() {
                   <span className="mt-3 block">
                     Catalog #: {sajs003Release.catalogue}
                   </span>
-                  <span className="mt-3 block">
-                    Format:{" "}
-                    <strong className="font-semibold">Vinyl only</strong>
-                  </span>
+                  <span className="mt-3 block">Format: Vinyl only</span>
                 </p>
               </div>
             </div>
