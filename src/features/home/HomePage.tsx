@@ -201,22 +201,25 @@ export function HomePage() {
           aria-label="Listen to releases"
           className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-4 pb-5 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
         >
-          <p className="text-white/55">Releases</p>
+          <p className="text-white/75">upcoming releases</p>
           <a
-            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001cd"
+            target="_blank"
           >
             V.A. Odyssey Vol. I CD | TBA 2026
           </a>
           <a
-            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001"
+            target="_blank"
           >
             V.A. Odyssey Vol. I Double Vinyl | TBA 2027
           </a>
           <a
-            className="cursor-pointer whitespace-nowrap text-white/45 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs003"
+            target="_blank"
           >
             {" "}
             V.A. Jazz Licks Vol. I | TBA 2027
