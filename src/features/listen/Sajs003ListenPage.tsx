@@ -339,7 +339,7 @@ export function Sajs003ListenPage() {
                 >
                   Out soon
                 </span>
-                <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[6em] text-white sm:text-[1.3rem] md:leading-[1.2]">
+                <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.06em] text-white sm:text-[1.3rem] md:leading-[1.2]">
                   V.A. Jazz Licks Vol. I (Vinyl Only)
                 </h1>
               </div>
