@@ -439,7 +439,7 @@ function Sajs001ReleasePage({
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-[0.7rem] min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.90rem] md:text-[0.80rem]"
+                  className="listen-current-track mt-[0.7rem] min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.90rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number.toString().padStart(2, "0")} ${currentTrack.artist} - ${currentTrack.title}`}
                 />

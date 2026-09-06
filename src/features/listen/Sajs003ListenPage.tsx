@@ -387,7 +387,7 @@ export function Sajs003ListenPage() {
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.80rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
                 />
