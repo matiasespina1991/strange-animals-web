@@ -331,8 +331,8 @@ export function Sajs003ListenPage() {
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
-              <div className="mt-[0.5rem] flex flex-col items-start gap-[0.7rem]">
-                <span className="border border-white/25 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.52rem] uppercase leading-none tracking-[0.08em] text-white/55">
+              <div className="mt-[0.52rem] flex flex-col items-start gap-[0.7rem]">
+                <span className="border border-white/25 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/55">
                   Out soon
                 </span>
                 <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem] md:leading-[1.2]">
@@ -354,7 +354,7 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm text-[1.2rem] leading-[1.9rem] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
+                <p className="max-w-sm tracking-[-0.1px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
                   Strange Animals presents Jazz Licks Vol. I, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.
