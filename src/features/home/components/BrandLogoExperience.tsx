@@ -7,6 +7,7 @@ import { SocialLinks } from "./SocialLinks";
 type BrandLogoExperienceProperties = {
   easterEggActive?: boolean;
   logoPhysicsActive?: boolean;
+  skipInitialEntrance?: boolean;
 };
 
 const logoMinimumWidthRem = 7.8;
@@ -30,6 +31,7 @@ const getInitialLogoWidth = () =>
 export function BrandLogoExperience({
   easterEggActive = false,
   logoPhysicsActive = false,
+  skipInitialEntrance = false,
 }: BrandLogoExperienceProperties) {
   const initialSocialRevealDoneReference = useRef(false);
   const canvasReference = useRef<HTMLCanvasElement>(null);
@@ -61,9 +63,11 @@ export function BrandLogoExperience({
     initialSocialRevealDoneReference.current = true;
   }, []);
 
-  const socialEntranceDelay = initialSocialRevealDoneReference.current
-    ? 0.08
-    : 2.72;
+  const socialEntranceDelay = skipInitialEntrance
+    ? 0
+    : initialSocialRevealDoneReference.current
+      ? 0.08
+      : 2.72;
 
   const stopLogoResizeForPointer = (pointerId: number) => {
     const resize = logoResizeReference.current;
@@ -139,10 +143,10 @@ export function BrandLogoExperience({
         animate={{ opacity: 1 }}
         className="pointer-events-none fixed inset-0 z-[210] size-full"
         style={{ visibility: logoPhysicsActive ? "hidden" : "visible" }}
-        initial={{ opacity: 0 }}
+        initial={{ opacity: skipInitialEntrance ? 1 : 0 }}
         transition={{
-          delay: 0.12 + initialAppearExtraDelaySeconds,
-          duration: 1.42,
+          delay: skipInitialEntrance ? 0 : 0.12 + initialAppearExtraDelaySeconds,
+          duration: skipInitialEntrance ? 0 : 1.42,
           ease: "easeOut",
         }}
       />
@@ -154,10 +158,10 @@ export function BrandLogoExperience({
         data-custom-cursor
         className="fixed left-[calc(50%+var(--brand-offset-x,0px))] top-[calc(50%-var(--logo-half-height,1.35rem)-0.75rem+var(--brand-offset-y,0px))] z-[200] h-[calc(var(--logo-half-height,1.35rem)*2+1.5rem)] w-[calc(var(--logo-width,20.2rem)+2rem)] -translate-x-1/2 cursor-grab rounded-[1rem] bg-[rgba(0,0,0,0.08)] backdrop-blur-[14px]"
         style={{ visibility: logoPhysicsActive ? "hidden" : "visible" }}
-        initial={{ opacity: 0 }}
+        initial={{ opacity: skipInitialEntrance ? 1 : 0 }}
         transition={{
-          delay: 0.18 + initialAppearExtraDelaySeconds,
-          duration: 1.28,
+          delay: skipInitialEntrance ? 0 : 0.18 + initialAppearExtraDelaySeconds,
+          duration: skipInitialEntrance ? 0 : 1.28,
           ease: "easeOut",
         }}
       />
@@ -194,7 +198,7 @@ export function BrandLogoExperience({
               : "left-1/2 top-[calc(50%+2.85rem)] w-[min(20.7rem,calc(100vw-2rem))]",
           ].join(" ")}
           initial={{
-            opacity: 0,
+            opacity: skipInitialEntrance ? 1 : 0,
             scale: easterEggActive ? 0.8 : 1,
             x: easterEggActive ? 0 : "-50%",
           }}
@@ -204,7 +208,11 @@ export function BrandLogoExperience({
             x: easterEggActive ? 0 : "-50%",
             transition: {
               delay: socialEntranceDelay,
-              duration: initialSocialRevealDoneReference.current ? 0.28 : 0.54,
+              duration: skipInitialEntrance
+                ? 0
+                : initialSocialRevealDoneReference.current
+                  ? 0.28
+                  : 0.54,
               ease: "easeOut",
             },
           }}
