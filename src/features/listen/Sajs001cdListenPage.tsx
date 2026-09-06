@@ -398,7 +398,7 @@ function Sajs001ReleasePage({
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
+          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
@@ -439,7 +439,7 @@ function Sajs001ReleasePage({
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
@@ -449,10 +449,10 @@ function Sajs001ReleasePage({
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     className={[
-                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      "flex size-11 items-center justify-center border border-white/65 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                       isPlaying
-                        ? "bg-white text-black shadow-none translate-x-px translate-y-px"
-                        : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
+                        ? "bg-white/80 text-black shadow-none translate-x-px translate-y-px"
+                        : "bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] active:shadow-none md:hover:shadow-none",
                     ].join(" ")}
                     disabled={trackUrlState.status !== "ready"}
                     onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
@@ -460,21 +460,21 @@ function Sajs001ReleasePage({
                     {isPlaying ? (
                       <Pause className="size-[0.88rem] md:size-[0.68rem]" />
                     ) : (
-                      <Play className="size-[0.88rem] fill-current md:size-[0.68rem]" />
+                      <Play className="size-[0.88rem] fill-current text-white/65 md:size-[0.68rem]" />
                     )}
                   </button>
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >
                     <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
 
-                  <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
-                    <Volume2 className="size-[0.95rem]" />
+                  <label className="ml-auto flex min-w-[calc(9rem-9px)] items-center gap-2 text-white/65">
+                    <Volume2 className="size-[0.95rem] text-white/50" />
                     <span className="sr-only">Volume</span>
                     <input
                       className="listen-volume-slider h-1 w-full"

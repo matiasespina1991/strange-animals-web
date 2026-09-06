@@ -252,7 +252,14 @@ input {
 .listen-volume-slider {
   appearance: none;
   background: transparent;
+  opacity: 0.62;
+  transition: opacity 150ms ease;
   -webkit-appearance: none;
+}
+
+.listen-volume-slider:hover,
+.listen-volume-slider:focus-visible {
+  opacity: 0.82;
 }
 
 .listen-volume-slider:focus {
