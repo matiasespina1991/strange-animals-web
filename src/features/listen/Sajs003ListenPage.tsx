@@ -387,14 +387,14 @@ export function Sajs003ListenPage() {
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.84rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.80rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
                 />
                 <button
                   type="button"
                   aria-label="Seek playback"
-                  className="mt-3 block h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-2 block h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!duration}
                   onClick={(event) => {
                     seekToPointerPosition(event.currentTarget, event.clientX);
