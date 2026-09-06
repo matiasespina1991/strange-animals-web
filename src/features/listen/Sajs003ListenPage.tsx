@@ -343,7 +343,7 @@ export function Sajs003ListenPage() {
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
+                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
                   onClick={() => {
                     setIsCoverLightboxOpen(true);
                   }}
@@ -373,7 +373,7 @@ export function Sajs003ListenPage() {
 
           <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-9.5rem)] flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
             <div className="border-b border-white/25 p-[0.55rem]">
-              <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
+              <div className="border rounded-[0.6px] border-white/30 rounded-[0.6px] bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   {isPlaying ? "Now Playing" : "Paused"}
                   {isPlaying ? (
@@ -391,7 +391,7 @@ export function Sajs003ListenPage() {
                 <button
                   type="button"
                   aria-label="Seek playback"
-                  className="mt-2 block h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-2 block h-2 rounded-[0.6px] w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!duration}
                   onClick={(event) => {
                     seekToPointerPosition(event.currentTarget, event.clientX);
@@ -401,7 +401,7 @@ export function Sajs003ListenPage() {
                   }}
                 >
                   <div
-                    className="h-full bg-white"
+                    className="h-full rounded-[0.6px] bg-white"
                     style={{ width: `${progress}%` }}
                   />
                 </button>
@@ -417,7 +417,9 @@ export function Sajs003ListenPage() {
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
+                    rounded-[1.2px]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
@@ -427,7 +429,7 @@ export function Sajs003ListenPage() {
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     className={[
-                      "flex size-11 items-center justify-center border border-white/65 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      "flex size-11 items-center justify-center rounded-[1.2px] border border-white/35 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                       isPlaying
                         ? "translate-x-px translate-y-px bg-white/80 text-black shadow-none"
                         : "bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] active:shadow-none md:hover:shadow-none",
@@ -438,13 +440,15 @@ export function Sajs003ListenPage() {
                     {isPlaying ? (
                       <Pause className="size-[0.88rem] md:size-[0.68rem]" />
                     ) : (
-                      <Play className="size-[0.88rem] fill-current text-white/65 md:size-[0.68rem]" />
+                      <Play className="size-[0.88rem] fill-current text-white opacity-65 md:size-[0.68rem]" />
                     )}
                   </button>
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
+                    rounded-[1.2px]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >

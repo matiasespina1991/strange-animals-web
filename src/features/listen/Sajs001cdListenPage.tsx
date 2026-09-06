@@ -373,7 +373,7 @@ function Sajs001ReleasePage({
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
+                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
                   onClick={() => {
                     setIsCoverLightboxOpen(true);
                   }}
@@ -444,7 +444,7 @@ function Sajs001ReleasePage({
                 <button
                   type="button"
                   aria-label="Seek playback"
-                  className="mt-2 block h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                  className="mt-2 block rounded-[0.6px] h-2 w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!duration}
                   onClick={(event) => {
                     seekToPointerPosition(event.currentTarget, event.clientX);
@@ -454,7 +454,7 @@ function Sajs001ReleasePage({
                   }}
                 >
                   <div
-                    className="h-full bg-white"
+                    className="h-full bg-white rounded-[0.6px]"
                     style={{ width: `${progress}%` }}
                   />
                 </button>
@@ -470,7 +470,9 @@ function Sajs001ReleasePage({
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
+                    rounded-[1.2px]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
@@ -480,7 +482,7 @@ function Sajs001ReleasePage({
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     className={[
-                      "flex size-11 items-center justify-center border border-white/65 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      "flex size-11 items-center justify-center border border-white/35 rounded-[1.2px] transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                       isPlaying
                         ? "bg-white/80 text-black shadow-none translate-x-px translate-y-px"
                         : "bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] active:shadow-none md:hover:shadow-none",
@@ -491,13 +493,15 @@ function Sajs001ReleasePage({
                     {isPlaying ? (
                       <Pause className="size-[0.88rem] md:size-[0.68rem]" />
                     ) : (
-                      <Play className="size-[0.88rem] fill-current text-white/65 md:size-[0.68rem]" />
+                      <Play className="size-[0.88rem] fill-current text-white opacity-65 md:size-[0.68rem]" />
                     )}
                   </button>
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/65 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
+                    rounded-[1.2px]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >
