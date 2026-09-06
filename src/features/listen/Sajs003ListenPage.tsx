@@ -332,7 +332,7 @@ export function Sajs003ListenPage() {
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
               <div className="mt-[0.52rem] flex flex-col items-start gap-[0.7rem]">
-                <span className="border border-white/25 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/55">
+                <span className="border border-white/35 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/60">
                   Out soon
                 </span>
                 <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem] md:leading-[1.2]">
