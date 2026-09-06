@@ -384,7 +384,7 @@ function Sajs001ReleasePage({
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm tracking-[-0.1px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.86rem] md:tracking-[-0.35px] md:leading-[1.3rem]">
+                <p className="max-w-sm tracking-[-0.8px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.86rem] md:tracking-[-0.35px] md:leading-[1.3rem]">
                   Strange Animals presents Odyssey Vol. I, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
@@ -437,7 +437,7 @@ function Sajs001ReleasePage({
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-[0.7rem] min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.90rem] md:text-[0.82rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[1.1rem] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number.toString().padStart(2, "0")} ${currentTrack.artist} - ${currentTrack.title}`}
                 />

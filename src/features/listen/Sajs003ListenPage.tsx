@@ -325,14 +325,18 @@ export function Sajs003ListenPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_1fr] lg:items-stretch">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
-              <p className="font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+              <p className="font-mono text-[0.87rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
                 <a href="/" className="hover:text-white/80">
                   Strange Animals
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
               <div className="mt-[0.52rem] flex flex-col items-start gap-[0.7rem]">
-                <span className="border border-white/35 px-1.5 pb-[0.075rem] pt-[0.1rem] font-mono text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/60">
+                <span
+                  className="border mt-1 sm:mt-0 border-white/35 px-1.5 pb-[0.175rem] pt-[0.2rem] sm:pb-[0.075rem] sm:pt-[0.1rem] font-mono
+                text-[0.78rem]
+                sm:text-[0.58rem] uppercase leading-none tracking-[0.08em] text-white/60"
+                >
                   Out soon
                 </span>
                 <h1 className="release-title font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem] md:leading-[1.2]">
@@ -354,7 +358,7 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm tracking-[-0.1px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.86rem] md:tracking-[-0.35px] md:leading-[1.3rem]">
+                <p className="max-w-sm tracking-[-0.8px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.86rem] md:tracking-[-0.35px] md:leading-[1.3rem]">
                   Strange Animals presents Jazz Licks Vol. I, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.
@@ -371,7 +375,7 @@ export function Sajs003ListenPage() {
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-9.5rem)] flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-9.5rem)] flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/80 sm:border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border rounded-[0.6px] border-white/30 rounded-[0.6px] bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
@@ -384,7 +388,7 @@ export function Sajs003ListenPage() {
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[0.9rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[1.1rem] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
                 />
