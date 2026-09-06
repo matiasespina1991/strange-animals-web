@@ -424,7 +424,7 @@ function Sajs001ReleasePage({
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-5.5rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-5.5rem)] rounded-[1.2px] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
