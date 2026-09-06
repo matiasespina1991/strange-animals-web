@@ -432,7 +432,10 @@ function Sajs001ReleasePage({
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   {isPlaying ? "Now Playing" : "Paused"}
                   {isPlaying ? (
-                    <Play aria-hidden="true" className="size-2 fill-current" />
+                    <Play
+                      aria-hidden="true"
+                      className="size-2 fill-white opacity-40 translate-y-[-0.6px]"
+                    />
                   ) : null}
                 </p>
                 <RetroTrackMarquee
@@ -569,7 +572,7 @@ function Sajs001ReleasePage({
                             </span>
                             <span
                               className={[
-                                "listen-artist mt-0.5 block truncate text-[0.95rem] font-semibold md:text-[0.79rem]",
+                                "listen-artist mt-0.5 block truncate text-[0.95rem md:text-[0.79rem]",
                                 selected
                                   ? "text-white/[0.7]"
                                   : "text-white/[0.62]",
