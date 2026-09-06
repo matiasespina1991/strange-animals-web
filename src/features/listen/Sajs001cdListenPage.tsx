@@ -32,7 +32,37 @@ type TrackUrlState =
   | { message: string; status: "error"; urls: Record<string, string> }
   | { status: "ready"; urls: Record<string, string> };
 
+type Sajs001ReleasePageProps = {
+  catalogue: string;
+  edition: string;
+  format: string;
+};
+
 export function Sajs001cdListenPage() {
+  return (
+    <Sajs001ReleasePage
+      catalogue="SAJS001CD"
+      edition="CD"
+      format="CD + Vinyl sampler"
+    />
+  );
+}
+
+export function Sajs001ListenPage() {
+  return (
+    <Sajs001ReleasePage
+      catalogue="SAJS001"
+      edition="2 x Vinyl"
+      format="2 x Vinyl"
+    />
+  );
+}
+
+function Sajs001ReleasePage({
+  catalogue,
+  edition,
+  format,
+}: Sajs001ReleasePageProps) {
   const audioReference = useRef<HTMLAudioElement>(null);
   const [trackUrlState, setTrackUrlState] = useState<TrackUrlState>({
     status: "loading",
@@ -220,7 +250,7 @@ export function Sajs001cdListenPage() {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.title,
       artist: currentTrack.artist,
-      album: `${sajs001cdRelease.title} (${sajs001cdRelease.catalogue})`,
+      album: `${sajs001cdRelease.title} (${catalogue})`,
       artwork: [
         {
           src: SAJS001CD_COVER_PATH,
@@ -302,10 +332,10 @@ export function Sajs001cdListenPage() {
                 <a href="/" className="hover:text-white/80">
                   Strange Animals
                 </a>{" "}
-                &gt; Jungle Series &gt; {sajs001cdRelease.catalogue}
+                &gt; Jungle Series &gt; {catalogue}
               </p>
               <h1 className="release-title mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
-                V.A. Odyssey Vol. 1 (CD)
+                V.A. Odyssey Vol. I ({edition})
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <button
@@ -317,13 +347,13 @@ export function Sajs001cdListenPage() {
                   }}
                 >
                   <img
-                    alt="SAJS001CD Odyssey cover"
+                    alt={`${catalogue} Odyssey cover`}
                     className="aspect-square w-full object-cover"
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
                 <p className="max-w-sm text-[1.2rem] leading-[1.9rem] tracking-[-0.008em] text-white/64 md:text-[0.89rem] md:leading-[1.3rem]">
-                  Strange Animals presents Odyssey Vol. 1, a compilation album
+                  Strange Animals presents Odyssey Vol. I, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
                   inspired by liquid drum n bass/jungle.
@@ -352,15 +382,15 @@ export function Sajs001cdListenPage() {
                     .
                   </span>
                   <span className="mt-3 block">Release date: TBA 2026</span>
-                  <span className="mt-3 block">Format: CD + Vinyl sampler</span>
+                  <span className="mt-3 block">Format: {format}</span>
                 </p>
               </div>
             </div>
           </div>
 
           <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-3.2rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
-            <div className="border-b border-white/25 p-2.5">
-              <div className="border border-white/30 bg-white/[0.03] p-2.5">
+            <div className="border-b border-white/25 p-[0.55rem]">
+              <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   Now Playing
                 </p>
@@ -399,17 +429,17 @@ export function Sajs001cdListenPage() {
                   <button
                     type="button"
                     aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isFirstTrack || trackUrlState.status !== "ready"}
                     onClick={goToPreviousTrack}
                   >
-                    <SkipBack className="size-4 md:size-[0.82rem]" />
+                    <SkipBack className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
                   <button
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     className={[
-                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                      "flex size-11 items-center justify-center border border-white/80 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
                       isPlaying
                         ? "bg-white text-black shadow-none translate-x-px translate-y-px"
                         : "bg-black text-white shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] active:shadow-none md:hover:shadow-none",
@@ -418,23 +448,23 @@ export function Sajs001cdListenPage() {
                     onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
                   >
                     {isPlaying ? (
-                      <Pause className="size-4 md:size-[0.82rem]" />
+                      <Pause className="size-[0.88rem] md:size-[0.68rem]" />
                     ) : (
-                      <Play className="size-4 fill-current md:size-[0.82rem]" />
+                      <Play className="size-[0.88rem] fill-current md:size-[0.68rem]" />
                     )}
                   </button>
                   <button
                     type="button"
                     aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-9 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                    className="flex size-11 items-center justify-center border border-white/80 bg-black text-white/90 shadow-[2px_2px_0_0_rgba(255,255,255,0.7)] transition-[transform,box-shadow,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
                     disabled={isLastTrack || trackUrlState.status !== "ready"}
                     onClick={goToNextTrack}
                   >
-                    <SkipForward className="size-4 md:size-[0.82rem]" />
+                    <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
                   </button>
 
                   <label className="ml-auto flex min-w-[9rem] items-center gap-2 text-white/65">
-                    <Volume2 className="size-4" />
+                    <Volume2 className="size-[0.95rem]" />
                     <span className="sr-only">Volume</span>
                     <input
                       className="listen-volume-slider h-1 w-full"
@@ -571,7 +601,7 @@ export function Sajs001cdListenPage() {
               />
             </button>
             <img
-              alt="SAJS001CD Odyssey cover preview"
+              alt={`${catalogue} Odyssey cover preview`}
               className="max-h-[calc(100vh-4rem)] w-auto max-w-[calc(100vw-2rem)] object-contain"
               src={SAJS001CD_COVER_PATH}
             />

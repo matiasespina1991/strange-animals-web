@@ -10,7 +10,7 @@ export type Sajs003Track = {
 export const sajs003Release = {
   artist: "Various Artists",
   catalogue: "SAJS003",
-  title: "Jazz Licks Vol. 1",
+  title: "Jazz Licks Vol. I",
   tracks: [
     {
       artist: "Michele Manzo",
