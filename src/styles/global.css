@@ -86,19 +86,19 @@ body {
 
 .listen-player,
 .listen-player * {
+  font-family: "Inconsolata", monospace !important;
+}
+
+.listen-player .listen-current-track,
+.listen-player .listen-current-track * {
   font-family: "TerminalVision", monospace !important;
 }
 
-.listen-player .listen-artist {
-  font-family: "Inconsolata", monospace !important;
-}
-
-.listen-player .listen-now-playing {
-  font-family: "Inconsolata", monospace !important;
-}
-
-.listen-player .listen-track-number {
-  font-family: "Inconsolata", monospace !important;
+@media (max-width: 639px) {
+  .listen-page-amiga .release-title {
+    font-size: 1.4rem;
+    line-height: 1.9rem !important;
+  }
 }
 
 body

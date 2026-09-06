@@ -304,7 +304,7 @@ export function Sajs003ListenPage() {
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
               </p>
-              <h1 className="mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
+              <h1 className="release-title mt-[0.85rem] font-microgramma text-[1.8rem] font-medium uppercase leading-[0.9] tracking-[0.05em] text-white sm:text-[1.3rem]">
                 V.A. Jazz Licks Vol. 1 (Vinyl Only)
               </h1>
               <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
@@ -339,9 +339,9 @@ export function Sajs003ListenPage() {
                 <p className="listen-now-playing font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
                   Now Playing
                 </p>
-                <p className="mt-1.5 min-h-[1.8rem] font-mono text-[0.967rem] leading-tight tracking-[-0.008em] text-white md:text-[0.855rem]">
+                <p className="listen-current-track mt-1.5 min-h-[1.8rem] font-mono text-[0.92rem] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[0.967rem] md:text-[0.855rem]">
                   <span className="tabular-nums text-[1.109rem] md:text-[0.974rem]">
-                    {currentTrack.number.toString().padStart(2, "0")} /
+                    {currentTrack.number.toString().padStart(2, "0")}
                   </span>{" "}
                   {currentTrack.artist} - {currentTrack.title}
                 </p>
