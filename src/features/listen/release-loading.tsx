@@ -4,6 +4,7 @@ const releaseFontFaces = [
   '400 1em "Inconsolata"',
   '400 1em "TerminalVision"',
   '500 1em "Microgramma"',
+  '300 1em "Facit"',
 ];
 
 function areReleaseFontsReady() {

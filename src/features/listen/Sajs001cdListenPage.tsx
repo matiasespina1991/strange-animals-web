@@ -384,7 +384,7 @@ function Sajs001ReleasePage({
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="max-w-sm tracking-[-0.8px] text-[1.1rem] leading-[1.8rem] text-white/64 md:text-[0.86rem] md:tracking-[-0.35px] md:leading-[1.3rem]">
+                <p className="font-facit max-w-sm font-light text-[0.91rem] leading-[1.8rem] tracking-[0.3px] text-white/64 md:leading-[1.3rem]">
                   Strange Animals presents Odyssey Vol. I, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
