@@ -86,13 +86,25 @@ body {
 .listen-page-amiga,
 .listen-page-amiga * {
   font-family: "Inconsolata", monospace !important;
+  user-select: text;
+}
+
+.listen-page-amiga {
+  cursor: auto;
+}
+
+.listen-page-amiga button,
+.listen-page-amiga a,
+.listen-page-amiga input {
+  cursor: pointer;
 }
 
 .listen-page-amiga .font-microgramma {
   font-family: "Microgramma", sans-serif !important;
 }
 
-.listen-page-amiga .font-facit {
+.listen-page-amiga .font-facit,
+.listen-page-amiga .font-facit * {
   font-family: "Facit", sans-serif !important;
 }
 

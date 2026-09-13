@@ -18,6 +18,20 @@ import {
 } from "./release-loading";
 
 const SAJS001CD_COVER_PATH = "/media/images/releases/sajs001/cover.png";
+const SAJS001_PHOTOS = [
+  {
+    alt: "SAJS001 Odyssey Vol. I CD photo",
+    previewSrc:
+      "/media/images/releases/sajs001/photos/cd%20preview%20miniature.png",
+    src: "/media/images/releases/sajs001/photos/Strange%20Animals%20VA%20Odyssey%20vol%20I%20CD.jpg",
+  },
+  {
+    alt: "SAJS001 Odyssey Vol. I vinyl photo",
+    previewSrc:
+      "/media/images/releases/sajs001/photos/Strange%20Animals%20VA%20Odyssey%20vol%20I%20Vinyl-preview.jpg",
+    src: "/media/images/releases/sajs001/photos/Strange%20Animals%20VA%20Odyssey%20vol%20I%20Vinyl.jpg",
+  },
+] as const;
 
 const formatTime = (time: number) => {
   if (!Number.isFinite(time)) {
@@ -78,7 +92,19 @@ function Sajs001ReleasePage({
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
-  const [isCoverLightboxOpen, setIsCoverLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{
+    alt: string;
+    src: string;
+  } | null>(null);
+  const [isLightboxZoomed, setIsLightboxZoomed] = useState(false);
+  const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState({
+    x: 50,
+    y: 50,
+  });
+  const [lightboxViewportSize, setLightboxViewportSize] = useState<{
+    height: number;
+    width: number;
+  } | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const currentTrack = sajs001cdRelease.tracks[currentTrackIndex];
@@ -86,6 +112,12 @@ function Sajs001ReleasePage({
   const isFirstTrack = currentTrackIndex === 0;
   const isLastTrack = currentTrackIndex === sajs001cdRelease.tracks.length - 1;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const openLightboxImage = (image: { alt: string; src: string }) => {
+    setLightboxImage(image);
+    setIsLightboxZoomed(false);
+    setLightboxViewportSize(null);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -232,13 +264,13 @@ function Sajs001ReleasePage({
   };
 
   useEffect(() => {
-    if (!isCoverLightboxOpen) {
+    if (!lightboxImage) {
       return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsCoverLightboxOpen(false);
+        setLightboxImage(null);
       }
     };
 
@@ -247,10 +279,10 @@ function Sajs001ReleasePage({
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isCoverLightboxOpen]);
+  }, [lightboxImage]);
 
   useEffect(() => {
-    if (!isCoverLightboxOpen) {
+    if (!lightboxImage) {
       return;
     }
 
@@ -260,7 +292,7 @@ function Sajs001ReleasePage({
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isCoverLightboxOpen]);
+  }, [lightboxImage]);
 
   useEffect(() => {
     if (
@@ -350,9 +382,9 @@ function Sajs001ReleasePage({
   }
 
   return (
-    <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
+    <main data-native-cursor-surface className="listen-page-amiga min-h-screen bg-[#050505] pr-[0.55rem] pl-[0.3rem] pb-4 pt-2 text-[0.96rem] text-white sm:px-6 sm:py-4 md:text-[0.8rem] lg:px-8">
       <section className="mx-auto flex pb-40 min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
-        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_1fr] lg:items-stretch">
+        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_minmax(0,1fr)] lg:items-start">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
@@ -369,13 +401,16 @@ function Sajs001ReleasePage({
                   V.A. Odyssey Vol. I ({edition})
                 </h1>
               </div>
-              <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
+              <div className="mt-6 flex flex-col gap-[1.7rem] min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
+                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-px text-left"
                   onClick={() => {
-                    setIsCoverLightboxOpen(true);
+                    openLightboxImage({
+                      alt: `${catalogue} Odyssey cover preview`,
+                      src: SAJS001CD_COVER_PATH,
+                    });
                   }}
                 >
                   <img
@@ -384,7 +419,7 @@ function Sajs001ReleasePage({
                     src={SAJS001CD_COVER_PATH}
                   />
                 </button>
-                <p className="font-facit max-w-sm font-light text-[0.91rem] leading-[1.8rem] tracking-[0.3px] text-white/64 md:leading-[1.3rem]">
+                <p className="font-facit max-w-sm font-light text-[calc(0.91rem-0.95px)] leading-[1.8rem] tracking-[0.3px] text-white/64 md:leading-[1.3rem]">
                   Strange Animals presents Odyssey Vol. I, a compilation album
                   consisting of a selection of tracks from a variety of artists
                   from all over the world, showcasing a wide spectrum of sounds
@@ -420,11 +455,34 @@ function Sajs001ReleasePage({
                   <span className="mt-3 block">Catalog #: {catalogue}</span>
                   <span className="mt-3 block">Format: {format}</span>
                 </p>
+                <div className="flex gap-[0.8rem]">
+                  {SAJS001_PHOTOS.map((photo) => (
+                    <button
+                      key={photo.src}
+                      type="button"
+                      aria-label={`Open ${photo.alt}`}
+                      className="size-40 shrink-0 overflow-hidden rounded-[1.2px] border border-white/20 bg-black p-[2px] transition-colors duration-200 hover:border-white/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/80"
+                      onClick={() => {
+                        openLightboxImage(photo);
+                      }}
+                    >
+                      <img
+                        alt=""
+                        className="size-full object-cover [image-rendering:auto]"
+                        src={photo.previewSrc}
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-5.5rem)] rounded-[1.2px] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="mx-4 mt-0 flex min-h-0 min-w-0 max-h-[calc(100vh-4.7rem)] flex-col lg:mx-0 lg:mt-5 lg:h-[42rem]">
+            <p className="mb-3 shrink-0 font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+              Preview:
+            </p>
+            <div className="listen-player flex min-h-0 min-w-0 flex-1 rounded-[1.2px] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border border-white/30 bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
@@ -437,7 +495,7 @@ function Sajs001ReleasePage({
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[1.1rem] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[calc(1.1rem-2px)] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number.toString().padStart(2, "0")} ${currentTrack.artist} - ${currentTrack.title}`}
                 />
@@ -614,46 +672,103 @@ function Sajs001ReleasePage({
               }}
             />
           </div>
+          </div>
         </div>
       </section>
 
-      {isCoverLightboxOpen ? (
+      {lightboxImage ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 sm:px-8 sm:py-10"
           role="dialog"
           aria-modal="true"
           aria-label="Album cover preview"
           onClick={() => {
-            setIsCoverLightboxOpen(false);
+            setLightboxImage(null);
           }}
         >
           <div
-            className="relative"
+            className={`relative ${isLightboxZoomed ? "overflow-visible" : "overflow-hidden"}`}
+            style={
+              lightboxViewportSize
+                ? {
+                    height: `${lightboxViewportSize.height}px`,
+                    width: `${lightboxViewportSize.width}px`,
+                  }
+                : undefined
+            }
             onClick={(event) => {
               event.stopPropagation();
             }}
+            onPointerMove={(event) => {
+              if (!isLightboxZoomed) {
+                return;
+              }
+
+              const bounds = event.currentTarget.getBoundingClientRect();
+              setLightboxZoomOrigin({
+                x: Math.min(
+                  100,
+                  Math.max(0, ((event.clientX - bounds.left) / bounds.width) * 100),
+                ),
+                y: Math.min(
+                  100,
+                  Math.max(0, ((event.clientY - bounds.top) / bounds.height) * 100),
+                ),
+              });
+            }}
           >
-            <button
-              type="button"
-              aria-label="Close album cover preview"
-              className="absolute top-2 -right-12 z-10 flex h-6 w-6 items-center justify-center border border-[#d1d1d1cc] bg-black text-white/90 shadow-[1px_1px_0_0_rgba(255,255,255,0.78)] transition-[transform,box-shadow] duration-100 ease-out hover:translate-x-px hover:translate-y-px hover:shadow-[0_0_0_0_rgba(255,255,255,0)] active:translate-x-px active:translate-y-px active:shadow-[0_0_0_0_rgba(255,255,255,0)] sm:-right-14"
-              onClick={() => {
-                setIsCoverLightboxOpen(false);
-              }}
-            >
-              <span
-                aria-hidden="true"
-                className="absolute left-1/2 top-1/2 h-[2px] w-[0.72rem] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute left-1/2 top-1/2 h-[2px] w-[0.72rem] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-current"
-              />
-            </button>
             <img
-              alt={`${catalogue} Odyssey cover preview`}
-              className="max-h-[calc(100vh-4rem)] w-auto max-w-[calc(100vw-2rem)] object-contain"
-              src={SAJS001CD_COVER_PATH}
+              alt={lightboxImage.alt}
+              className={[
+                "block h-full w-full object-contain",
+                isLightboxZoomed
+                  ? "cursor-zoom-out"
+                  : "cursor-zoom-in",
+              ].join(" ")}
+              src={lightboxImage.src}
+              onLoad={(event) => {
+                const availableHeight = window.innerHeight - 64;
+                const availableWidth = window.innerWidth - 32;
+                const image = event.currentTarget;
+                const aspectRatio = image.naturalWidth / image.naturalHeight;
+                const widthFromHeight = availableHeight * aspectRatio;
+
+                setLightboxViewportSize(
+                  widthFromHeight <= availableWidth
+                    ? { height: availableHeight, width: widthFromHeight }
+                    : {
+                        height: availableWidth / aspectRatio,
+                        width: availableWidth,
+                      },
+                );
+              }}
+              style={
+                isLightboxZoomed
+                  ? {
+                      transform: "scale(1.7)",
+                      transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%`,
+                    }
+                  : undefined
+              }
+              onClick={(event) => {
+                if (isLightboxZoomed) {
+                  setIsLightboxZoomed(false);
+                  return;
+                }
+
+                const bounds = event.currentTarget.getBoundingClientRect();
+                setLightboxZoomOrigin({
+                  x: Math.min(
+                    100,
+                    Math.max(0, ((event.clientX - bounds.left) / bounds.width) * 100),
+                  ),
+                  y: Math.min(
+                    100,
+                    Math.max(0, ((event.clientY - bounds.top) / bounds.height) * 100),
+                  ),
+                });
+                setIsLightboxZoomed(true);
+              }}
             />
           </div>
         </div>

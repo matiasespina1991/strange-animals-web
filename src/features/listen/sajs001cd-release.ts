@@ -30,7 +30,7 @@ export const sajs001cdRelease = {
       title: "Shiro Kyo",
     },
     {
-      artist: "Indiezone",
+      artist: "Indi Zone",
       durationLabel: "7:45",
       number: 3,
       slug: "indi-zone-imps-tale-eco-6-remix-edit",

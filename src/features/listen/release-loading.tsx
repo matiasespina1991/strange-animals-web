@@ -70,10 +70,11 @@ export function ReleasePageLoadingSkeleton() {
     <main
       aria-busy="true"
       aria-label="Loading release"
-      className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 sm:px-6 lg:px-8"
+      className="listen-page-amiga min-h-screen bg-[#050505] pr-[0.55rem] pl-[0.3rem] pb-4 pt-2 sm:px-6 sm:py-4 lg:px-8"
+      data-native-cursor-surface
     >
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
-        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_1fr] lg:items-stretch">
+        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_minmax(0,1fr)] lg:items-start">
           <div className="flex min-h-0 flex-col bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div className="space-y-4" aria-hidden="true">
               <div className={`${skeletonBlock} h-2.5 w-48`} />
@@ -94,7 +95,11 @@ export function ReleasePageLoadingSkeleton() {
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-4.7rem)] flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="mx-4 mt-0 flex min-h-0 min-w-0 max-h-[calc(100vh-4.7rem)] flex-col lg:mx-0 lg:mt-5 lg:h-[42rem]">
+            <p className="mb-3 shrink-0 font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+              Preview:
+            </p>
+            <div className="listen-player flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[0.5px] border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
             <div
               className="border-b border-white/25 p-[0.55rem]"
               aria-hidden="true"
@@ -118,6 +123,7 @@ export function ReleasePageLoadingSkeleton() {
               </div>
             </div>
             <ReleasePlaylistSkeleton />
+          </div>
           </div>
         </div>
       </section>

@@ -320,9 +320,9 @@ export function Sajs003ListenPage() {
   }
 
   return (
-    <main className="listen-page-amiga min-h-screen bg-[#050505] pr-3 pl-2 py-4 text-[0.96rem] text-white sm:px-6 md:text-[0.8rem] lg:px-8">
+    <main data-native-cursor-surface className="listen-page-amiga min-h-screen bg-[#050505] pr-[0.55rem] pl-[0.3rem] pb-4 pt-2 text-[0.96rem] text-white sm:px-6 sm:py-4 md:text-[0.8rem] lg:px-8">
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
-        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_1fr] lg:items-stretch">
+        <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_minmax(0,1fr)] lg:items-start">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.87rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
@@ -343,11 +343,11 @@ export function Sajs003ListenPage() {
                   V.A. Jazz Licks Vol. I (Vinyl Only)
                 </h1>
               </div>
-              <div className="mt-6 flex flex-col gap-4 min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
+              <div className="mt-6 flex flex-col gap-[1.7rem] min-[715px]:max-[1023px]:flex-row min-[715px]:max-[1023px]:items-start">
                 <button
                   type="button"
                   aria-label="Open album cover"
-                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-0 text-left"
+                  className="w-full overflow-hidden rounded-[1.2px] max-w-[12.6rem] shrink-0 border border-white/15 bg-black p-px text-left"
                   onClick={() => {
                     setIsCoverLightboxOpen(true);
                   }}
@@ -358,7 +358,7 @@ export function Sajs003ListenPage() {
                     src={SAJS003_COVER_PATH}
                   />
                 </button>
-                <p className="font-facit max-w-sm font-light text-[0.91rem] leading-[1.8rem] tracking-[0.3px] text-white/64 md:leading-[1.3rem]">
+                <p className="font-facit max-w-sm font-light text-[calc(0.91rem-0.95px)] leading-[1.8rem] tracking-[0.3px] text-white/64 md:leading-[1.3rem]">
                   Strange Animals presents Jazz Licks Vol. I, a compilation
                   release exploring jazz-infused jungle and drum n bass beats
                   from producers around the world.
@@ -375,7 +375,11 @@ export function Sajs003ListenPage() {
             </div>
           </div>
 
-          <div className="listen-player mt-3 flex min-h-0 max-h-[calc(100vh-9.5rem)] flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/80 sm:border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)] lg:mt-12">
+          <div className="mx-4 mt-0 flex min-h-0 min-w-0 max-h-[calc(100vh-4.7rem)] flex-col lg:mx-0 lg:mt-5 lg:h-[42rem]">
+            <p className="mb-3 shrink-0 font-mono text-[0.87rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
+              Preview:
+            </p>
+            <div className="listen-player flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/80 sm:border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
             <div className="border-b border-white/25 p-[0.55rem]">
               <div className="border rounded-[0.6px] border-white/30 rounded-[0.6px] bg-white/[0.03] p-[0.55rem]">
                 <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
@@ -388,7 +392,7 @@ export function Sajs003ListenPage() {
                   ) : null}
                 </p>
                 <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[1.1rem] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
+                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[calc(1.1rem-2px)] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
                   isPlaying={isPlaying}
                   text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
                 />
@@ -564,6 +568,7 @@ export function Sajs003ListenPage() {
                 setCurrentTime(event.currentTarget.currentTime);
               }}
             />
+          </div>
           </div>
         </div>
       </section>
