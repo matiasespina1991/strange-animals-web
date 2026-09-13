@@ -3169,9 +3169,11 @@ export function IdentityFontsPage() {
                       className="size-3 accent-white outline-none"
                       type="checkbox"
                       onChange={() => {
-                        if (allCategoriesSelected) return;
-
-                        setHiddenCategoryLabels(new Set());
+                        setHiddenCategoryLabels(
+                          allCategoriesSelected
+                            ? new Set(categoriesInUse)
+                            : new Set(),
+                        );
                       }}
                     />
                     <span className="font-bold uppercase">All</span>
