@@ -61,7 +61,7 @@ export function Sajs001ListenPage() {
   return (
     <Sajs001ReleasePage
       catalogue="SAJS001"
-      edition="CD + Vinyl"
+      edition="CD | Vinyl"
       format="CD + Double Transparent Vinyl"
     />
   );
