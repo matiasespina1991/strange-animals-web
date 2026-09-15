@@ -204,17 +204,10 @@ export function HomePage() {
           <p className="text-white/75">upcoming releases</p>
           <a
             className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
-            href="/listen/sajs001cd"
-            target="_blank"
-          >
-            V.A. Odyssey Vol. I CD | TBA 2026
-          </a>
-          <a
-            className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001"
             target="_blank"
           >
-            V.A. Odyssey Vol. I Double Vinyl | TBA 2027
+            V.A. Odyssey Vol. I | TBA 2027
           </a>
           <a
             className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"

@@ -2,7 +2,7 @@ import { DoomJsDosPage } from "@/features/doom-js-dos/DoomJsDosPage";
 import { HomePage } from "@/features/home/HomePage";
 import { CustomCursor } from "@/features/home/components/CustomCursor";
 import { IdentityRoute } from "@/features/identity";
-import { Sajs001cdListenPage, Sajs001ListenPage } from "@/features/listen";
+import { Sajs001ListenPage } from "@/features/listen";
 import { Sajs003ListenPage } from "@/features/listen";
 import { MinesweeperPage } from "@/features/minesweeper";
 import { ReleaseIdVerifierPage } from "@/features/release-id-verifier/ReleaseIdVerifierPage";
@@ -45,7 +45,7 @@ export function App() {
   }
 
   if (route === "/listen/sajs001cd") {
-    page = <Sajs001cdListenPage />;
+    page = <Sajs001cdRedirect />;
   }
 
   if (route === "/listen/sajs001") {
@@ -68,3 +68,12 @@ export function App() {
     </>
   );
 }
+
+function Sajs001cdRedirect() {
+  useEffect(() => {
+    window.location.replace("/listen/sajs001");
+  }, []);
+
+  return null;
+}
+import { useEffect } from "react";
