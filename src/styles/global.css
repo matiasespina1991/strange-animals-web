@@ -108,6 +108,17 @@ body {
   font-family: "Facit", sans-serif !important;
 }
 
+.listen-page-amiga .font-verdana,
+.listen-page-amiga .font-verdana * {
+  font-family: Verdana, Geneva, sans-serif !important;
+  font-weight: 300 !important;
+}
+
+.listen-page-amiga .font-verdana .listen-track-number,
+.listen-page-amiga .font-verdana .listen-track-duration {
+  font-family: "Inconsolata", monospace !important;
+}
+
 .listen-player,
 .listen-player * {
   font-family: "Inconsolata", monospace !important;

@@ -580,26 +580,27 @@ function Sajs001ReleasePage({
                 </div>
               </div>
 
-              <div className="listen-playlist-scrollbar pb-[3rem] tracking-[-0.2px] min-h-0 flex-1 overflow-y-auto">
-                {trackUrlState.status === "loading" ? (
-                  <ReleasePlaylistSkeleton />
-                ) : null}
+              <div className="min-h-0 flex-1 p-[0.55rem]">
+                <div className="listen-playlist-scrollbar font-verdana h-full min-h-0 overflow-y-auto border border-white/30 bg-white/[0.03] pb-[3rem] tracking-[-0.2px]">
+                  {trackUrlState.status === "loading" ? (
+                    <ReleasePlaylistSkeleton />
+                  ) : null}
 
-                {trackUrlState.status === "error" ? (
-                  <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.84rem] text-white/70 md:text-[0.7rem]">
-                    <AlertTriangle className="size-5 shrink-0" />
-                    <span>{trackUrlState.message}</span>
-                  </div>
-                ) : null}
+                  {trackUrlState.status === "error" ? (
+                    <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.84rem] text-white/70 md:text-[0.7rem]">
+                      <AlertTriangle className="size-5 shrink-0" />
+                      <span>{trackUrlState.message}</span>
+                    </div>
+                  ) : null}
 
-                {trackUrlState.status === "ready" ? (
-                  <ol className="divide-y divide-white/15 border-b border-white/15">
-                    {sajs001cdRelease.tracks.map((track, index) => {
-                      const selected = index === currentTrackIndex;
+                  {trackUrlState.status === "ready" ? (
+                    <ol className="divide-y divide-white/15 border-b border-white/15">
+                      {sajs001cdRelease.tracks.map((track, index) => {
+                        const selected = index === currentTrackIndex;
 
-                      return (
-                        <li key={track.slug}>
-                          <button
+                        return (
+                          <li key={track.slug}>
+                            <button
                             type="button"
                             aria-current={selected ? "true" : undefined}
                             className={[
@@ -622,12 +623,12 @@ function Sajs001ReleasePage({
                               />
                             ) : null}
                             <span className="min-w-0">
-                              <span className="block truncate font-mono text-[0.863rem] uppercase tracking-[0.024em] md:text-[0.724rem]">
+                              <span className="block truncate font-mono text-[0.69rem] uppercase tracking-[0.024em] md:text-[0.58rem]">
                                 {track.title}
                               </span>
                               <span
                                 className={[
-                                  "listen-artist mt-0.5 block truncate text-[0.95rem md:text-[0.79rem]",
+                                  "listen-artist mt-0.5 block truncate text-[0.77rem] md:text-[0.64rem]",
                                   selected
                                     ? "text-white/[0.7]"
                                     : "text-white/[0.62]",
@@ -636,15 +637,16 @@ function Sajs001ReleasePage({
                                 {track.artist}
                               </span>
                             </span>
-                            <span className="text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
+                            <span className="listen-track-duration text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
                               {track.durationLabel}
                             </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                ) : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  ) : null}
+                </div>
               </div>
 
               <audio
