@@ -85,6 +85,7 @@ const FONT_PARENT_CATEGORIES = [
   "Vintage",
   "Wide",
   "Symbols & Others",
+  "Non-Latin Script",
 ] as const;
 
 function getSupportedPreviewText(
@@ -117,10 +118,32 @@ function getSupportedPreviewText(
     .join("");
 }
 
+const NON_LATIN_SPECIMENS: Record<string, string> = {
+  delamarugothic: "あいうえお　カタカナ",
+  dokidokifantasia: "あいうえお　カタカナ",
+  enkadotmincho24: "あいうえお　カタカナ",
+  genei: "あいうえお　カタカナ",
+  gennukigothic: "あいうえお　カタカナ",
+  hanyishuiditifan: "中文字体　你好世界",
+  hanyixuefengtifan: "中文字体　你好世界",
+  hanyiyuandietifan: "中文字体　你好世界",
+  mojiwmochizuki: "한글 글꼴 미리보기",
+  rampartone: "あいうえお　カタカナ",
+  shimbashigothic: "あいうえお　カタカナ",
+  youshebiaotihei: "中文字体　你好世界",
+  zaramegothic: "あいうえお　カタカナ",
+};
+
+function getDefaultSpecimen(font: FontCatalogItem) {
+  return NON_LATIN_SPECIMENS[font.id] ?? font.name;
+}
+
 function SupportedPreviewText({
+  fallbackValue,
   supportedCodePoints,
   value,
 }: {
+  fallbackValue?: string;
   supportedCodePoints: ReadonlySet<number> | null | undefined;
   value: string;
 }) {
@@ -129,7 +152,7 @@ function SupportedPreviewText({
     [supportedCodePoints, value],
   );
 
-  return previewText;
+  return previewText.trim() ? previewText : (fallbackValue ?? value);
 }
 const UNCATEGORIZED_LABEL = "Uncategorized";
 const FONT_CATEGORY_DISPLAY_ORDER = [
@@ -1210,7 +1233,7 @@ function FontSpecimen({
         {previewVariants.map((variant) => {
           const loadedVariant = loadedVariants[variant.id];
           const familyName = loadedVariant?.familyName;
-          const previewText = specimen || font.name;
+          const previewText = specimen || getDefaultSpecimen(font);
           const variantName = variant.fileName
             .replace(/\.[^/.]+$/, "")
             .replaceAll("-", " ")
@@ -1267,6 +1290,7 @@ function FontSpecimen({
                     }}
                   >
                     <SupportedPreviewText
+                      fallbackValue={font.name}
                       supportedCodePoints={loadedVariant?.supportedCodePoints}
                       value={previewText}
                     />
@@ -1851,6 +1875,10 @@ export function IdentityFontsPage() {
 
   const categoriesInUse = useMemo(() => {
     const labels = new Set<string>();
+
+    // Keep the script category discoverable while its first families are being
+    // published to the remote catalog.
+    labels.add("Non-Latin Script");
 
     for (const font of fonts) {
       labels.add(font.parentCategory ?? UNCATEGORIZED_LABEL);
@@ -3163,7 +3191,7 @@ export function IdentityFontsPage() {
                     className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
                   />
                 ) : (
-                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
+                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] tracking-[0.08em] text-white/70 hover:text-white">
                     <input
                       checked={allCategoriesSelected}
                       className="size-3 accent-white outline-none"
@@ -3203,8 +3231,14 @@ export function IdentityFontsPage() {
                           className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
                         >
                           <input
+                            aria-checked={allCategoriesSelected ? "mixed" : checked}
                             checked={checked}
                             className={`size-3 accent-white outline-none ${allCategoriesSelected ? "opacity-65" : ""}`}
+                            ref={(element) => {
+                              if (element) {
+                                element.indeterminate = allCategoriesSelected;
+                              }
+                            }}
                             type="checkbox"
                             onChange={() => {
                               setHiddenCategoryLabels((current) => {

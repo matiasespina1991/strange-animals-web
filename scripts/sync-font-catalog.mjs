@@ -35,6 +35,21 @@ const DISPLAY_NAME_OVERRIDES = {
   OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: "kfontZ111W01-Regular",
   OnlineWebFonts_COM_8fe15e6d5697c6e91c295fd95175a8b4: "BloorW00-Regular",
 };
+const PARENT_CATEGORY_OVERRIDES = {
+  DelaMaruGothic: "Non-Latin Script",
+  DokiDokiFantasia: "Non-Latin Script",
+  EnkaDotMincho24: "Non-Latin Script",
+  GenEi: "Non-Latin Script",
+  GenNukiGothic: "Non-Latin Script",
+  HanYiShuiDiTiFan: "Non-Latin Script",
+  HanYiXueFengTiFan: "Non-Latin Script",
+  HanYiYuanDieTiFan: "Non-Latin Script",
+  MojiwMochizuki: "Non-Latin Script",
+  RampartOne: "Non-Latin Script",
+  ShimbashiGothic: "Non-Latin Script",
+  YouSheBiaoTiHei: "Non-Latin Script",
+  ZarameGothic: "Non-Latin Script",
+};
 
 function readOption(name) {
   const optionIndex = process.argv.indexOf(name);
@@ -392,6 +407,9 @@ async function buildCatalog() {
         sourceFolder: source.sourceName,
         storagePrefix,
         enabled: ENABLED,
+        ...(PARENT_CATEGORY_OVERRIDES[source.sourceName]
+          ? { parentCategory: PARENT_CATEGORY_OVERRIDES[source.sourceName] }
+          : {}),
         kind: source.sourceName === "VARIOUS" ? "collection" : "family",
         formats: [...new Set(fontFiles.map((file) => file.extension))].sort(),
         fileCount: files.length,
