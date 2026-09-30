@@ -148,6 +148,30 @@ body
   user-select: none !important;
 }
 
+/* Typefaces is an editing surface: preserve the native cursor and selection. */
+.identity-fonts-page,
+.identity-fonts-page * {
+  cursor: auto !important;
+  user-select: text !important;
+}
+
+.identity-fonts-page button,
+.identity-fonts-page a,
+.identity-fonts-page input,
+.identity-fonts-page label,
+.identity-fonts-page select,
+.identity-fonts-page summary {
+  cursor: pointer !important;
+}
+
+.identity-fonts-page .cursor-grab {
+  cursor: grab !important;
+}
+
+.identity-fonts-page .cursor-grabbing {
+  cursor: grabbing !important;
+}
+
 button,
 input {
   font: inherit;

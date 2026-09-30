@@ -1,4 +1,5 @@
 import {
+  type PointerEvent as ReactPointerEvent,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -227,6 +228,13 @@ type BackgroundImage = {
   storagePath?: string;
   url: string;
 };
+
+type BackgroundTextAnchor = {
+  x: number;
+  y: number;
+};
+
+const DEFAULT_BACKGROUND_TEXT_ANCHOR: BackgroundTextAnchor = { x: 12, y: 82 };
 
 type TextAlignment = "left" | "center" | "right";
 type FontWeight = "normal" | 800;
@@ -798,6 +806,7 @@ function useFloatingToolbar() {
 function FontSpecimen({
   backgroundColor,
   backgroundImageUrl,
+  backgroundTextAnchor,
   font,
   fontColor,
   fontSize,
@@ -819,10 +828,12 @@ function FontSpecimen({
   onParentCategoryChange,
   onUseCasesChange,
   onPinnedChange,
+  onBackgroundTextAnchorChange,
   specimen,
 }: {
   backgroundColor: string;
   backgroundImageUrl?: string;
+  backgroundTextAnchor: BackgroundTextAnchor;
   font: FontCatalogItem;
   fontColor: string;
   fontSize: number;
@@ -847,6 +858,7 @@ function FontSpecimen({
   ) => void;
   onUseCasesChange: (font: FontCatalogItem, useCases: string[]) => void;
   onPinnedChange: (font: FontCatalogItem) => void;
+  onBackgroundTextAnchorChange: (anchor: BackgroundTextAnchor) => void;
   specimen: string;
 }) {
   const cardReference = useRef<HTMLElement>(null);
@@ -863,6 +875,76 @@ function FontSpecimen({
     new Set(),
   );
   const [downloading, setDownloading] = useState(false);
+  const [draggingPreviewText, setDraggingPreviewText] = useState(false);
+  const previewTextDragReference = useRef<{ x: number; y: number }>();
+
+  const updateBackgroundTextAnchor = (
+    element: HTMLElement,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const bounds = element.getBoundingClientRect();
+
+    if (bounds.width === 0 || bounds.height === 0) return;
+
+    onBackgroundTextAnchorChange({
+      x: Math.min(
+        100,
+        Math.max(0, ((clientX - bounds.left) / bounds.width) * 100),
+      ),
+      y: Math.min(
+        100,
+        Math.max(0, ((clientY - bounds.top) / bounds.height) * 100),
+      ),
+    });
+  };
+
+  const startPreviewTextDrag = (
+    event: ReactPointerEvent<HTMLParagraphElement>,
+  ) => {
+    const canvas = event.currentTarget.parentElement;
+
+    if (!canvas) return;
+
+    const bounds = canvas.getBoundingClientRect();
+    previewTextDragReference.current = {
+      x:
+        event.clientX -
+        (bounds.left + (bounds.width * backgroundTextAnchor.x) / 100),
+      y:
+        event.clientY -
+        (bounds.top + (bounds.height * backgroundTextAnchor.y) / 100),
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingPreviewText(true);
+    event.preventDefault();
+  };
+
+  const movePreviewText = (event: ReactPointerEvent<HTMLParagraphElement>) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+
+    const canvas = event.currentTarget.parentElement;
+    const dragOffset = previewTextDragReference.current;
+
+    if (!canvas || !dragOffset) return;
+
+    updateBackgroundTextAnchor(
+      canvas,
+      event.clientX - dragOffset.x,
+      event.clientY - dragOffset.y,
+    );
+  };
+
+  const stopPreviewTextDrag = (
+    event: ReactPointerEvent<HTMLParagraphElement>,
+  ) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    previewTextDragReference.current = undefined;
+    setDraggingPreviewText(false);
+  };
 
   useEffect(() => {
     const card = cardReference.current;
@@ -1244,58 +1326,148 @@ function FontSpecimen({
           return (
             <div key={variant.id}>
               {variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS ? (
-                <div
-                  aria-busy={!familyName}
-                  className="relative min-w-0 overflow-hidden"
-                  style={{
-                    backgroundColor,
-                    backgroundImage: backgroundImageUrl
-                      ? `url(${backgroundImageUrl})`
-                      : undefined,
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundSize: "cover",
-                  }}
-                >
-                  <p
-                    aria-hidden="true"
-                    className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
-                    style={{
-                      color: fontColor,
-                      fontSize: `${fontSize}px`,
-                      fontWeight: getPreviewFontWeight(fontWeight),
-                      letterSpacing: `${letterSpacing}em`,
-                      lineHeight,
-                      textAlign: textAlignment,
-                      textShadow: textShadow.enabled
-                        ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
-                        : undefined,
+                backgroundImageUrl ? (
+                  <div
+                    aria-busy={!familyName}
+                    aria-label="Background image preview. Drag the demo text to position it."
+                    className="relative mx-auto min-w-0 max-w-full overflow-hidden bg-black outline-none focus-visible:ring-1 focus-visible:ring-white/80"
+                    role="group"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      const step = event.shiftKey ? 5 : 1;
+                      const horizontal =
+                        event.key === "ArrowLeft"
+                          ? -step
+                          : event.key === "ArrowRight"
+                            ? step
+                            : 0;
+                      const vertical =
+                        event.key === "ArrowUp"
+                          ? -step
+                          : event.key === "ArrowDown"
+                            ? step
+                            : 0;
+
+                      if (!horizontal && !vertical) return;
+
+                      event.preventDefault();
+                      onBackgroundTextAnchorChange({
+                        x: Math.min(
+                          100,
+                          Math.max(0, backgroundTextAnchor.x + horizontal),
+                        ),
+                        y: Math.min(
+                          100,
+                          Math.max(0, backgroundTextAnchor.y + vertical),
+                        ),
+                      });
                     }}
                   >
-                    {previewText}
-                  </p>
-                  <p
-                    className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
-                    style={{
-                      color: fontColor,
-                      fontFamily: familyName,
-                      fontSize: `${fontSize}px`,
-                      fontWeight: getPreviewFontWeight(fontWeight),
-                      letterSpacing: `${letterSpacing}em`,
-                      lineHeight,
-                      textAlign: textAlignment,
-                      textShadow: textShadow.enabled
-                        ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
-                        : undefined,
-                    }}
-                  >
-                    <SupportedPreviewText
-                      fallbackValue={font.name}
-                      supportedCodePoints={loadedVariant?.supportedCodePoints}
-                      value={previewText}
+                    <img
+                      alt=""
+                      className="pointer-events-none block h-auto max-h-[min(80svh,52rem)] w-full max-w-full select-none object-contain"
+                      draggable={false}
+                      src={backgroundImageUrl}
                     />
-                  </p>
-                </div>
+                    <p
+                      aria-hidden="true"
+                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-80 blur-[3px]`}`}
+                      style={{
+                        color: fontColor,
+                        fontSize: `${fontSize}px`,
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight,
+                        textAlign: textAlignment,
+                        left: `${backgroundTextAnchor.x}%`,
+                        top: `${backgroundTextAnchor.y}%`,
+                        transform: "translateY(-100%)",
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
+                      }}
+                      onPointerCancel={stopPreviewTextDrag}
+                      onPointerDown={startPreviewTextDrag}
+                      onPointerMove={movePreviewText}
+                      onPointerUp={stopPreviewTextDrag}
+                    >
+                      {previewText}
+                    </p>
+                    <p
+                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-100 blur-0` : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      style={{
+                        color: fontColor,
+                        fontFamily: familyName,
+                        fontSize: `${fontSize}px`,
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight,
+                        textAlign: textAlignment,
+                        left: `${backgroundTextAnchor.x}%`,
+                        top: `${backgroundTextAnchor.y}%`,
+                        transform: "translateY(-100%)",
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
+                      }}
+                      onPointerCancel={stopPreviewTextDrag}
+                      onPointerDown={startPreviewTextDrag}
+                      onPointerMove={movePreviewText}
+                      onPointerUp={stopPreviewTextDrag}
+                    >
+                      <SupportedPreviewText
+                        fallbackValue={font.name}
+                        supportedCodePoints={loadedVariant?.supportedCodePoints}
+                        value={previewText}
+                      />
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    aria-busy={!familyName}
+                    className="relative min-w-0 overflow-hidden"
+                    style={{ backgroundColor }}
+                  >
+                    <p
+                      aria-hidden="true"
+                      className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
+                      style={{
+                        color: fontColor,
+                        fontSize: `${fontSize}px`,
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight,
+                        textAlign: textAlignment,
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
+                      }}
+                    >
+                      {previewText}
+                    </p>
+                    <p
+                      className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      style={{
+                        color: fontColor,
+                        fontFamily: familyName,
+                        fontSize: `${fontSize}px`,
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight,
+                        textAlign: textAlignment,
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
+                      }}
+                    >
+                      <SupportedPreviewText
+                        fallbackValue={font.name}
+                        supportedCodePoints={loadedVariant?.supportedCodePoints}
+                        value={previewText}
+                      />
+                    </p>
+                  </div>
+                )
               ) : null}
               {variantTotal > 1 || SHOW_FONT_DELETE_CONTROLS ? (
                 <div className="mt-2 flex min-w-0 justify-end text-[0.625rem] tracking-[0.08em] uppercase">
@@ -1495,6 +1667,8 @@ export function IdentityFontsPage() {
     "color",
   );
   const [backgroundImage, setBackgroundImage] = useState<BackgroundImage>();
+  const [backgroundTextAnchor, setBackgroundTextAnchor] =
+    useState<BackgroundTextAnchor>(DEFAULT_BACKGROUND_TEXT_ANCHOR);
   const [backgroundSettingsOpen, setBackgroundSettingsOpen] = useState(false);
   const [backgroundImageError, setBackgroundImageError] = useState<string>();
   const [fileMenuOpen, setFileMenuOpen] = useState(false);
@@ -2338,6 +2512,7 @@ export function IdentityFontsPage() {
             ? backgroundImage.storagePath
             : undefined,
         backgroundMode,
+        backgroundTextAnchor,
         browserId,
         favoriteFontIds: fontPreferences.favoriteFontIds,
         fontColor,
@@ -2382,6 +2557,7 @@ export function IdentityFontsPage() {
     setSearch(selectedSavedSet.search);
     setFontColor(selectedSavedSet.fontColor);
     setBackgroundColor(selectedSavedSet.background.color);
+    setBackgroundTextAnchor(selectedSavedSet.background.textAnchor);
     setFontSize(selectedSavedSet.fontSize);
     setFontWeight(readFontWeight(selectedSavedSet.fontWeight));
     setLineHeight(selectedSavedSet.lineHeight);
@@ -2423,7 +2599,8 @@ export function IdentityFontsPage() {
 
   return (
     <main
-      className="min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
+      data-native-cursor-surface
+      className="identity-fonts-page min-h-[100dvh] overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
       style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
     >
       <ActiveCategoryRail
@@ -2765,12 +2942,15 @@ export function IdentityFontsPage() {
                           <>
                             <div
                               aria-label={`Selected background image: ${backgroundImage.name}`}
-                              className="h-24 border border-white/35 bg-cover bg-center"
+                              className="flex h-24 items-center justify-center overflow-hidden border border-white/35 bg-black"
                               role="img"
-                              style={{
-                                backgroundImage: `url(${backgroundImage.url})`,
-                              }}
-                            />
+                            >
+                              <img
+                                alt=""
+                                className="size-full object-contain"
+                                src={backgroundImage.url}
+                              />
+                            </div>
                             <p
                               className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
                               title={backgroundImage.name}
@@ -3231,7 +3411,9 @@ export function IdentityFontsPage() {
                           className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
                         >
                           <input
-                            aria-checked={allCategoriesSelected ? "mixed" : checked}
+                            aria-checked={
+                              allCategoriesSelected ? "mixed" : checked
+                            }
                             checked={checked}
                             className={`size-3 accent-white outline-none ${allCategoriesSelected ? "opacity-65" : ""}`}
                             ref={(element) => {
@@ -3461,6 +3643,7 @@ export function IdentityFontsPage() {
                               ? backgroundImage?.url
                               : undefined
                           }
+                          backgroundTextAnchor={backgroundTextAnchor}
                           categoryUpdating={updatingCategoryIds.has(font.id)}
                           visibilityUpdating={updatingVisibilityIds.has(
                             font.id,
@@ -3496,6 +3679,7 @@ export function IdentityFontsPage() {
                           onUseCasesChange={(nextFont, useCases) => {
                             void changeUseCases(nextFont, useCases);
                           }}
+                          onBackgroundTextAnchorChange={setBackgroundTextAnchor}
                           onPinnedChange={togglePinned}
                           specimen={specimen}
                         />

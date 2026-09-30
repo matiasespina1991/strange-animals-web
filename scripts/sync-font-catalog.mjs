@@ -16,7 +16,7 @@ const REPOSITORY_ROOT = path.resolve(
 const SOURCE_ROOT_ARGUMENT = readOption("--source-root");
 const LOCAL_ROOT = path.resolve(
   REPOSITORY_ROOT,
-  SOURCE_ROOT_ARGUMENT ?? "public/media/fonts",
+  SOURCE_ROOT_ARGUMENT ?? "fonts to upload",
 );
 const GCLOUD_CANDIDATE =
   "/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud";

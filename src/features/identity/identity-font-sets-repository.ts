@@ -34,6 +34,7 @@ export const DEFAULT_TEXT_SHADOW: TextShadowSettings = {
 
 type FontSetBackground = {
   color: string;
+  textAnchor: { x: number; y: number };
   mode: "color" | "image";
   imageName?: string;
   imageStoragePath?: string;
@@ -42,6 +43,8 @@ type FontSetBackground = {
 
 type FontSetDocument = {
   backgroundColor?: unknown;
+  backgroundTextAnchorX?: unknown;
+  backgroundTextAnchorY?: unknown;
   backgroundImageName?: unknown;
   backgroundImageStoragePath?: unknown;
   backgroundMode?: unknown;
@@ -93,6 +96,7 @@ export type SaveIdentityFontSetInput = {
   backgroundImageName?: string;
   backgroundImageStoragePath?: string;
   backgroundMode: "color" | "image";
+  backgroundTextAnchor: { x: number; y: number };
   browserId: string;
   favoriteFontIds: string[];
   fontColor: string;
@@ -227,6 +231,16 @@ function readFontSet(
 
   const background = {
     color: value.backgroundColor,
+    textAnchor: {
+      x:
+        typeof value.backgroundTextAnchorX === "number"
+          ? Math.min(100, Math.max(0, value.backgroundTextAnchorX))
+          : 12,
+      y:
+        typeof value.backgroundTextAnchorY === "number"
+          ? Math.min(100, Math.max(0, value.backgroundTextAnchorY))
+          : 82,
+    },
     mode: value.backgroundMode,
     imageName:
       typeof value.backgroundImageName === "string"
@@ -372,6 +386,14 @@ export async function saveIdentityFontSet(input: SaveIdentityFontSetInput) {
 
   await setDoc(setReference, {
     backgroundColor: input.backgroundColor,
+    backgroundTextAnchorX: Math.min(
+      100,
+      Math.max(0, input.backgroundTextAnchor.x),
+    ),
+    backgroundTextAnchorY: Math.min(
+      100,
+      Math.max(0, input.backgroundTextAnchor.y),
+    ),
     ...(backgroundImageName
       ? {
           backgroundImageName,
