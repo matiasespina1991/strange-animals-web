@@ -55,7 +55,8 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
         run: |
           set +e
-          output="$(pnpm dlx firebase-tools deploy --only hosting --project strange-animals-web --non-interactive 2>&1)"
+          # 15.32.0 currently asks pnpm for the unpublished pg-protocol@^1.16.1.
+          output="$(pnpm dlx firebase-tools@15.31.0 deploy --only hosting --project strange-animals-web --non-interactive 2>&1)"
           status=$?
           set -e
 
