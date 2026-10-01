@@ -125,8 +125,14 @@ body {
 }
 
 .listen-player .listen-current-track,
-.listen-player .listen-current-track * {
+.listen-player .listen-current-track *,
+.listen-player .listen-now-playing,
+.listen-player .listen-now-playing * {
   font-family: "TerminalVision", monospace !important;
+}
+
+.listen-player .listen-now-playing {
+  color: #fff !important;
 }
 
 @media (max-width: 639px) {

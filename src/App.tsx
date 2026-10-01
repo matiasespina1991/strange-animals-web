@@ -2,8 +2,11 @@ import { DoomJsDosPage } from "@/features/doom-js-dos/DoomJsDosPage";
 import { HomePage } from "@/features/home/HomePage";
 import { CustomCursor } from "@/features/home/components/CustomCursor";
 import { IdentityRoute } from "@/features/identity";
-import { Sajs001ListenPage } from "@/features/listen";
-import { Sajs003ListenPage } from "@/features/listen";
+import {
+  Sajs001ListenPage,
+  Sajs002ListenPage,
+  Sajs003ListenPage,
+} from "@/features/listen";
 import { MinesweeperPage } from "@/features/minesweeper";
 import { ReleaseIdVerifierPage } from "@/features/release-id-verifier/ReleaseIdVerifierPage";
 import { WinampSkinsStuffPicksPage } from "@/features/webamp-skins/WinampSkinsStuffPicksPage";
@@ -50,6 +53,10 @@ export function App() {
 
   if (route === "/listen/sajs001") {
     page = <Sajs001ListenPage />;
+  }
+
+  if (route === "/listen/sajs002") {
+    page = <Sajs002ListenPage />;
   }
 
   if (route === "/listen/sajs003") {

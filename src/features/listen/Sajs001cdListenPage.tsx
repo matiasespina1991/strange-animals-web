@@ -381,7 +381,10 @@ function Sajs001ReleasePage({
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.73rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
-                <a href="/" className="hover:text-white/80">
+                <a
+                  href="/?redirectSource=internal"
+                  className="hover:text-white/80"
+                >
                   Strange Animals
                 </a>{" "}
                 &gt; Jungle Series &gt; {catalogue}
@@ -443,7 +446,7 @@ function Sajs001ReleasePage({
                   </span>
                   <span className="mt-3 block">
                     Release date:{" "}
-                    <strong className="font-semibold">TBA 2027</strong>
+                    <strong className="font-semibold">July 2027</strong>
                   </span>
                   <span className="mt-3 block">Catalog #: {catalogue}</span>
                   <span className="mt-3 block">Format: {format}</span>
@@ -601,45 +604,45 @@ function Sajs001ReleasePage({
                         return (
                           <li key={track.slug}>
                             <button
-                            type="button"
-                            aria-current={selected ? "true" : undefined}
-                            className={[
-                              "relative grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
-                              selected
-                                ? "bg-black text-white/92 hover:bg-white/[0.12]"
-                                : "bg-black text-white/82 hover:bg-white/[0.12]",
-                            ].join(" ")}
-                            onClick={() => {
-                              selectTrack(index);
-                            }}
-                          >
-                            <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
-                              {track.number.toString().padStart(2, "0")}
-                            </span>
-                            {selected && hasStartedPlayback ? (
-                              <Volume2
-                                aria-hidden="true"
-                                className="pointer-events-none absolute left-[2.725rem] top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 text-white/60 sm:left-[3.375rem]"
-                              />
-                            ) : null}
-                            <span className="min-w-0">
-                              <span className="block truncate font-mono text-[0.69rem] uppercase tracking-[0.024em] md:text-[0.58rem]">
-                                {track.title}
+                              type="button"
+                              aria-current={selected ? "true" : undefined}
+                              className={[
+                                "relative grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
+                                selected
+                                  ? "bg-black text-white/92 hover:bg-white/[0.12]"
+                                  : "bg-black text-white/82 hover:bg-white/[0.12]",
+                              ].join(" ")}
+                              onClick={() => {
+                                selectTrack(index);
+                              }}
+                            >
+                              <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
+                                {track.number.toString().padStart(2, "0")}
                               </span>
-                              <span
-                                className={[
-                                  "listen-artist mt-0.5 block truncate text-[0.77rem] md:text-[0.64rem]",
-                                  selected
-                                    ? "text-white/[0.7]"
-                                    : "text-white/[0.62]",
-                                ].join(" ")}
-                              >
-                                {track.artist}
+                              {selected && hasStartedPlayback ? (
+                                <Volume2
+                                  aria-hidden="true"
+                                  className="pointer-events-none absolute left-[2.725rem] top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 text-white/60 sm:left-[3.375rem]"
+                                />
+                              ) : null}
+                              <span className="min-w-0">
+                                <span className="block truncate font-mono text-[0.69rem] uppercase tracking-[0.024em] md:text-[0.58rem]">
+                                  {track.title}
+                                </span>
+                                <span
+                                  className={[
+                                    "listen-artist mt-0.5 block truncate text-[0.77rem] md:text-[0.64rem]",
+                                    selected
+                                      ? "text-white/[0.7]"
+                                      : "text-white/[0.62]",
+                                  ].join(" ")}
+                                >
+                                  {track.artist}
+                                </span>
                               </span>
-                            </span>
-                            <span className="listen-track-duration text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
-                              {track.durationLabel}
-                            </span>
+                              <span className="listen-track-duration text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
+                                {track.durationLabel}
+                              </span>
                             </button>
                           </li>
                         );

@@ -320,13 +320,19 @@ export function Sajs003ListenPage() {
   }
 
   return (
-    <main data-native-cursor-surface className="listen-page-amiga min-h-screen bg-[#050505] pr-[0.55rem] pl-[0.3rem] pb-4 pt-2 text-[0.96rem] text-white sm:px-6 sm:py-4 md:text-[0.8rem] lg:px-8">
+    <main
+      data-native-cursor-surface
+      className="listen-page-amiga min-h-screen bg-[#050505] pr-[0.55rem] pl-[0.3rem] pb-4 pt-2 text-[0.96rem] text-white sm:px-6 sm:py-4 md:text-[0.8rem] lg:px-8"
+    >
       <section className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-6xl flex-col justify-center">
         <div className="grid gap-4 lg:grid-cols-[minmax(16rem,calc(48%-5rem))_minmax(0,1fr)] lg:items-start">
           <div className="flex min-h-0 flex-col justify-between bg-black p-4 sm:p-5 lg:min-h-[31rem]">
             <div>
               <p className="font-mono text-[0.87rem] uppercase tracking-[0.066em] text-white/60 md:text-[0.75rem]">
-                <a href="/" className="hover:text-white/80">
+                <a
+                  href="/?redirectSource=internal"
+                  className="hover:text-white/80"
+                >
                   Strange Animals
                 </a>{" "}
                 &gt; Jungle Series &gt; {sajs003Release.catalogue}
@@ -380,195 +386,197 @@ export function Sajs003ListenPage() {
               Preview:
             </p>
             <div className="listen-player flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-[0.5px] rounded-[1.2px] border-white/80 sm:border-white/50 bg-black ring-inset ring-white/20 md:shadow-[2.4px_2.4px_0_0_rgba(255,255,255,0.45)]">
-            <div className="border-b border-white/25 p-[0.55rem]">
-              <div className="border rounded-[0.6px] border-white/30 rounded-[0.6px] bg-white/[0.03] p-[0.55rem]">
-                <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
-                  {isPlaying ? "Now Playing" : "Paused"}
-                  {isPlaying ? (
-                    <Play
-                      aria-hidden="true"
-                      className="size-2 fill-white opacity-40 translate-y-[-0.6px]"
-                    />
-                  ) : null}
-                </p>
-                <RetroTrackMarquee
-                  className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[calc(1.1rem-2px)] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
-                  isPlaying={isPlaying}
-                  text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
-                />
-                <button
-                  type="button"
-                  aria-label="Seek playback"
-                  className="mt-2 block h-2 rounded-[0.6px] w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={!duration}
-                  onClick={(event) => {
-                    seekToPointerPosition(event.currentTarget, event.clientX);
-                  }}
-                  onPointerDown={(event) => {
-                    seekToPointerPosition(event.currentTarget, event.clientX);
-                  }}
-                >
-                  <div
-                    className="h-full rounded-[0.6px] bg-white"
-                    style={{ width: `${progress}%` }}
-                  />
-                </button>
-                <div className="mt-2 flex justify-between font-mono text-[0.656rem] text-white/55 md:text-[0.547rem]">
-                  <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
-                    {formatTime(currentTime)}
-                  </span>
-                  <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
-                    {formatTime(duration)}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/20 pt-2">
-                  <button
-                    type="button"
-                    aria-label="Previous track"
-                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
-                    rounded-[1.2px]
-                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
-                    disabled={isFirstTrack || trackUrlState.status !== "ready"}
-                    onClick={goToPreviousTrack}
-                  >
-                    <SkipBack className="size-[0.88rem] md:size-[0.68rem]" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                    className={[
-                      "flex size-11 items-center justify-center rounded-[1.2px] border border-white/35 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
-                      isPlaying
-                        ? "translate-x-px translate-y-px bg-white/80 text-black shadow-none"
-                        : "bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] active:shadow-none md:hover:shadow-none",
-                    ].join(" ")}
-                    disabled={trackUrlState.status !== "ready"}
-                    onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
-                  >
+              <div className="border-b border-white/25 p-[0.55rem]">
+                <div className="border rounded-[0.6px] border-white/30 rounded-[0.6px] bg-white/[0.03] p-[0.55rem]">
+                  <p className="listen-now-playing flex items-center gap-1 font-mono text-[0.763rem] uppercase tracking-[0.06em] text-white/45 md:text-[0.636rem]">
+                    {isPlaying ? "Now Playing" : "Paused"}
                     {isPlaying ? (
-                      <Pause className="size-[0.88rem] md:size-[0.68rem]" />
-                    ) : (
-                      <Play className="size-[0.88rem] fill-current text-white opacity-65 md:size-[0.68rem]" />
-                    )}
-                  </button>
+                      <Play
+                        aria-hidden="true"
+                        className="size-2 fill-white opacity-40 translate-y-[-0.6px]"
+                      />
+                    ) : null}
+                  </p>
+                  <RetroTrackMarquee
+                    className="listen-current-track mt-2 min-h-[1.8rem] font-mono text-[calc(1.1rem-2px)] font-semibold leading-tight tracking-[-0.05em] text-white sm:text-[0.95rem] md:text-[0.82rem]"
+                    isPlaying={isPlaying}
+                    text={`${currentTrack.number} ${currentTrack.artist} - ${currentTrack.title}`}
+                  />
                   <button
                     type="button"
-                    aria-label="Next track"
-                    className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150 
+                    aria-label="Seek playback"
+                    className="mt-2 block h-2 rounded-[0.6px] w-full cursor-pointer border border-white/40 bg-black p-0 text-left focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!duration}
+                    onClick={(event) => {
+                      seekToPointerPosition(event.currentTarget, event.clientX);
+                    }}
+                    onPointerDown={(event) => {
+                      seekToPointerPosition(event.currentTarget, event.clientX);
+                    }}
+                  >
+                    <div
+                      className="h-full rounded-[0.6px] bg-white"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </button>
+                  <div className="mt-2 flex justify-between font-mono text-[0.656rem] text-white/55 md:text-[0.547rem]">
+                    <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
+                      {formatTime(currentTime)}
+                    </span>
+                    <span className="tabular-nums text-[0.799rem] md:text-[0.666rem]">
+                      {formatTime(duration)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/20 pt-2">
+                    <button
+                      type="button"
+                      aria-label="Previous track"
+                      className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150
                     rounded-[1.2px]
                     active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
-                    disabled={isLastTrack || trackUrlState.status !== "ready"}
-                    onClick={goToNextTrack}
-                  >
-                    <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
-                  </button>
+                      disabled={
+                        isFirstTrack || trackUrlState.status !== "ready"
+                      }
+                      onClick={goToPreviousTrack}
+                    >
+                      <SkipBack className="size-[0.88rem] md:size-[0.68rem]" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={isPlaying ? "Pause" : "Play"}
+                      className={[
+                        "flex size-11 items-center justify-center rounded-[1.2px] border border-white/35 transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5",
+                        isPlaying
+                          ? "translate-x-px translate-y-px bg-white/80 text-black shadow-none"
+                          : "bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] active:shadow-none md:hover:shadow-none",
+                      ].join(" ")}
+                      disabled={trackUrlState.status !== "ready"}
+                      onClick={isPlaying ? pauseCurrentTrack : playCurrentTrack}
+                    >
+                      {isPlaying ? (
+                        <Pause className="size-[0.88rem] md:size-[0.68rem]" />
+                      ) : (
+                        <Play className="size-[0.88rem] fill-current text-white opacity-65 md:size-[0.68rem]" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next track"
+                      className="flex size-11 items-center justify-center border border-white/35 bg-black text-white/80 shadow-[2px_2px_0_0_rgba(255,255,255,0.5)] transition-[transform,box-shadow,color] duration-150
+                    rounded-[1.2px]
+                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none disabled:cursor-not-allowed disabled:opacity-35 md:size-8 md:hover:translate-x-0.5 md:hover:translate-y-0.5 md:hover:shadow-none"
+                      disabled={isLastTrack || trackUrlState.status !== "ready"}
+                      onClick={goToNextTrack}
+                    >
+                      <SkipForward className="size-[0.88rem] md:size-[0.68rem]" />
+                    </button>
 
-                  <label className="ml-auto flex w-[calc(9rem-19px)] shrink-0 items-center gap-2 text-white/65">
-                    <Volume2 className="size-[0.95rem] text-white/50" />
-                    <span className="sr-only">Volume</span>
-                    <input
-                      className="listen-volume-slider h-1 w-full"
-                      max="1"
-                      min="0"
-                      step="0.01"
-                      type="range"
-                      value={volume}
-                      onChange={(event) => {
-                        setVolume(Number(event.target.value));
-                      }}
-                    />
-                  </label>
+                    <label className="ml-auto flex w-[calc(9rem-19px)] shrink-0 items-center gap-2 text-white/65">
+                      <Volume2 className="size-[0.95rem] text-white/50" />
+                      <span className="sr-only">Volume</span>
+                      <input
+                        className="listen-volume-slider h-1 w-full"
+                        max="1"
+                        min="0"
+                        step="0.01"
+                        type="range"
+                        value={volume}
+                        onChange={(event) => {
+                          setVolume(Number(event.target.value));
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="listen-playlist-scrollbar pb-[3rem] tracking-[-0.2px] min-h-0 flex-1 overflow-y-auto">
-              {trackUrlState.status === "loading" ? (
-                <ReleasePlaylistSkeleton />
-              ) : null}
+              <div className="listen-playlist-scrollbar pb-[3rem] tracking-[-0.2px] min-h-0 flex-1 overflow-y-auto">
+                {trackUrlState.status === "loading" ? (
+                  <ReleasePlaylistSkeleton />
+                ) : null}
 
-              {trackUrlState.status === "error" ? (
-                <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.84rem] text-white/70 md:text-[0.7rem]">
-                  <AlertTriangle className="size-5 shrink-0" />
-                  <span>{trackUrlState.message}</span>
-                </div>
-              ) : null}
+                {trackUrlState.status === "error" ? (
+                  <div className="flex h-full min-h-[18rem] items-center justify-center gap-3 px-6 text-[0.84rem] text-white/70 md:text-[0.7rem]">
+                    <AlertTriangle className="size-5 shrink-0" />
+                    <span>{trackUrlState.message}</span>
+                  </div>
+                ) : null}
 
-              {trackUrlState.status === "ready" ? (
-                <ol className="divide-y divide-white/15 border-b border-white/15">
-                  {sajs003Release.tracks.map((track, index) => {
-                    const selected = index === currentTrackIndex;
+                {trackUrlState.status === "ready" ? (
+                  <ol className="divide-y divide-white/15 border-b border-white/15">
+                    {sajs003Release.tracks.map((track, index) => {
+                      const selected = index === currentTrackIndex;
 
-                    return (
-                      <li key={track.slug}>
-                        <button
-                          type="button"
-                          aria-current={selected ? "true" : undefined}
-                          className={[
-                            "relative grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
-                            selected
-                              ? "bg-black text-white/92 hover:bg-white/[0.12]"
-                              : "bg-black text-white/82 hover:bg-white/[0.12]",
-                          ].join(" ")}
-                          onClick={() => {
-                            selectTrack(index);
-                          }}
-                        >
-                          <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
-                            {track.number}
-                          </span>
-                          {selected && hasStartedPlayback ? (
-                            <Volume2
-                              aria-hidden="true"
-                              className="pointer-events-none absolute left-[2.725rem] top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 text-white/60 sm:left-[3.375rem]"
-                            />
-                          ) : null}
-                          <span className="min-w-0">
-                            <span className="block truncate font-mono text-[0.863rem] uppercase tracking-[0.024em] md:text-[0.724rem]">
-                              {track.title}
+                      return (
+                        <li key={track.slug}>
+                          <button
+                            type="button"
+                            aria-current={selected ? "true" : undefined}
+                            className={[
+                              "relative grid w-full cursor-pointer grid-cols-[2.6rem_1fr_3.5rem] items-center gap-3 px-3 py-1.5 text-left transition-colors duration-200 focus:outline-none focus-visible:ring-white/80 sm:grid-cols-[3rem_1fr_4rem] sm:px-4",
+                              selected
+                                ? "bg-black text-white/92 hover:bg-white/[0.12]"
+                                : "bg-black text-white/82 hover:bg-white/[0.12]",
+                            ].join(" ")}
+                            onClick={() => {
+                              selectTrack(index);
+                            }}
+                          >
+                            <span className="listen-track-number font-mono text-[0.869rem] tabular-nums opacity-70 md:text-[0.724rem]">
+                              {track.number}
                             </span>
-                            <span
-                              className={[
-                                "listen-artist mt-0.5 block truncate text-[0.95rem] md:text-[0.79rem]",
-                                selected
-                                  ? "text-white/[0.7]"
-                                  : "text-white/[0.62]",
-                              ].join(" ")}
-                            >
-                              {track.artist}
+                            {selected && hasStartedPlayback ? (
+                              <Volume2
+                                aria-hidden="true"
+                                className="pointer-events-none absolute left-[2.725rem] top-1/2 size-3 -translate-y-1/2 -translate-x-1/2 text-white/60 sm:left-[3.375rem]"
+                              />
+                            ) : null}
+                            <span className="min-w-0">
+                              <span className="block truncate font-mono text-[0.863rem] uppercase tracking-[0.024em] md:text-[0.724rem]">
+                                {track.title}
+                              </span>
+                              <span
+                                className={[
+                                  "listen-artist mt-0.5 block truncate text-[0.95rem] md:text-[0.79rem]",
+                                  selected
+                                    ? "text-white/[0.7]"
+                                    : "text-white/[0.62]",
+                                ].join(" ")}
+                              >
+                                {track.artist}
+                              </span>
                             </span>
-                          </span>
-                          <span className="text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
-                            {track.durationLabel}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : null}
-            </div>
+                            <span className="text-right text-[0.827rem] tabular-nums opacity-60 md:text-[0.689rem]">
+                              {track.durationLabel}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : null}
+              </div>
 
-            <audio
-              ref={audioReference}
-              preload="metadata"
-              src={currentTrackUrl}
-              onDurationChange={(event) => {
-                setDuration(event.currentTarget.duration);
-              }}
-              onEnded={handleEnded}
-              onPause={() => {
-                setIsPlaying(false);
-              }}
-              onPlaying={() => {
-                setHasStartedPlayback(true);
-                setIsPlaying(true);
-              }}
-              onTimeUpdate={(event) => {
-                setCurrentTime(event.currentTarget.currentTime);
-              }}
-            />
-          </div>
+              <audio
+                ref={audioReference}
+                preload="metadata"
+                src={currentTrackUrl}
+                onDurationChange={(event) => {
+                  setDuration(event.currentTarget.duration);
+                }}
+                onEnded={handleEnded}
+                onPause={() => {
+                  setIsPlaying(false);
+                }}
+                onPlaying={() => {
+                  setHasStartedPlayback(true);
+                  setIsPlaying(true);
+                }}
+                onTimeUpdate={(event) => {
+                  setCurrentTime(event.currentTarget.currentTime);
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>

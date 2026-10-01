@@ -30,8 +30,15 @@ function isHistoryReturn() {
   return navigationEntry?.type === "back_forward";
 }
 
+function isInternalRedirect() {
+  return (
+    new URLSearchParams(window.location.search).get("redirectSource") ===
+    "internal"
+  );
+}
+
 export function HomePage() {
-  const skipInitialEntrance = isHistoryReturn();
+  const skipInitialEntrance = isHistoryReturn() || isInternalRedirect();
   const activateTade = useTadeGameStore((state) => state.activate);
   const { applySkin, layer, openWebamp } = useWebampLayer();
   const hasOpenedWinampSkinDialog = useRef(false);
@@ -202,12 +209,20 @@ export function HomePage() {
           className="pointer-events-none absolute right-0 bottom-full flex translate-y-1 flex-col items-end gap-4 pb-5 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 motion-reduce:transition-none"
         >
           <p className="text-white/75">upcoming releases</p>
+          <p className="text-white/55 underline">Jungle Series</p>
           <a
             className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
             href="/listen/sajs001"
             target="_blank"
           >
-            V.A. Odyssey Vol. I | TBA 2027
+            V.A. Odyssey Vol. I | April 2027
+          </a>
+          <a
+            className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
+            href="/listen/sajs002"
+            target="_blank"
+          >
+            V.A. Hacking The System | June 2027
           </a>
           <a
             className="cursor-pointer whitespace-nowrap text-white/55 transition-colors duration-150 hover:text-white/75 focus-visible:text-white/75 focus-visible:outline-none motion-reduce:transition-none"
@@ -215,7 +230,7 @@ export function HomePage() {
             target="_blank"
           >
             {" "}
-            V.A. Jazz Licks Vol. I | TBA 2027
+            V.A. Jazz Licks Vol. I | August 2027
           </a>
         </nav>
         <span className="cursor-default transition-colors duration-150 group-hover:text-white/85 group-focus-within:text-white/85 motion-reduce:transition-none">
