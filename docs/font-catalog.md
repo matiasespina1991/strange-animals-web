@@ -14,6 +14,10 @@ Identity → Typography → Typefaces. Keep all variants of a family inside that
 folder. Use one top-level folder per family when separate catalog entries are
 wanted.
 
+`fonts to upload/_alreadyUploaded/` is an archive for sources already present
+in the remote catalog. It is ignored by the sync script and must not be used as
+a family source.
+
 ## Publish
 
 Preview the catalog without changing Firebase:

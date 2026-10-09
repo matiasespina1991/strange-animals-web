@@ -30,6 +30,7 @@ const WRITE_FIRESTORE =
 const UPLOAD_STORAGE = process.argv.includes("--upload-storage");
 const ENABLED = !process.argv.includes("--disabled");
 const INCLUDED_SOURCE_FOLDERS = new Set(readOptions("--include-folder"));
+const EXCLUDED_SOURCE_FOLDERS = new Set(["_alreadyUploaded"]);
 const DISPLAY_NAME_OVERRIDES = {
   OnlineWebFonts_COM_1c11978277976bba95554a96608cb027: "Otomo Round",
   OnlineWebFonts_COM_116e18788ced48c5f4ea2dfcbfe9c7e1: "kfontZ111W01-Regular",
@@ -298,7 +299,10 @@ function inferDisplayName(sourceName, files, sourceKind) {
 async function buildCatalog() {
   const entries = await readdir(LOCAL_ROOT, { withFileTypes: true });
   const availableFolders = entries
-    .filter((entry) => entry.isDirectory())
+    .filter(
+      (entry) =>
+        entry.isDirectory() && !EXCLUDED_SOURCE_FOLDERS.has(entry.name),
+    )
     .map((entry) => entry.name);
   const availableLooseFontFiles = entries
     .filter(
