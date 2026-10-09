@@ -287,12 +287,17 @@ function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
 }
 
 function getToolbarPopoverPlacementClass(floating: boolean) {
-  return floating ? "bottom-full mb-1" : "top-full mt-2";
+  // A floating toolbar lives at the bottom only on small screens. Its popovers
+  // open upward there to stay above the browser chrome; from `md` onward the
+  // toolbar is pinned at the top and its popovers must open downward.
+  return floating
+    ? "bottom-full mb-1 md:top-full md:bottom-auto md:mt-2 md:mb-0"
+    : "top-full mt-2";
 }
 
 function getToolbarMinimizeButtonClass(floating: boolean) {
   return floating
-    ? "absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
+    ? "absolute top-2 right-2 z-30 flex size-7 cursor-pointer touch-manipulation items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
     : "hidden";
 }
 
@@ -3171,7 +3176,7 @@ export function IdentityFontsPage() {
                   ) : null}
                   <input
                     aria-label="Text size"
-                    className="identity-font-size-control-slider identity-font-size-slider relative z-10 w-full"
+                    className="identity-font-size-control-slider identity-font-size-slider relative z-0 w-full"
                     max={DESKTOP_FONT_SIZE_MAX}
                     min="8"
                     step="1"
