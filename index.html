@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        if (
+          window.location.pathname.startsWith("/identity/typography") &&
+          window.localStorage.getItem("strange-animals.identity-theme.v1") ===
+            "light"
+        ) {
+          const initialThemeStyle = document.createElement("style");
+          initialThemeStyle.id = "identity-bright-initial-theme";
+          initialThemeStyle.textContent =
+            "html, body, #root { background: #fff !important; color: #171717 !important; }";
+          document.head.append(initialThemeStyle);
+          document.documentElement.style.backgroundColor = "#fff";
+          document.documentElement.style.color = "#171717";
+        }
+      })();
+    </script>
     <title data-route-meta="title">Strange Animals — Collective &amp; Label</title>
     <meta
       data-route-meta="description"

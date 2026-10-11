@@ -435,6 +435,96 @@ function ColorTransparencyControl({
   );
 }
 
+function DesktopFontSizeControl({
+  value,
+  onCommit,
+}: {
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const [showValue, setShowValue] = useState(false);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const commit = (nextValue: number) => {
+    const clampedValue = Math.min(
+      DESKTOP_FONT_SIZE_MAX,
+      Math.max(8, nextValue),
+    );
+    setLocalValue(clampedValue);
+    onCommit(clampedValue);
+  };
+
+  return (
+    <div className="flex w-40 flex-col gap-2 text-white/70">
+      <span className="text-[0.625rem] tracking-[0.02em] sm:text-[0.75rem]">
+        Font size
+      </span>
+      <div className="flex h-10 items-center gap-2">
+        <button
+          aria-label="Decrease font size"
+          className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+          type="button"
+          onClick={() => {
+            commit(localValue - 1);
+          }}
+        >
+          −
+        </button>
+        <span className="relative flex flex-1 items-center">
+          {showValue ? (
+            <span className="pointer-events-none absolute -top-[1.5625rem] left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2.5 py-px text-[0.625rem] leading-none tracking-[0.08em] text-white/70 uppercase">
+              {localValue}px
+            </span>
+          ) : null}
+          <input
+            aria-label="Text size"
+            className="identity-font-size-control-slider identity-font-size-slider relative z-0 w-full"
+            max={DESKTOP_FONT_SIZE_MAX}
+            min="8"
+            step="1"
+            type="range"
+            value={localValue}
+            onBlur={(event) => {
+              commit(Number(event.currentTarget.value));
+              setShowValue(false);
+            }}
+            onChange={(event) => {
+              setLocalValue(Number(event.currentTarget.value));
+            }}
+            onFocus={() => {
+              setShowValue(true);
+            }}
+            onKeyUp={(event) => {
+              commit(Number(event.currentTarget.value));
+            }}
+            onPointerDown={() => {
+              setShowValue(true);
+            }}
+            onPointerUp={(event) => {
+              commit(Number(event.currentTarget.value));
+              setShowValue(false);
+            }}
+          />
+        </span>
+        <button
+          aria-label="Increase font size"
+          className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+          type="button"
+          onClick={() => {
+            commit(localValue + 1);
+          }}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ScrollControls({ lightMode }: { lightMode: boolean }) {
   const scrollAnimationReference = useRef<number>();
   const [activeDirection, setActiveDirection] = useState<"up" | "down">();
@@ -1854,8 +1944,6 @@ export function IdentityFontsPage() {
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
   const [lineHeight, setLineHeight] = useState(DEFAULT_LINE_HEIGHT);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
-  const [showFontSizeValue, setShowFontSizeValue] = useState(false);
-  const [pendingFontSize, setPendingFontSize] = useState<number>();
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [textCasing, setTextCasing] = useState<TextCasing>("mixed");
   const [textShadow, setTextShadow] =
@@ -1955,7 +2043,6 @@ export function IdentityFontsPage() {
   const fileMenuButtonReference = useRef<HTMLButtonElement>(null);
   const fontCatalogReference = useRef<HTMLElement>(null);
   const categoryNavigationCleanupReference = useRef<() => void>();
-  const fontSizeValueTimeoutReference = useRef<number>();
   const fontPreferencesReference = useRef(fontPreferences);
   const snackbarTimeoutReference = useRef<number>();
   const {
@@ -1974,6 +2061,25 @@ export function IdentityFontsPage() {
       IDENTITY_THEME_STORAGE_KEY,
       lightMode ? "light" : "dark",
     );
+  }, [lightMode]);
+
+  useLayoutEffect(() => {
+    const backgroundColor = lightMode ? "#fff" : "#000";
+    const textColor = lightMode ? "#171717" : "#fff";
+    const root = document.documentElement;
+
+    document.getElementById("identity-bright-initial-theme")?.remove();
+    root.style.backgroundColor = backgroundColor;
+    root.style.color = textColor;
+    document.body.style.backgroundColor = backgroundColor;
+    document.body.style.color = textColor;
+
+    return () => {
+      root.style.removeProperty("background-color");
+      root.style.removeProperty("color");
+      document.body.style.removeProperty("background-color");
+      document.body.style.removeProperty("color");
+    };
   }, [lightMode]);
 
   useEffect(() => {
@@ -2028,32 +2134,8 @@ export function IdentityFontsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (fontSizeValueTimeoutReference.current !== undefined) {
-        window.clearTimeout(fontSizeValueTimeoutReference.current);
-      }
-    };
-  }, []);
-
-  const clearFontSizeValueTimeout = () => {
-    if (fontSizeValueTimeoutReference.current === undefined) return;
-
-    window.clearTimeout(fontSizeValueTimeoutReference.current);
-    fontSizeValueTimeoutReference.current = undefined;
-  };
-
-  const scheduleHideFontSizeValue = (delay = 900) => {
-    clearFontSizeValueTimeout();
-    fontSizeValueTimeoutReference.current = window.setTimeout(() => {
-      setShowFontSizeValue(false);
-      fontSizeValueTimeoutReference.current = undefined;
-    }, delay);
-  };
-
   const commitFontSize = (nextFontSize: number) => {
     setFontSize(nextFontSize);
-    setPendingFontSize(undefined);
   };
 
   useEffect(() => {
@@ -2858,7 +2940,7 @@ export function IdentityFontsPage() {
       data-native-cursor-surface
       className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
       style={{
-        fontFamily: "'Berlin Type Office', 'Courier New', monospace",
+        fontFamily: "'Berlin Type Office', Futura, sans-serif",
         fontWeight: 700,
       }}
     >
@@ -3346,80 +3428,10 @@ export function IdentityFontsPage() {
                   onChange={commitFontSize}
                 />
               ) : (
-              <div className="flex w-40 flex-col gap-2 text-white/70">
-                <span className="text-[0.625rem] tracking-[0.02em] sm:text-[0.75rem]">
-                  Font size
-                </span>
-                <div className="flex h-10 items-center gap-2">
-                  <button
-                    aria-label="Decrease font size"
-                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    type="button"
-                    onClick={() => {
-                      commitFontSize(Math.max(8, fontSize - 1));
-                    }}
-                  >
-                    −
-                  </button>
-                  <span className="relative flex flex-1 items-center">
-                  {showFontSizeValue ? (
-                    <span className="pointer-events-none absolute -top-[1.5625rem] left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2.5 py-px text-[0.625rem] leading-none tracking-[0.08em] text-white/70 uppercase">
-                      {pendingFontSize ?? fontSize}px
-                    </span>
-                  ) : null}
-                  <input
-                    aria-label="Text size"
-                    className="identity-font-size-control-slider identity-font-size-slider relative z-0 w-full"
-                    max={DESKTOP_FONT_SIZE_MAX}
-                    min="8"
-                    step="1"
-                    type="range"
-                    value={pendingFontSize ?? fontSize}
-                    onBlur={() => {
-                      commitFontSize(pendingFontSize ?? fontSize);
-                      scheduleHideFontSizeValue(250);
-                    }}
-                    onChange={(event) => {
-                      setShowFontSizeValue(true);
-                      setPendingFontSize(Number(event.target.value));
-                    }}
-                    onFocus={() => {
-                      setShowFontSizeValue(true);
-                    }}
-                    onKeyUp={(event) => {
-                      commitFontSize(Number(event.currentTarget.value));
-                    }}
-                    onPointerEnter={() => {
-                      setShowFontSizeValue(true);
-                      clearFontSizeValueTimeout();
-                    }}
-                    onPointerLeave={() => {
-                      scheduleHideFontSizeValue(250);
-                    }}
-                    onPointerDown={() => {
-                      setShowFontSizeValue(true);
-                      clearFontSizeValueTimeout();
-                    }}
-                    onPointerUp={(event) => {
-                      commitFontSize(Number(event.currentTarget.value));
-                      scheduleHideFontSizeValue(250);
-                    }}
-                  />
-                  </span>
-                  <button
-                    aria-label="Increase font size"
-                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    type="button"
-                    onClick={() => {
-                      commitFontSize(
-                        Math.min(DESKTOP_FONT_SIZE_MAX, fontSize + 1),
-                      );
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+                <DesktopFontSizeControl
+                  value={fontSize}
+                  onCommit={commitFontSize}
+                />
               )}
 
               <button
@@ -3427,7 +3439,7 @@ export function IdentityFontsPage() {
                 aria-controls="typography-settings"
                 aria-expanded={typographySettingsOpen}
                 aria-label="Typography settings"
-                className="ml-2 flex size-9 shrink-0 cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
+                className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
                 type="button"
                 onClick={() => {
                   setTypographySettingsOpen((open) => !open);
@@ -3440,7 +3452,7 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen ? (
                 <div
-                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-56 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="typography-settings"
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
