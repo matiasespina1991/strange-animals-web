@@ -3333,7 +3333,7 @@ export function IdentityFontsPage() {
 
             <div
               ref={typographySettingsReference}
-              className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end pt-4 sm:pt-[1.4375rem] md:justify-self-auto"
+              className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
             >
               {isSmallViewport ? (
                 <NumericStepper
@@ -3346,12 +3346,22 @@ export function IdentityFontsPage() {
                   onChange={commitFontSize}
                 />
               ) : (
-              <label className="flex h-10 w-40 items-center gap-3 text-white/70">
-                <span aria-hidden="true" className="text-sm">
-                  A
+              <div className="flex w-40 flex-col gap-2 text-white/70">
+                <span className="text-[0.625rem] tracking-[0.02em] sm:text-[0.75rem]">
+                  Font size
                 </span>
-                <span className="sr-only">Text size</span>
-                <span className="relative flex flex-1 items-center">
+                <div className="flex h-10 items-center gap-2">
+                  <button
+                    aria-label="Decrease font size"
+                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    type="button"
+                    onClick={() => {
+                      commitFontSize(Math.max(8, fontSize - 1));
+                    }}
+                  >
+                    −
+                  </button>
+                  <span className="relative flex flex-1 items-center">
                   {showFontSizeValue ? (
                     <span className="pointer-events-none absolute -top-[1.5625rem] left-1/2 z-0 -translate-x-1/2 border border-white/35 bg-black px-2.5 py-px text-[0.625rem] leading-none tracking-[0.08em] text-white/70 uppercase">
                       {pendingFontSize ?? fontSize}px
@@ -3395,11 +3405,21 @@ export function IdentityFontsPage() {
                       scheduleHideFontSizeValue(250);
                     }}
                   />
-                </span>
-                <span aria-hidden="true" className="text-2xl leading-none">
-                  A
-                </span>
-              </label>
+                  </span>
+                  <button
+                    aria-label="Increase font size"
+                    className="flex size-5 shrink-0 cursor-pointer items-center justify-center bg-transparent text-base leading-none outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    type="button"
+                    onClick={() => {
+                      commitFontSize(
+                        Math.min(DESKTOP_FONT_SIZE_MAX, fontSize + 1),
+                      );
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
               )}
 
               <button
