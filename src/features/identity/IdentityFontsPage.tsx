@@ -3439,7 +3439,7 @@ export function IdentityFontsPage() {
                 aria-controls="typography-settings"
                 aria-expanded={typographySettingsOpen}
                 aria-label="Typography settings"
-                className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
+                className="ml-2 flex size-9 shrink-0 self-end -translate-y-1 cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
                 type="button"
                 onClick={() => {
                   setTypographySettingsOpen((open) => !open);

@@ -178,6 +178,11 @@ body
   cursor: pointer !important;
 }
 
+.identity-fonts-page [aria-label="Typography settings"],
+.identity-fonts-page [aria-label="Typography settings"] * {
+  cursor: pointer !important;
+}
+
 .identity-fonts-page label > span:not(.sr-only),
 .identity-fonts-page label:has(input[type="checkbox"]),
 .identity-fonts-page label:has(input[type="checkbox"]) * {
