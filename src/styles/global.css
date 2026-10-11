@@ -178,12 +178,121 @@ body
   cursor: pointer !important;
 }
 
+.identity-fonts-page label > span:not(.sr-only),
+.identity-fonts-page label:has(input[type="checkbox"]),
+.identity-fonts-page label:has(input[type="checkbox"]) * {
+  cursor: pointer !important;
+}
+
+.identity-fonts-page label input[type="text"],
+.identity-fonts-page label input[type="search"],
+.identity-fonts-page label textarea {
+  cursor: text !important;
+}
+
 .identity-fonts-page .cursor-grab {
   cursor: grab !important;
 }
 
 .identity-fonts-page .cursor-grabbing {
   cursor: grabbing !important;
+}
+
+.identity-fonts-page input[type="checkbox"] {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 72%);
+  cursor: pointer;
+  display: inline-grid;
+  height: 0.875rem;
+  margin: 0;
+  place-content: center;
+  width: 0.875rem;
+  -webkit-appearance: none;
+}
+
+.identity-fonts-page input[type="checkbox"]::after {
+  content: "";
+  height: 0.28rem;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 100ms ease-out;
+  width: 0.5rem;
+}
+
+.identity-fonts-page input[type="checkbox"]:checked::after {
+  border-bottom: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transform: rotate(-45deg) scale(1);
+}
+
+.identity-fonts-page input[type="checkbox"]:indeterminate::after {
+  background: currentColor;
+  height: 1px;
+  transform: none;
+  width: 0.45rem;
+}
+
+.identity-fonts-page input[type="checkbox"]:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Typography catalog: a deliberate, high-contrast light counterpart to the
+   default OLED surface. Tailwind's utility colours are scoped here so font
+   specimens, controls and floating panels all switch together. */
+.identity-fonts-page--light {
+  background: #fff !important;
+  color: #171717 !important;
+}
+
+.identity-fonts-page--light [class~="bg-black"],
+.identity-fonts-page--light [class*="bg-black/"] {
+  background-color: #fff !important;
+}
+
+.identity-fonts-page--light [class~="bg-white"] {
+  background-color: #171717 !important;
+}
+
+.identity-fonts-page--light [class*="text-white"] {
+  color: rgb(23 23 23 / 0.82) !important;
+}
+
+.identity-fonts-page--light [class~="text-white"] {
+  color: #171717 !important;
+}
+
+.identity-fonts-page--light [class*="text-black"] {
+  color: #f7f5ef !important;
+}
+
+.identity-fonts-page--light [class*="border-white"] {
+  border-color: rgb(23 23 23 / 0.42) !important;
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-runnable-track {
+  background: rgb(23 23 23 / 0.42);
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-thumb {
+  background: #171717;
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-moz-range-track {
+  background: rgb(23 23 23 / 0.42);
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-moz-range-thumb {
+  background: #171717;
+}
+
+.identity-fonts-page--light .identity-color-picker {
+  border-color: rgb(23 23 23 / 0.42);
+}
+
+.identity-fonts-page--light input[type="checkbox"] {
+  border-color: rgb(23 23 23 / 72%);
 }
 
 button,
@@ -455,6 +564,30 @@ input {
 .identity-color-picker::-moz-color-swatch {
   border: 0;
   border-radius: 0;
+}
+
+.identity-transparent-color-swatch {
+  background-color: #fff;
+  border: 1px solid rgb(255 255 255 / 55%);
+  overflow: hidden;
+  position: relative;
+}
+
+.identity-transparent-color-swatch::before {
+  background: #d22;
+  content: "";
+  height: 2px;
+  left: -18%;
+  position: absolute;
+  top: 45%;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  width: 142%;
+}
+
+.identity-fonts-page--light .identity-transparent-color-swatch {
+  background-color: #fff;
+  border-color: rgb(23 23 23 / 55%);
 }
 
 .identity-font-toolbar-fade-in {

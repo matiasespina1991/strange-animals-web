@@ -24,9 +24,11 @@ import {
   ImageIcon,
   Menu,
   Minus,
+  Moon,
   Pin,
   Plus,
   Settings,
+  Sun,
   Star,
   Trash2,
   Upload,
@@ -175,6 +177,7 @@ const MOBILE_FONT_SIZE_MAX = 100;
 const COLOR_FAVORITES_STORAGE_KEY =
   "strange-animals.identity-font-color-favorites.v1";
 const DEFAULT_COLOR_FAVORITES = ["#ffffff", "#000000", "#56bcce"];
+const IDENTITY_THEME_STORAGE_KEY = "strange-animals.identity-theme.v1";
 const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
   "strange-animals.identity-fonts-onboarding-dismissed.v1";
 
@@ -251,7 +254,27 @@ function applyTextCasing(value: string, casing: TextCasing) {
 }
 
 function getPreviewFontWeight(fontWeight: FontWeight) {
-  return fontWeight === "normal" ? undefined : fontWeight;
+  return fontWeight === "normal" ? 400 : fontWeight;
+}
+
+function getOpaqueHex(color: string) {
+  return /^#[\da-f]{8}$/i.test(color) ? color.slice(0, 7) : color;
+}
+
+function getColorOpacity(color: string) {
+  if (!/^#[\da-f]{8}$/i.test(color)) return 1;
+
+  return Number.parseInt(color.slice(7), 16) / 255;
+}
+
+function setColorOpacity(color: string, opacity: number) {
+  const hex = getOpaqueHex(color);
+
+  if (!/^#[\da-f]{6}$/i.test(hex)) return color;
+
+  return `${hex}${Math.round(Math.min(1, Math.max(0, opacity)) * 255)
+    .toString(16)
+    .padStart(2, "0")}`;
 }
 
 function readFontWeight(value: string): FontWeight {
@@ -308,7 +331,13 @@ function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
   return floating && minimized;
 }
 
-function FloatingToolbarBrand({ visible }: { visible: boolean }) {
+function FloatingToolbarBrand({
+  lightMode,
+  visible,
+}: {
+  lightMode: boolean;
+  visible: boolean;
+}) {
   if (!visible) return null;
 
   return (
@@ -318,7 +347,7 @@ function FloatingToolbarBrand({ visible }: { visible: boolean }) {
     >
       <img
         alt=""
-        className="pointer-events-auto h-auto w-full select-none opacity-90 transition-opacity duration-200 hover:opacity-100 motion-reduce:transition-none"
+        className={`pointer-events-auto h-auto w-full select-none opacity-90 transition-opacity duration-200 hover:opacity-100 motion-reduce:transition-none ${lightMode ? "invert" : ""}`}
         decoding="async"
         draggable={false}
         src="/media/images/logos/sa-logo.png"
@@ -367,6 +396,41 @@ function ColorFavorites({
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+function ColorTransparencyControl({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (color: string) => void;
+}) {
+  const opacity = getColorOpacity(color);
+
+  return (
+    <div className="mt-3">
+      <label className="flex min-w-0 items-center gap-3">
+        <span className="shrink-0 text-[0.625rem] text-white/75 uppercase">
+          Opacity
+        </span>
+        <input
+          aria-label="Color opacity"
+          className="identity-font-size-slider min-w-0 flex-1"
+          max="100"
+          min="0"
+          step="1"
+          type="range"
+          value={Math.round(opacity * 100)}
+          onChange={(event) => {
+            onChange(setColorOpacity(color, Number(event.target.value) / 100));
+          }}
+        />
+        <output className="w-8 text-right text-[0.625rem] text-white/75 tabular-nums">
+          {Math.round(opacity * 100)}%
+        </output>
+      </label>
     </div>
   );
 }
@@ -1805,6 +1869,11 @@ function NumericStepper({
 }
 
 export function IdentityFontsPage() {
+  const [lightMode, setLightMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+
+    return window.localStorage.getItem(IDENTITY_THEME_STORAGE_KEY) === "light";
+  });
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
   const [search, setSearch] = useState("");
   const [specimen, setSpecimen] = useState("");
@@ -1826,7 +1895,10 @@ export function IdentityFontsPage() {
   const [textShadow, setTextShadow] =
     useState<TextShadowSettings>(DEFAULT_TEXT_SHADOW);
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
-  const [fontColor, setFontColor] = useState("#ffffff");
+  const [fontColor, setFontColor] = useState(() =>
+    lightMode ? "#000000" : "#ffffff",
+  );
+  const [fontColorCustomized, setFontColorCustomized] = useState(false);
   const [favoriteColors, setFavoriteColors] = useState<string[]>(() => {
     if (typeof window === "undefined") return DEFAULT_COLOR_FAVORITES;
 
@@ -1850,7 +1922,7 @@ export function IdentityFontsPage() {
     return DEFAULT_COLOR_FAVORITES;
   });
   const [fontColorSettingsOpen, setFontColorSettingsOpen] = useState(false);
-  const [backgroundColor, setBackgroundColor] = useState("#000000");
+  const [backgroundColor, setBackgroundColor] = useState("#00000000");
   const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
     "color",
   );
@@ -1930,6 +2002,13 @@ export function IdentityFontsPage() {
   useEffect(() => {
     setToolbarMinimized(toolbarFloating);
   }, [toolbarFloating]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      IDENTITY_THEME_STORAGE_KEY,
+      lightMode ? "light" : "dark",
+    );
+  }, [lightMode]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -2672,6 +2751,11 @@ export function IdentityFontsPage() {
     );
   };
 
+  const setUserFontColor = (color: string) => {
+    setFontColorCustomized(true);
+    setFontColor(color);
+  };
+
   const loadSavedSets = async () => {
     setSavedSetsLoading(true);
     setSetActionError(undefined);
@@ -2760,6 +2844,7 @@ export function IdentityFontsPage() {
 
     setSpecimen(selectedSavedSet.specimen);
     setSearch(selectedSavedSet.search);
+    setFontColorCustomized(true);
     setFontColor(selectedSavedSet.fontColor);
     setBackgroundColor(selectedSavedSet.background.color);
     setBackgroundTextAnchor(selectedSavedSet.background.textAnchor);
@@ -2805,7 +2890,7 @@ export function IdentityFontsPage() {
   return (
     <main
       data-native-cursor-surface
-      className="identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
+      className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
       style={{
         fontFamily: "'Berlin Type Office', 'Courier New', monospace",
         fontWeight: 700,
@@ -2821,6 +2906,26 @@ export function IdentityFontsPage() {
 
       <div className="mx-auto max-w-[92rem]">
         <header className="relative border-b border-white/50 pb-0">
+          <button
+            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
+            className="absolute top-0 right-0 z-20 flex size-9 cursor-pointer items-center justify-center bg-transparent text-white/85 outline-none transition-colors duration-150 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+            title={lightMode ? "Dark mode" : "Light mode"}
+            type="button"
+            onClick={() => {
+              const nextLightMode = !lightMode;
+
+              setLightMode(nextLightMode);
+              if (!fontColorCustomized) {
+                setFontColor(nextLightMode ? "#000000" : "#ffffff");
+              }
+            }}
+          >
+            {lightMode ? (
+              <Moon aria-hidden="true" className="size-4" />
+            ) : (
+              <Sun aria-hidden="true" className="size-4" />
+            )}
+          </button>
           <div className="flex items-baseline justify-between gap-6 mb-[1.4rem]">
             <nav
               aria-label="Breadcrumb"
@@ -2828,7 +2933,7 @@ export function IdentityFontsPage() {
             >
               <img
                 alt="Strange Animals"
-                className="h-auto w-32 opacity-80"
+                className={`h-auto w-32 opacity-80 ${lightMode ? "invert" : ""}`}
                 decoding="async"
                 src="/media/images/logos/sa-logo.png"
               />
@@ -2908,7 +3013,7 @@ export function IdentityFontsPage() {
 
           <div
             ref={toolbarReference}
-            className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_*]:!tracking-normal [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
+            className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
             id="font-toolbar"
           >
             <button
@@ -2996,31 +3101,40 @@ export function IdentityFontsPage() {
                     </h2>
                     <label className="mt-5 flex items-center gap-3">
                       <span className="text-[0.625rem] text-white/75 uppercase">
-                        {fontColor}
+                        {getOpaqueHex(fontColor)}
                       </span>
                       <input
                         aria-label="Choose font color"
                         className="identity-color-picker"
                         type="color"
-                        value={fontColor}
+                        value={getOpaqueHex(fontColor)}
                         onChange={(event) => {
-                          setFontColor(event.target.value);
+                          setUserFontColor(
+                            setColorOpacity(
+                              event.target.value,
+                              getColorOpacity(fontColor),
+                            ),
+                          );
                         }}
                       />
                     </label>
+                    <ColorTransparencyControl
+                      color={fontColor}
+                      onChange={setUserFontColor}
+                    />
                     <ColorFavorites
                       activeColor={fontColor}
                       values={favoriteColors}
                       onAddCurrent={() => {
                         saveFavoriteColor(fontColor);
                       }}
-                      onSelect={setFontColor}
+                      onSelect={setUserFontColor}
                     />
                   </div>
                 ) : null}
               </div>
 
-              <div className="shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
+              <div className="translate-y-[0.2rem] shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
                 <span
                   aria-hidden="true"
                   className="mb-1 block text-[0.5rem] tracking-[0.08em] text-transparent uppercase sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em]"
@@ -3034,7 +3148,7 @@ export function IdentityFontsPage() {
                     title="Swap colors"
                     type="button"
                     onClick={() => {
-                      setFontColor(backgroundColor);
+                      setUserFontColor(backgroundColor);
                       setBackgroundColor(fontColor);
                     }}
                   >
@@ -3060,7 +3174,7 @@ export function IdentityFontsPage() {
                     aria-controls="background-settings"
                     aria-expanded={backgroundSettingsOpen}
                     aria-label="Background settings"
-                    className="size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none"
+                    className={`size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
                     style={{
                       backgroundColor:
                         backgroundMode === "color"
@@ -3123,18 +3237,27 @@ export function IdentityFontsPage() {
                       <>
                         <label className="mt-5 flex items-center gap-3">
                           <span className="text-[0.625rem] tracking-[0.08em] text-white/75 uppercase">
-                            {backgroundColor}
+                            {getOpaqueHex(backgroundColor)}
                           </span>
                           <input
                             aria-label="Choose background color"
                             className="identity-color-picker"
                             type="color"
-                            value={backgroundColor}
+                            value={getOpaqueHex(backgroundColor)}
                             onChange={(event) => {
-                              setBackgroundColor(event.target.value);
+                              setBackgroundColor(
+                                setColorOpacity(
+                                  event.target.value,
+                                  getColorOpacity(backgroundColor),
+                                ),
+                              );
                             }}
                           />
                         </label>
+                        <ColorTransparencyControl
+                          color={backgroundColor}
+                          onChange={setBackgroundColor}
+                        />
                         <ColorFavorites
                           activeColor={backgroundColor}
                           values={favoriteColors}
@@ -3332,7 +3455,7 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen ? (
                 <div
-                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-1.5rem)] max-w-[26rem] overflow-y-auto border border-white/45 bg-black p-3 md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-1.5rem)] max-w-[26rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="typography-settings"
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
@@ -3651,7 +3774,7 @@ export function IdentityFontsPage() {
                 <button
                   aria-controls="font-category-filters"
                   aria-expanded={categoryFiltersOpen}
-                  className="flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-normal text-white outline-none hover:text-white"
+                  className="flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
                   type="button"
                   onClick={() => {
                     if (loading) return;
@@ -3761,7 +3884,7 @@ export function IdentityFontsPage() {
             <button
               aria-controls="font-use-case-filters"
               aria-expanded={useCaseFiltersOpen}
-              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-normal text-white/85 outline-none hover:text-white"
+              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
               type="button"
               onClick={() => {
                 setUseCaseFiltersOpen((open) => !open);
@@ -3783,7 +3906,7 @@ export function IdentityFontsPage() {
                 return (
                   <label
                     key={useCaseLabel}
-                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white/80 uppercase hover:text-white"
+                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
                   >
                     <input
                       checked={checked}
@@ -3807,7 +3930,7 @@ export function IdentityFontsPage() {
                   </label>
                 );
               })}
-              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] tracking-[0.08em] text-white/70 hover:text-white">
+              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
                 <input
                   checked={allUseCasesSelected}
                   className="size-3 accent-white outline-none"
@@ -3818,7 +3941,7 @@ export function IdentityFontsPage() {
                     );
                   }}
                 />
-                <span className="font-semibold tracking-[0.1em] uppercase">
+                <span className="font-semibold uppercase">
                   All
                 </span>
               </label>
@@ -4018,6 +4141,7 @@ export function IdentityFontsPage() {
       ) : null}
 
       <FloatingToolbarBrand
+        lightMode={lightMode}
         visible={
           toolbarFloating && (toolbarMinimized || isSmallViewport)
         }
