@@ -295,6 +295,11 @@ body
   border-color: rgb(23 23 23 / 72%);
 }
 
+.identity-fonts-page--light .identity-numeric-stepper button,
+.identity-fonts-page--light .identity-numeric-stepper button svg {
+  color: #171717 !important;
+}
+
 button,
 input {
   font: inherit;
@@ -522,7 +527,33 @@ input {
   width: 12px;
 }
 
+/* Keep native range tracks visible after the light theme changes the page. */
+.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-runnable-track {
+  background: rgb(23 23 23 / 58%) !important;
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-thumb {
+  background: #171717 !important;
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-moz-range-track {
+  background: rgb(23 23 23 / 58%) !important;
+}
+
+.identity-fonts-page--light .identity-font-size-slider::-moz-range-thumb {
+  background: #171717 !important;
+}
+
+.identity-fonts-page--light .identity-settings-switch-track {
+  background: rgb(23 23 23 / 58%) !important;
+}
+
 @media (max-width: 767px) {
+  .identity-fonts-page textarea,
+  .identity-fonts-page input[type="search"] {
+    font-size: 16px !important;
+  }
+
   .identity-font-size-control-slider {
     height: 44px;
   }

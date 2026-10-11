@@ -1727,44 +1727,6 @@ function FontWeightControl({
   );
 }
 
-function FavoriteFilterControl({
-  disabled,
-  value,
-  onChange,
-}: {
-  disabled: boolean;
-  value: boolean;
-  onChange: (showOnlyFavorites: boolean) => void;
-}) {
-  return (
-    <div className="mb-6 flex items-center justify-between gap-4">
-      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-        Show only favorites
-      </span>
-      <button
-        aria-checked={value}
-        aria-label="Show only favorite fonts"
-        className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-40"
-        disabled={disabled}
-        role="switch"
-        type="button"
-        onClick={() => {
-          onChange(!value);
-        }}
-      >
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
-        />
-        <span
-          aria-hidden="true"
-          className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${value ? "translate-x-[1.375rem]" : "translate-x-0"}`}
-        />
-      </button>
-    </div>
-  );
-}
-
 function NumericStepper({
   ariaLabel,
   max,
@@ -1806,7 +1768,7 @@ function NumericStepper({
   return (
     <div
       aria-label={ariaLabel}
-      className="inline-grid h-9 shrink-0 grid-cols-[2rem_minmax(3.5rem,auto)_2rem] border border-white/35 text-[0.625rem] text-white/75"
+      className="identity-numeric-stepper inline-grid h-9 shrink-0 grid-cols-[2rem_minmax(3.5rem,auto)_2rem] border border-white/35 text-[0.625rem] text-white/75"
       role="group"
     >
       <button
@@ -3165,8 +3127,7 @@ export function IdentityFontsPage() {
                 className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
               >
                 <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
-                  <span className="sm:hidden">BG</span>
-                  <span className="hidden sm:inline">Background</span>
+                  <span>Background</span>
                 </span>
                 <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
                   <button
@@ -3455,7 +3416,7 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen ? (
                 <div
-                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-1.5rem)] max-w-[26rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
+                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-56 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
                   id="typography-settings"
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
@@ -3477,17 +3438,6 @@ export function IdentityFontsPage() {
                       Reset
                     </button>
                   </div>
-
-                  <FavoriteFilterControl
-                    disabled={!fontPreferencesReady}
-                    value={fontPreferences.showOnlyFavorites}
-                    onChange={(showOnlyFavorites) => {
-                      commitFontPreferences((current) => ({
-                        ...current,
-                        showOnlyFavorites,
-                      }));
-                    }}
-                  />
 
                   <div className="mb-6 flex items-center justify-between gap-4">
                     <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
@@ -3595,7 +3545,7 @@ export function IdentityFontsPage() {
                       >
                         <span
                           aria-hidden="true"
-                          className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
+                          className="identity-settings-switch-track absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
                         />
                         <span
                           aria-hidden="true"
