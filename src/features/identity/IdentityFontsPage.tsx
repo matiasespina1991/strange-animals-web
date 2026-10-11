@@ -527,8 +527,13 @@ function DesktopFontSizeControl({
 
 function ScrollControls({ lightMode }: { lightMode: boolean }) {
   const scrollAnimationReference = useRef<number>();
-  const [activeDirection, setActiveDirection] = useState<"up" | "down">();
-  const [hoveredDirection, setHoveredDirection] = useState<"up" | "down">();
+  const scrollToTopCancelReference = useRef<() => void>();
+  const [activeDirection, setActiveDirection] = useState<
+    "top" | "up" | "down"
+  >();
+  const [hoveredDirection, setHoveredDirection] = useState<
+    "top" | "up" | "down"
+  >();
   const [keyboardDirection, setKeyboardDirection] = useState<"up" | "down">();
 
   const stopScrolling = () => {
@@ -536,6 +541,9 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
       window.cancelAnimationFrame(scrollAnimationReference.current);
       scrollAnimationReference.current = undefined;
     }
+
+    scrollToTopCancelReference.current?.();
+    scrollToTopCancelReference.current = undefined;
 
     setActiveDirection(undefined);
   };
@@ -590,13 +598,13 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
     };
   }, []);
 
-  const isButtonHighlighted = (direction: "up" | "down") =>
+  const isButtonHighlighted = (direction: "top" | "up" | "down") =>
     activeDirection === direction ||
     keyboardDirection === direction ||
     hoveredDirection === direction;
-  const buttonClass = (direction: "up" | "down") =>
+  const buttonClass = (direction: "top" | "up" | "down") =>
     `flex h-7 w-12 cursor-pointer items-center justify-center rounded-sm border bg-black/90 backdrop-blur-[3px] outline-none transition-[border-color,background-color] duration-200 focus:outline-none focus-visible:outline-none motion-reduce:transition-none ${isButtonHighlighted(direction) ? "border-white/35 bg-[#111111]" : "border-white/25"}`;
-  const buttonStyle = (direction: "up" | "down") => ({
+  const buttonStyle = (direction: "top" | "up" | "down") => ({
     color: lightMode
       ? isButtonHighlighted(direction)
         ? "rgb(23 23 23 / 0.78)"
@@ -615,6 +623,34 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
       aria-label="Page scroll controls"
       className="fixed right-6 bottom-5 z-[10000] hidden flex-col gap-[7px] md:flex md:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
     >
+      <button
+        aria-label="Scroll to top"
+        className={buttonClass("top")}
+        style={buttonStyle("top")}
+        title="Scroll to top"
+        type="button"
+        onClick={() => {
+          stopScrolling();
+          setActiveDirection("top");
+          scrollToTopCancelReference.current = smoothWindowScrollTo({
+            duration: 900,
+            top: 0,
+          });
+          window.setTimeout(() => {
+            setActiveDirection(undefined);
+            scrollToTopCancelReference.current = undefined;
+          }, 900);
+        }}
+        onPointerEnter={() => {
+          setHoveredDirection("top");
+        }}
+        onPointerLeave={handlePointerLeave}
+      >
+        <span aria-hidden="true" className="flex flex-col -space-y-2">
+          <ChevronUp className="size-3" />
+          <ChevronUp className="size-3" />
+        </span>
+      </button>
       <button
         aria-label="Scroll up"
         className={buttonClass("up")}
