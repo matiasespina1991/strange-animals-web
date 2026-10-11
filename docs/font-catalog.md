@@ -20,17 +20,41 @@ a family source.
 
 ## Publish
 
-Preview the catalog without changing Firebase:
+This procedure is mandatory for every font addition. A font is **not uploaded**
+until it exists in both Firebase Storage and Firestore and the verification
+command finishes with zero missing entries. Do not report an upload as complete
+before that verification has passed.
+
+1. Preview the catalog without changing Firebase:
 
 ```bash
 npm run sync:fonts
 ```
 
-Upload fonts to Firebase Storage and register them in Firestore:
+2. Upload fonts to Firebase Storage and register them in Firestore in the same
+command. Never upload to Storage without writing Firestore metadata:
 
 ```bash
 npm run sync:fonts -- --upload-storage --write-firestore
 ```
+
+3. Verify Storage and Firestore immediately after every upload:
+
+```bash
+npm run audit:fonts
+```
+
+The audit must report `"passed": true`, with empty `missingStorage` and
+`missingFirestore` arrays. If it reports missing metadata, repair it before
+considering the upload complete:
+
+```bash
+node scripts/repair-font-storage-metadata.mjs --apply
+```
+
+For a particular family, also verify its Firestore document and all file
+variants before reporting success. This is a release-critical checklist: the
+typeface application depends on the remote files and their database records.
 
 The script marks uploaded families as enabled. Script-specific categories can
 be assigned through `PARENT_CATEGORY_OVERRIDES` in

@@ -172,6 +172,9 @@ const DEFAULT_LETTER_SPACING = 0;
 const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 100;
+const COLOR_FAVORITES_STORAGE_KEY =
+  "strange-animals.identity-font-color-favorites.v1";
+const DEFAULT_COLOR_FAVORITES = ["#ffffff", "#000000", "#56bcce"];
 const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
   "strange-animals.identity-fonts-onboarding-dismissed.v1";
 
@@ -320,9 +323,50 @@ function FloatingToolbarBrand({ visible }: { visible: boolean }) {
         draggable={false}
         src="/media/images/logos/sa-logo.png"
       />
-      <span className="mt-1 mr-[2px] text-[0.5rem] font-normal tracking-[0.04em] lowercase">
+      <span className="mt-1 mr-[2px] text-[0.65rem] font-normal tracking-[0.02em] text-white/85 lowercase">
         identity &gt; typography
       </span>
+    </div>
+  );
+}
+
+function ColorFavorites({
+  activeColor,
+  onAddCurrent,
+  onSelect,
+  values,
+}: {
+  activeColor: string;
+  onAddCurrent: () => void;
+  onSelect: (color: string) => void;
+  values: string[];
+}) {
+  return (
+    <div className="mt-4 border-t border-white/15 pt-3">
+      <div className="flex items-center justify-end">
+        <button
+          className="cursor-pointer text-[0.5625rem] tracking-[0.08em] text-white/65 uppercase hover:text-white"
+          type="button"
+          onClick={onAddCurrent}
+        >
+          Save current
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {values.map((color) => (
+          <button
+            key={color}
+            aria-label={`Use ${color}`}
+            aria-pressed={color.toLowerCase() === activeColor.toLowerCase()}
+            className="size-6 cursor-pointer border border-white/35 outline-none hover:border-white/80 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+            style={{ backgroundColor: color }}
+            type="button"
+            onClick={() => {
+              onSelect(color);
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1783,6 +1827,28 @@ export function IdentityFontsPage() {
     useState<TextShadowSettings>(DEFAULT_TEXT_SHADOW);
   const [typographySettingsOpen, setTypographySettingsOpen] = useState(false);
   const [fontColor, setFontColor] = useState("#ffffff");
+  const [favoriteColors, setFavoriteColors] = useState<string[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_COLOR_FAVORITES;
+
+    try {
+      const savedColors = JSON.parse(
+        window.localStorage.getItem(COLOR_FAVORITES_STORAGE_KEY) ?? "[]",
+      );
+
+      if (
+        Array.isArray(savedColors) &&
+        savedColors.every((color) => typeof color === "string")
+      ) {
+        return Array.from(
+          new Set([...DEFAULT_COLOR_FAVORITES, ...savedColors]),
+        );
+      }
+    } catch {
+      // Fall back to the built-in swatches when a stored value is malformed.
+    }
+
+    return DEFAULT_COLOR_FAVORITES;
+  });
   const [fontColorSettingsOpen, setFontColorSettingsOpen] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#000000");
   const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
@@ -1824,6 +1890,8 @@ export function IdentityFontsPage() {
   const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
     new Set(),
   );
+  const [categorySelectionPristine, setCategorySelectionPristine] =
+    useState(true);
   const [hiddenUseCaseLabels, setHiddenUseCaseLabels] = useState<Set<string>>(
     new Set(),
   );
@@ -1862,6 +1930,13 @@ export function IdentityFontsPage() {
   useEffect(() => {
     setToolbarMinimized(toolbarFloating);
   }, [toolbarFloating]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      COLOR_FAVORITES_STORAGE_KEY,
+      JSON.stringify(favoriteColors),
+    );
+  }, [favoriteColors]);
 
   useEffect(() => {
     return () => {
@@ -2589,6 +2664,14 @@ export function IdentityFontsPage() {
     setBackgroundMode("image");
   };
 
+  const saveFavoriteColor = (color: string) => {
+    setFavoriteColors((current) =>
+      current.some((favorite) => favorite.toLowerCase() === color.toLowerCase())
+        ? current
+        : [...current, color],
+    );
+  };
+
   const loadSavedSets = async () => {
     setSavedSetsLoading(true);
     setSetActionError(undefined);
@@ -2723,7 +2806,10 @@ export function IdentityFontsPage() {
     <main
       data-native-cursor-surface
       className="identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10"
-      style={{ fontFamily: "'Departure Mono', 'Courier New', monospace" }}
+      style={{
+        fontFamily: "'Berlin Type Office', 'Courier New', monospace",
+        fontWeight: 700,
+      }}
     >
       <ActiveCategoryRail
         categories={categoryRailItems}
@@ -2738,7 +2824,7 @@ export function IdentityFontsPage() {
           <div className="flex items-baseline justify-between gap-6 mb-[1.4rem]">
             <nav
               aria-label="Breadcrumb"
-              className="flex items-center text-[0.7rem] font-normal tracking-[0.02em] text-white/70 lowercase"
+              className="flex items-center text-[0.82rem] font-normal tracking-[0.02em] text-white/85 lowercase"
             >
               <img
                 alt="Strange Animals"
@@ -2842,7 +2928,7 @@ export function IdentityFontsPage() {
             </button>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/75">
+              <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
                 Demo text
               </span>
               <textarea
@@ -2857,7 +2943,7 @@ export function IdentityFontsPage() {
             </label>
 
             <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.625rem] tracking-[0.12em] text-white/75">
+              <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
                 Search fonts
               </span>
               <input
@@ -2875,7 +2961,7 @@ export function IdentityFontsPage() {
                 ref={fontColorSettingsReference}
                 className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem] xl:-mr-4"
               >
-                <span className="mb-1 block whitespace-nowrap text-center text-[0.5rem] tracking-[0.08em] text-white/75 sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em] xl:text-left">
+                <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
                   <span className="sm:hidden">Font</span>
                   <span className="hidden sm:inline">Font color</span>
                 </span>
@@ -2908,25 +2994,28 @@ export function IdentityFontsPage() {
                     >
                       Font color
                     </h2>
-                    <label className="mt-5 flex items-center justify-between gap-4">
-                      <span className="text-[0.625rem] text-white/60">
-                        Fill color
+                    <label className="mt-5 flex items-center gap-3">
+                      <span className="text-[0.625rem] text-white/75 uppercase">
+                        {fontColor}
                       </span>
-                      <span className="flex items-center gap-3">
-                        <span className="text-[0.625rem] text-white/55">
-                          {fontColor}
-                        </span>
-                        <input
-                          aria-label="Choose font color"
-                          className="identity-color-picker"
-                          type="color"
-                          value={fontColor}
-                          onChange={(event) => {
-                            setFontColor(event.target.value);
-                          }}
-                        />
-                      </span>
+                      <input
+                        aria-label="Choose font color"
+                        className="identity-color-picker"
+                        type="color"
+                        value={fontColor}
+                        onChange={(event) => {
+                          setFontColor(event.target.value);
+                        }}
+                      />
                     </label>
+                    <ColorFavorites
+                      activeColor={fontColor}
+                      values={favoriteColors}
+                      onAddCurrent={() => {
+                        saveFavoriteColor(fontColor);
+                      }}
+                      onSelect={setFontColor}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -2961,7 +3050,7 @@ export function IdentityFontsPage() {
                 ref={backgroundSettingsReference}
                 className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
               >
-                <span className="mb-1 block whitespace-nowrap text-center text-[0.5rem] tracking-[0.08em] text-white/75 sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em] xl:text-left">
+                <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
                   <span className="sm:hidden">BG</span>
                   <span className="hidden sm:inline">Background</span>
                 </span>
@@ -3031,15 +3120,13 @@ export function IdentityFontsPage() {
                     </div>
 
                     {backgroundMode === "color" ? (
-                      <label className="mt-5 flex items-center justify-between gap-4">
-                        <span className="text-[0.625rem] tracking-[0.08em] text-white/60 uppercase">
-                          Fill color
-                        </span>
-                        <span className="flex items-center gap-3">
-                          <span className="text-[0.625rem] text-white/55 uppercase">
+                      <>
+                        <label className="mt-5 flex items-center gap-3">
+                          <span className="text-[0.625rem] tracking-[0.08em] text-white/75 uppercase">
                             {backgroundColor}
                           </span>
                           <input
+                            aria-label="Choose background color"
                             className="identity-color-picker"
                             type="color"
                             value={backgroundColor}
@@ -3047,8 +3134,16 @@ export function IdentityFontsPage() {
                               setBackgroundColor(event.target.value);
                             }}
                           />
-                        </span>
-                      </label>
+                        </label>
+                        <ColorFavorites
+                          activeColor={backgroundColor}
+                          values={favoriteColors}
+                          onAddCurrent={() => {
+                            saveFavoriteColor(backgroundColor);
+                          }}
+                          onSelect={setBackgroundColor}
+                        />
+                      </>
                     ) : (
                       <div className="mt-5">
                         <input
@@ -3496,7 +3591,7 @@ export function IdentityFontsPage() {
                         <NumericStepper
                           ariaLabel="Letter spacing"
                           max={0.5}
-                          min={-0.1}
+                          min={-0.5}
                           precision={2}
                           step={0.01}
                           unit=" em"
@@ -3535,7 +3630,7 @@ export function IdentityFontsPage() {
                           aria-label="Letter spacing"
                           className="identity-font-size-slider block w-full"
                           max="0.5"
-                          min="-0.1"
+                          min="-0.5"
                           step="0.01"
                           type="range"
                           value={letterSpacing}
@@ -3556,7 +3651,7 @@ export function IdentityFontsPage() {
                 <button
                   aria-controls="font-category-filters"
                   aria-expanded={categoryFiltersOpen}
-                  className="flex cursor-pointer items-center gap-2 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
+                  className="flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-normal text-white outline-none hover:text-white"
                   type="button"
                   onClick={() => {
                     if (loading) return;
@@ -3576,12 +3671,13 @@ export function IdentityFontsPage() {
                     className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
                   />
                 ) : (
-                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] tracking-[0.08em] text-white/70 hover:text-white">
+                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
                     <input
                       checked={allCategoriesSelected}
                       className="size-3 accent-white outline-none"
                       type="checkbox"
                       onChange={() => {
+                        setCategorySelectionPristine(false);
                         setHiddenCategoryLabels(
                           allCategoriesSelected
                             ? new Set(categoriesInUse)
@@ -3613,21 +3709,26 @@ export function IdentityFontsPage() {
                       return (
                         <label
                           key={categoryLabel}
-                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[calc(0.55rem+1px)] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
+                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
                         >
                           <input
                             aria-checked={
-                              allCategoriesSelected ? "mixed" : checked
+                              allCategoriesSelected && categorySelectionPristine
+                                ? "mixed"
+                                : checked
                             }
                             checked={checked}
-                            className={`size-3 accent-white outline-none ${allCategoriesSelected ? "opacity-65" : ""}`}
+                            className="size-3 accent-white outline-none"
                             ref={(element) => {
                               if (element) {
-                                element.indeterminate = allCategoriesSelected;
+                                element.indeterminate =
+                                  allCategoriesSelected &&
+                                  categorySelectionPristine;
                               }
                             }}
                             type="checkbox"
                             onChange={() => {
+                              setCategorySelectionPristine(false);
                               setHiddenCategoryLabels((current) => {
                                 if (current.size === 0) {
                                   return new Set(
@@ -3660,7 +3761,7 @@ export function IdentityFontsPage() {
             <button
               aria-controls="font-use-case-filters"
               aria-expanded={useCaseFiltersOpen}
-              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.625rem] tracking-normal text-white/75 outline-none hover:text-white"
+              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-normal text-white/85 outline-none hover:text-white"
               type="button"
               onClick={() => {
                 setUseCaseFiltersOpen((open) => !open);
@@ -3682,7 +3783,7 @@ export function IdentityFontsPage() {
                 return (
                   <label
                     key={useCaseLabel}
-                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.55rem] font-semibold tracking-[0.1em] text-white/70 uppercase hover:text-white"
+                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white/80 uppercase hover:text-white"
                   >
                     <input
                       checked={checked}
