@@ -435,7 +435,7 @@ function ColorTransparencyControl({
   );
 }
 
-function ScrollControls() {
+function ScrollControls({ lightMode }: { lightMode: boolean }) {
   const scrollAnimationReference = useRef<number>();
   const [activeDirection, setActiveDirection] = useState<"up" | "down">();
   const [hoveredDirection, setHoveredDirection] = useState<"up" | "down">();
@@ -507,9 +507,13 @@ function ScrollControls() {
   const buttonClass = (direction: "up" | "down") =>
     `flex h-7 w-12 cursor-pointer items-center justify-center rounded-sm border bg-black/90 backdrop-blur-[3px] outline-none transition-[border-color,background-color] duration-200 focus:outline-none focus-visible:outline-none motion-reduce:transition-none ${isButtonHighlighted(direction) ? "border-white/35 bg-[#111111]" : "border-white/25"}`;
   const buttonStyle = (direction: "up" | "down") => ({
-    color: isButtonHighlighted(direction)
-      ? "rgb(255 255 255 / 0.65)"
-      : "rgb(255 255 255 / 0.25)",
+    color: lightMode
+      ? isButtonHighlighted(direction)
+        ? "rgb(23 23 23 / 0.78)"
+        : "rgb(23 23 23 / 0.58)"
+      : isButtonHighlighted(direction)
+        ? "rgb(255 255 255 / 0.65)"
+        : "rgb(255 255 255 / 0.25)",
   });
   const handlePointerLeave = () => {
     setHoveredDirection(undefined);
@@ -2863,7 +2867,7 @@ export function IdentityFontsPage() {
         label={activeCategoryLabel}
         onCategorySelect={selectCategoryFromRail}
       />
-      <ScrollControls />
+      <ScrollControls lightMode={lightMode} />
       <IdentityFontsOnboarding />
 
       <div className="mx-auto max-w-[92rem]">
