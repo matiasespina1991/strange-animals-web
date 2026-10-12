@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { RetroScrollbar } from "@/components/RetroScrollbar";
 import { TypewriterText } from "@/components/TypewriterText";
 import { smoothWindowScrollTo } from "@/lib/smooth-scroll";
@@ -159,6 +160,14 @@ function SupportedPreviewText({
   return previewText.trim() ? previewText : (fallbackValue ?? value);
 }
 const UNCATEGORIZED_LABEL = "Uncategorized";
+const FONT_CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  "Non-Latin Script": "Non-Latin / 日本語",
+};
+
+function getFontCategoryDisplayName(category: string) {
+  return FONT_CATEGORY_DISPLAY_NAMES[category] ?? category;
+}
+
 const FONT_CATEGORY_DISPLAY_ORDER = [
   ...FONT_PARENT_CATEGORIES,
   UNCATEGORIZED_LABEL,
@@ -304,12 +313,10 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
   return "No matching fonts. Try a shorter name or format.";
 }
 
-function getToolbarPlacementClass(floating: boolean, minimized: boolean) {
-  if (!floating) return "xl:mt-[1.8rem]";
-
-  return minimized
-    ? "identity-font-toolbar-minimized"
-    : "identity-font-toolbar-fade-in fixed right-3 bottom-[0.7rem] left-[1.05rem] z-[10000] max-h-[calc(50dvh-3.2rem)] overflow-visible border border-white/45 bg-black p-3 pb-[0.95rem] md:top-4 md:right-4 md:bottom-auto md:left-4 md:max-h-none md:p-4";
+function getToolbarPlacementClass(floating: boolean) {
+  return floating
+    ? "fixed right-3 bottom-[0.7rem] left-[1.05rem] z-[10000] border border-white/45 bg-black p-3 pb-[0.95rem] md:top-4 md:right-4 md:bottom-auto md:left-[18rem] md:p-4 2xl:left-[max(18rem,calc((100vw-92rem)/4+16rem))]"
+    : "xl:mt-[1.8rem]";
 }
 
 function getToolbarPopoverPlacementClass(floating: boolean) {
@@ -322,9 +329,7 @@ function getToolbarPopoverPlacementClass(floating: boolean) {
 }
 
 function getToolbarMinimizeButtonClass(floating: boolean) {
-  return floating
-    ? "absolute top-2 right-2 z-30 flex size-7 cursor-pointer touch-manipulation items-center justify-center text-white/60 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-2px] focus-visible:outline-white"
-    : "hidden";
+  return floating ? "absolute top-1 right-1 z-30 flex size-7 cursor-pointer items-center justify-center text-white/70" : "hidden";
 }
 
 function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
@@ -343,7 +348,7 @@ function FloatingToolbarBrand({
   return (
     <div
       aria-hidden="true"
-      className="identity-font-toolbar-fade-in pointer-events-none fixed top-3 left-5 z-[10000] flex w-48 flex-col items-end sm:top-5 sm:left-8 sm:w-59 lg:left-10 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
+      className="pointer-events-none fixed top-3 left-5 z-[10000] flex w-48 flex-col items-end sm:top-5 sm:left-8 sm:w-59 lg:left-10 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
     >
       <img
         alt=""
@@ -865,7 +870,7 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="group identity-font-toolbar-fade-in fixed right-5 bottom-5 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/85 outline-none transition-[border-color,color] duration-150 hover:border-white/45 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white md:top-5 md:right-6 md:bottom-auto 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
+      className="group fixed right-5 bottom-5 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/85 outline-none transition-[border-color,color] duration-150 hover:border-white/45 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white md:top-5 md:right-6 md:bottom-auto 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
@@ -1030,10 +1035,17 @@ function useFloatingToolbar() {
   }, [floating]);
 
   useEffect(() => {
-    const updateFloatingState = () => {
+    const updateFloatingState = (event?: Event) => {
       const boundary = boundaryReference.current;
 
-      if (boundary) setFloating(boundary.getBoundingClientRect().top <= 0);
+      if (!boundary) return;
+
+      const nextFloating = boundary.getBoundingClientRect().top <= 0;
+      if (event) {
+        flushSync(() => setFloating(nextFloating));
+      } else {
+        setFloating(nextFloating);
+      }
     };
 
     updateFloatingState();
@@ -1462,12 +1474,12 @@ function FontSpecimen({
                   font.parentCategory as (typeof FONT_PARENT_CATEGORIES)[number],
                 ) ? (
                   <option value={font.parentCategory}>
-                    {font.parentCategory}
+                    {getFontCategoryDisplayName(font.parentCategory)}
                   </option>
                 ) : null}
                 {FONT_PARENT_CATEGORIES.map((category) => (
                   <option key={category} value={category}>
-                    {category}
+                    {getFontCategoryDisplayName(category)}
                   </option>
                 ))}
               </select>
@@ -2084,7 +2096,6 @@ export function IdentityFontsPage() {
   const {
     toolbarBoundaryReference,
     toolbarFloating,
-    toolbarHeight,
     toolbarReference,
   } = useFloatingToolbar();
 
@@ -2971,139 +2982,16 @@ export function IdentityFontsPage() {
     setSetActionMessage("Set loaded.");
   };
 
-  return (
-    <main
-      data-native-cursor-surface
-      className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-hidden bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
-      style={{
-        fontFamily: "'Berlin Type Office', Futura, sans-serif",
-        fontWeight: 700,
-      }}
-    >
-      <ActiveCategoryRail
-        categories={categoryRailItems}
-        label={activeCategoryLabel}
-        onCategorySelect={selectCategoryFromRail}
-      />
-      <ScrollControls lightMode={lightMode} />
-      <IdentityFontsOnboarding />
-
-      <div className="mx-auto max-w-[92rem]">
-        <header className="relative border-b border-white/50 pb-0">
-          <button
-            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
-            className="absolute top-0 right-0 z-20 flex size-9 cursor-pointer items-center justify-center bg-transparent text-white/85 outline-none transition-colors duration-150 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
-            title={lightMode ? "Dark mode" : "Light mode"}
-            type="button"
-            onClick={() => {
-              const nextLightMode = !lightMode;
-
-              setLightMode(nextLightMode);
-              if (!fontColorCustomized) {
-                setFontColor(nextLightMode ? "#000000" : "#ffffff");
-              }
-            }}
-          >
-            {lightMode ? (
-              <Moon aria-hidden="true" className="size-4" />
-            ) : (
-              <Sun aria-hidden="true" className="size-4" />
-            )}
-          </button>
-          <div className="flex items-baseline justify-between gap-6 mb-[1.4rem]">
-            <nav
-              aria-label="Breadcrumb"
-              className="flex items-center text-[0.82rem] font-normal tracking-[0.02em] text-white/85 lowercase"
-            >
-              <img
-                alt="Strange Animals"
-                className={`h-auto w-32 opacity-80 ${lightMode ? "invert" : ""}`}
-                decoding="async"
-                src="/media/images/logos/sa-logo.png"
-              />
-              <span
-                aria-hidden="true"
-                className="ml-[9px] mr-[7px] text-white/45"
-              >
-                |
-              </span>
-              <span>identity</span>
-              <span aria-hidden="true" className="mx-2 text-white/45">
-                &gt;
-              </span>
-              <h1 className="inline font-normal">typography</h1>
-            </nav>
-          </div>
-
-          {SHOW_FONT_DELETE_CONTROLS ? (
-            <div className="mt-4 flex items-center gap-4">
-              <div ref={fileMenuReference} className="relative">
-                <button
-                  ref={fileMenuButtonReference}
-                  aria-controls="identity-file-menu"
-                  aria-expanded={fileMenuOpen}
-                  className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 underline-offset-4 hover:text-white hover:underline"
-                  type="button"
-                  onClick={() => {
-                    setFileMenuOpen((open) => !open);
-                    setFontColorSettingsOpen(false);
-                    setBackgroundSettingsOpen(false);
-                    setTypographySettingsOpen(false);
-                  }}
-                >
-                  File
-                  <ChevronDown aria-hidden="true" className="size-3" />
-                </button>
-
-                {fileMenuOpen ? (
-                  <div
-                    className="absolute top-full left-0 z-50 mt-2 w-52 border border-white/45 bg-black py-2"
-                    id="identity-file-menu"
-                  >
-                    <button
-                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
-                      disabled={savingSet}
-                      type="button"
-                      onClick={() => {
-                        void saveCurrentSet();
-                      }}
-                    >
-                      Save set
-                    </button>
-                    <button
-                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black"
-                      type="button"
-                      onClick={() => {
-                        setSavedSetsOpen(true);
-                        setLoadSetConfirmationOpen(false);
-                        setFileMenuOpen(false);
-                        void loadSavedSets();
-                      }}
-                    >
-                      View Saved Sets
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
+  const renderToolbar = (floating: boolean) => (
           <div
-            hidden={!toolbarFloating}
-            aria-hidden="true"
-            className="mt-10"
-            style={{ height: `${toolbarHeight}px` }}
-          />
-
-          <div
-            ref={toolbarReference}
-            className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(toolbarFloating, toolbarMinimized)}`}
-            id="font-toolbar"
+            ref={floating ? undefined : toolbarReference}
+            className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(floating)}`}
+            id={floating ? "font-toolbar-floating" : "font-toolbar"}
           >
             <button
               aria-label="Minimize font toolbar"
-              className={getToolbarMinimizeButtonClass(toolbarFloating)}
-              disabled={!toolbarFloating}
+              className={getToolbarMinimizeButtonClass(floating)}
+              disabled={!floating}
               title="Minimize toolbar"
               type="button"
               onClick={() => {
@@ -3121,7 +3009,7 @@ export function IdentityFontsPage() {
                 Demo text
               </span>
               <textarea
-                ref={specimenInputReference}
+                ref={floating === toolbarFloating ? specimenInputReference : undefined}
                 className="block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
                 rows={1}
                 value={specimen}
@@ -3147,7 +3035,7 @@ export function IdentityFontsPage() {
 
             <div className="col-span-1 flex min-w-0 flex-nowrap items-start justify-center gap-1.5 sm:gap-3">
               <div
-                ref={fontColorSettingsReference}
+                ref={floating === toolbarFloating ? fontColorSettingsReference : undefined}
                 className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem] xl:-mr-4"
               >
                 <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
@@ -3156,8 +3044,8 @@ export function IdentityFontsPage() {
                 </span>
                 <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
                   <button
-                    ref={fontColorSettingsButtonReference}
-                    aria-controls="font-color-settings"
+                    ref={floating === toolbarFloating ? fontColorSettingsButtonReference : undefined}
+                    aria-controls={floating ? "font-color-settings-floating" : "font-color-settings"}
                     aria-expanded={fontColorSettingsOpen}
                     aria-label="Font color settings"
                     className="size-6 cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
@@ -3171,15 +3059,15 @@ export function IdentityFontsPage() {
                   />
                 </span>
 
-                {fontColorSettingsOpen ? (
+                {fontColorSettingsOpen && floating === toolbarFloating ? (
                   <div
-                    aria-labelledby="font-color-settings-title"
-                    className={`absolute right-0 left-auto z-50 w-64 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
-                    id="font-color-settings"
+                    aria-labelledby={floating ? "font-color-settings-title-floating" : "font-color-settings-title"}
+                    className={`absolute right-0 left-auto z-50 w-64 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(floating)}`}
+                    id={floating ? "font-color-settings-floating" : "font-color-settings"}
                   >
                     <h2
                       className="text-[0.625rem] font-normal text-white/70"
-                      id="font-color-settings-title"
+                      id={floating ? "font-color-settings-title-floating" : "font-color-settings-title"}
                     >
                       Font color
                     </h2>
@@ -3245,7 +3133,7 @@ export function IdentityFontsPage() {
               </div>
 
               <div
-                ref={backgroundSettingsReference}
+                ref={floating === toolbarFloating ? backgroundSettingsReference : undefined}
                 className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
               >
                 <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
@@ -3253,8 +3141,8 @@ export function IdentityFontsPage() {
                 </span>
                 <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
                   <button
-                    ref={backgroundSettingsButtonReference}
-                    aria-controls="background-settings"
+                    ref={floating === toolbarFloating ? backgroundSettingsButtonReference : undefined}
+                    aria-controls={floating ? "background-settings-floating" : "background-settings"}
                     aria-expanded={backgroundSettingsOpen}
                     aria-label="Background settings"
                     className={`size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
@@ -3277,15 +3165,15 @@ export function IdentityFontsPage() {
                   />
                 </span>
 
-                {backgroundSettingsOpen ? (
+                {backgroundSettingsOpen && floating === toolbarFloating ? (
                   <div
-                    aria-labelledby="background-settings-title"
-                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
-                    id="background-settings"
+                    aria-labelledby={floating ? "background-settings-title-floating" : "background-settings-title"}
+                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(floating)}`}
+                    id={floating ? "background-settings-floating" : "background-settings"}
                   >
                     <h2
                       className="mb-4 text-[0.625rem] font-normal text-white/70"
-                      id="background-settings-title"
+                      id={floating ? "background-settings-title-floating" : "background-settings-title"}
                     >
                       Background
                     </h2>
@@ -3353,7 +3241,7 @@ export function IdentityFontsPage() {
                     ) : (
                       <div className="mt-5">
                         <input
-                          ref={backgroundImageInputReference}
+                          ref={floating === toolbarFloating ? backgroundImageInputReference : undefined}
                           accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                           className="sr-only"
                           type="file"
@@ -3450,7 +3338,7 @@ export function IdentityFontsPage() {
             </div>
 
             <div
-              ref={typographySettingsReference}
+              ref={floating === toolbarFloating ? typographySettingsReference : undefined}
               className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
             >
               {isSmallViewport ? (
@@ -3476,8 +3364,8 @@ export function IdentityFontsPage() {
               )}
 
               <button
-                ref={typographySettingsButtonReference}
-                aria-controls="typography-settings"
+                ref={floating === toolbarFloating ? typographySettingsButtonReference : undefined}
+                aria-controls={floating ? "typography-settings-floating" : "typography-settings"}
                 aria-expanded={typographySettingsOpen}
                 aria-label="Typography settings"
                 className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
@@ -3491,10 +3379,10 @@ export function IdentityFontsPage() {
                 <Settings aria-hidden="true" className="size-4" />
               </button>
 
-              {typographySettingsOpen ? (
+              {typographySettingsOpen && floating === toolbarFloating ? (
                 <div
-                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(toolbarFloating)}`}
-                  id="typography-settings"
+                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(floating)}`}
+                  id={floating ? "typography-settings-floating" : "typography-settings"}
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
                     <span className="text-[0.625rem] tracking-[0.12em] text-white/55">
@@ -3795,18 +3683,139 @@ export function IdentityFontsPage() {
               ) : null}
             </div>
           </div>
-          <span
-            ref={toolbarBoundaryReference}
-            aria-hidden="true"
-            className="pointer-events-none block h-px"
-          />
+  );
+
+  return (
+    <main
+      data-native-cursor-surface
+      className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-clip bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
+      style={{
+        fontFamily: "'Berlin Type Office', Futura, sans-serif",
+        fontWeight: 700,
+      }}
+    >
+      <ActiveCategoryRail
+        categories={categoryRailItems}
+        label={activeCategoryLabel}
+        onCategorySelect={selectCategoryFromRail}
+      />
+      <ScrollControls lightMode={lightMode} />
+      <IdentityFontsOnboarding />
+
+      <div className="mx-auto max-w-[92rem]">
+        <header className="relative border-b border-white/50 bg-black pb-4">
+          <button
+            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
+            className="absolute top-0 right-0 z-20 flex size-9 cursor-pointer items-center justify-center bg-transparent text-white/85 outline-none transition-colors duration-150 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
+            title={lightMode ? "Dark mode" : "Light mode"}
+            type="button"
+            onClick={() => {
+              const nextLightMode = !lightMode;
+
+              setLightMode(nextLightMode);
+              if (!fontColorCustomized) {
+                setFontColor(nextLightMode ? "#000000" : "#ffffff");
+              }
+            }}
+          >
+            {lightMode ? (
+              <Moon aria-hidden="true" className="size-4" />
+            ) : (
+              <Sun aria-hidden="true" className="size-4" />
+            )}
+          </button>
+          <div className="flex items-baseline justify-between gap-6 mb-[1.4rem]">
+            <nav
+              aria-label="Breadcrumb"
+              className="flex items-center text-[0.82rem] font-normal tracking-[0.02em] text-white/85 lowercase"
+            >
+              <img
+                alt="Strange Animals"
+                className={`h-auto w-32 opacity-80 ${lightMode ? "invert" : ""}`}
+                decoding="async"
+                src="/media/images/logos/sa-logo.png"
+              />
+              <span
+                aria-hidden="true"
+                className="ml-[9px] mr-[7px] text-white/45"
+              >
+                |
+              </span>
+              <span>identity</span>
+              <span aria-hidden="true" className="mx-2 text-white/45">
+                &gt;
+              </span>
+              <h1 className="inline font-normal">typography</h1>
+            </nav>
+          </div>
+
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <div className="mt-4 flex items-center gap-4">
+              <div ref={fileMenuReference} className="relative">
+                <button
+                  ref={fileMenuButtonReference}
+                  aria-controls="identity-file-menu"
+                  aria-expanded={fileMenuOpen}
+                  className="flex h-8 cursor-pointer items-center gap-2 px-1 text-[0.625rem] tracking-[0.12em] text-white/70 underline-offset-4 hover:text-white hover:underline"
+                  type="button"
+                  onClick={() => {
+                    setFileMenuOpen((open) => !open);
+                    setFontColorSettingsOpen(false);
+                    setBackgroundSettingsOpen(false);
+                    setTypographySettingsOpen(false);
+                  }}
+                >
+                  File
+                  <ChevronDown aria-hidden="true" className="size-3" />
+                </button>
+
+                {fileMenuOpen ? (
+                  <div
+                    className="absolute top-full left-0 z-50 mt-2 w-52 border border-white/45 bg-black py-2"
+                    id="identity-file-menu"
+                  >
+                    <button
+                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black disabled:cursor-wait disabled:opacity-45"
+                      disabled={savingSet}
+                      type="button"
+                      onClick={() => {
+                        void saveCurrentSet();
+                      }}
+                    >
+                      Save set
+                    </button>
+                    <button
+                      className="flex h-9 w-full cursor-pointer items-center px-3 text-left text-[0.625rem] tracking-[0.1em] text-white/70 hover:bg-white hover:text-black"
+                      type="button"
+                      onClick={() => {
+                        setSavedSetsOpen(true);
+                        setLoadSetConfirmationOpen(false);
+                        setFileMenuOpen(false);
+                        void loadSavedSets();
+                      }}
+                    >
+                      View Saved Sets
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {renderToolbar(false)}
+        </header>
+        <span
+          ref={toolbarBoundaryReference}
+          aria-hidden="true"
+          className="pointer-events-none block h-px"
+        />
           {categoriesInUse.length > 0 || loading ? (
-            <div className="mt-4 border-t border-white/20">
+            <div className="mt-4">
               <div className="flex items-center gap-6 py-3">
                 <button
                   aria-controls="font-category-filters"
                   aria-expanded={categoryFiltersOpen}
-                  className="flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
+                  className="identity-filter-toggle flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
                   type="button"
                   onClick={() => {
                     if (loading) return;
@@ -3845,7 +3854,7 @@ export function IdentityFontsPage() {
                 )}
               </div>
               <div
-                className={`flex flex-wrap items-center gap-2 pb-3 ${categoryFiltersOpen ? "" : "hidden"}`}
+                className={`grid grid-cols-2 items-center gap-x-2 gap-y-2 pb-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1200px]:grid-cols-7 2xl:grid-cols-9 ${categoryFiltersOpen ? "" : "hidden"}`}
                 id="font-category-filters"
               >
                 {loading
@@ -3905,7 +3914,7 @@ export function IdentityFontsPage() {
                               });
                             }}
                           />
-                          <span>{categoryLabel}</span>
+                          <span>{getFontCategoryDisplayName(categoryLabel)}</span>
                         </label>
                       );
                     })}
@@ -3916,7 +3925,7 @@ export function IdentityFontsPage() {
             <button
               aria-controls="font-use-case-filters"
               aria-expanded={useCaseFiltersOpen}
-              className="flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
+              className="identity-filter-toggle flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
               type="button"
               onClick={() => {
                 setUseCaseFiltersOpen((open) => !open);
@@ -3979,8 +3988,6 @@ export function IdentityFontsPage() {
               </label>
             </div>
           </div>
-        </header>
-
         {errorMessage ? (
           <p className="border-b border-white/25 py-6 text-xs text-white/65">
             {errorMessage}
@@ -4072,7 +4079,9 @@ export function IdentityFontsPage() {
                           <>
                             <strong className="font-medium">Category:</strong>{" "}
                             <strong className="font-bold uppercase">
-                              {section.label.slice("category: ".length)}
+                              {getFontCategoryDisplayName(
+                                section.label.slice("category: ".length),
+                              )}
                             </strong>
                           </>
                         ) : (
@@ -4167,16 +4176,13 @@ export function IdentityFontsPage() {
         </div>
       ) : null}
 
-      <FloatingToolbarBrand
-        lightMode={lightMode}
-        visible={
-          toolbarFloating && (toolbarMinimized || isSmallViewport)
-        }
-      />
+      <FloatingToolbarBrand lightMode={lightMode} visible={toolbarFloating} />
+      {toolbarFloating && !toolbarMinimized ? renderToolbar(true) : null}
       <FloatingToolbarRestoreButton
         visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
         onRestore={() => {
           setToolbarMinimized(false);
+          setTypographySettingsOpen(false);
         }}
       />
 

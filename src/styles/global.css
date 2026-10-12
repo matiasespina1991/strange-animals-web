@@ -183,6 +183,11 @@ body
   cursor: pointer !important;
 }
 
+.identity-fonts-page .identity-filter-toggle,
+.identity-fonts-page .identity-filter-toggle * {
+  cursor: pointer !important;
+}
+
 .identity-fonts-page label > span:not(.sr-only),
 .identity-fonts-page label:has(input[type="checkbox"]),
 .identity-fonts-page label:has(input[type="checkbox"]) * {
@@ -218,17 +223,17 @@ body
 
 .identity-fonts-page input[type="checkbox"]::after {
   content: "";
-  height: 0.28rem;
-  transform: rotate(-45deg) scale(0);
+  height: 0.32rem;
+  transform: rotate(311deg) scale(0) translate(0.6px, 0px);
   transform-origin: center;
   transition: transform 100ms ease-out;
-  width: 0.5rem;
+  width: 0.64rem;
 }
 
 .identity-fonts-page input[type="checkbox"]:checked::after {
   border-bottom: 1.5px solid currentColor;
   border-left: 1.5px solid currentColor;
-  transform: rotate(-45deg) scale(1);
+  transform: rotate(311deg) scale(1) translate(0.6px, 0px);
 }
 
 .identity-fonts-page input[type="checkbox"]:indeterminate::after {
