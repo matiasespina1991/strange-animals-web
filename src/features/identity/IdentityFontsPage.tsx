@@ -328,7 +328,9 @@ function getToolbarPopoverPlacementClass(floating: boolean) {
 }
 
 function getToolbarMinimizeButtonClass(floating: boolean) {
-  return floating ? "absolute top-1 right-1 z-30 flex size-7 cursor-pointer items-center justify-center text-white/70" : "hidden";
+  return floating
+    ? "absolute top-1 right-1 z-30 flex size-7 cursor-pointer items-center justify-center text-white/70"
+    : "hidden";
 }
 
 function isToolbarLauncherVisible(floating: boolean, minimized: boolean) {
@@ -1039,12 +1041,23 @@ function useFloatingToolbar() {
 
       if (!boundary) return;
 
-      const nextFloating = window.scrollY > 0 && boundary.getBoundingClientRect().top < 0;
+      const nextFloating =
+        window.scrollY > 0 && boundary.getBoundingClientRect().top < 0;
       // Hide the overlay synchronously, before React updates the font catalog.
       // This also guards against an in-flight render during smooth scrolling.
-      document.documentElement.toggleAttribute("data-font-toolbar-floating", nextFloating);
-      const layer = document.querySelector<HTMLElement>(".identity-floating-layer");
-      if (layer) layer.style.setProperty("display", nextFloating ? "contents" : "none", "important");
+      document.documentElement.toggleAttribute(
+        "data-font-toolbar-floating",
+        nextFloating,
+      );
+      const layer = document.querySelector<HTMLElement>(
+        ".identity-floating-layer",
+      );
+      if (layer)
+        layer.style.setProperty(
+          "display",
+          nextFloating ? "contents" : "none",
+          "important",
+        );
       setFloating(nextFloating);
     };
 
@@ -2094,11 +2107,8 @@ export function IdentityFontsPage() {
   const categoryNavigationCleanupReference = useRef<() => void>();
   const fontPreferencesReference = useRef(fontPreferences);
   const snackbarTimeoutReference = useRef<number>();
-  const {
-    toolbarBoundaryReference,
-    toolbarFloating,
-    toolbarReference,
-  } = useFloatingToolbar();
+  const { toolbarBoundaryReference, toolbarFloating, toolbarReference } =
+    useFloatingToolbar();
 
   useLayoutEffect(() => {
     setToolbarMinimized(toolbarFloating);
@@ -2984,706 +2994,757 @@ export function IdentityFontsPage() {
   };
 
   const renderToolbar = (floating: boolean) => (
-          <div
-            ref={floating ? undefined : toolbarReference}
-            className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(floating)}`}
-            id={floating ? "font-toolbar-floating" : "font-toolbar"}
-          >
+    <div
+      ref={floating ? undefined : toolbarReference}
+      className={`${FONT_TOOLBAR_GRID_CLASS} select-none [&_input]:select-text [&_textarea]:select-text ${getToolbarPlacementClass(floating)}`}
+      id={floating ? "font-toolbar-floating" : "font-toolbar"}
+    >
+      <button
+        aria-label="Minimize font toolbar"
+        className={getToolbarMinimizeButtonClass(floating)}
+        disabled={!floating}
+        title="Minimize toolbar"
+        type="button"
+        onClick={() => {
+          setBackgroundSettingsOpen(false);
+          setFontColorSettingsOpen(false);
+          setTypographySettingsOpen(false);
+          setToolbarMinimized(true);
+        }}
+      >
+        <Minus aria-hidden="true" className="size-4" />
+      </button>
+
+      <label className="col-span-2 block md:col-span-1">
+        <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
+          Demo text
+        </span>
+        <textarea
+          ref={
+            floating === toolbarFloating ? specimenInputReference : undefined
+          }
+          className="block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
+          rows={1}
+          value={specimen}
+          onChange={(event) => {
+            setSpecimen(event.target.value);
+          }}
+        />
+      </label>
+
+      <label className="col-span-2 block md:col-span-1">
+        <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
+          Search fonts
+        </span>
+        <input
+          className="h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+          }}
+        />
+      </label>
+
+      <div className="col-span-1 flex min-w-0 flex-nowrap items-start justify-center gap-1.5 sm:gap-3">
+        <div
+          ref={
+            floating === toolbarFloating
+              ? fontColorSettingsReference
+              : undefined
+          }
+          className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem] xl:-mr-4"
+        >
+          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
+            <span className="sm:hidden">Font</span>
+            <span className="hidden sm:inline">Font color</span>
+          </span>
+          <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
             <button
-              aria-label="Minimize font toolbar"
-              className={getToolbarMinimizeButtonClass(floating)}
-              disabled={!floating}
-              title="Minimize toolbar"
+              ref={
+                floating === toolbarFloating
+                  ? fontColorSettingsButtonReference
+                  : undefined
+              }
+              aria-controls={
+                floating
+                  ? "font-color-settings-floating"
+                  : "font-color-settings"
+              }
+              aria-expanded={fontColorSettingsOpen}
+              aria-label="Font color settings"
+              className="size-6 cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
+              style={{ backgroundColor: fontColor }}
               type="button"
               onClick={() => {
+                setFontColorSettingsOpen((open) => !open);
                 setBackgroundSettingsOpen(false);
-                setFontColorSettingsOpen(false);
                 setTypographySettingsOpen(false);
-                setToolbarMinimized(true);
+              }}
+            />
+          </span>
+
+          {fontColorSettingsOpen && floating === toolbarFloating ? (
+            <div
+              aria-labelledby={
+                floating
+                  ? "font-color-settings-title-floating"
+                  : "font-color-settings-title"
+              }
+              className={`absolute right-auto left-0 z-50 w-64 max-w-[calc(100vw-5rem)] border border-white/45 bg-black p-4 md:max-w-[calc(100vw-2.5rem)] ${getToolbarPopoverPlacementClass(floating)}`}
+              id={
+                floating
+                  ? "font-color-settings-floating"
+                  : "font-color-settings"
+              }
+            >
+              <h2
+                className="text-[0.625rem] font-normal text-white/70"
+                id={
+                  floating
+                    ? "font-color-settings-title-floating"
+                    : "font-color-settings-title"
+                }
+              >
+                Font color
+              </h2>
+              <label className="mt-5 flex items-center gap-3">
+                <span className="text-[0.625rem] text-white/75 uppercase">
+                  {getOpaqueHex(fontColor)}
+                </span>
+                <input
+                  aria-label="Choose font color"
+                  className="identity-color-picker"
+                  type="color"
+                  value={getOpaqueHex(fontColor)}
+                  onChange={(event) => {
+                    setUserFontColor(
+                      setColorOpacity(
+                        event.target.value,
+                        getColorOpacity(fontColor),
+                      ),
+                    );
+                  }}
+                />
+              </label>
+              <ColorTransparencyControl
+                color={fontColor}
+                onChange={setUserFontColor}
+              />
+              <ColorFavorites
+                activeColor={fontColor}
+                values={favoriteColors}
+                onAddCurrent={() => {
+                  saveFavoriteColor(fontColor);
+                }}
+                onSelect={setUserFontColor}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="translate-y-[0.2rem] shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
+          <span
+            aria-hidden="true"
+            className="mb-1 block text-[0.5rem] tracking-[0.08em] text-transparent uppercase sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em]"
+          >
+            Swap
+          </span>
+          <span className="flex h-9 items-center justify-center sm:h-10">
+            <button
+              aria-label="Swap font and background colors"
+              className="flex h-5 w-6 cursor-pointer items-center justify-center border border-white/35 text-white/65 outline-none hover:border-white/60 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+              title="Swap colors"
+              type="button"
+              onClick={() => {
+                setUserFontColor(backgroundColor);
+                setBackgroundColor(fontColor);
               }}
             >
-              <Minus aria-hidden="true" className="size-4" />
+              <ArrowLeftRight aria-hidden="true" className="size-[0.8rem]" />
             </button>
+          </span>
+        </div>
 
-            <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
-                Demo text
-              </span>
-              <textarea
-                ref={floating === toolbarFloating ? specimenInputReference : undefined}
-                className="block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
-                rows={1}
-                value={specimen}
-                onChange={(event) => {
-                  setSpecimen(event.target.value);
-                }}
-              />
-            </label>
+        <div
+          ref={
+            floating === toolbarFloating
+              ? backgroundSettingsReference
+              : undefined
+          }
+          className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
+        >
+          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
+            <span>Background</span>
+          </span>
+          <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
+            <button
+              ref={
+                floating === toolbarFloating
+                  ? backgroundSettingsButtonReference
+                  : undefined
+              }
+              aria-controls={
+                floating
+                  ? "background-settings-floating"
+                  : "background-settings"
+              }
+              aria-expanded={backgroundSettingsOpen}
+              aria-label="Background settings"
+              className={`size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
+              style={{
+                backgroundColor:
+                  backgroundMode === "color" ? backgroundColor : "#000000",
+                backgroundImage:
+                  backgroundMode === "image" && backgroundImage
+                    ? `url(${backgroundImage.url})`
+                    : undefined,
+              }}
+              type="button"
+              onClick={() => {
+                setBackgroundSettingsOpen((open) => !open);
+                setFontColorSettingsOpen(false);
+                setTypographySettingsOpen(false);
+              }}
+            />
+          </span>
 
-            <label className="col-span-2 block md:col-span-1">
-              <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
-                Search fonts
-              </span>
-              <input
-                className="h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
-                type="search"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                }}
-              />
-            </label>
-
-            <div className="col-span-1 flex min-w-0 flex-nowrap items-start justify-center gap-1.5 sm:gap-3">
-              <div
-                ref={floating === toolbarFloating ? fontColorSettingsReference : undefined}
-                className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem] xl:-mr-4"
+          {backgroundSettingsOpen && floating === toolbarFloating ? (
+            <div
+              aria-labelledby={
+                floating
+                  ? "background-settings-title-floating"
+                  : "background-settings-title"
+              }
+              className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(floating)}`}
+              id={
+                floating
+                  ? "background-settings-floating"
+                  : "background-settings"
+              }
+            >
+              <h2
+                className="mb-4 text-[0.625rem] font-normal text-white/70"
+                id={
+                  floating
+                    ? "background-settings-title-floating"
+                    : "background-settings-title"
+                }
               >
-                <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
-                  <span className="sm:hidden">Font</span>
-                  <span className="hidden sm:inline">Font color</span>
-                </span>
-                <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
-                  <button
-                    ref={floating === toolbarFloating ? fontColorSettingsButtonReference : undefined}
-                    aria-controls={floating ? "font-color-settings-floating" : "font-color-settings"}
-                    aria-expanded={fontColorSettingsOpen}
-                    aria-label="Font color settings"
-                    className="size-6 cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
-                    style={{ backgroundColor: fontColor }}
-                    type="button"
-                    onClick={() => {
-                      setFontColorSettingsOpen((open) => !open);
-                      setBackgroundSettingsOpen(false);
-                      setTypographySettingsOpen(false);
-                    }}
-                  />
-                </span>
-
-                {fontColorSettingsOpen && floating === toolbarFloating ? (
-                  <div
-                    aria-labelledby={floating ? "font-color-settings-title-floating" : "font-color-settings-title"}
-                    className={`absolute right-auto left-0 z-50 w-64 max-w-[calc(100vw-5rem)] border border-white/45 bg-black p-4 md:max-w-[calc(100vw-2.5rem)] ${getToolbarPopoverPlacementClass(floating)}`}
-                    id={floating ? "font-color-settings-floating" : "font-color-settings"}
-                  >
-                    <h2
-                      className="text-[0.625rem] font-normal text-white/70"
-                      id={floating ? "font-color-settings-title-floating" : "font-color-settings-title"}
-                    >
-                      Font color
-                    </h2>
-                    <label className="mt-5 flex items-center gap-3">
-                      <span className="text-[0.625rem] text-white/75 uppercase">
-                        {getOpaqueHex(fontColor)}
-                      </span>
-                      <input
-                        aria-label="Choose font color"
-                        className="identity-color-picker"
-                        type="color"
-                        value={getOpaqueHex(fontColor)}
-                        onChange={(event) => {
-                          setUserFontColor(
-                            setColorOpacity(
-                              event.target.value,
-                              getColorOpacity(fontColor),
-                            ),
-                          );
-                        }}
-                      />
-                    </label>
-                    <ColorTransparencyControl
-                      color={fontColor}
-                      onChange={setUserFontColor}
-                    />
-                    <ColorFavorites
-                      activeColor={fontColor}
-                      values={favoriteColors}
-                      onAddCurrent={() => {
-                        saveFavoriteColor(fontColor);
-                      }}
-                      onSelect={setUserFontColor}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="translate-y-[0.2rem] shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
-                <span
-                  aria-hidden="true"
-                  className="mb-1 block text-[0.5rem] tracking-[0.08em] text-transparent uppercase sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em]"
+                Background
+              </h2>
+              <div
+                aria-label="Background type"
+                className="grid grid-cols-2 border border-white/35"
+                role="group"
+              >
+                <button
+                  aria-pressed={backgroundMode === "color"}
+                  className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "color" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
+                  type="button"
+                  onClick={() => {
+                    setBackgroundMode("color");
+                  }}
                 >
-                  Swap
-                </span>
-                <span className="flex h-9 items-center justify-center sm:h-10">
-                  <button
-                    aria-label="Swap font and background colors"
-                    className="flex h-5 w-6 cursor-pointer items-center justify-center border border-white/35 text-white/65 outline-none hover:border-white/60 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    title="Swap colors"
-                    type="button"
-                    onClick={() => {
-                      setUserFontColor(backgroundColor);
-                      setBackgroundColor(fontColor);
-                    }}
-                  >
-                    <ArrowLeftRight
-                      aria-hidden="true"
-                      className="size-[0.8rem]"
-                    />
-                  </button>
-                </span>
+                  Color
+                </button>
+                <button
+                  aria-pressed={backgroundMode === "image"}
+                  className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "image" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
+                  type="button"
+                  onClick={() => {
+                    setBackgroundMode("image");
+                  }}
+                >
+                  Image
+                </button>
               </div>
 
-              <div
-                ref={floating === toolbarFloating ? backgroundSettingsReference : undefined}
-                className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
-              >
-                <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
-                  <span>Background</span>
-                </span>
-                <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
-                  <button
-                    ref={floating === toolbarFloating ? backgroundSettingsButtonReference : undefined}
-                    aria-controls={floating ? "background-settings-floating" : "background-settings"}
-                    aria-expanded={backgroundSettingsOpen}
-                    aria-label="Background settings"
-                    className={`size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
-                    style={{
-                      backgroundColor:
-                        backgroundMode === "color"
-                          ? backgroundColor
-                          : "#000000",
-                      backgroundImage:
-                        backgroundMode === "image" && backgroundImage
-                          ? `url(${backgroundImage.url})`
-                          : undefined,
+              {backgroundMode === "color" ? (
+                <>
+                  <label className="mt-5 flex items-center gap-3">
+                    <span className="text-[0.625rem] tracking-[0.08em] text-white/75 uppercase">
+                      {getOpaqueHex(backgroundColor)}
+                    </span>
+                    <input
+                      aria-label="Choose background color"
+                      className="identity-color-picker"
+                      type="color"
+                      value={getOpaqueHex(backgroundColor)}
+                      onChange={(event) => {
+                        setBackgroundColor(
+                          setColorOpacity(
+                            event.target.value,
+                            getColorOpacity(backgroundColor),
+                          ),
+                        );
+                      }}
+                    />
+                  </label>
+                  <ColorTransparencyControl
+                    color={backgroundColor}
+                    onChange={setBackgroundColor}
+                  />
+                  <ColorFavorites
+                    activeColor={backgroundColor}
+                    values={favoriteColors}
+                    onAddCurrent={() => {
+                      saveFavoriteColor(backgroundColor);
                     }}
-                    type="button"
-                    onClick={() => {
-                      setBackgroundSettingsOpen((open) => !open);
-                      setFontColorSettingsOpen(false);
-                      setTypographySettingsOpen(false);
+                    onSelect={setBackgroundColor}
+                  />
+                </>
+              ) : (
+                <div className="mt-5">
+                  <input
+                    ref={
+                      floating === toolbarFloating
+                        ? backgroundImageInputReference
+                        : undefined
+                    }
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    className="sr-only"
+                    type="file"
+                    onChange={(event) => {
+                      selectBackgroundImage(event.target.files?.[0]);
+                      event.currentTarget.value = "";
                     }}
                   />
-                </span>
 
-                {backgroundSettingsOpen && floating === toolbarFloating ? (
-                  <div
-                    aria-labelledby={floating ? "background-settings-title-floating" : "background-settings-title"}
-                    className={`absolute right-0 left-auto z-50 w-72 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(floating)}`}
-                    id={floating ? "background-settings-floating" : "background-settings"}
-                  >
-                    <h2
-                      className="mb-4 text-[0.625rem] font-normal text-white/70"
-                      id={floating ? "background-settings-title-floating" : "background-settings-title"}
-                    >
-                      Background
-                    </h2>
-                    <div
-                      aria-label="Background type"
-                      className="grid grid-cols-2 border border-white/35"
-                      role="group"
-                    >
-                      <button
-                        aria-pressed={backgroundMode === "color"}
-                        className={`h-8 cursor-pointer text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "color" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
-                        type="button"
-                        onClick={() => {
-                          setBackgroundMode("color");
-                        }}
+                  {backgroundImage ? (
+                    <>
+                      <div
+                        aria-label={`Selected background image: ${backgroundImage.name}`}
+                        className="flex h-24 items-center justify-center overflow-hidden border border-white/35 bg-black"
+                        role="img"
                       >
-                        Color
-                      </button>
-                      <button
-                        aria-pressed={backgroundMode === "image"}
-                        className={`h-8 cursor-pointer border-l border-white/35 text-[0.625rem] tracking-[0.1em] uppercase ${backgroundMode === "image" ? "bg-white text-black" : "bg-black text-white/60 hover:text-white"}`}
-                        type="button"
-                        onClick={() => {
-                          setBackgroundMode("image");
-                        }}
-                      >
-                        Image
-                      </button>
-                    </div>
-
-                    {backgroundMode === "color" ? (
-                      <>
-                        <label className="mt-5 flex items-center gap-3">
-                          <span className="text-[0.625rem] tracking-[0.08em] text-white/75 uppercase">
-                            {getOpaqueHex(backgroundColor)}
-                          </span>
-                          <input
-                            aria-label="Choose background color"
-                            className="identity-color-picker"
-                            type="color"
-                            value={getOpaqueHex(backgroundColor)}
-                            onChange={(event) => {
-                              setBackgroundColor(
-                                setColorOpacity(
-                                  event.target.value,
-                                  getColorOpacity(backgroundColor),
-                                ),
-                              );
-                            }}
-                          />
-                        </label>
-                        <ColorTransparencyControl
-                          color={backgroundColor}
-                          onChange={setBackgroundColor}
+                        <img
+                          alt=""
+                          className="size-full object-contain"
+                          src={backgroundImage.url}
                         />
-                        <ColorFavorites
-                          activeColor={backgroundColor}
-                          values={favoriteColors}
-                          onAddCurrent={() => {
-                            saveFavoriteColor(backgroundColor);
-                          }}
-                          onSelect={setBackgroundColor}
-                        />
-                      </>
-                    ) : (
-                      <div className="mt-5">
-                        <input
-                          ref={floating === toolbarFloating ? backgroundImageInputReference : undefined}
-                          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                          className="sr-only"
-                          type="file"
-                          onChange={(event) => {
-                            selectBackgroundImage(event.target.files?.[0]);
-                            event.currentTarget.value = "";
-                          }}
-                        />
-
-                        {backgroundImage ? (
-                          <>
-                            <div
-                              aria-label={`Selected background image: ${backgroundImage.name}`}
-                              className="flex h-24 items-center justify-center overflow-hidden border border-white/35 bg-black"
-                              role="img"
-                            >
-                              <img
-                                alt=""
-                                className="size-full object-contain"
-                                src={backgroundImage.url}
-                              />
-                            </div>
-                            <p
-                              className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
-                              title={backgroundImage.name}
-                            >
-                              {backgroundImage.name}
-                            </p>
-                            <div className="mt-4 grid grid-cols-2 gap-2">
-                              <button
-                                className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
-                                type="button"
-                                onClick={() => {
-                                  backgroundImageInputReference.current?.click();
-                                }}
-                              >
-                                <Upload aria-hidden="true" className="size-3" />
-                                Replace
-                              </button>
-                              <button
-                                className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
-                                type="button"
-                                onClick={() => {
-                                  setBackgroundImage(undefined);
-                                  setBackgroundImageError(undefined);
-                                  setBackgroundMode("color");
-                                }}
-                              >
-                                <X aria-hidden="true" className="size-3" />
-                                Remove
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <button
-                            className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-3 border border-white/35 px-4 text-center text-white/60 hover:border-white/60 hover:text-white"
-                            type="button"
-                            onClick={() => {
-                              backgroundImageInputReference.current?.click();
-                            }}
-                            onDragOver={(event) => {
-                              event.preventDefault();
-                            }}
-                            onDrop={(event) => {
-                              event.preventDefault();
-                              selectBackgroundImage(
-                                event.dataTransfer.files[0],
-                              );
-                            }}
-                          >
-                            <ImageIcon aria-hidden="true" className="size-5" />
-                            <span className="text-[0.625rem] tracking-[0.08em] uppercase">
-                              Choose or drop image
-                            </span>
-                            <span className="text-[0.5625rem] text-white/40 uppercase">
-                              JPG, PNG or WEBP · max 15 MB
-                            </span>
-                          </button>
-                        )}
-
-                        {backgroundImageError ? (
-                          <p
-                            className="mt-3 text-[0.625rem] text-white/65"
-                            role="alert"
-                          >
-                            {backgroundImageError}
-                          </p>
-                        ) : null}
                       </div>
-                    )}
-                  </div>
-                ) : null}
+                      <p
+                        className="mt-2 overflow-hidden text-[0.625rem] text-white/60 text-ellipsis whitespace-nowrap"
+                        title={backgroundImage.name}
+                      >
+                        {backgroundImage.name}
+                      </p>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <button
+                          className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                          type="button"
+                          onClick={() => {
+                            backgroundImageInputReference.current?.click();
+                          }}
+                        >
+                          <Upload aria-hidden="true" className="size-3" />
+                          Replace
+                        </button>
+                        <button
+                          className="flex h-8 cursor-pointer items-center justify-center gap-2 border border-white/35 text-[0.625rem] text-white/65 uppercase hover:border-white/60 hover:text-white"
+                          type="button"
+                          onClick={() => {
+                            setBackgroundImage(undefined);
+                            setBackgroundImageError(undefined);
+                            setBackgroundMode("color");
+                          }}
+                        >
+                          <X aria-hidden="true" className="size-3" />
+                          Remove
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-3 border border-white/35 px-4 text-center text-white/60 hover:border-white/60 hover:text-white"
+                      type="button"
+                      onClick={() => {
+                        backgroundImageInputReference.current?.click();
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        selectBackgroundImage(event.dataTransfer.files[0]);
+                      }}
+                    >
+                      <ImageIcon aria-hidden="true" className="size-5" />
+                      <span className="text-[0.625rem] tracking-[0.08em] uppercase">
+                        Choose or drop image
+                      </span>
+                      <span className="text-[0.5625rem] text-white/40 uppercase">
+                        JPG, PNG or WEBP · max 15 MB
+                      </span>
+                    </button>
+                  )}
+
+                  {backgroundImageError ? (
+                    <p
+                      className="mt-3 text-[0.625rem] text-white/65"
+                      role="alert"
+                    >
+                      {backgroundImageError}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        ref={
+          floating === toolbarFloating ? typographySettingsReference : undefined
+        }
+        className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
+      >
+        {isSmallViewport ? (
+          <div className="flex flex-col gap-2 text-white/70">
+            <span className="text-[0.625rem] tracking-[0.02em] text-white/85">
+              Font size
+            </span>
+            <NumericStepper
+              ariaLabel="Text size"
+              max={MOBILE_FONT_SIZE_MAX}
+              min={8}
+              step={1}
+              unit="px"
+              value={fontSize}
+              onChange={commitFontSize}
+            />
+          </div>
+        ) : (
+          <DesktopFontSizeControl value={fontSize} onCommit={commitFontSize} />
+        )}
+
+        <button
+          ref={
+            floating === toolbarFloating
+              ? typographySettingsButtonReference
+              : undefined
+          }
+          aria-controls={
+            floating ? "typography-settings-floating" : "typography-settings"
+          }
+          aria-expanded={typographySettingsOpen}
+          aria-label="Typography settings"
+          className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
+          type="button"
+          onClick={() => {
+            setTypographySettingsOpen((open) => !open);
+            setFontColorSettingsOpen(false);
+            setBackgroundSettingsOpen(false);
+          }}
+        >
+          <Settings aria-hidden="true" className="size-4" />
+        </button>
+
+        {typographySettingsOpen && floating === toolbarFloating ? (
+          <div
+            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4`}
+            id={
+              floating ? "typography-settings-floating" : "typography-settings"
+            }
+          >
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <span className="text-[0.625rem] tracking-[0.12em] text-white/55">
+                Typography
+              </span>
+              <button
+                className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 hover:text-white"
+                type="button"
+                onClick={() => {
+                  setLineHeight(DEFAULT_LINE_HEIGHT);
+                  setLetterSpacing(DEFAULT_LETTER_SPACING);
+                  setTextAlignment("left");
+                  setTextCasing("mixed");
+                  setFontWeight("normal");
+                  setTextShadow(DEFAULT_TEXT_SHADOW);
+                }}
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                Casing
+              </span>
+              <div
+                aria-label="Text casing"
+                className="grid shrink-0 grid-cols-3 border border-white/35"
+                role="group"
+              >
+                {(
+                  [
+                    ["lower", "aa", "Lowercase"],
+                    ["mixed", "Aa", "Original casing"],
+                    ["upper", "AA", "Uppercase"],
+                  ] as const
+                ).map(([value, label, title], index) => (
+                  <button
+                    key={value}
+                    aria-label={title}
+                    aria-pressed={textCasing === value}
+                    className={`flex size-8 cursor-pointer items-center justify-center text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${index < 2 ? "border-r border-white/35" : ""} ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                    title={title}
+                    type="button"
+                    onClick={() => {
+                      setTextCasing(value);
+                    }}
+                  >
+                    <span aria-hidden="true">{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div
-              ref={floating === toolbarFloating ? typographySettingsReference : undefined}
-              className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
-            >
-              {isSmallViewport ? (
-                <div className="flex flex-col gap-2 text-white/70">
-                  <span className="text-[0.625rem] tracking-[0.02em] text-white/85">
-                    Font size
-                  </span>
-                  <NumericStepper
-                    ariaLabel="Text size"
-                    max={MOBILE_FONT_SIZE_MAX}
-                    min={8}
-                    step={1}
-                    unit="px"
-                    value={fontSize}
-                    onChange={commitFontSize}
-                  />
-                </div>
-              ) : (
-                <DesktopFontSizeControl
-                  value={fontSize}
-                  onCommit={commitFontSize}
-                />
-              )}
-
-              <button
-                ref={floating === toolbarFloating ? typographySettingsButtonReference : undefined}
-                aria-controls={floating ? "typography-settings-floating" : "typography-settings"}
-                aria-expanded={typographySettingsOpen}
-                aria-label="Typography settings"
-                className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
-                type="button"
-                onClick={() => {
-                  setTypographySettingsOpen((open) => !open);
-                  setFontColorSettingsOpen(false);
-                  setBackgroundSettingsOpen(false);
-                }}
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                Alignment
+              </span>
+              <div
+                aria-label="Text alignment"
+                className="grid shrink-0 grid-cols-3 border border-white/35"
+                role="group"
               >
-                <Settings aria-hidden="true" className="size-4" />
-              </button>
-
-              {typographySettingsOpen && floating === toolbarFloating ? (
-                <div
-                  className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4`}
-                  id={floating ? "typography-settings-floating" : "typography-settings"}
+                <button
+                  aria-label="Align text left"
+                  aria-pressed={textAlignment === "left"}
+                  className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                  title="Align left"
+                  type="button"
+                  onClick={() => {
+                    setTextAlignment("left");
+                  }}
                 >
-                  <div className="mb-5 flex items-center justify-between gap-4">
-                    <span className="text-[0.625rem] tracking-[0.12em] text-white/55">
-                      Typography
-                    </span>
-                    <button
-                      className="cursor-pointer text-[0.625rem] tracking-[0.08em] text-white/55 hover:text-white"
-                      type="button"
-                      onClick={() => {
-                        setLineHeight(DEFAULT_LINE_HEIGHT);
-                        setLetterSpacing(DEFAULT_LETTER_SPACING);
-                        setTextAlignment("left");
-                        setTextCasing("mixed");
-                        setFontWeight("normal");
-                        setTextShadow(DEFAULT_TEXT_SHADOW);
-                      }}
-                    >
-                      Reset
-                    </button>
-                  </div>
+                  <AlignLeft aria-hidden="true" className="size-4" />
+                </button>
+                <button
+                  aria-label="Align text center"
+                  aria-pressed={textAlignment === "center"}
+                  className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                  title="Align center"
+                  type="button"
+                  onClick={() => {
+                    setTextAlignment("center");
+                  }}
+                >
+                  <AlignCenter aria-hidden="true" className="size-4" />
+                </button>
+                <button
+                  aria-label="Align text right"
+                  aria-pressed={textAlignment === "right"}
+                  className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                  title="Align right"
+                  type="button"
+                  onClick={() => {
+                    setTextAlignment("right");
+                  }}
+                >
+                  <AlignRight aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+            </div>
 
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                      Casing
-                    </span>
-                    <div
-                      aria-label="Text casing"
-                      className="grid shrink-0 grid-cols-3 border border-white/35"
-                      role="group"
-                    >
-                      {(
-                        [
-                          ["lower", "aa", "Lowercase"],
-                          ["mixed", "Aa", "Original casing"],
-                          ["upper", "AA", "Uppercase"],
-                        ] as const
-                      ).map(([value, label, title], index) => (
-                        <button
-                          key={value}
-                          aria-label={title}
-                          aria-pressed={textCasing === value}
-                          className={`flex size-8 cursor-pointer items-center justify-center text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${index < 2 ? "border-r border-white/35" : ""} ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                          title={title}
-                          type="button"
-                          onClick={() => {
-                            setTextCasing(value);
-                          }}
-                        >
-                          <span aria-hidden="true">{label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+            <FontWeightControl value={fontWeight} onChange={setFontWeight} />
 
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                      Alignment
-                    </span>
-                    <div
-                      aria-label="Text alignment"
-                      className="grid shrink-0 grid-cols-3 border border-white/35"
-                      role="group"
-                    >
-                      <button
-                        aria-label="Align text left"
-                        aria-pressed={textAlignment === "left"}
-                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                        title="Align left"
-                        type="button"
-                        onClick={() => {
-                          setTextAlignment("left");
-                        }}
-                      >
-                        <AlignLeft aria-hidden="true" className="size-4" />
-                      </button>
-                      <button
-                        aria-label="Align text center"
-                        aria-pressed={textAlignment === "center"}
-                        className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                        title="Align center"
-                        type="button"
-                        onClick={() => {
-                          setTextAlignment("center");
-                        }}
-                      >
-                        <AlignCenter aria-hidden="true" className="size-4" />
-                      </button>
-                      <button
-                        aria-label="Align text right"
-                        aria-pressed={textAlignment === "right"}
-                        className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                        title="Align right"
-                        type="button"
-                        onClick={() => {
-                          setTextAlignment("right");
-                        }}
-                      >
-                        <AlignRight aria-hidden="true" className="size-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <FontWeightControl
-                    value={fontWeight}
-                    onChange={setFontWeight}
+            <div className="mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                  Text shadow
+                </span>
+                <button
+                  aria-checked={textShadow.enabled}
+                  aria-label="Toggle text shadow"
+                  className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  role="switch"
+                  type="button"
+                  onClick={() => {
+                    setTextShadow((current) => ({
+                      ...current,
+                      enabled: !current.enabled,
+                    }));
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="identity-settings-switch-track absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
                   />
+                  <span
+                    aria-hidden="true"
+                    className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${textShadow.enabled ? "translate-x-[1.375rem]" : "translate-x-0"}`}
+                  />
+                </button>
+              </div>
 
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                        Text shadow
-                      </span>
-                      <button
-                        aria-checked={textShadow.enabled}
-                        aria-label="Toggle text shadow"
-                        className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                        role="switch"
-                        type="button"
-                        onClick={() => {
-                          setTextShadow((current) => ({
-                            ...current,
-                            enabled: !current.enabled,
-                          }));
-                        }}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="identity-settings-switch-track absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${textShadow.enabled ? "translate-x-[1.375rem]" : "translate-x-0"}`}
-                        />
-                      </button>
-                    </div>
-
-                    {textShadow.enabled ? (
-                      <div className="mt-4 space-y-4 border-t border-white/15 pt-4">
-                        <label className="block">
-                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                            <span>X offset</span>
-                            <span>{textShadow.offsetX}px</span>
-                          </span>
-                          <input
-                            className="identity-font-size-slider block w-full"
-                            max="20"
-                            min="-20"
-                            step="1"
-                            type="range"
-                            value={textShadow.offsetX}
-                            onChange={(event) => {
-                              setTextShadow((current) => ({
-                                ...current,
-                                offsetX: Number(event.target.value),
-                              }));
-                            }}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                            <span>Y offset</span>
-                            <span>{textShadow.offsetY}px</span>
-                          </span>
-                          <input
-                            className="identity-font-size-slider block w-full"
-                            max="20"
-                            min="-20"
-                            step="1"
-                            type="range"
-                            value={textShadow.offsetY}
-                            onChange={(event) => {
-                              setTextShadow((current) => ({
-                                ...current,
-                                offsetY: Number(event.target.value),
-                              }));
-                            }}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                            <span>Blur</span>
-                            <span>{textShadow.blur}px</span>
-                          </span>
-                          <input
-                            className="identity-font-size-slider block w-full"
-                            max="20"
-                            min="0"
-                            step="1"
-                            type="range"
-                            value={textShadow.blur}
-                            onChange={(event) => {
-                              setTextShadow((current) => ({
-                                ...current,
-                                blur: Number(event.target.value),
-                              }));
-                            }}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                            <span>Opacity</span>
-                            <span>{Math.round(textShadow.opacity * 100)}%</span>
-                          </span>
-                          <input
-                            className="identity-font-size-slider block w-full"
-                            max="1"
-                            min="0"
-                            step="0.05"
-                            type="range"
-                            value={textShadow.opacity}
-                            onChange={(event) => {
-                              setTextShadow((current) => ({
-                                ...current,
-                                opacity: Number(event.target.value),
-                              }));
-                            }}
-                          />
-                        </label>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {isSmallViewport ? (
-                    <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                          Line height
-                        </span>
-                        <NumericStepper
-                          ariaLabel="Line height"
-                          max={2.5}
-                          min={0.8}
-                          precision={2}
-                          step={0.05}
-                          value={lineHeight}
-                          onChange={setLineHeight}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                          Letter spacing
-                        </span>
-                        <NumericStepper
-                          ariaLabel="Letter spacing"
-                          max={0.5}
-                          min={-0.5}
-                          precision={2}
-                          step={0.01}
-                          unit=" em"
-                          value={letterSpacing}
-                          onChange={setLetterSpacing}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <label className="mt-4 block border-t border-white/15 pt-4">
-                        <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                          <span>Line height</span>
-                          <span>{lineHeight.toFixed(2)}</span>
-                        </span>
-                        <input
-                          aria-label="Line height"
-                          className="identity-font-size-slider block w-full"
-                          max="2.5"
-                          min="0.8"
-                          step="0.05"
-                          type="range"
-                          value={lineHeight}
-                          onChange={(event) => {
-                            setLineHeight(Number(event.target.value));
-                          }}
-                        />
-                      </label>
-
-                      <label className="mt-6 block">
-                        <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                          <span>Letter spacing</span>
-                          <span>{letterSpacing.toFixed(2)} em</span>
-                        </span>
-                        <input
-                          aria-label="Letter spacing"
-                          className="identity-font-size-slider block w-full"
-                          max="0.5"
-                          min="-0.5"
-                          step="0.01"
-                          type="range"
-                          value={letterSpacing}
-                          onChange={(event) => {
-                            setLetterSpacing(Number(event.target.value));
-                          }}
-                        />
-                      </label>
-                    </>
-                  )}
+              {textShadow.enabled ? (
+                <div className="mt-4 space-y-4 border-t border-white/15 pt-4">
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                      <span>X offset</span>
+                      <span>{textShadow.offsetX}px</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="20"
+                      min="-20"
+                      step="1"
+                      type="range"
+                      value={textShadow.offsetX}
+                      onChange={(event) => {
+                        setTextShadow((current) => ({
+                          ...current,
+                          offsetX: Number(event.target.value),
+                        }));
+                      }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                      <span>Y offset</span>
+                      <span>{textShadow.offsetY}px</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="20"
+                      min="-20"
+                      step="1"
+                      type="range"
+                      value={textShadow.offsetY}
+                      onChange={(event) => {
+                        setTextShadow((current) => ({
+                          ...current,
+                          offsetY: Number(event.target.value),
+                        }));
+                      }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                      <span>Blur</span>
+                      <span>{textShadow.blur}px</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="20"
+                      min="0"
+                      step="1"
+                      type="range"
+                      value={textShadow.blur}
+                      onChange={(event) => {
+                        setTextShadow((current) => ({
+                          ...current,
+                          blur: Number(event.target.value),
+                        }));
+                      }}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                      <span>Opacity</span>
+                      <span>{Math.round(textShadow.opacity * 100)}%</span>
+                    </span>
+                    <input
+                      className="identity-font-size-slider block w-full"
+                      max="1"
+                      min="0"
+                      step="0.05"
+                      type="range"
+                      value={textShadow.opacity}
+                      onChange={(event) => {
+                        setTextShadow((current) => ({
+                          ...current,
+                          opacity: Number(event.target.value),
+                        }));
+                      }}
+                    />
+                  </label>
                 </div>
               ) : null}
             </div>
+
+            {isSmallViewport ? (
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                    Line height
+                  </span>
+                  <NumericStepper
+                    ariaLabel="Line height"
+                    max={2.5}
+                    min={0.8}
+                    precision={2}
+                    step={0.05}
+                    value={lineHeight}
+                    onChange={setLineHeight}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                    Letter spacing
+                  </span>
+                  <NumericStepper
+                    ariaLabel="Letter spacing"
+                    max={0.5}
+                    min={-0.5}
+                    precision={2}
+                    step={0.01}
+                    unit=" em"
+                    value={letterSpacing}
+                    onChange={setLetterSpacing}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <label className="mt-4 block border-t border-white/15 pt-4">
+                  <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                    <span>Line height</span>
+                    <span>{lineHeight.toFixed(2)}</span>
+                  </span>
+                  <input
+                    aria-label="Line height"
+                    className="identity-font-size-slider block w-full"
+                    max="2.5"
+                    min="0.8"
+                    step="0.05"
+                    type="range"
+                    value={lineHeight}
+                    onChange={(event) => {
+                      setLineHeight(Number(event.target.value));
+                    }}
+                  />
+                </label>
+
+                <label className="mt-6 block">
+                  <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                    <span>Letter spacing</span>
+                    <span>{letterSpacing.toFixed(2)} em</span>
+                  </span>
+                  <input
+                    aria-label="Letter spacing"
+                    className="identity-font-size-slider block w-full"
+                    max="0.5"
+                    min="-0.5"
+                    step="0.01"
+                    type="range"
+                    value={letterSpacing}
+                    onChange={(event) => {
+                      setLetterSpacing(Number(event.target.value));
+                    }}
+                  />
+                </label>
+              </>
+            )}
           </div>
+        ) : null}
+      </div>
+    </div>
   );
 
   return (
@@ -3706,7 +3767,9 @@ export function IdentityFontsPage() {
       <div className="mx-auto max-w-[92rem]">
         <header className="relative border-b border-white/50 bg-black pb-4">
           <button
-            aria-label={lightMode ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label={
+              lightMode ? "Switch to dark mode" : "Switch to light mode"
+            }
             className="absolute top-0 right-0 z-20 flex size-9 cursor-pointer items-center justify-center bg-transparent text-white/85 outline-none transition-colors duration-150 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none"
             title={lightMode ? "Dark mode" : "Light mode"}
             type="button"
@@ -3810,185 +3873,183 @@ export function IdentityFontsPage() {
           aria-hidden="true"
           className="pointer-events-none block h-px"
         />
-          {categoriesInUse.length > 0 || loading ? (
-            <div className="mt-4">
-              <div className="flex items-center gap-6 py-3">
-                <button
-                  aria-controls="font-category-filters"
-                  aria-expanded={categoryFiltersOpen}
-                  className="identity-filter-toggle flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
-                  type="button"
-                  onClick={() => {
-                    if (loading) return;
+        {categoriesInUse.length > 0 || loading ? (
+          <div>
+            <div className="flex items-center gap-6 py-3">
+              <button
+                aria-controls="font-category-filters"
+                aria-expanded={categoryFiltersOpen}
+                className="identity-filter-toggle flex cursor-pointer items-center gap-2 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
+                type="button"
+                onClick={() => {
+                  if (loading) return;
 
-                    setCategoryFiltersOpen((open) => !open);
-                  }}
-                >
-                  <ChevronRight
-                    aria-hidden="true"
-                    className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${categoryFiltersOpen ? "rotate-90" : ""}`}
-                  />
-                  <span>Categories</span>
-                </button>
-                {loading ? (
-                  <span
-                    aria-hidden="true"
-                    className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
-                  />
-                ) : (
-                  <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
-                    <input
-                      checked={allCategoriesSelected}
-                      className="size-3 accent-white outline-none"
-                      type="checkbox"
-                      onChange={() => {
-                        setCategorySelectionPristine(false);
-                        setHiddenCategoryLabels(
-                          allCategoriesSelected
-                            ? new Set(categoriesInUse)
-                            : new Set(),
-                        );
-                      }}
-                    />
-                    <span className="font-bold uppercase">All</span>
-                  </label>
-                )}
-              </div>
-              <div
-                className={`grid grid-cols-2 items-center gap-x-2 gap-y-2 pb-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1200px]:grid-cols-7 2xl:grid-cols-9 ${categoryFiltersOpen ? "" : "hidden"}`}
-                id="font-category-filters"
+                  setCategoryFiltersOpen((open) => !open);
+                }}
               >
-                {loading
-                  ? Array.from({
-                      length: LOADING_CATEGORY_PLACEHOLDER_COUNT,
-                    }).map((_, index) => (
-                      <span
-                        key={`category-placeholder-${index}`}
-                        aria-hidden="true"
-                        className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
-                      />
-                    ))
-                  : categoriesInUse.map((categoryLabel) => {
-                      const checked = !hiddenCategoryLabels.has(categoryLabel);
-
-                      return (
-                        <label
-                          key={categoryLabel}
-                          className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
-                        >
-                          <input
-                            aria-checked={
-                              allCategoriesSelected && categorySelectionPristine
-                                ? "mixed"
-                                : checked
-                            }
-                            checked={checked}
-                            className="size-3 accent-white outline-none"
-                            ref={(element) => {
-                              if (element) {
-                                element.indeterminate =
-                                  allCategoriesSelected &&
-                                  categorySelectionPristine;
-                              }
-                            }}
-                            type="checkbox"
-                            onChange={() => {
-                              setCategorySelectionPristine(false);
-                              setHiddenCategoryLabels((current) => {
-                                if (current.size === 0) {
-                                  return new Set(
-                                    categoriesInUse.filter(
-                                      (label) => label !== categoryLabel,
-                                    ),
-                                  );
-                                }
-
-                                const next = new Set(current);
-
-                                if (checked) {
-                                  next.add(categoryLabel);
-                                } else {
-                                  next.delete(categoryLabel);
-                                }
-
-                                return next;
-                              });
-                            }}
-                          />
-                          <span>{getFontCategoryDisplayName(categoryLabel)}</span>
-                        </label>
-                      );
-                    })}
-              </div>
-            </div>
-          ) : null}
-          <div className="border-t border-white/20">
-            <button
-              aria-controls="font-use-case-filters"
-              aria-expanded={useCaseFiltersOpen}
-              className="identity-filter-toggle flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
-              type="button"
-              onClick={() => {
-                setUseCaseFiltersOpen((open) => !open);
-              }}
-            >
-              <ChevronRight
-                aria-hidden="true"
-                className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${useCaseFiltersOpen ? "rotate-90" : ""}`}
-              />
-              <span>Use cases</span>
-            </button>
-            <div
-              className={`flex flex-wrap items-center gap-2 pb-3 ${useCaseFiltersOpen ? "" : "hidden"}`}
-              id="font-use-case-filters"
-            >
-              {useCasesInUse.map((useCaseLabel) => {
-                const checked = !hiddenUseCaseLabels.has(useCaseLabel);
-
-                return (
-                  <label
-                    key={useCaseLabel}
-                    className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
-                  >
-                    <input
-                      checked={checked}
-                      className="size-3 accent-white outline-none"
-                      type="checkbox"
-                      onChange={() => {
-                        setHiddenUseCaseLabels((current) => {
-                          const next = new Set(current);
-
-                          if (checked) {
-                            next.add(useCaseLabel);
-                          } else {
-                            next.delete(useCaseLabel);
-                          }
-
-                          return next;
-                        });
-                      }}
-                    />
-                    <span>{useCaseLabel}</span>
-                  </label>
-                );
-              })}
-              <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
-                <input
-                  checked={allUseCasesSelected}
-                  className="size-3 accent-white outline-none"
-                  type="checkbox"
-                  onChange={() => {
-                    setHiddenUseCaseLabels((current) =>
-                      current.size === 0 ? new Set(useCasesInUse) : new Set(),
-                    );
-                  }}
+                <ChevronRight
+                  aria-hidden="true"
+                  className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${categoryFiltersOpen ? "rotate-90" : ""}`}
                 />
-                <span className="font-semibold uppercase">
-                  All
-                </span>
-              </label>
+                <span>Categories</span>
+              </button>
+              {loading ? (
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
+                />
+              ) : (
+                <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
+                  <input
+                    checked={allCategoriesSelected}
+                    className="size-3 accent-white outline-none"
+                    type="checkbox"
+                    onChange={() => {
+                      setCategorySelectionPristine(false);
+                      setHiddenCategoryLabels(
+                        allCategoriesSelected
+                          ? new Set(categoriesInUse)
+                          : new Set(),
+                      );
+                    }}
+                  />
+                  <span className="font-bold uppercase">All</span>
+                </label>
+              )}
+            </div>
+            <div
+              className={`grid grid-cols-2 items-center gap-x-2 gap-y-2 pb-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1200px]:grid-cols-7 2xl:grid-cols-9 ${categoryFiltersOpen ? "" : "hidden"}`}
+              id="font-category-filters"
+            >
+              {loading
+                ? Array.from({
+                    length: LOADING_CATEGORY_PLACEHOLDER_COUNT,
+                  }).map((_, index) => (
+                    <span
+                      key={`category-placeholder-${index}`}
+                      aria-hidden="true"
+                      className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
+                    />
+                  ))
+                : categoriesInUse.map((categoryLabel) => {
+                    const checked = !hiddenCategoryLabels.has(categoryLabel);
+
+                    return (
+                      <label
+                        key={categoryLabel}
+                        className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
+                      >
+                        <input
+                          aria-checked={
+                            allCategoriesSelected && categorySelectionPristine
+                              ? "mixed"
+                              : checked
+                          }
+                          checked={checked}
+                          className="size-3 accent-white outline-none"
+                          ref={(element) => {
+                            if (element) {
+                              element.indeterminate =
+                                allCategoriesSelected &&
+                                categorySelectionPristine;
+                            }
+                          }}
+                          type="checkbox"
+                          onChange={() => {
+                            setCategorySelectionPristine(false);
+                            setHiddenCategoryLabels((current) => {
+                              if (current.size === 0) {
+                                return new Set(
+                                  categoriesInUse.filter(
+                                    (label) => label !== categoryLabel,
+                                  ),
+                                );
+                              }
+
+                              const next = new Set(current);
+
+                              if (checked) {
+                                next.add(categoryLabel);
+                              } else {
+                                next.delete(categoryLabel);
+                              }
+
+                              return next;
+                            });
+                          }}
+                        />
+                        <span>{getFontCategoryDisplayName(categoryLabel)}</span>
+                      </label>
+                    );
+                  })}
             </div>
           </div>
+        ) : null}
+        <div className="border-t border-white/20">
+          <button
+            aria-controls="font-use-case-filters"
+            aria-expanded={useCaseFiltersOpen}
+            className="identity-filter-toggle flex w-full cursor-pointer items-center gap-2 py-3 text-left text-[0.75rem] tracking-[0.02em] text-white outline-none hover:text-white"
+            type="button"
+            onClick={() => {
+              setUseCaseFiltersOpen((open) => !open);
+            }}
+          >
+            <ChevronRight
+              aria-hidden="true"
+              className={`size-3 transition-transform duration-150 motion-reduce:transition-none ${useCaseFiltersOpen ? "rotate-90" : ""}`}
+            />
+            <span>Use cases</span>
+          </button>
+          <div
+            className={`flex flex-wrap items-center gap-2 pb-3 ${useCaseFiltersOpen ? "" : "hidden"}`}
+            id="font-use-case-filters"
+          >
+            {useCasesInUse.map((useCaseLabel) => {
+              const checked = !hiddenUseCaseLabels.has(useCaseLabel);
+
+              return (
+                <label
+                  key={useCaseLabel}
+                  className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
+                >
+                  <input
+                    checked={checked}
+                    className="size-3 accent-white outline-none"
+                    type="checkbox"
+                    onChange={() => {
+                      setHiddenUseCaseLabels((current) => {
+                        const next = new Set(current);
+
+                        if (checked) {
+                          next.add(useCaseLabel);
+                        } else {
+                          next.delete(useCaseLabel);
+                        }
+
+                        return next;
+                      });
+                    }}
+                  />
+                  <span>{useCaseLabel}</span>
+                </label>
+              );
+            })}
+            <label className="ml-2 flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
+              <input
+                checked={allUseCasesSelected}
+                className="size-3 accent-white outline-none"
+                type="checkbox"
+                onChange={() => {
+                  setHiddenUseCaseLabels((current) =>
+                    current.size === 0 ? new Set(useCasesInUse) : new Set(),
+                  );
+                }}
+              />
+              <span className="font-semibold uppercase">All</span>
+            </label>
+          </div>
+        </div>
         {errorMessage ? (
           <p className="border-b border-white/25 py-6 text-xs text-white/65">
             {errorMessage}
@@ -4178,15 +4239,15 @@ export function IdentityFontsPage() {
       ) : null}
 
       <div className="identity-floating-layer">
-      <FloatingToolbarBrand lightMode={lightMode} visible={toolbarFloating} />
-      {toolbarFloating && !toolbarMinimized ? renderToolbar(true) : null}
-      <FloatingToolbarRestoreButton
-        visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
-        onRestore={() => {
-          setToolbarMinimized(false);
-          setTypographySettingsOpen(false);
-        }}
-      />
+        <FloatingToolbarBrand lightMode={lightMode} visible={toolbarFloating} />
+        {toolbarFloating && !toolbarMinimized ? renderToolbar(true) : null}
+        <FloatingToolbarRestoreButton
+          visible={isToolbarLauncherVisible(toolbarFloating, toolbarMinimized)}
+          onRestore={() => {
+            setToolbarMinimized(false);
+            setTypographySettingsOpen(false);
+          }}
+        />
       </div>
 
       {savedSetsOpen ? (
