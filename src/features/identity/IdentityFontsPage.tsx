@@ -1627,7 +1627,7 @@ function FontSpecimen({
                     />
                     <p
                       aria-hidden="true"
-                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-80 blur-[3px]`}`}
+                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-80 blur-[3px]`}`}
                       style={{
                         color: fontColor,
                         fontSize: `${fontSize}px`,
@@ -1650,7 +1650,7 @@ function FontSpecimen({
                       {previewText}
                     </p>
                     <p
-                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-100 blur-0` : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-100 blur-0` : "pointer-events-none opacity-0 blur-[1px]"}`}
                       style={{
                         color: fontColor,
                         fontFamily: familyName,
@@ -1686,7 +1686,7 @@ function FontSpecimen({
                   >
                     <p
                       aria-hidden="true"
-                      className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
+                      className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
                       style={{
                         color: fontColor,
                         fontSize: `${fontSize}px`,
@@ -1702,7 +1702,7 @@ function FontSpecimen({
                       {previewText}
                     </p>
                     <p
-                      className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-white transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
                       style={{
                         color: fontColor,
                         fontFamily: familyName,
