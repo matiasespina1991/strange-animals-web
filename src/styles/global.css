@@ -639,6 +639,10 @@ input {
   display: none !important;
 }
 
+html:not([data-font-toolbar-floating]) .identity-floating-layer {
+  display: none !important;
+}
+
 .typewriter-cursor {
   animation: typewriter-cursor-blink 650ms steps(1, end) infinite;
   font-weight: 500;

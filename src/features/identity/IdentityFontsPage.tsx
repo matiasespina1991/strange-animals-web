@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 import { RetroScrollbar } from "@/components/RetroScrollbar";
 import { TypewriterText } from "@/components/TypewriterText";
 import { smoothWindowScrollTo } from "@/lib/smooth-scroll";
@@ -1035,17 +1034,18 @@ function useFloatingToolbar() {
   }, [floating]);
 
   useEffect(() => {
-    const updateFloatingState = (event?: Event) => {
+    const updateFloatingState = () => {
       const boundary = boundaryReference.current;
 
       if (!boundary) return;
 
-      const nextFloating = boundary.getBoundingClientRect().top <= 0;
-      if (event) {
-        flushSync(() => setFloating(nextFloating));
-      } else {
-        setFloating(nextFloating);
-      }
+      const nextFloating = window.scrollY > 0 && boundary.getBoundingClientRect().top < 0;
+      // Hide the overlay synchronously, before React updates the font catalog.
+      // This also guards against an in-flight render during smooth scrolling.
+      document.documentElement.toggleAttribute("data-font-toolbar-floating", nextFloating);
+      const layer = document.querySelector<HTMLElement>(".identity-floating-layer");
+      if (layer) layer.style.setProperty("display", nextFloating ? "contents" : "none", "important");
+      setFloating(nextFloating);
     };
 
     updateFloatingState();
@@ -1055,6 +1055,7 @@ function useFloatingToolbar() {
     return () => {
       window.removeEventListener("scroll", updateFloatingState);
       window.removeEventListener("resize", updateFloatingState);
+      document.documentElement.removeAttribute("data-font-toolbar-floating");
     };
   }, []);
 
@@ -4176,6 +4177,7 @@ export function IdentityFontsPage() {
         </div>
       ) : null}
 
+      <div className="identity-floating-layer">
       <FloatingToolbarBrand lightMode={lightMode} visible={toolbarFloating} />
       {toolbarFloating && !toolbarMinimized ? renderToolbar(true) : null}
       <FloatingToolbarRestoreButton
@@ -4185,6 +4187,7 @@ export function IdentityFontsPage() {
           setTypographySettingsOpen(false);
         }}
       />
+      </div>
 
       {savedSetsOpen ? (
         <div
