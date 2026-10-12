@@ -3063,7 +3063,7 @@ export function IdentityFontsPage() {
                 {fontColorSettingsOpen && floating === toolbarFloating ? (
                   <div
                     aria-labelledby={floating ? "font-color-settings-title-floating" : "font-color-settings-title"}
-                    className={`absolute right-0 left-auto z-50 w-64 max-w-[calc(100vw-2.5rem)] border border-white/45 bg-black p-4 md:right-auto md:left-0 ${getToolbarPopoverPlacementClass(floating)}`}
+                    className={`absolute right-auto left-0 z-50 w-64 max-w-[calc(100vw-5rem)] border border-white/45 bg-black p-4 md:max-w-[calc(100vw-2.5rem)] ${getToolbarPopoverPlacementClass(floating)}`}
                     id={floating ? "font-color-settings-floating" : "font-color-settings"}
                   >
                     <h2
@@ -3382,7 +3382,7 @@ export function IdentityFontsPage() {
 
               {typographySettingsOpen && floating === toolbarFloating ? (
                 <div
-                  className={`absolute right-0 z-[10001] max-h-[calc(50dvh-4.25rem)] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4 ${getToolbarPopoverPlacementClass(floating)}`}
+                  className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4`}
                   id={floating ? "typography-settings-floating" : "typography-settings"}
                 >
                   <div className="mb-5 flex items-center justify-between gap-4">
