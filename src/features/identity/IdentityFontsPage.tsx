@@ -2088,7 +2088,7 @@ export function IdentityFontsPage() {
     toolbarReference,
   } = useFloatingToolbar();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setToolbarMinimized(toolbarFloating);
   }, [toolbarFloating]);
 
@@ -3454,15 +3454,20 @@ export function IdentityFontsPage() {
               className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
             >
               {isSmallViewport ? (
-                <NumericStepper
-                  ariaLabel="Text size"
-                  max={MOBILE_FONT_SIZE_MAX}
-                  min={8}
-                  step={1}
-                  unit="px"
-                  value={fontSize}
-                  onChange={commitFontSize}
-                />
+                <div className="flex flex-col gap-2 text-white/70">
+                  <span className="text-[0.625rem] tracking-[0.02em] text-white/85">
+                    Font size
+                  </span>
+                  <NumericStepper
+                    ariaLabel="Text size"
+                    max={MOBILE_FONT_SIZE_MAX}
+                    min={8}
+                    step={1}
+                    unit="px"
+                    value={fontSize}
+                    onChange={commitFontSize}
+                  />
+                </div>
               ) : (
                 <DesktopFontSizeControl
                   value={fontSize}
@@ -3475,7 +3480,7 @@ export function IdentityFontsPage() {
                 aria-controls="typography-settings"
                 aria-expanded={typographySettingsOpen}
                 aria-label="Typography settings"
-                className="ml-2 flex size-9 shrink-0 self-end -translate-y-1 cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none"
+                className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
                 type="button"
                 onClick={() => {
                   setTypographySettingsOpen((open) => !open);
@@ -3790,6 +3795,11 @@ export function IdentityFontsPage() {
               ) : null}
             </div>
           </div>
+          <span
+            ref={toolbarBoundaryReference}
+            aria-hidden="true"
+            className="pointer-events-none block h-px"
+          />
           {categoriesInUse.length > 0 || loading ? (
             <div className="mt-4 border-t border-white/20">
               <div className="flex items-center gap-6 py-3">
@@ -3969,11 +3979,6 @@ export function IdentityFontsPage() {
               </label>
             </div>
           </div>
-          <span
-            ref={toolbarBoundaryReference}
-            aria-hidden="true"
-            className="pointer-events-none absolute right-0 bottom-0 left-0 h-px"
-          />
         </header>
 
         {errorMessage ? (
