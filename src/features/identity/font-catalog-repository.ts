@@ -49,15 +49,20 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
       uploaded.push(destination);
       paths.set(data.storagePath, destination);
       copies.push({ id: file.id, data: {
-        ...data, id: file.id, fontId: target.id, storagePath: destination, updatedAt: serverTimestamp(),
+        ...data, id: file.id, fontId: target.id, storagePath: destination, sizeBytes: bytes.byteLength, updatedAt: serverTimestamp(),
       } });
     }
     const original = source.data();
     const name = `${font.name.slice(0, 195)} copy`;
+    const previewFiles = copies.filter(file => file.data.kind === "font" || ["otf", "ttf", "woff", "woff2"].includes(String(file.data.extension)));
+    const preferredPath = original.preview?.storagePath ? paths.get(original.preview.storagePath) : undefined;
+    const previewFile = previewFiles.find(file => file.data.storagePath === preferredPath) ?? previewFiles[0];
     const parentData = {
       ...original, id: target.id, sourceFontId: font.id,
       name, displayName: name, sortName: name.toLowerCase(), storagePrefix: prefix,
-      preview: original.preview ? { ...original.preview, storagePath: paths.get(original.preview.storagePath) ?? null } : null,
+      enabled: typeof original.enabled === "boolean" ? original.enabled : true,
+      fileCount: copies.length, variantCount: previewFiles.length,
+      preview: previewFile ? { fileName: previewFile.data.fileName, format: previewFile.data.extension, storagePath: previewFile.data.storagePath } : null,
       updatedAt: serverTimestamp(),
     };
     // Bound source-document reads to the rules' per-batch access-call limit.

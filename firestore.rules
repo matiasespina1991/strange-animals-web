@@ -279,7 +279,7 @@ service cloud.firestore {
         && request.resource.data.sourceFontId is string
         && exists(/databases/$(database)/documents/fonts/$(request.resource.data.sourceFontId))
         && request.resource.data.diff(get(/databases/$(database)/documents/fonts/$(request.resource.data.sourceFontId)).data).affectedKeys()
-          .hasOnly(['id', 'sourceFontId', 'name', 'displayName', 'sortName', 'storagePrefix', 'preview', 'updatedAt'])
+          .hasOnly(['id', 'sourceFontId', 'name', 'displayName', 'sortName', 'storagePrefix', 'preview', 'updatedAt', 'enabled', 'fileCount', 'variantCount'])
         && request.resource.data.storagePrefix == 'media/private/fonts/copies/' + fontId
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200
@@ -303,7 +303,7 @@ service cloud.firestore {
           && request.resource.data.id == fileId
           && request.resource.data.fontId == fontId
           && request.resource.data.diff(get(/databases/$(database)/documents/fonts/$(getAfter(/databases/$(database)/documents/fonts/$(fontId)).data.sourceFontId)/files/$(fileId)).data).affectedKeys()
-            .hasOnly(['id', 'fontId', 'storagePath', 'updatedAt'])
+            .hasOnly(['id', 'fontId', 'storagePath', 'updatedAt', 'sizeBytes'])
           && request.resource.data.storagePath is string
           && request.resource.data.storagePath.matches('^media/private/fonts/copies/' + fontId + '/' + fileId + '/[^/]+$')
           && request.resource.data.sizeBytes is int

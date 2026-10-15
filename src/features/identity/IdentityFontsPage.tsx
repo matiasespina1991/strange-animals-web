@@ -488,7 +488,7 @@ function DesktopFontSizeControl({
   const commit = (nextValue: number) => {
     const clampedValue = Math.min(
       DESKTOP_FONT_SIZE_MAX,
-      Math.max(8, nextValue),
+      Math.max(3, nextValue),
     );
     setLocalValue(clampedValue);
     onCommit(clampedValue);
@@ -521,7 +521,7 @@ function DesktopFontSizeControl({
             aria-label="Text size"
             className="identity-font-size-control-slider identity-font-size-slider relative z-0 w-full"
             max={DESKTOP_FONT_SIZE_MAX}
-            min="8"
+            min="3"
             step="1"
             type="range"
             value={localValue}
@@ -662,7 +662,7 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
   return (
     <nav
       aria-label="Page scroll controls"
-      className="fixed right-6 bottom-5 z-[10000] hidden flex-col gap-[7px] md:flex md:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
+      className="fixed right-6 bottom-5 z-[10000] flex flex-col gap-[7px] max-md:[&>button:not(:first-child)]:hidden max-md:[&>button:first-child]:h-11 md:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
     >
       <button
         aria-label="Scroll to top"
@@ -2163,9 +2163,11 @@ export function IdentityFontsPage() {
   );
   const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(true);
   const [useCaseFiltersOpen, setUseCaseFiltersOpen] = useState(false);
-  const [collapsedCategoryKeys, setCollapsedCategoryKeys] = useState<
+  const [expandedCategoryKeys, setExpandedCategoryKeys] = useState<
     Set<string>
   >(new Set());
+  const defaultCategoriesOpenedReference = useRef(false);
+  const manuallyClosedCategoriesReference = useRef(new Set<string>());
   const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
     new Set(),
   );
@@ -2284,7 +2286,7 @@ export function IdentityFontsPage() {
   }, []);
 
   const commitFontSize = (nextFontSize: number) => {
-    setFontSize(nextFontSize);
+    setFontSize(Math.min(isSmallViewport ? MOBILE_FONT_SIZE_MAX : DESKTOP_FONT_SIZE_MAX, Math.max(3, nextFontSize)));
   };
 
   useEffect(() => {
@@ -2700,7 +2702,33 @@ export function IdentityFontsPage() {
       window.removeEventListener("resize", scheduleUpdate);
       resizeObserver.disconnect();
     };
-  }, [collapsedCategoryKeys, fontSections]);
+  }, [expandedCategoryKeys, fontSections]);
+
+  useEffect(() => {
+    if (loading || search.trim() || defaultCategoriesOpenedReference.current || fontSections.length === 0) return;
+    defaultCategoriesOpenedReference.current = true;
+    const defaults = fontSections.filter(section => section.label.startsWith("category: ")).slice(0, 2);
+    setExpandedCategoryKeys(current => new Set([...current, ...defaults.map(section => section.key)]));
+  }, [loading, search, fontSections]);
+
+  useEffect(() => {
+    if (loading || search.trim() || !defaultCategoriesOpenedReference.current) return;
+    const nextSection = fontSections.find(section =>
+      !expandedCategoryKeys.has(section.key) && !manuallyClosedCategoriesReference.current.has(section.key),
+    );
+    if (!nextSection) return;
+    const header = document.getElementById(`font-category-${nextSection.key}`);
+    if (!header) return;
+    let opened = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting || opened) return;
+      opened = true;
+      observer.disconnect();
+      setExpandedCategoryKeys(current => new Set(current).add(nextSection.key));
+    }, { rootMargin: "250px 0px" });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [loading, search, fontSections, expandedCategoryKeys]);
 
   const displayedFontCount = useMemo(
     () =>
@@ -2724,6 +2752,7 @@ export function IdentityFontsPage() {
 
   const selectCategoryFromRail = (sectionKey: string) => {
     categoryNavigationCleanupReference.current?.();
+    setExpandedCategoryKeys(current => new Set(current).add(sectionKey));
 
     const categoryHeader = document.getElementById(
       `font-category-${sectionKey}`,
@@ -3125,7 +3154,7 @@ export function IdentityFontsPage() {
           ref={
             floating === toolbarFloating ? specimenInputReference : undefined
           }
-          className="block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
+          className="identity-font-text-input block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
           rows={1}
           value={specimen}
           onChange={(event) => {
@@ -3139,7 +3168,7 @@ export function IdentityFontsPage() {
           Search fonts
         </span>
         <input
-          className="h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
+          className="identity-font-text-input h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
           type="search"
           value={search}
           onChange={(event) => {
@@ -3511,8 +3540,8 @@ export function IdentityFontsPage() {
             <NumericStepper
               ariaLabel="Text size"
               max={MOBILE_FONT_SIZE_MAX}
-              min={8}
-              step={1}
+              min={3}
+              step={2}
               unit="px"
               value={fontSize}
               onChange={commitFontSize}
@@ -4024,7 +4053,7 @@ export function IdentityFontsPage() {
                       );
                     }}
                   />
-                  <span className="font-bold uppercase">Show all</span>
+                  <span className="font-bold normal-case">Show All</span>
                 </label>
               )}
             </div>
@@ -4202,7 +4231,7 @@ export function IdentityFontsPage() {
             className="pb-20 lg:pb-0"
           >
             {fontSections.map((section) => {
-              const collapsed = collapsedCategoryKeys.has(section.key);
+              const collapsed = !search.trim() && !expandedCategoryKeys.has(section.key);
               const contentId = `font-section-${section.key
                 .toLocaleLowerCase()
                 .replace(/[^a-z\d]+/g, "-")}`;
@@ -4230,13 +4259,15 @@ export function IdentityFontsPage() {
                       className={`flex shrink-0 cursor-pointer items-center gap-2 font-normal text-white outline-none ${section.label.startsWith("category: ") ? "text-[calc(0.7rem+1px)] tracking-normal hover:text-white" : "text-[0.625rem] tracking-[0.12em] hover:text-white/75"}`}
                       type="button"
                       onClick={() => {
-                        setCollapsedCategoryKeys((current) => {
+                        setExpandedCategoryKeys((current) => {
                           const next = new Set(current);
 
                           if (next.has(section.key)) {
                             next.delete(section.key);
+                            manuallyClosedCategoriesReference.current.add(section.key);
                           } else {
                             next.add(section.key);
+                            manuallyClosedCategoriesReference.current.delete(section.key);
                           }
 
                           return next;
@@ -4271,7 +4302,7 @@ export function IdentityFontsPage() {
                     className={collapsed ? "hidden" : "relative"}
                     id={contentId}
                   >
-                    <div className="grid gap-x-8 lg:grid-cols-2">
+                    {!collapsed ? <div className="grid gap-x-8 lg:grid-cols-2 [&>article:first-child]:border-t-0 lg:[&>article:nth-child(2)]:border-t-0">
                       {section.fonts.map((font) => (
                         <FontSpecimen
                           key={font.id}
@@ -4325,7 +4356,7 @@ export function IdentityFontsPage() {
                           specimen={specimen}
                         />
                       ))}
-                    </div>
+                    </div> : null}
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-20 hidden w-[2.5px] -translate-x-1/2 lg:block"
