@@ -2138,7 +2138,9 @@ export function IdentityFontsPage() {
     return DEFAULT_COLOR_FAVORITES;
   });
   const [fontColorSettingsOpen, setFontColorSettingsOpen] = useState(false);
-  const [backgroundColor, setBackgroundColor] = useState("#00000000");
+  const [backgroundColor, setBackgroundColor] = useState(() =>
+    lightMode ? "#ffffff00" : "#00000000",
+  );
   const [backgroundMode, setBackgroundMode] = useState<"color" | "image">(
     "color",
   );
