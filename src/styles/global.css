@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+html:not([data-font-toolbar-floating]) .identity-scroll-top {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .identity-fonts-page .identity-scroll-top {
+    border-color: rgb(255 255 255 / 0.15) !important;
+    background-color: #000 !important;
+    transition: none !important;
+  }
+
+  .identity-fonts-page.identity-fonts-page--light .identity-scroll-top {
+    border-color: rgb(23 23 23 / 0.42) !important;
+    background-color: #fff !important;
+  }
+}
+
 @font-face {
   font-family: "Alte DIN Input";
   src: url("/media/fonts/Alte%20DIN%201451%20Mittelschrift%20gepraegt%20Regular.ttf") format("truetype");

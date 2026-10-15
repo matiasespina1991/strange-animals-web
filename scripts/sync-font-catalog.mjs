@@ -183,13 +183,18 @@ function previewScore(file) {
   const regularBonus = /(^|[-_ ])(regular|normal)([-_. ]|$)/.test(name)
     ? -4
     : 0;
+  // A file named after its family is the base cut even without "Regular".
+  // Keep licensing qualifiers in the filename, but ignore them for this match.
+  const baseName = path.basename(name, path.extname(name)).replace(/\bpersonal[ _-]+use\b/g, "").trim();
+  const familyName = path.basename(path.dirname(file.absolutePath));
+  const baseCutBonus = slugify(baseName) === slugify(familyName) ? -4 : 0;
   const sourceBonus = name.startsWith("source.") ? -3 : 0;
   const variantPenalty =
     /(italic|outline|display|rough|thin|bold|condensed|wide)/.test(name)
       ? 3
       : 0;
 
-  return formatScore + regularBonus + sourceBonus + variantPenalty;
+  return formatScore + regularBonus + baseCutBonus + sourceBonus + variantPenalty;
 }
 
 async function walkFiles(directory, relativeRoot = "") {

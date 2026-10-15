@@ -270,7 +270,17 @@ function getPreviewFontWeight(fontWeight: FontWeight) {
 }
 
 function getOpaqueHex(color: string) {
-  return /^#[\da-f]{8}$/i.test(color) ? color.slice(0, 7) : color;
+  const value = color.trim();
+  if (/^#[\da-f]{8}$/i.test(value)) return value.slice(0, 7);
+  if (/^#[\da-f]{3,4}$/i.test(value)) {
+    return `#${value.slice(1, 4).split("").map(channel => channel.repeat(2)).join("")}`;
+  }
+  if (value.toLowerCase() === "transparent") return "#000000";
+  const rgb = value.match(/^rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)/i);
+  if (rgb) {
+    return `#${rgb.slice(1, 4).map(channel => Math.min(255, Number(channel)).toString(16).padStart(2, "0")).join("")}`;
+  }
+  return value;
 }
 
 function getColorOpacity(color: string) {
@@ -662,12 +672,11 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
   return (
     <nav
       aria-label="Page scroll controls"
-      className="fixed right-6 bottom-5 z-[10000] flex flex-col gap-[7px] max-md:[&>button:not(:first-child)]:hidden max-md:[&>button:first-child]:h-11 md:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
+      className="fixed right-5 bottom-20 z-[10000] flex flex-col gap-[7px] max-md:[&>button:not(:first-child)]:hidden md:right-6 md:bottom-7 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
     >
       <button
         aria-label="Scroll to top"
-        className={buttonClass("top")}
-        style={buttonStyle("top")}
+        className={`identity-scroll-top ${buttonClass("top")} text-white/85 md:hover:text-white max-md:!h-[3.25rem] max-md:!w-[3.25rem] max-md:!rounded-full max-md:!backdrop-blur-none`}
         title="Scroll to top"
         type="button"
         onClick={() => {
@@ -687,9 +696,9 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
         }}
         onPointerLeave={handlePointerLeave}
       >
-        <span aria-hidden="true" className="flex flex-col -space-y-2">
-          <ChevronUp className="size-3" />
-          <ChevronUp className="size-3" />
+        <span aria-hidden="true" className="flex flex-col -space-y-4 md:-space-y-2">
+          <ChevronUp className="size-[1.375rem] md:size-3" />
+          <ChevronUp className="size-[1.375rem] md:size-3" />
         </span>
       </button>
       <button
@@ -906,17 +915,17 @@ function FloatingToolbarRestoreButton({
     <button
       aria-controls="font-toolbar"
       aria-label="Restore font toolbar"
-      className="group fixed right-5 bottom-5 z-[10000] flex size-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/85 outline-none transition-[border-color,color] duration-150 hover:border-white/45 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white md:top-5 md:right-6 md:bottom-auto 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
+      className="group fixed right-5 bottom-5 z-[10000] flex size-[3.25rem] cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black text-white/85 outline-none transition-[border-color,color] duration-150 hover:border-white/45 hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white md:size-12 md:top-5 md:right-6 md:bottom-auto 2xl:right-[max(1.25rem,calc((100vw-92rem)/4-1.5rem))]"
       title="Restore toolbar"
       type="button"
       onClick={onRestore}
     >
       <span
         aria-hidden="true"
-        className="relative flex size-6 items-center justify-center"
+        className="relative flex size-[1.625rem] items-center justify-center md:size-6"
       >
-        <Menu className="size-5" />
-        <Settings className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-black p-[1px] text-white/80 transition-colors duration-150 group-hover:text-white motion-reduce:transition-none" />
+        <Menu className="size-[1.375rem] md:size-5" />
+        <Settings className="absolute -right-0.5 -bottom-0.5 size-[0.8125rem] rounded-full bg-black p-[1px] text-white/80 transition-colors duration-150 group-hover:text-white motion-reduce:transition-none md:size-3" />
       </span>
     </button>
   );
@@ -973,7 +982,7 @@ function ActiveCategoryRail({
   return (
     <aside
       ref={railReference}
-      className="identity-font-toolbar-fade-in fixed bottom-6 left-2.5 z-20 flex -translate-x-1/2 sm:left-4 lg:left-5 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
+      className="identity-font-toolbar-fade-in fixed bottom-5 left-2.5 z-20 flex -translate-x-1/2 sm:left-4 md:bottom-6 lg:left-5 2xl:left-[max(1.25rem,calc((100vw-92rem)/4))]"
     >
       <span className="rotate-180 text-[clamp(0.7rem,0.7vw,1rem)] leading-none tracking-[0.1em] whitespace-nowrap text-white/70 [writing-mode:vertical-rl]">
         <button
@@ -3288,7 +3297,8 @@ export function IdentityFontsPage() {
               title="Swap colors"
               type="button"
               onClick={() => {
-                setUserFontColor(setColorOpacity(backgroundColor, 1));
+                // Font receives RGB only: background alpha must never carry over.
+                setUserFontColor(getOpaqueHex(backgroundColor));
                 setBackgroundColor(fontColor);
               }}
             >
