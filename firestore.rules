@@ -172,7 +172,10 @@ service cloud.firestore {
 
     function isValidFontCatalogMetadataUpdate(data) {
       return data.diff(resource.data).affectedKeys()
-          .hasOnly(['enabled', 'parentCategory', 'useCase', 'useCases', 'updatedAt'])
+          .hasOnly(['enabled', 'parentCategory', 'useCase', 'useCases', 'updatedAt', 'name', 'displayName', 'sortName'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && (!('displayName' in data) || (data.displayName is string && data.displayName == data.name))
+        && data.sortName is string && data.sortName.size() > 0 && data.sortName.size() <= 200
         && data.enabled is bool
         && (!('parentCategory' in data)
           || (data.parentCategory is string
@@ -271,12 +274,41 @@ service cloud.firestore {
       allow delete: if hasIdentityAccess();
       allow update: if hasIdentityAccess()
         && isValidFontCatalogMetadataUpdate(request.resource.data);
-      allow create: if false;
+      allow create: if hasIdentityAccess()
+        && request.resource.data.id == fontId
+        && request.resource.data.sourceFontId is string
+        && exists(/databases/$(database)/documents/fonts/$(request.resource.data.sourceFontId))
+        && request.resource.data.diff(get(/databases/$(database)/documents/fonts/$(request.resource.data.sourceFontId)).data).affectedKeys()
+          .hasOnly(['id', 'sourceFontId', 'name', 'displayName', 'sortName', 'storagePrefix', 'preview', 'updatedAt'])
+        && request.resource.data.storagePrefix == 'media/private/fonts/copies/' + fontId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200
+        && request.resource.data.displayName == request.resource.data.name
+        && request.resource.data.sortName is string
+        && request.resource.data.enabled is bool
+        && request.resource.data.variantCount is int
+        && request.resource.data.variantCount >= 0 && request.resource.data.variantCount < 450
+        && request.resource.data.fileCount is int
+        && request.resource.data.fileCount > 0 && request.resource.data.fileCount < 450
+        && (!('preview' in request.resource.data) || request.resource.data.preview == null
+          || (request.resource.data.preview.storagePath is string
+            && request.resource.data.preview.storagePath.matches('^media/private/fonts/copies/' + fontId + '/[^/]+/[^/]+$')))
+        && request.resource.data.updatedAt == request.time;
 
       match /files/{fileId} {
         allow read: if hasIdentityAccess();
         allow delete: if hasIdentityAccess();
-        allow create: if false;
+        allow create: if hasIdentityAccess()
+          && getAfter(/databases/$(database)/documents/fonts/$(fontId)).data.storagePrefix == 'media/private/fonts/copies/' + fontId
+          && request.resource.data.id == fileId
+          && request.resource.data.fontId == fontId
+          && request.resource.data.diff(get(/databases/$(database)/documents/fonts/$(getAfter(/databases/$(database)/documents/fonts/$(fontId)).data.sourceFontId)/files/$(fileId)).data).affectedKeys()
+            .hasOnly(['id', 'fontId', 'storagePath', 'updatedAt'])
+          && request.resource.data.storagePath is string
+          && request.resource.data.storagePath.matches('^media/private/fonts/copies/' + fontId + '/' + fileId + '/[^/]+$')
+          && request.resource.data.sizeBytes is int
+          && request.resource.data.sizeBytes > 0 && request.resource.data.sizeBytes <= 100 * 1024 * 1024
+          && request.resource.data.updatedAt == request.time;
         allow update: if hasIdentityAccess()
           && isValidFontFilePreviewUpdate(request.resource.data);
       }

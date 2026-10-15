@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronUp,
   Download,
+  Copy,
   ImageIcon,
   Menu,
   Minus,
@@ -36,6 +37,8 @@ import {
 } from "lucide-react";
 import {
   deleteFontCatalogItem,
+  duplicateFontFamily,
+  renameFontFamily,
   deleteFontVariant,
   downloadFontFamily,
   listFontCatalog,
@@ -160,6 +163,7 @@ function SupportedPreviewText({
 }
 const UNCATEGORIZED_LABEL = "Uncategorized";
 const FONT_CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  "LCD Display": "LCD/LED Display",
   "Non-Latin Script": "Non-Latin / 日本語",
 };
 
@@ -441,12 +445,38 @@ function ColorTransparencyControl({
   );
 }
 
+function jumpRangeToPointer(
+  event: ReactPointerEvent<HTMLInputElement>,
+  onValueChange: (value: number) => void,
+) {
+  const input = event.currentTarget;
+  if (event.type === "pointerdown") {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    input.focus();
+    input.setPointerCapture(event.pointerId);
+  } else if (!input.hasPointerCapture(event.pointerId)) {
+    return;
+  }
+  const bounds = input.getBoundingClientRect();
+  const thumbSize = input.classList.contains("identity-font-size-control-slider") && window.innerWidth < 768 ? 18 : 12;
+  const ratio = Math.min(1, Math.max(0, (event.clientX - bounds.left - thumbSize / 2) / Math.max(1, bounds.width - thumbSize)));
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const step = Number(input.step || 1);
+  const value = Math.min(max, Math.max(min, Number((min + Math.round(ratio * (max - min) / step) * step).toFixed(6))));
+  input.value = String(value);
+  onValueChange(value);
+}
+
 function DesktopFontSizeControl({
   value,
   onCommit,
+  onPreview,
 }: {
   value: number;
   onCommit: (value: number) => void;
+  onPreview: (value: number | null) => void;
 }) {
   const [localValue, setLocalValue] = useState(value);
   const [showValue, setShowValue] = useState(false);
@@ -462,6 +492,7 @@ function DesktopFontSizeControl({
     );
     setLocalValue(clampedValue);
     onCommit(clampedValue);
+    onPreview(null);
   };
 
   return (
@@ -500,6 +531,7 @@ function DesktopFontSizeControl({
             }}
             onChange={(event) => {
               setLocalValue(Number(event.currentTarget.value));
+              onPreview(Number(event.currentTarget.value));
             }}
             onFocus={() => {
               setShowValue(true);
@@ -507,9 +539,12 @@ function DesktopFontSizeControl({
             onKeyUp={(event) => {
               commit(Number(event.currentTarget.value));
             }}
-            onPointerDown={() => {
+            onPointerDown={(event) => {
               setShowValue(true);
+              jumpRangeToPointer(event, (value) => { setLocalValue(value); onPreview(value); });
             }}
+            onPointerMove={(event) => jumpRangeToPointer(event, (value) => { setLocalValue(value); onPreview(value); })}
+            onPointerCancel={() => { onPreview(null); setLocalValue(value); setShowValue(false); }}
             onPointerUp={(event) => {
               commit(Number(event.currentTarget.value));
               setShowValue(false);
@@ -1101,6 +1136,8 @@ function FontSpecimen({
   pinned,
   preferenceControlsEnabled,
   onDelete,
+  onCatalogChanged,
+  onFamilyError,
   onFavoriteChange,
   onEnabledChange,
   onParentCategoryChange,
@@ -1129,6 +1166,8 @@ function FontSpecimen({
   pinned: boolean;
   preferenceControlsEnabled: boolean;
   onDelete: (font: FontCatalogItem) => void;
+  onCatalogChanged: () => Promise<void>;
+  onFamilyError: (message: string) => void;
   onFavoriteChange: (font: FontCatalogItem) => void;
   onEnabledChange: (font: FontCatalogItem, enabled: boolean) => void;
   onParentCategoryChange: (
@@ -1154,6 +1193,22 @@ function FontSpecimen({
     new Set(),
   );
   const [downloading, setDownloading] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(font.name);
+  const [familySaving, setFamilySaving] = useState(false);
+
+  const saveFamilyName = async () => {
+    if (!import.meta.env.DEV || familySaving) return;
+    setFamilySaving(true);
+    try {
+      await renameFontFamily(font, nameDraft);
+      await onCatalogChanged();
+      setEditingName(false);
+    } catch (error) {
+      console.error("Could not rename font family", error);
+      onFamilyError(error instanceof Error ? error.message : "Could not rename family");
+    } finally { setFamilySaving(false); }
+  };
   const [draggingPreviewText, setDraggingPreviewText] = useState(false);
   const previewTextDragReference = useRef<{ x: number; y: number }>();
 
@@ -1402,9 +1457,25 @@ function FontSpecimen({
               <Trash2 aria-hidden="true" className="size-[0.7rem]" />
             </button>
           ) : null}
-          <h2 className="min-w-0 truncate font-normal text-white/80">
-            {font.name}
-          </h2>
+          {SHOW_FONT_DELETE_CONTROLS && editingName ? (
+            <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void saveFamilyName(); }}>
+              <input aria-label="Family name" autoFocus className="w-full min-w-0 border-b border-white/50 bg-transparent text-white outline-none" value={nameDraft} disabled={familySaving}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onKeyDown={(event) => { if (event.key === "Escape") setEditingName(false); }} />
+            </form>
+          ) : (
+            <h2 className="min-w-0 truncate font-normal text-white/80">
+              {SHOW_FONT_DELETE_CONTROLS ? <button type="button" className="cursor-pointer truncate text-left" title="Rename family" disabled={familySaving} onClick={() => { setNameDraft(font.name); setEditingName(true); }}>{font.name}</button> : font.name}
+            </h2>
+          )}
+          {SHOW_FONT_DELETE_CONTROLS ? (
+            <button aria-label={`Duplicate ${font.name}`} title="Duplicate family" type="button" className="shrink-0 cursor-pointer text-white/60 hover:text-white disabled:opacity-40" disabled={familySaving} onClick={async () => {
+              setFamilySaving(true);
+              try { await duplicateFontFamily(font); await onCatalogChanged(); }
+              catch (error) { console.error("Could not duplicate font family", error); onFamilyError(error instanceof Error ? error.message : "Could not duplicate family"); }
+              finally { setFamilySaving(false); }
+            }}><Copy className="size-3" /></button>
+          ) : null}
           {SHOW_FONT_DELETE_CONTROLS ? (
             <button
               aria-checked={font.enabled}
@@ -1676,7 +1747,7 @@ function FontSpecimen({
                       {previewText}
                     </p>
                     <p
-                      className={`absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-100 blur-0` : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      className={`identity-font-committed-preview absolute min-w-max max-w-none touch-none leading-normal whitespace-pre-wrap transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? `${draggingPreviewText ? "cursor-grabbing" : "cursor-grab"} opacity-100 blur-0` : "pointer-events-none opacity-0 blur-[1px]"}`}
                       style={{
                         color: fontColor,
                         fontFamily: familyName,
@@ -1703,6 +1774,14 @@ function FontSpecimen({
                         value={previewText}
                       />
                     </p>
+                    <p aria-hidden="true" className="identity-font-ghost-preview pointer-events-none absolute min-w-max max-w-none whitespace-pre-wrap"
+                      style={{ color: fontColor, fontFamily: familyName, fontSize: "var(--identity-ghost-font-size)",
+                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight, textAlign: textAlignment,
+                        left: `${backgroundTextAnchor.x}%`, top: `${backgroundTextAnchor.y}%`, transform: "translateY(-100%)",
+                        textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
+                      }}>
+                      <SupportedPreviewText fallbackValue={applyTextCasing(font.name, textCasing)} supportedCodePoints={loadedVariant?.supportedCodePoints} value={previewText} />
+                    </p>
                   </div>
                 ) : (
                   <div
@@ -1712,7 +1791,7 @@ function FontSpecimen({
                   >
                     <p
                       aria-hidden="true"
-                      className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "pointer-events-none opacity-0 blur-[3px]" : "opacity-80 blur-[3px]"}`}
+                      className={`min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${familyName ? "absolute inset-0 pointer-events-none opacity-0" : "opacity-80 blur-[3px]"}`}
                       style={{
                         color: fontColor,
                         fontSize: `${fontSize}px`,
@@ -1728,7 +1807,7 @@ function FontSpecimen({
                       {previewText}
                     </p>
                     <p
-                      className={`absolute inset-0 min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] transition-[filter,opacity] duration-700 ease-in-out motion-reduce:transition-none ${familyName ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[1px]"}`}
+                      className={`identity-font-committed-preview min-w-0 max-w-full px-4 py-8 leading-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${familyName ? "opacity-100" : "absolute inset-0 pointer-events-none opacity-0"}`}
                       style={{
                         color: fontColor,
                         fontFamily: familyName,
@@ -1747,6 +1826,18 @@ function FontSpecimen({
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
+                    </p>
+                    <p
+                      aria-hidden="true"
+                      className="identity-font-ghost-preview pointer-events-none absolute inset-0 min-w-0 max-w-full px-4 py-8 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                      style={{ color: fontColor, fontFamily: familyName,
+                        fontSize: "var(--identity-ghost-font-size)",
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`, lineHeight, textAlign: textAlignment,
+                        textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
+                      }}
+                    >
+                      <SupportedPreviewText fallbackValue={applyTextCasing(font.name, textCasing)} supportedCodePoints={loadedVariant?.supportedCodePoints} value={previewText} />
                     </p>
                   </div>
                 )
@@ -2993,6 +3084,17 @@ export function IdentityFontsPage() {
     setSetActionMessage("Set loaded.");
   };
 
+  const reportFamilyError = (message: string) => {
+    if (snackbarTimeoutReference.current !== undefined) {
+      window.clearTimeout(snackbarTimeoutReference.current);
+    }
+    setSnackbarMessage(message);
+    snackbarTimeoutReference.current = window.setTimeout(() => {
+      setSnackbarMessage(undefined);
+      snackbarTimeoutReference.current = undefined;
+    }, 6000);
+  };
+
   const renderToolbar = (floating: boolean) => (
     <div
       ref={floating ? undefined : toolbarReference}
@@ -3053,13 +3155,13 @@ export function IdentityFontsPage() {
               ? fontColorSettingsReference
               : undefined
           }
-          className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem] xl:-mr-4"
+          className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem]"
         >
-          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
+          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem]">
             <span className="sm:hidden">Font</span>
             <span className="hidden sm:inline">Font color</span>
           </span>
-          <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
+          <span className="flex h-9 items-center justify-center sm:h-10">
             <button
               ref={
                 floating === toolbarFloating
@@ -3143,10 +3245,10 @@ export function IdentityFontsPage() {
           ) : null}
         </div>
 
-        <div className="translate-y-[0.2rem] shrink-0 self-start xl:-mr-4 xl:-translate-x-10">
+        <div className="shrink-0 self-start">
           <span
             aria-hidden="true"
-            className="mb-1 block text-[0.5rem] tracking-[0.08em] text-transparent uppercase sm:mb-2 sm:text-[0.625rem] sm:tracking-[0.12em]"
+            className="invisible mb-1 block text-[0.625rem] tracking-[0.02em] sm:mb-2 sm:text-[0.75rem]"
           >
             Swap
           </span>
@@ -3157,7 +3259,7 @@ export function IdentityFontsPage() {
               title="Swap colors"
               type="button"
               onClick={() => {
-                setUserFontColor(backgroundColor);
+                setUserFontColor(setColorOpacity(backgroundColor, 1));
                 setBackgroundColor(fontColor);
               }}
             >
@@ -3172,12 +3274,12 @@ export function IdentityFontsPage() {
               ? backgroundSettingsReference
               : undefined
           }
-          className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem] xl:-mr-2"
+          className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem]"
         >
-          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem] xl:text-left">
+          <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem]">
             <span>Background</span>
           </span>
-          <span className="flex h-9 items-center justify-center sm:h-10 xl:justify-start">
+          <span className="flex h-9 items-center justify-center sm:h-10">
             <button
               ref={
                 floating === toolbarFloating
@@ -3417,7 +3519,12 @@ export function IdentityFontsPage() {
             />
           </div>
         ) : (
-          <DesktopFontSizeControl value={fontSize} onCommit={commitFontSize} />
+          <DesktopFontSizeControl value={fontSize} onCommit={commitFontSize} onPreview={(size) => {
+            const page = document.querySelector<HTMLElement>(".identity-fonts-page");
+            if (!page) return;
+            page.toggleAttribute("data-font-size-preview", size !== null);
+            if (size !== null) page.style.setProperty("--identity-ghost-font-size", `${size}px`);
+          }} />
         )}
 
         <button
@@ -3715,6 +3822,8 @@ export function IdentityFontsPage() {
                     step="0.05"
                     type="range"
                     value={lineHeight}
+                    onPointerDown={(event) => jumpRangeToPointer(event, setLineHeight)}
+                    onPointerMove={(event) => jumpRangeToPointer(event, setLineHeight)}
                     onChange={(event) => {
                       setLineHeight(Number(event.target.value));
                     }}
@@ -3734,6 +3843,8 @@ export function IdentityFontsPage() {
                     step="0.01"
                     type="range"
                     value={letterSpacing}
+                    onPointerDown={(event) => jumpRangeToPointer(event, setLetterSpacing)}
+                    onPointerMove={(event) => jumpRangeToPointer(event, setLetterSpacing)}
                     onChange={(event) => {
                       setLetterSpacing(Number(event.target.value));
                     }}
@@ -3913,12 +4024,12 @@ export function IdentityFontsPage() {
                       );
                     }}
                   />
-                  <span className="font-bold uppercase">All</span>
+                  <span className="font-bold uppercase">Show all</span>
                 </label>
               )}
             </div>
             <div
-              className={`grid grid-cols-2 items-center gap-x-2 gap-y-2 pb-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1200px]:grid-cols-7 2xl:grid-cols-9 ${categoryFiltersOpen ? "" : "hidden"}`}
+              className={`grid grid-cols-2 items-center gap-x-0 gap-y-[0.3rem] pb-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 min-[1200px]:grid-cols-7 2xl:grid-cols-9 ${categoryFiltersOpen ? "" : "hidden"}`}
               id="font-category-filters"
             >
               {loading
@@ -3985,7 +4096,7 @@ export function IdentityFontsPage() {
             </div>
           </div>
         ) : null}
-        <div className="border-t border-white/20">
+        <div className="border-y border-white/20">
           <button
             aria-controls="font-use-case-filters"
             aria-expanded={useCaseFiltersOpen}
@@ -4164,6 +4275,8 @@ export function IdentityFontsPage() {
                       {section.fonts.map((font) => (
                         <FontSpecimen
                           key={font.id}
+                          onCatalogChanged={async () => { setFonts(await listFontCatalog()); }}
+                          onFamilyError={reportFamilyError}
                           backgroundColor={backgroundColor}
                           backgroundImageUrl={
                             backgroundMode === "image"

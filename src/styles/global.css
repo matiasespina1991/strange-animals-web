@@ -500,6 +500,9 @@ input {
   appearance: none;
   background: transparent;
   cursor: pointer;
+  height: 28px;
+  margin-block: -7px;
+  touch-action: none;
   -webkit-appearance: none;
 }
 
@@ -637,6 +640,18 @@ input {
 
 .identity-font-toolbar-minimized {
   display: none !important;
+}
+
+.identity-font-ghost-preview {
+  display: none;
+}
+
+.identity-fonts-page[data-font-size-preview] .identity-font-ghost-preview {
+  display: block;
+}
+
+.identity-fonts-page[data-font-size-preview] .identity-font-committed-preview {
+  visibility: hidden;
 }
 
 html:not([data-font-toolbar-floating]) .identity-floating-layer {

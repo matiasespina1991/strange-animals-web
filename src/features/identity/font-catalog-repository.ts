@@ -5,18 +5,77 @@ import {
   deleteField,
   doc,
   getDocs,
+  getDoc,
   query,
   serverTimestamp,
   updateDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
-import { deleteObject, getBytes, ref } from "firebase/storage";
+import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { firebaseDb, firebaseStorage } from "@/lib/firebase";
 
 const MAX_PREVIEW_SIZE_BYTES = 20 * 1024 * 1024;
 const DELETE_CONCURRENCY = 8;
 const FIRESTORE_BATCH_SIZE = 450;
+
+export async function renameFontFamily(font: FontCatalogItem, name: string) {
+  if (!import.meta.env.DEV) throw new Error("Development only");
+  const value = name.trim();
+  if (!value || value.length > 200) throw new Error("El nombre debe tener entre 1 y 200 caracteres.");
+  await updateDoc(doc(firebaseDb, "fonts", font.id), {
+    name: value, displayName: value, sortName: value.toLowerCase(), updatedAt: serverTimestamp(),
+  });
+}
+
+export async function duplicateFontFamily(font: FontCatalogItem) {
+  if (!import.meta.env.DEV) throw new Error("Development only");
+  const source = await getDoc(doc(firebaseDb, "fonts", font.id));
+  if (!source.exists()) throw new Error("Family no longer exists");
+  const files = await getDocs(collection(firebaseDb, "fonts", font.id, "files"));
+  if (!files.size || files.size >= FIRESTORE_BATCH_SIZE) throw new Error("Unsupported family size");
+  const target = doc(collection(firebaseDb, "fonts"));
+  const prefix = `media/private/fonts/copies/${target.id}`;
+  const paths = new Map<string, string>();
+  const uploaded: string[] = [];
+  const copies: { id: string; data: Record<string, unknown> }[] = [];
+  try {
+    for (const file of files.docs) {
+      const data = file.data();
+      if (typeof data.storagePath !== "string" || !data.storagePath.startsWith("media/private/fonts/")) throw new Error("Invalid font path");
+      const destination = `${prefix}/${file.id}/${data.fileName}`;
+      const bytes = await getBytes(ref(firebaseStorage, data.storagePath));
+      await uploadBytes(ref(firebaseStorage, destination), bytes, { contentType: data.contentType ?? "application/octet-stream" });
+      uploaded.push(destination);
+      paths.set(data.storagePath, destination);
+      copies.push({ id: file.id, data: {
+        ...data, id: file.id, fontId: target.id, storagePath: destination, updatedAt: serverTimestamp(),
+      } });
+    }
+    const original = source.data();
+    const name = `${font.name.slice(0, 195)} copy`;
+    const parentData = {
+      ...original, id: target.id, sourceFontId: font.id,
+      name, displayName: name, sortName: name.toLowerCase(), storagePrefix: prefix,
+      preview: original.preview ? { ...original.preview, storagePath: paths.get(original.preview.storagePath) ?? null } : null,
+      updatedAt: serverTimestamp(),
+    };
+    // Bound source-document reads to the rules' per-batch access-call limit.
+    for (let index = 0; index < copies.length; index += 10) {
+      const batch = writeBatch(firebaseDb);
+      if (index === 0) batch.set(target, parentData);
+      for (const file of copies.slice(index, index + 10)) {
+        batch.set(doc(target, "files", file.id), file.data);
+      }
+      await batch.commit();
+    }
+  } catch (error) {
+    await Promise.allSettled(copies.map(file => deleteDoc(doc(target, "files", file.id))));
+    await Promise.allSettled([deleteDoc(target)]);
+    await Promise.allSettled(uploaded.map(path => deleteObject(ref(firebaseStorage, path))));
+    throw error;
+  }
+}
 
 type FontPreviewDocument = {
   fileName?: unknown;
