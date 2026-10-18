@@ -185,7 +185,7 @@ const DEFAULT_LINE_HEIGHT = 1;
 const DEFAULT_LETTER_SPACING = 0;
 const MOBILE_FONT_SIZE_DEFAULT = 31;
 const DESKTOP_FONT_SIZE_DEFAULT = 31;
-const MOBILE_FONT_SIZE_MAX = 100;
+const MOBILE_FONT_SIZE_MAX = 125;
 const COLOR_FAVORITES_STORAGE_KEY =
   "strange-animals.identity-font-color-favorites.v1";
 const DEFAULT_COLOR_FAVORITES = ["#ffffff", "#000000", "#56bcce"];
@@ -231,7 +231,7 @@ function compareFontFilterCategoryLabels(left: string, right: string) {
 function compareFontSectionCategoryLabels(left: string, right: string) {
   return compareFontFilterCategoryLabels(left, right);
 }
-const DESKTOP_FONT_SIZE_MAX = 100;
+const DESKTOP_FONT_SIZE_MAX = 125;
 const FONT_TOOLBAR_GRID_CLASS =
   "grid grid-cols-2 gap-x-3 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] md:gap-x-4 md:gap-y-3";
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
