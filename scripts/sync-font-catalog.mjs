@@ -468,6 +468,17 @@ function runGcloud(arguments_, options = {}) {
 }
 
 function uploadStorage(catalog) {
+  if (process.argv.includes("--bulk-storage")) {
+    if (INCLUDED_SOURCE_FOLDERS.size > 0 || catalog.some(font => font.sourceKind !== "folder")) {
+      throw new Error("Bulk upload requires all sources to be organized family folders.");
+    }
+    runGcloud([
+      "storage", "rsync", "--recursive", "--exclude",
+      "(^|/)(_alreadyUploaded(/|$)|\\.DS_Store$)",
+      LOCAL_ROOT, `gs://${PROJECT_ID}.firebasestorage.app/${STORAGE_ROOT}`,
+    ]);
+    return;
+  }
   for (const font of catalog) {
     if (font.sourceKind === "folder") {
       runGcloud([
