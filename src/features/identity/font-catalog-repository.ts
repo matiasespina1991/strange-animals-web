@@ -96,6 +96,7 @@ type FontCatalogDocument = {
   kind?: unknown;
   name?: unknown;
   parentCategory?: unknown;
+  previewLineHeightExtraRem?: unknown;
   preview?: unknown;
   sortName?: unknown;
   useCase?: unknown;
@@ -119,6 +120,7 @@ export type FontCatalogItem = {
   id: string;
   name: string;
   parentCategory: string | null;
+  previewLineHeightExtraRem?: number;
   useCases: string[];
   sortName: string;
   kind: "collection" | "family";
@@ -395,6 +397,12 @@ function readFont(id: string, value: FontCatalogDocument) {
     id,
     name: displayName,
     parentCategory,
+    previewLineHeightExtraRem:
+      typeof value.previewLineHeightExtraRem === "number" &&
+      Number.isFinite(value.previewLineHeightExtraRem) &&
+      value.previewLineHeightExtraRem >= 0
+        ? value.previewLineHeightExtraRem
+        : 0,
     useCases: [
       ...new Set(
         storedUseCases.length > 0

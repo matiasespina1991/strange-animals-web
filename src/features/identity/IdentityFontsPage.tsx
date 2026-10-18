@@ -259,6 +259,15 @@ type TextAlignment = "left" | "center" | "right";
 type TextCasing = "lower" | "mixed" | "upper";
 type FontWeight = "normal" | 800;
 
+function getImageTextTransform(alignment: TextAlignment) {
+  const horizontal = alignment === "center" ? "-50%" : alignment === "right" ? "-100%" : "0%";
+  return `translate(${horizontal}, -50%)`;
+}
+
+function getPreviewLineHeight(fontSize: string, lineHeight: number, extraRem = 0) {
+  return extraRem > 0 ? `calc(${fontSize} * ${lineHeight} + ${extraRem}rem)` : lineHeight;
+}
+
 function applyTextCasing(value: string, casing: TextCasing) {
   if (casing === "lower") return value.toLocaleLowerCase();
   if (casing === "upper") return value.toLocaleUpperCase();
@@ -1739,11 +1748,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight,
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
-                        transform: "translateY(-100%)",
+                        transform: getImageTextTransform(textAlignment),
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
                           : undefined,
@@ -1763,11 +1772,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight,
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
-                        transform: "translateY(-100%)",
+                        transform: getImageTextTransform(textAlignment),
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
                           : undefined,
@@ -1785,8 +1794,8 @@ function FontSpecimen({
                     </p>
                     <p aria-hidden="true" className="identity-font-ghost-preview pointer-events-none absolute min-w-max max-w-none whitespace-pre-wrap"
                       style={{ color: fontColor, fontFamily: familyName, fontSize: "var(--identity-ghost-font-size)",
-                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight, textAlign: textAlignment,
-                        left: `${backgroundTextAnchor.x}%`, top: `${backgroundTextAnchor.y}%`, transform: "translateY(-100%)",
+                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font.previewLineHeightExtraRem), textAlign: textAlignment,
+                        left: `${backgroundTextAnchor.x}%`, top: `${backgroundTextAnchor.y}%`, transform: getImageTextTransform(textAlignment),
                         textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
                       }}>
                       <SupportedPreviewText fallbackValue={applyTextCasing(font.name, textCasing)} supportedCodePoints={loadedVariant?.supportedCodePoints} value={previewText} />
@@ -1806,7 +1815,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight,
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1823,7 +1832,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight,
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1842,7 +1851,7 @@ function FontSpecimen({
                       style={{ color: fontColor, fontFamily: familyName,
                         fontSize: "var(--identity-ghost-font-size)",
                         fontWeight: getPreviewFontWeight(fontWeight),
-                        letterSpacing: `${letterSpacing}em`, lineHeight, textAlign: textAlignment,
+                        letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font.previewLineHeightExtraRem), textAlign: textAlignment,
                         textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
                       }}
                     >
@@ -2179,6 +2188,7 @@ export function IdentityFontsPage() {
   >(new Set());
   const defaultCategoriesOpenedReference = useRef(false);
   const manuallyClosedCategoriesReference = useRef(new Set<string>());
+  const [searchCollapsedCategoryKeys, setSearchCollapsedCategoryKeys] = useState(new Set<string>());
   const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
     new Set(),
   );
@@ -2197,6 +2207,9 @@ export function IdentityFontsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>();
   const deferredSearch = useDeferredValue(search);
+  useEffect(() => {
+    setSearchCollapsedCategoryKeys(new Set());
+  }, [deferredSearch]);
   const typographySettingsReference = useRef<HTMLDivElement>(null);
   const typographySettingsButtonReference = useRef<HTMLButtonElement>(null);
   const fontColorSettingsReference = useRef<HTMLDivElement>(null);
@@ -2732,7 +2745,7 @@ export function IdentityFontsPage() {
     if (!header) return;
     let opened = false;
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || opened) return;
+      if (!entry?.isIntersecting || opened || manuallyClosedCategoriesReference.current.has(nextSection.key)) return;
       opened = true;
       observer.disconnect();
       setExpandedCategoryKeys(current => new Set(current).add(nextSection.key));
@@ -4243,7 +4256,9 @@ export function IdentityFontsPage() {
             className="pb-20 lg:pb-0"
           >
             {fontSections.map((section) => {
-              const collapsed = !search.trim() && !expandedCategoryKeys.has(section.key);
+              const collapsed = search.trim()
+                ? searchCollapsedCategoryKeys.has(section.key)
+                : !expandedCategoryKeys.has(section.key);
               const contentId = `font-section-${section.key
                 .toLocaleLowerCase()
                 .replace(/[^a-z\d]+/g, "-")}`;
@@ -4271,17 +4286,22 @@ export function IdentityFontsPage() {
                       className={`flex shrink-0 cursor-pointer items-center gap-2 font-normal text-white outline-none ${section.label.startsWith("category: ") ? "text-[calc(0.7rem+1px)] tracking-normal hover:text-white" : "text-[0.625rem] tracking-[0.12em] hover:text-white/75"}`}
                       type="button"
                       onClick={() => {
+                        if (search.trim()) {
+                          setSearchCollapsedCategoryKeys(current => {
+                            const next = new Set(current);
+                            collapsed ? next.delete(section.key) : next.add(section.key);
+                            return next;
+                          });
+                          return;
+                        }
+                        if (collapsed) {
+                          manuallyClosedCategoriesReference.current.delete(section.key);
+                        } else {
+                          manuallyClosedCategoriesReference.current.add(section.key);
+                        }
                         setExpandedCategoryKeys((current) => {
                           const next = new Set(current);
-
-                          if (next.has(section.key)) {
-                            next.delete(section.key);
-                            manuallyClosedCategoriesReference.current.add(section.key);
-                          } else {
-                            next.add(section.key);
-                            manuallyClosedCategoriesReference.current.delete(section.key);
-                          }
-
+                          collapsed ? next.add(section.key) : next.delete(section.key);
                           return next;
                         });
                       }}
@@ -4410,7 +4430,7 @@ export function IdentityFontsPage() {
         <div
           aria-labelledby="saved-sets-title"
           aria-modal="true"
-          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/85 px-5"
+          className="identity-font-modal-backdrop fixed inset-0 z-[10001] flex items-center justify-center px-5"
           role="dialog"
         >
           <div className="w-full max-w-4xl border border-white/55 bg-black p-5">
@@ -4547,7 +4567,7 @@ export function IdentityFontsPage() {
         <div
           aria-labelledby="load-set-title"
           aria-modal="true"
-          className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/90 px-5"
+          className="identity-font-modal-backdrop fixed inset-0 z-[10002] flex items-center justify-center px-5"
           role="dialog"
         >
           <div className="w-full max-w-md border border-white/55 bg-black p-5">
@@ -4586,7 +4606,7 @@ export function IdentityFontsPage() {
         <div
           aria-labelledby="delete-font-title"
           aria-modal="true"
-          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/85 px-5"
+          className="identity-font-modal-backdrop fixed inset-0 z-[10001] flex items-center justify-center px-5"
           role="dialog"
         >
           <div className="w-full max-w-md border border-white/55 bg-black p-5">

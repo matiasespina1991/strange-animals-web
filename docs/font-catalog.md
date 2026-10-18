@@ -20,6 +20,15 @@ a family source.
 
 ## Publish
 
+### Per-family preview spacing
+
+The optional numeric Firestore field `fonts/{familyId}.previewLineHeightExtraRem`
+adds a non-negative amount in `rem` to the preview's selected line-height.
+Missing or invalid values default to zero. It affects rendered previews only,
+including image overlays and the size-slider ghost, not the font files or the
+global line-height control. For example, `8` adds `8rem` to every preview line.
+The sync script's field-level updates preserve this setting.
+
 This procedure is mandatory for every font addition. A font is **not uploaded**
 until it exists in both Firebase Storage and Firestore and the verification
 command finishes with zero missing entries. Do not report an upload as complete
