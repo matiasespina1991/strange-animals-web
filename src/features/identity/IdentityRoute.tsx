@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { IdentityAccessGate } from "./IdentityAccessGate";
 import { IdentityFontsPage } from "./IdentityFontsPage";
 import { IdentityTypefacesLab } from "./IdentityTypefacesLab";
+import { IdentityDesignConfigurator } from "./IdentityDesignConfigurator";
 
 type IdentityRouteProperties = {
   route: string;
@@ -20,7 +21,9 @@ export function IdentityRoute({ route }: IdentityRouteProperties) {
 
   return (
     <IdentityAccessGate>
-      {route === "/identity/typography/typefaces/n" ? (
+      {route === "/identity/design-configurator" ? (
+        <IdentityDesignConfigurator />
+      ) : route === "/identity/typography/typefaces/n" ? (
         <IdentityTypefacesLab />
       ) : route === "/identity/typography/typefaces" ? (
         <IdentityFontsPage />

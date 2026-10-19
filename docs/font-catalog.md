@@ -29,6 +29,14 @@ including image overlays and the size-slider ghost, not the font files or the
 global line-height control. For example, `8` adds `8rem` to every preview line.
 The sync script's field-level updates preserve this setting.
 
+`previewLineHeightExtra` adds a non-negative, unitless amount to the selected
+line-height multiplier instead (e.g. `2.5` changes `1` to `3.5`). It defaults
+to zero and can be combined with `previewLineHeightExtraRem`.
+
+`previewLetterSpacingExtraEm` adds non-negative letter spacing in `em` to the
+preview's selected value, including image overlays and the size-slider ghost.
+Missing or invalid values default to zero; font files remain unchanged.
+
 This procedure is mandatory for every font addition. A font is **not uploaded**
 until it exists in both Firebase Storage and Firestore and the verification
 command finishes with zero missing entries. Do not report an upload as complete

@@ -97,6 +97,8 @@ type FontCatalogDocument = {
   name?: unknown;
   parentCategory?: unknown;
   previewLineHeightExtraRem?: unknown;
+  previewLineHeightExtra?: unknown;
+  previewLetterSpacingExtraEm?: unknown;
   preview?: unknown;
   sortName?: unknown;
   useCase?: unknown;
@@ -121,6 +123,8 @@ export type FontCatalogItem = {
   name: string;
   parentCategory: string | null;
   previewLineHeightExtraRem?: number;
+  previewLineHeightExtra?: number;
+  previewLetterSpacingExtraEm?: number;
   useCases: string[];
   sortName: string;
   kind: "collection" | "family";
@@ -356,7 +360,7 @@ function readPreview(value: unknown) {
   };
 }
 
-function readFont(id: string, value: FontCatalogDocument) {
+function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | null {
   if (typeof value.name !== "string") return null;
 
   const enabled = value.enabled === true;
@@ -397,6 +401,14 @@ function readFont(id: string, value: FontCatalogDocument) {
     id,
     name: displayName,
     parentCategory,
+    previewLetterSpacingExtraEm:
+      typeof value.previewLetterSpacingExtraEm === "number" &&
+      Number.isFinite(value.previewLetterSpacingExtraEm) && value.previewLetterSpacingExtraEm >= 0
+        ? value.previewLetterSpacingExtraEm : 0,
+    previewLineHeightExtra:
+      typeof value.previewLineHeightExtra === "number" &&
+      Number.isFinite(value.previewLineHeightExtra) && value.previewLineHeightExtra >= 0
+        ? value.previewLineHeightExtra : 0,
     previewLineHeightExtraRem:
       typeof value.previewLineHeightExtraRem === "number" &&
       Number.isFinite(value.previewLineHeightExtraRem) &&

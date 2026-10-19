@@ -264,8 +264,10 @@ function getImageTextTransform(alignment: TextAlignment) {
   return `translate(${horizontal}, -50%)`;
 }
 
-function getPreviewLineHeight(fontSize: string, lineHeight: number, extraRem = 0) {
-  return extraRem > 0 ? `calc(${fontSize} * ${lineHeight} + ${extraRem}rem)` : lineHeight;
+function getPreviewLineHeight(fontSize: string, lineHeight: number, font: FontCatalogItem) {
+  const effectiveLineHeight = lineHeight + (font.previewLineHeightExtra ?? 0);
+  const extraRem = font.previewLineHeightExtraRem ?? 0;
+  return extraRem > 0 ? `calc(${fontSize} * ${effectiveLineHeight} + ${extraRem}rem)` : effectiveLineHeight;
 }
 
 function applyTextCasing(value: string, casing: TextCasing) {
@@ -1141,7 +1143,7 @@ function FontSpecimen({
   fontColor,
   fontSize,
   fontWeight,
-  letterSpacing,
+  letterSpacing: baseLetterSpacing,
   lineHeight,
   textAlignment,
   textCasing,
@@ -1197,6 +1199,7 @@ function FontSpecimen({
   onBackgroundTextAnchorChange: (anchor: BackgroundTextAnchor) => void;
   specimen: string;
 }) {
+  const letterSpacing = baseLetterSpacing + (font.previewLetterSpacingExtraEm ?? 0);
   const cardReference = useRef<HTMLElement>(null);
   const [variants, setVariants] = useState<FontVariant[]>([]);
   const [variantsLoaded, setVariantsLoaded] = useState(false);
@@ -1748,7 +1751,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
@@ -1772,7 +1775,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
@@ -1794,7 +1797,7 @@ function FontSpecimen({
                     </p>
                     <p aria-hidden="true" className="identity-font-ghost-preview pointer-events-none absolute min-w-max max-w-none whitespace-pre-wrap"
                       style={{ color: fontColor, fontFamily: familyName, fontSize: "var(--identity-ghost-font-size)",
-                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font.previewLineHeightExtraRem), textAlign: textAlignment,
+                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font), textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`, top: `${backgroundTextAnchor.y}%`, transform: getImageTextTransform(textAlignment),
                         textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
                       }}>
@@ -1815,7 +1818,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1832,7 +1835,7 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font.previewLineHeightExtraRem),
+                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1851,7 +1854,7 @@ function FontSpecimen({
                       style={{ color: fontColor, fontFamily: familyName,
                         fontSize: "var(--identity-ghost-font-size)",
                         fontWeight: getPreviewFontWeight(fontWeight),
-                        letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font.previewLineHeightExtraRem), textAlign: textAlignment,
+                        letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font), textAlign: textAlignment,
                         textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
                       }}
                     >
