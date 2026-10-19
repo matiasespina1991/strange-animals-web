@@ -26,6 +26,8 @@ import {
   EyeOff,
   FileText,
   Focus,
+  Maximize,
+  Minimize,
   ImagePlus,
   Layers,
   Minus,
@@ -258,6 +260,40 @@ export function DesignConfiguratorEditor() {
     future: [],
   });
   const design = history.present;
+  const editorRoot = useRef<HTMLElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenFallback, setFullscreenFallback] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(document.fullscreenElement === editorRoot.current);
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  useEffect(() => {
+    if (!fullscreenFallback) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreenFallback(false);
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", escape);
+    };
+  }, [fullscreenFallback]);
+  const toggleFullscreen = async () => {
+    if (fullscreenFallback) { setFullscreenFallback(false); return; }
+    if (document.fullscreenElement === editorRoot.current) {
+      await document.exitFullscreen();
+      return;
+    }
+    try {
+      if (!editorRoot.current?.requestFullscreen) { setFullscreenFallback(true); return; }
+      await editorRoot.current.requestFullscreen();
+    } catch {
+      setFullscreenFallback(true);
+    }
+  };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
   const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -818,7 +854,8 @@ export function DesignConfiguratorEditor() {
   );
   return (
     <main
-      className={`design-configurator${dragging ? " dc-is-dragging" : ""}`}
+      ref={editorRoot}
+      className={`design-configurator${dragging ? " dc-is-dragging" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
       data-native-cursor-surface
       onKeyDown={(e) => {
         const editable =
@@ -1124,7 +1161,7 @@ export function DesignConfiguratorEditor() {
             backgroundColor: design.sleeveColor,
             color: (parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 + parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 + parseInt(design.sleeveColor.slice(5, 7), 16) * 0.114) < 140 ? "#d9ddcd" : "#4c5740",
           }}>
-            <div className="dc-disc-wrap" style={{ width: `${zoom}%` }}>
+            <div className="dc-disc-wrap" style={{ transform: `scale(${zoom / 100})` }}>
               <LabelArtwork
                 design={design}
                 side={side}
@@ -1147,10 +1184,6 @@ export function DesignConfiguratorEditor() {
             </span>
           </div>
           <div className="dc-canvas-footer">
-            <span>
-              Drag text to position it. Drag circular text to rotate. Arrow keys
-              for fine adjustments.
-            </span>
             <div className="dc-zoom">
               <button
                 aria-label="Zoom out"
@@ -1169,6 +1202,11 @@ export function DesignConfiguratorEditor() {
               </button>
               <button aria-label="Fit to canvas" onClick={() => setZoom(100)}>
                 <Focus size={16} />
+              </button>
+              <button aria-label={fullscreen || fullscreenFallback ? "Exit fullscreen" : "Enter fullscreen"}
+                aria-pressed={fullscreen || fullscreenFallback}
+                onClick={() => void toggleFullscreen()}>
+                {fullscreen || fullscreenFallback ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
             </div>
           </div>
