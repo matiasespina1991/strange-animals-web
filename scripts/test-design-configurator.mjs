@@ -26,6 +26,19 @@ const {
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
 const original = structuredClone(initialDesign);
+const templateSource = await readFile(new URL("../src/features/identity/label-templates.ts", import.meta.url), "utf8");
+const templateCode = ts.transpileModule(templateSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText.replace('"./design-configurator-model"', JSON.stringify(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`));
+const { LABEL_TEMPLATES } = await import(`data:text/javascript;base64,${Buffer.from(templateCode).toString("base64")}`);
+assert.equal(LABEL_TEMPLATES.length, 6);
+assert.equal(new Set(LABEL_TEMPLATES.map((template) => template.id)).size, 6);
+for (const template of LABEL_TEMPLATES) {
+  const parsed = parseDesign(template.design);
+  assert.ok(parsed.A.length && parsed.B.length, `${template.name} must contain both sides`);
+  assert.ok(parsed.A.some((layer) => layer.id === "title" && layer.visible));
+}
+assert.deepEqual(initialDesign, original, "Templates must not mutate the default design");
 let history = { past: [], present: original, future: [] };
 const rename = (title) => (current) => ({ ...current, title });
 history = designReducer(history, {

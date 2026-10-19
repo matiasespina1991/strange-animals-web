@@ -21,11 +21,11 @@ import {
   ChevronRight,
   Circle,
   Copy,
+  Grid2X2,
   Eye,
   EyeOff,
   FileText,
   Focus,
-  Grid2X2,
   ImagePlus,
   Layers,
   Minus,
@@ -45,11 +45,13 @@ import {
 } from "lucide-react";
 import {
   listFontCatalog,
-  listFontVariants,
   type FontCatalogItem,
-  type FontVariant,
 } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
+import { ColorSwatches } from "./ColorSwatches";
+import { LabelTemplatePicker } from "./LabelTemplatePicker";
+import { FontStyleTiles } from "./FontStyleTiles";
+import { GlobalInkControl } from "./GlobalInkControl";
 import {
   clamp,
   designReducer,
@@ -92,10 +94,12 @@ function Modal({
   title,
   children,
   close,
+  wide = false,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
+  wide?: boolean;
 }) {
   const reference = useRef<HTMLElement>(null),
     titleId = useId();
@@ -136,9 +140,9 @@ function Modal({
     };
   }, []);
   return (
-    <div className="dc-picker-overlay" onClick={close}>
+    <div className={`dc-picker-overlay${wide ? " dc-template-overlay" : ""}`} onClick={close}>
       <section
-        className="dc-font-picker"
+        className={`dc-font-picker${wide ? " dc-template-dialog" : ""}`}
         ref={reference}
         role="dialog"
         aria-modal="true"
@@ -147,7 +151,6 @@ function Modal({
       >
         <div className="dc-picker-heading">
           <div>
-            <span className="dc-eyebrow">STRANGE ANIMALS / DESIGN STUDIO</span>
             <h2 id={titleId}>{title}</h2>
           </div>
           <button aria-label="Close dialog" onClick={close}>
@@ -167,6 +170,7 @@ function FontRow({
   busy,
   choose,
   preview,
+  expanded,
   star,
 }: {
   font: FontCatalogItem;
@@ -176,6 +180,7 @@ function FontRow({
   busy: boolean;
   choose: () => void;
   preview: (font: FontCatalogItem | null) => void;
+  expanded?: boolean;
   star: () => void;
 }) {
   const reference = useRef<HTMLDivElement>(null);
@@ -209,6 +214,7 @@ function FontRow({
         disabled={busy}
         onClick={choose}
         aria-pressed={active}
+        aria-expanded={expanded}
         onPointerEnter={(event) => {
           if (event.pointerType === "mouse") preview(font);
         }}
@@ -252,6 +258,8 @@ export function DesignConfiguratorEditor() {
     future: [],
   });
   const design = history.present;
+  const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
+  const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [side, setSide] = useState<LabelSide>("A"),
     [selected, setSelected] = useState("legal"),
@@ -259,7 +267,7 @@ export function DesignConfiguratorEditor() {
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties");
   const [dialog, setDialog] = useState<
-    "fonts" | "settings" | "export" | "new" | null
+    "fonts" | "file" | "settings" | "export" | "new" | null
   >(null);
   const [hoverFamily, setHoverFamily] = useState<string | null>(null);
   const hoverRequest = useRef(0);
@@ -267,12 +275,13 @@ export function DesignConfiguratorEditor() {
     hoverRequest.current += 1;
     setHoverFamily(null);
   }, [dialog, side, selected]);
-  const previewFont = async (font: FontCatalogItem | null) => {
+  const [expandedFont, setExpandedFont] = useState<string | null>(null);
+  const previewFont = async (font: FontCatalogItem | null, variantId?: string) => {
     const request = ++hoverRequest.current;
     setHoverFamily(null);
     if (!font) return;
     try {
-      const resolved = await resolveLabelFont(font);
+      const resolved = await resolveLabelFont(font, variantId);
       if (request === hoverRequest.current) setHoverFamily(resolved.family);
     } catch {
       // Keep the committed font if the temporary preview cannot load.
@@ -297,8 +306,7 @@ export function DesignConfiguratorEditor() {
     }
   });
   const [families, setFamilies] = useState<Record<string, string>>({}),
-    [fontErrors, setFontErrors] = useState<Record<string, string>>({}),
-    [variants, setVariants] = useState<FontVariant[]>([]);
+    [fontErrors, setFontErrors] = useState<Record<string, string>>({});
   const [fontBusy, setFontBusy] = useState(false),
     [exportBusy, setExportBusy] = useState(false),
     [notice, setNotice] = useState(
@@ -326,6 +334,24 @@ export function DesignConfiguratorEditor() {
   const layers = design[side],
     element = layers.find((l) => l.id === selected) ?? layers[0],
     currentFont = fonts.find((f) => f.id === element.fontId);
+  const defaultFontName = element.id === "title"
+    ? "Berlin Type Bold"
+    : "Alte DIN 1451 Mittelschrift geprägt";
+  const selection = new Set(selectedLayers.length ? selectedLayers : [element.id]);
+  const selectedTextLayers = layers.filter((layer) => selection.has(layer.id) && layer.kind !== "image");
+  useEffect(() => { setSelectedLayers([]); }, [side]);
+  useEffect(() => {
+    if (selectedLayers.length && !selectedLayers.includes(element.id)) setSelectedLayers([]);
+  }, [element.id, selectedLayers]);
+  useEffect(() => {
+    const list = layerList.current;
+    const tile = Array.from(list?.querySelectorAll<HTMLElement>("[data-layer-tile]") ?? [])
+      .find((node) => node.dataset.layerTile === element.id);
+    if (!list || !tile) return;
+    const bounds = list.getBoundingClientRect(), item = tile.getBoundingClientRect();
+    if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
+    else if (item.bottom > bounds.bottom) list.scrollTop += item.bottom - bounds.bottom;
+  }, [element.id, side, mobileTab]);
   const change = (
     update: (current: LabelDesign) => LabelDesign,
     group?: string,
@@ -367,21 +393,6 @@ export function DesignConfiguratorEditor() {
       active = false;
     };
   }, [catalogAttempt]);
-  useEffect(() => {
-    let active = true;
-    setVariants([]);
-    if (currentFont)
-      listFontVariants(currentFont)
-        .then((data) => {
-          if (active) setVariants(data);
-        })
-        .catch(() => {
-          if (active) setNotice("No se pudieron cargar las variantes.");
-        });
-    return () => {
-      active = false;
-    };
-  }, [currentFont]);
   useEffect(() => {
     let active = true;
     const keys = new Set<string>();
@@ -481,6 +492,7 @@ export function DesignConfiguratorEditor() {
     }
   };
   const selectLayer = (layer: LabelLayer) => {
+    setSelectedLayers([layer.id]);
     setSelected(layer.id);
     setMobileTab("properties");
   };
@@ -739,9 +751,8 @@ export function DesignConfiguratorEditor() {
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
-  const panelTitle = (n: string, title: string) => (
+  const panelTitle = (title: string) => (
     <div className="dc-panel-title">
-      <span>{n}</span>
       <h2>{title}</h2>
     </div>
   );
@@ -871,11 +882,10 @@ export function DesignConfiguratorEditor() {
           <span>identity</span>
           <ChevronRight size={12} />
           <strong>design configurator</strong>
-          <span className="dc-draft-tag">STUDIO</span>
         </div>
         <a className="dc-back" href="/identity/typography/typefaces">
           <ArrowUpRight size={15} />
-          Typefaces
+          Typefaces collection
         </a>
       </header>
       <div className="dc-project-bar">
@@ -901,6 +911,46 @@ export function DesignConfiguratorEditor() {
             />
           </label>
         </div>
+        <div className="dc-preview-stock">
+          <span>Label stock</span>
+          <ColorSwatches colors={["#ffffff", "#FA8AA6", "#000000", "#1A2925"]}
+            value={design.paper} label="Label stock"
+            onChoose={(color) => change((current) => ({ ...current, paper: color }))} />
+          <label className="dc-custom-paper">
+            <span className="sr-only">Custom label color</span>
+            <input type="color" value={design.paper}
+              onChange={(event) => change((current) => ({ ...current, paper: event.target.value }), "paper")}
+              onBlur={end} />
+          </label>
+        </div>
+        <GlobalInkControl
+          colors={[...design.A, ...design.B].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
+          onApply={(color) => {
+            end();
+            change((current) => ({
+              ...current,
+              A: current.A.map((layer) => layer.kind === "image" ? layer : { ...layer, color }),
+              B: current.B.map((layer) => layer.kind === "image" ? layer : { ...layer, color }),
+            }));
+          }}
+        />
+        <div className="dc-preview-stock">
+          <span>Sleeve color</span>
+          <div className="dc-paper-options">
+            {["#000000", "#ffffff", "#FA8AA6", "#1A2925"].map((color) => (
+              <button key={color} aria-label={`Sleeve color ${color}`}
+                aria-pressed={design.sleeveColor.toLowerCase() === color.toLowerCase()}
+                style={{ backgroundColor: color }}
+                onClick={() => change((current) => ({ ...current, sleeveColor: color }))} />
+            ))}
+          </div>
+          <label className="dc-custom-paper">
+            <span className="sr-only">Custom sleeve color</span>
+            <input type="color" value={design.sleeveColor}
+              onChange={(event) => change((current) => ({ ...current, sleeveColor: event.target.value }), "sleeve-color")}
+              onBlur={end} />
+          </label>
+        </div>
         <div className="dc-project-actions">
           <div className="dc-history">
             <button
@@ -920,13 +970,17 @@ export function DesignConfiguratorEditor() {
               <Redo2 size={17} />
             </button>
           </div>
-          <button className="dc-save" onClick={() => setDialog("settings")}>
-            <Settings2 size={15} />
-            <span>Project</span>
+          <button className="dc-save" onClick={() => setDialog("file")}>
+            <FileText size={15} />
+            <span>File</span>
           </button>
           <button className="dc-save" onClick={save}>
             <Save size={15} />
             Save
+          </button>
+          <button className="dc-save" onClick={() => setDialog("settings")}>
+            <Settings2 size={15} />
+            <span>Project settings</span>
           </button>
           <button className="dc-export" onClick={() => setDialog("export")}>
             <ArrowDownToLine size={15} />
@@ -944,7 +998,7 @@ export function DesignConfiguratorEditor() {
         <aside
           className={`dc-layers ${mobileTab === "layers" ? "dc-mobile-visible" : ""}`}
         >
-          {panelTitle("01", "Elements")}
+          {panelTitle("Elements")}
           <div className="dc-side-switch" aria-label="Record side">
             {(["A", "B"] as const).map((s) => (
               <button
@@ -965,25 +1019,48 @@ export function DesignConfiguratorEditor() {
               <Type size={14} />
               Text
             </button>
-            <button onClick={() => add("circular")}>
-              <Circle size={14} />
-              Legal / arc
-            </button>
             <button onClick={() => add("image")}>
               <ImagePlus size={14} />
               Image
             </button>
+            <button onClick={() => add("circular")}>
+              <Circle size={14} />
+              Legal text / arc
+            </button>
           </div>
-          <div className="dc-layer-list">
+          <div className="dc-multi-controls">
+            <div className="dc-layer-actions">
+              <button aria-label="Move element toward back" disabled={index <= 0} onClick={() => reorder(-1)}><ArrowUp size={15} /></button>
+              <button aria-label="Move element toward front" disabled={index >= layers.length - 1} onClick={() => reorder(1)}><ArrowDown size={15} /></button>
+              <button aria-label="Duplicate element" disabled={layers.length >= 50} onClick={duplicate}><Copy size={15} /></button>
+              <button aria-label="Delete element" disabled={layers.length <= 1} onClick={remove}><Trash2 size={15} /></button>
+            </div>
+            <span>{selection.size} selected</span>
+          </div>
+          <div className="dc-layer-list" ref={layerList}>
             {layers.map((layer, i) => (
               <div
                 key={layer.id}
-                className={`dc-layer ${element.id === layer.id ? "is-selected" : ""}`}
+                data-layer-tile={layer.id}
+                className={`dc-layer ${selection.has(layer.id) ? "is-selected" : ""}`}
               >
                 <button
                   className="dc-layer-select"
-                  aria-pressed={element.id === layer.id}
-                  onClick={() => selectLayer(layer)}
+                  aria-pressed={selection.has(layer.id)}
+                  onClick={(event) => {
+                    if (event.shiftKey) {
+                      const anchor = layers.findIndex((item) => item.id === element.id);
+                      const range = layers.slice(Math.min(anchor, i), Math.max(anchor, i) + 1).map((item) => item.id);
+                      setSelectedLayers(event.metaKey || event.ctrlKey ? [...new Set([...selection, ...range])] : range);
+                      setSelected(layer.id);
+                    } else if (event.metaKey || event.ctrlKey) {
+                      const next = new Set(selection);
+                      if (next.has(layer.id)) next.delete(layer.id); else next.add(layer.id);
+                      if (!next.size) return;
+                      setSelectedLayers([...next]);
+                      setSelected(next.has(layer.id) ? layer.id : [...next][0]);
+                    } else selectLayer(layer);
+                  }}
                 >
                   <span className="dc-layer-number">
                     {String(i + 1).padStart(2, "0")}
@@ -999,7 +1076,7 @@ export function DesignConfiguratorEditor() {
                     {layer.name}
                     <small>
                       {layer.kind === "circular"
-                        ? "Text on a circle"
+                        ? "Text arc"
                         : layer.kind === "image"
                           ? "Image / logo"
                           : "Text layer"}
@@ -1018,80 +1095,9 @@ export function DesignConfiguratorEditor() {
               </div>
             ))}
           </div>
-          <div className="dc-layer-actions">
-            <button
-              aria-label="Move element toward back"
-              disabled={index <= 0}
-              onClick={() => reorder(-1)}
-            >
-              <ArrowUp size={15} />
-            </button>
-            <button
-              aria-label="Move element toward front"
-              disabled={index >= layers.length - 1}
-              onClick={() => reorder(1)}
-            >
-              <ArrowDown size={15} />
-            </button>
-            <button
-              aria-label="Duplicate element"
-              disabled={layers.length >= 50}
-              onClick={duplicate}
-            >
-              <Copy size={15} />
-            </button>
-            <button
-              aria-label="Delete element"
-              disabled={layers.length <= 1}
-              onClick={remove}
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
-          <div className="dc-paper">
-            <div className="dc-section-caption">
-              Label stock
-              <label className="dc-custom-paper">
-                <span className="sr-only">Custom label color</span>
-                <input
-                  type="color"
-                  value={design.paper}
-                  onChange={(e) =>
-                    change((c) => ({ ...c, paper: e.target.value }), "paper")
-                  }
-                  onBlur={end}
-                />
-              </label>
-            </div>
-            <div className="dc-paper-options">
-              {[
-                "#e5e8d9",
-                "#f1eadc",
-                "#e0e7ec",
-                "#efcfc3",
-                "#f7f6f0",
-                "#FA8AA6",
-              ].map((c) => (
-                <button
-                  key={c}
-                  aria-label={`Label color ${c}`}
-                  aria-pressed={design.paper === c}
-                  style={{ backgroundColor: c }}
-                  onClick={() =>
-                    change((current) => ({ ...current, paper: c }))
-                  }
-                >
-                  {design.paper === c && <Check size={14} />}
-                </button>
-              ))}
-            </div>
-            <span>
-              {design.diameterMm} mm · {design.holeMm} mm center hole
-            </span>
-          </div>
           <button className="dc-load" onClick={() => setDialog("settings")}>
             <FileText size={15} />
-            Projects & dimensions
+            Project settings
             <ArrowUpRight size={13} />
           </button>
         </aside>
@@ -1099,17 +1105,25 @@ export function DesignConfiguratorEditor() {
           <div className="dc-stage-top">
             <span>
               <span className="dc-live-dot" />
-              SIDE {side} / LIVE PREVIEW
+              SIDE {side} / PREVIEW
             </span>
-            <button aria-pressed={guides} onClick={() => setGuides(!guides)}>
-              <Grid2X2 size={14} />
-              Guides<span>{guides ? "ON" : "OFF"}</span>
-            </button>
+            <div className="dc-preview-controls">
+            <div className="dc-guides-control">
+              <Grid2X2 size={14} aria-hidden="true" />
+              <span id={`${prefix}-guides-label`}>Guides</span>
+              <button className="dc-guides-switch" role="switch"
+                aria-checked={guides} aria-labelledby={`${prefix}-guides-label`}
+                onClick={() => setGuides(!guides)}>
+                <span className={!guides ? "is-active" : ""} aria-hidden="true">OFF</span>
+                <span className={guides ? "is-active" : ""} aria-hidden="true">ON</span>
+              </button>
+            </div>
+            </div>
           </div>
-          <div className="dc-artboard">
-            <span className="dc-measure dc-measure-top">
-              {design.diameterMm} mm <span>LABEL DIAMETER</span>
-            </span>
+          <div className="dc-artboard" style={{
+            backgroundColor: design.sleeveColor,
+            color: (parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 + parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 + parseInt(design.sleeveColor.slice(5, 7), 16) * 0.114) < 140 ? "#d9ddcd" : "#4c5740",
+          }}>
             <div className="dc-disc-wrap" style={{ width: `${zoom}%` }}>
               <LabelArtwork
                 design={design}
@@ -1162,7 +1176,7 @@ export function DesignConfiguratorEditor() {
         <aside
           className={`dc-properties ${mobileTab === "properties" ? "dc-mobile-visible" : ""}`}
         >
-          {panelTitle("02", "Properties")}
+          {panelTitle("Properties")}
           <div className="dc-selected-heading">
             <div>
               {element.kind === "circular" ? (
@@ -1174,7 +1188,6 @@ export function DesignConfiguratorEditor() {
               )}
               <h3>{element.name}</h3>
             </div>
-            <span>{element.kind.toUpperCase()}</span>
           </div>
           <label className="dc-field">
             <span>Element name</span>
@@ -1203,10 +1216,25 @@ export function DesignConfiguratorEditor() {
                   onBlur={end}
                 />
               </label>
-              <section className="dc-property-section">
+              <section className="dc-property-section dc-typography-section">
                 <div className="dc-section-caption">
-                  Typography<span>01</span>
+                  Typography
                 </div>
+                {selectedTextLayers.length > 0 && (
+                  <div className="dc-ink dc-ink-priority">
+                    <span>Ink color{selectedTextLayers.length > 1 ? ` · ${selectedTextLayers.length} text layers` : ""}</span>
+                    <label>
+                      <input aria-label="Selected text ink color" type="color"
+                        value={selectedTextLayers[0].color}
+                        onChange={(event) => {
+                          const color = event.target.value;
+                          const ids = new Set(selectedTextLayers.map((layer) => layer.id));
+                          change((current) => ({ ...current, [side]: current[side].map((layer) => ids.has(layer.id) ? { ...layer, color } : layer) }), `ink-${[...ids].join("-")}`);
+                        }} onBlur={end} />
+                      <span>{selectedTextLayers.some((layer) => layer.color !== selectedTextLayers[0].color) ? "Mixed" : selectedTextLayers[0].color.toUpperCase()}</span>
+                    </label>
+                  </div>
+                )}
                 <label className="dc-field">
                   <span>Font family</span>
                   <button
@@ -1221,7 +1249,7 @@ export function DesignConfiguratorEditor() {
                       {currentFont?.name ??
                         (element.fontId
                           ? "Font unavailable"
-                          : "Studio default")}
+                          : defaultFontName)}
                       <small>
                         {currentFont
                           ? (currentFont.parentCategory ?? "Uncategorized")
@@ -1243,31 +1271,9 @@ export function DesignConfiguratorEditor() {
                       update({ fontId: undefined, variantId: undefined })
                     }
                   >
-                    Use studio default
+                    Use {defaultFontName}
                   </button>
                 )}
-                <label className="dc-field">
-                  <span>Style</span>
-                  <select
-                    disabled={!currentFont || fontBusy || !variants.length}
-                    value={element.variantId ?? ""}
-                    onChange={(e) => {
-                      if (currentFont)
-                        void selectFont(currentFont, e.target.value);
-                    }}
-                  >
-                    <option value="">
-                      {currentFont
-                        ? "Choose variant"
-                        : "Regular — studio default"}
-                    </option>
-                    {variants.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.fileName.replace(/\.(otf|ttf|woff2?)$/i, "")}
-                      </option>
-                    ))}
-                  </select>
-                </label>
                 <div className="dc-field-pair">
                   {number("Size", "size", 3, 125, "PX", 0.5)}
                   {number("Tracking", "spacing", -10, 30, "PX", 0.1)}
@@ -1300,7 +1306,6 @@ export function DesignConfiguratorEditor() {
               {element.kind === "circular"
                 ? "Circular path"
                 : "Position & size"}
-              <span>02</span>
             </div>
             {element.kind === "circular" ? (
               <>
@@ -1332,6 +1337,16 @@ export function DesignConfiguratorEditor() {
               <>
                 {element.kind === "image" &&
                   slider("Width", "width", 10, 600, "PX")}
+                {element.kind === "image" && (
+                  <label className="dc-field dc-slider-field">
+                    <span>Opacity<output>{Math.round((element.opacity ?? 1) * 100)} <small>%</small></output></span>
+                    <input type="range" min={0} max={100} step={1}
+                      aria-label="Image opacity"
+                      value={Math.round((element.opacity ?? 1) * 100)}
+                      onChange={(event) => update({ opacity: Number(event.target.value) / 100 }, `opacity-${element.id}`)}
+                      onPointerUp={end} onBlur={end} />
+                  </label>
+                )}
                 <div className="dc-field-pair">
                   {number("Horizontal", "x", 0, 600, "PX")}
                   {number("Vertical", "y", 0, 600, "PX")}
@@ -1340,23 +1355,6 @@ export function DesignConfiguratorEditor() {
               </>
             )}
           </section>
-          {element.kind !== "image" && (
-            <div className="dc-ink">
-              <span>Ink color</span>
-              <label>
-                <input
-                  aria-label="Text ink color"
-                  type="color"
-                  value={element.color}
-                  onChange={(e) =>
-                    update({ color: e.target.value }, `ink-${element.id}`)
-                  }
-                  onBlur={end}
-                />
-                <span>{element.color.toUpperCase()}</span>
-              </label>
-            </div>
-          )}
           <button
             className="dc-reset"
             onClick={() => {
@@ -1386,7 +1384,7 @@ export function DesignConfiguratorEditor() {
         <span>
           VINYL LABEL / SIDE {side} / {layers.length} ELEMENTS
         </span>
-        <span>MADE TO BE PLAYED.</span>
+        <span>© {new Date().getFullYear()} STRANGE ANIMALS. ALL RIGHTS RESERVED.</span>
       </footer>
       <nav className="dc-mobile-tabs" aria-label="Editor panels">
         <button
@@ -1434,7 +1432,7 @@ export function DesignConfiguratorEditor() {
         }}
       />
       {dialog === "fonts" && (
-        <Modal title="Find the right voice." close={() => setDialog(null)}>
+        <Modal title="Fonts" close={() => setDialog(null)}>
           <label className="dc-font-search">
             <Search size={17} />
             <span className="sr-only">Search all fonts</span>
@@ -1461,15 +1459,6 @@ export function DesignConfiguratorEditor() {
             ))}
             <span>{sortedFonts.length} families</span>
           </div>
-          <p className="dc-font-explanation">
-            {query
-              ? "Searching your entire catalog."
-              : scope === "recommended"
-                ? "Paragraph / Standard + Condensed / Narrow. Search to discover other categories."
-                : scope === "favorites"
-                  ? "Your favorites in this configurator."
-                  : "All enabled families. Samples use the selected element’s text."}
-          </p>
           <div className="dc-font-results">
             {fontsLoading && <p role="status">Loading your library…</p>}
             {catalogError && (
@@ -1498,7 +1487,11 @@ export function DesignConfiguratorEditor() {
                   active={element.fontId === font.id}
                   favorite={favoriteFonts.includes(font.id)}
                   busy={fontBusy}
-                  choose={() => void selectFont(font)}
+                  expanded={font.variantCount > 1 ? expandedFont === font.id : undefined}
+                  choose={() => {
+                    if (font.variantCount > 1) setExpandedFont((current) => current === font.id ? null : font.id);
+                    else void selectFont(font);
+                  }}
                   preview={(font) => void previewFont(font)}
                   star={() => {
                     const next = favoriteFonts.includes(font.id)
@@ -1515,6 +1508,12 @@ export function DesignConfiguratorEditor() {
                     }
                   }}
                 />
+                {expandedFont === font.id && (
+                  <FontStyleTiles font={font} sample={element.text} busy={fontBusy}
+                    selected={element.fontId === font.id ? element.variantId : undefined}
+                    preview={(family, variantId) => void previewFont(family, variantId)}
+                    choose={(variantId) => void selectFont(font, variantId)} />
+                )}
               </div>
             ))}
             {sortedFonts.length > fontLimit && (
@@ -1539,14 +1538,18 @@ export function DesignConfiguratorEditor() {
           </div>
         </Modal>
       )}
-      {dialog === "settings" && (
-        <Modal title="Project & dimensions." close={() => setDialog(null)}>
+      {dialog === "file" && (
+        <Modal title="File" close={() => setDialog(null)}>
           <div className="dc-dialog-scroll">
             <p className="dc-font-explanation">
               Projects live in this browser. Download JSON to transfer or back
-              them up. Use your printer’s template for final dimensions.
+              them up.
             </p>
             <div className="dc-project-files">
+              <button onClick={() => setDialog("new")}>
+                <Plus size={16} />
+                New project
+              </button>
               <button onClick={load}>
                 <FileText size={16} />
                 Open saved project
@@ -1559,11 +1562,13 @@ export function DesignConfiguratorEditor() {
                 <Upload size={16} />
                 Import project (JSON)
               </button>
-              <button onClick={() => setDialog("new")}>
-                <Plus size={16} />
-                New project
-              </button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {dialog === "settings" && (
+        <Modal title="Project settings" close={() => setDialog(null)}>
+          <div className="dc-dialog-scroll">
             <section className="dc-property-section">
               <div className="dc-section-caption">
                 Print dimensions<span>MM</span>
@@ -1632,23 +1637,20 @@ export function DesignConfiguratorEditor() {
         </Modal>
       )}
       {dialog === "new" && (
-        <Modal title="Start a new label?" close={() => setDialog(null)}>
+        <Modal title="New project" wide close={() => setDialog(null)}>
           <p className="dc-font-explanation">
-            Download your current project first to keep a separate backup.
-            Starting over can also be undone.
+            Choose a template. Both sides are editable. You can undo this change.
           </p>
-          <div className="dc-project-files">
-            <button onClick={exportProject}>Download current JSON</button>
-            <button
-              onClick={() => {
-                change(() => structuredClone(initialDesign));
-                setSelected("legal");
-                setSide("A");
-                setDialog(null);
-              }}
-            >
-              Start new project
-            </button>
+          <LabelTemplatePicker onChoose={(next) => {
+            end();
+            change(() => next);
+            setSelectedLayers([]);
+            setSelected("title");
+            setSide("A");
+            setDialog(null);
+          }} />
+          <div className="dc-picker-footer">
+            <button onClick={exportProject}>Download current project (JSON)</button>
             <button onClick={() => setDialog(null)}>Cancel</button>
           </div>
         </Modal>

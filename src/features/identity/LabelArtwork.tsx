@@ -1,4 +1,5 @@
 import type { PointerEventHandler } from "react";
+import { TextSelectionGuide } from "./TextSelectionGuide";
 import {
   circularPath,
   type LabelDesign,
@@ -144,25 +145,12 @@ export function LabelArtwork({
                     className="dc-selection-guide"
                   />
                 ) : (
-                  <rect
-                    x={
-                      layer.align === "start"
-                        ? layer.x - 8
-                        : layer.align === "end"
-                          ? layer.x - 230
-                          : layer.x - 119
-                    }
-                    y={layer.y - layer.size}
-                    width="238"
-                    height={
-                      layer.text.split("\n").length * layer.size * 1.1 + 12
-                    }
-                    className="dc-selection-guide"
-                  />
+                  <TextSelectionGuide revision={JSON.stringify([layer, fontFamily(layer)])} />
                 ))}
               {layer.kind === "image" ? (
                 layer.image && (
                   <image
+                    opacity={layer.opacity ?? 1}
                     href={layer.image}
                     x={layer.x - layer.width / 2}
                     y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}

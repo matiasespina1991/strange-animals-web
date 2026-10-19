@@ -16,6 +16,7 @@ export type LabelLayer = {
   arc: "top" | "bottom";
   width: number;
   imageRatio?: number;
+  opacity?: number;
   image?: string;
   fontId?: string;
   variantId?: string;
@@ -26,6 +27,7 @@ export type LabelDesign = {
   A: LabelLayer[];
   B: LabelLayer[];
   paper: string;
+  sleeveColor: string;
   diameterMm: number;
   holeMm: number;
   bleedMm: number;
@@ -63,6 +65,7 @@ export function makeLayer(
     visible: true,
     arc: "bottom",
     width: 150,
+    opacity: 1,
   };
 }
 const initialLayers: LabelLayer[] = [
@@ -147,6 +150,7 @@ export const initialDesign: LabelDesign = {
           : l.text,
   })),
   paper: "#e5e8d9",
+  sleeveColor: "#000000",
   diameterMm: 100,
   holeMm: 7.3,
   bleedMm: 3,
@@ -274,6 +278,7 @@ export function parseDesign(input: unknown): LabelDesign {
         arc: item.arc === "top" ? "top" : "bottom",
         image,
         imageRatio: numeric(item.imageRatio, 1, 0.05, 20),
+        opacity: numeric(item.opacity, 1, 0, 1),
         fontId: typeof item.fontId === "string" ? item.fontId : undefined,
         variantId:
           typeof item.variantId === "string" ? item.variantId : undefined,
@@ -290,6 +295,7 @@ export function parseDesign(input: unknown): LabelDesign {
     A: side(input.A),
     B: side(input.B),
     paper: hex(input.paper, "#e5e8d9"),
+    sleeveColor: hex(input.sleeveColor, "#000000"),
     diameterMm,
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),
