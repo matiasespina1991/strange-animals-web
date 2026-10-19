@@ -75,10 +75,10 @@ assert.notEqual(
   circularPath(circular),
   circularPath({ ...circular, arc: "top" }),
 );
-assert.match(
-  circularPath({ ...circular, arcDegrees: 300 }),
-  / 0 1 0 /,
-  "Arcs over 180 degrees must use the large-arc flag",
+assert.equal(
+  (circularPath(circular).match(/ A /g) ?? []).length,
+  2,
+  "Circular text must have a complete circumference made of two semicircles",
 );
 const legacy = {
   A: [{ id: "legal", text: "Legacy", size: 11 }],

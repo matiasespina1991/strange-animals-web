@@ -188,7 +188,7 @@ const DESKTOP_FONT_SIZE_DEFAULT = 31;
 const MOBILE_FONT_SIZE_MAX = 125;
 const COLOR_FAVORITES_STORAGE_KEY =
   "strange-animals.identity-font-color-favorites.v1";
-const DEFAULT_COLOR_FAVORITES = ["#ffffff", "#000000", "#56bcce"];
+const DEFAULT_COLOR_FAVORITES = ["#ffffff", "#000000", "#56bcce", "#FA8AA6"];
 const IDENTITY_THEME_STORAGE_KEY = "strange-animals.identity-theme.v1";
 const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
   "strange-animals.identity-fonts-onboarding-dismissed.v1";
@@ -260,14 +260,21 @@ type TextCasing = "lower" | "mixed" | "upper";
 type FontWeight = "normal" | 800;
 
 function getImageTextTransform(alignment: TextAlignment) {
-  const horizontal = alignment === "center" ? "-50%" : alignment === "right" ? "-100%" : "0%";
+  const horizontal =
+    alignment === "center" ? "-50%" : alignment === "right" ? "-100%" : "0%";
   return `translate(${horizontal}, -50%)`;
 }
 
-function getPreviewLineHeight(fontSize: string, lineHeight: number, font: FontCatalogItem) {
+function getPreviewLineHeight(
+  fontSize: string,
+  lineHeight: number,
+  font: FontCatalogItem,
+) {
   const effectiveLineHeight = lineHeight + (font.previewLineHeightExtra ?? 0);
   const extraRem = font.previewLineHeightExtraRem ?? 0;
-  return extraRem > 0 ? `calc(${fontSize} * ${effectiveLineHeight} + ${extraRem}rem)` : effectiveLineHeight;
+  return extraRem > 0
+    ? `calc(${fontSize} * ${effectiveLineHeight} + ${extraRem}rem)`
+    : effectiveLineHeight;
 }
 
 function applyTextCasing(value: string, casing: TextCasing) {
@@ -284,12 +291,21 @@ function getOpaqueHex(color: string) {
   const value = color.trim();
   if (/^#[\da-f]{8}$/i.test(value)) return value.slice(0, 7);
   if (/^#[\da-f]{3,4}$/i.test(value)) {
-    return `#${value.slice(1, 4).split("").map(channel => channel.repeat(2)).join("")}`;
+    return `#${value
+      .slice(1, 4)
+      .split("")
+      .map((channel) => channel.repeat(2))
+      .join("")}`;
   }
   if (value.toLowerCase() === "transparent") return "#000000";
   const rgb = value.match(/^rgba?\(\s*(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)/i);
   if (rgb) {
-    return `#${rgb.slice(1, 4).map(channel => Math.min(255, Number(channel)).toString(16).padStart(2, "0")).join("")}`;
+    return `#${rgb
+      .slice(1, 4)
+      .map((channel) =>
+        Math.min(255, Number(channel)).toString(16).padStart(2, "0"),
+      )
+      .join("")}`;
   }
   return value;
 }
@@ -480,12 +496,31 @@ function jumpRangeToPointer(
     return;
   }
   const bounds = input.getBoundingClientRect();
-  const thumbSize = input.classList.contains("identity-font-size-control-slider") && window.innerWidth < 768 ? 18 : 12;
-  const ratio = Math.min(1, Math.max(0, (event.clientX - bounds.left - thumbSize / 2) / Math.max(1, bounds.width - thumbSize)));
+  const thumbSize =
+    input.classList.contains("identity-font-size-control-slider") &&
+    window.innerWidth < 768
+      ? 18
+      : 12;
+  const ratio = Math.min(
+    1,
+    Math.max(
+      0,
+      (event.clientX - bounds.left - thumbSize / 2) /
+        Math.max(1, bounds.width - thumbSize),
+    ),
+  );
   const min = Number(input.min || 0);
   const max = Number(input.max || 100);
   const step = Number(input.step || 1);
-  const value = Math.min(max, Math.max(min, Number((min + Math.round(ratio * (max - min) / step) * step).toFixed(6))));
+  const value = Math.min(
+    max,
+    Math.max(
+      min,
+      Number(
+        (min + Math.round((ratio * (max - min)) / step) * step).toFixed(6),
+      ),
+    ),
+  );
   input.value = String(value);
   onValueChange(value);
 }
@@ -562,10 +597,22 @@ function DesktopFontSizeControl({
             }}
             onPointerDown={(event) => {
               setShowValue(true);
-              jumpRangeToPointer(event, (value) => { setLocalValue(value); onPreview(value); });
+              jumpRangeToPointer(event, (value) => {
+                setLocalValue(value);
+                onPreview(value);
+              });
             }}
-            onPointerMove={(event) => jumpRangeToPointer(event, (value) => { setLocalValue(value); onPreview(value); })}
-            onPointerCancel={() => { onPreview(null); setLocalValue(value); setShowValue(false); }}
+            onPointerMove={(event) =>
+              jumpRangeToPointer(event, (value) => {
+                setLocalValue(value);
+                onPreview(value);
+              })
+            }
+            onPointerCancel={() => {
+              onPreview(null);
+              setLocalValue(value);
+              setShowValue(false);
+            }}
             onPointerUp={(event) => {
               commit(Number(event.currentTarget.value));
               setShowValue(false);
@@ -707,7 +754,10 @@ function ScrollControls({ lightMode }: { lightMode: boolean }) {
         }}
         onPointerLeave={handlePointerLeave}
       >
-        <span aria-hidden="true" className="flex flex-col -space-y-4 md:-space-y-2">
+        <span
+          aria-hidden="true"
+          className="flex flex-col -space-y-4 md:-space-y-2"
+        >
           <ChevronUp className="size-[1.375rem] md:size-3" />
           <ChevronUp className="size-[1.375rem] md:size-3" />
         </span>
@@ -1199,7 +1249,8 @@ function FontSpecimen({
   onBackgroundTextAnchorChange: (anchor: BackgroundTextAnchor) => void;
   specimen: string;
 }) {
-  const letterSpacing = baseLetterSpacing + (font.previewLetterSpacingExtraEm ?? 0);
+  const letterSpacing =
+    baseLetterSpacing + (font.previewLetterSpacingExtraEm ?? 0);
   const cardReference = useRef<HTMLElement>(null);
   const [variants, setVariants] = useState<FontVariant[]>([]);
   const [variantsLoaded, setVariantsLoaded] = useState(false);
@@ -1227,8 +1278,12 @@ function FontSpecimen({
       setEditingName(false);
     } catch (error) {
       console.error("Could not rename font family", error);
-      onFamilyError(error instanceof Error ? error.message : "Could not rename family");
-    } finally { setFamilySaving(false); }
+      onFamilyError(
+        error instanceof Error ? error.message : "Could not rename family",
+      );
+    } finally {
+      setFamilySaving(false);
+    }
   };
   const [draggingPreviewText, setDraggingPreviewText] = useState(false);
   const previewTextDragReference = useRef<{ x: number; y: number }>();
@@ -1479,23 +1534,71 @@ function FontSpecimen({
             </button>
           ) : null}
           {SHOW_FONT_DELETE_CONTROLS && editingName ? (
-            <form className="min-w-0" onSubmit={(event) => { event.preventDefault(); void saveFamilyName(); }}>
-              <input aria-label="Family name" autoFocus className="w-full min-w-0 border-b border-white/50 bg-transparent text-white outline-none" value={nameDraft} disabled={familySaving}
+            <form
+              className="min-w-0"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveFamilyName();
+              }}
+            >
+              <input
+                aria-label="Family name"
+                autoFocus
+                className="w-full min-w-0 border-b border-white/50 bg-transparent text-white outline-none"
+                value={nameDraft}
+                disabled={familySaving}
                 onChange={(event) => setNameDraft(event.target.value)}
-                onKeyDown={(event) => { if (event.key === "Escape") setEditingName(false); }} />
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setEditingName(false);
+                }}
+              />
             </form>
           ) : (
             <h2 className="min-w-0 truncate font-normal text-white/80">
-              {SHOW_FONT_DELETE_CONTROLS ? <button type="button" className="cursor-pointer truncate text-left" title="Rename family" disabled={familySaving} onClick={() => { setNameDraft(font.name); setEditingName(true); }}>{font.name}</button> : font.name}
+              {SHOW_FONT_DELETE_CONTROLS ? (
+                <button
+                  type="button"
+                  className="cursor-pointer truncate text-left"
+                  title="Rename family"
+                  disabled={familySaving}
+                  onClick={() => {
+                    setNameDraft(font.name);
+                    setEditingName(true);
+                  }}
+                >
+                  {font.name}
+                </button>
+              ) : (
+                font.name
+              )}
             </h2>
           )}
           {SHOW_FONT_DELETE_CONTROLS ? (
-            <button aria-label={`Duplicate ${font.name}`} title="Duplicate family" type="button" className="shrink-0 cursor-pointer text-white/60 hover:text-white disabled:opacity-40" disabled={familySaving} onClick={async () => {
-              setFamilySaving(true);
-              try { await duplicateFontFamily(font); await onCatalogChanged(); }
-              catch (error) { console.error("Could not duplicate font family", error); onFamilyError(error instanceof Error ? error.message : "Could not duplicate family"); }
-              finally { setFamilySaving(false); }
-            }}><Copy className="size-3" /></button>
+            <button
+              aria-label={`Duplicate ${font.name}`}
+              title="Duplicate family"
+              type="button"
+              className="shrink-0 cursor-pointer text-white/60 hover:text-white disabled:opacity-40"
+              disabled={familySaving}
+              onClick={async () => {
+                setFamilySaving(true);
+                try {
+                  await duplicateFontFamily(font);
+                  await onCatalogChanged();
+                } catch (error) {
+                  console.error("Could not duplicate font family", error);
+                  onFamilyError(
+                    error instanceof Error
+                      ? error.message
+                      : "Could not duplicate family",
+                  );
+                } finally {
+                  setFamilySaving(false);
+                }
+              }}
+            >
+              <Copy className="size-3" />
+            </button>
           ) : null}
           {SHOW_FONT_DELETE_CONTROLS ? (
             <button
@@ -1751,7 +1854,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
+                        lineHeight: getPreviewLineHeight(
+                          `${fontSize}px`,
+                          lineHeight,
+                          font,
+                        ),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
@@ -1775,7 +1882,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
+                        lineHeight: getPreviewLineHeight(
+                          `${fontSize}px`,
+                          lineHeight,
+                          font,
+                        ),
                         textAlign: textAlignment,
                         left: `${backgroundTextAnchor.x}%`,
                         top: `${backgroundTextAnchor.y}%`,
@@ -1795,13 +1906,34 @@ function FontSpecimen({
                         value={previewText}
                       />
                     </p>
-                    <p aria-hidden="true" className="identity-font-ghost-preview pointer-events-none absolute min-w-max max-w-none whitespace-pre-wrap"
-                      style={{ color: fontColor, fontFamily: familyName, fontSize: "var(--identity-ghost-font-size)",
-                        fontWeight: getPreviewFontWeight(fontWeight), letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font), textAlign: textAlignment,
-                        left: `${backgroundTextAnchor.x}%`, top: `${backgroundTextAnchor.y}%`, transform: getImageTextTransform(textAlignment),
-                        textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
-                      }}>
-                      <SupportedPreviewText fallbackValue={applyTextCasing(font.name, textCasing)} supportedCodePoints={loadedVariant?.supportedCodePoints} value={previewText} />
+                    <p
+                      aria-hidden="true"
+                      className="identity-font-ghost-preview pointer-events-none absolute min-w-max max-w-none whitespace-pre-wrap"
+                      style={{
+                        color: fontColor,
+                        fontFamily: familyName,
+                        fontSize: "var(--identity-ghost-font-size)",
+                        fontWeight: getPreviewFontWeight(fontWeight),
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight: getPreviewLineHeight(
+                          "var(--identity-ghost-font-size)",
+                          lineHeight,
+                          font,
+                        ),
+                        textAlign: textAlignment,
+                        left: `${backgroundTextAnchor.x}%`,
+                        top: `${backgroundTextAnchor.y}%`,
+                        transform: getImageTextTransform(textAlignment),
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
+                      }}
+                    >
+                      <SupportedPreviewText
+                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        supportedCodePoints={loadedVariant?.supportedCodePoints}
+                        value={previewText}
+                      />
                     </p>
                   </div>
                 ) : (
@@ -1818,7 +1950,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
+                        lineHeight: getPreviewLineHeight(
+                          `${fontSize}px`,
+                          lineHeight,
+                          font,
+                        ),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1835,7 +1971,11 @@ function FontSpecimen({
                         fontSize: `${fontSize}px`,
                         fontWeight: getPreviewFontWeight(fontWeight),
                         letterSpacing: `${letterSpacing}em`,
-                        lineHeight: getPreviewLineHeight(`${fontSize}px`, lineHeight, font),
+                        lineHeight: getPreviewLineHeight(
+                          `${fontSize}px`,
+                          lineHeight,
+                          font,
+                        ),
                         textAlign: textAlignment,
                         textShadow: textShadow.enabled
                           ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
@@ -1851,14 +1991,28 @@ function FontSpecimen({
                     <p
                       aria-hidden="true"
                       className="identity-font-ghost-preview pointer-events-none absolute inset-0 min-w-0 max-w-full px-4 py-8 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-                      style={{ color: fontColor, fontFamily: familyName,
+                      style={{
+                        color: fontColor,
+                        fontFamily: familyName,
                         fontSize: "var(--identity-ghost-font-size)",
                         fontWeight: getPreviewFontWeight(fontWeight),
-                        letterSpacing: `${letterSpacing}em`, lineHeight: getPreviewLineHeight("var(--identity-ghost-font-size)", lineHeight, font), textAlign: textAlignment,
-                        textShadow: textShadow.enabled ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})` : undefined,
+                        letterSpacing: `${letterSpacing}em`,
+                        lineHeight: getPreviewLineHeight(
+                          "var(--identity-ghost-font-size)",
+                          lineHeight,
+                          font,
+                        ),
+                        textAlign: textAlignment,
+                        textShadow: textShadow.enabled
+                          ? `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px rgb(0 0 0 / ${textShadow.opacity})`
+                          : undefined,
                       }}
                     >
-                      <SupportedPreviewText fallbackValue={applyTextCasing(font.name, textCasing)} supportedCodePoints={loadedVariant?.supportedCodePoints} value={previewText} />
+                      <SupportedPreviewText
+                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        supportedCodePoints={loadedVariant?.supportedCodePoints}
+                        value={previewText}
+                      />
                     </p>
                   </div>
                 )
@@ -2186,12 +2340,13 @@ export function IdentityFontsPage() {
   );
   const [categoryFiltersOpen, setCategoryFiltersOpen] = useState(true);
   const [useCaseFiltersOpen, setUseCaseFiltersOpen] = useState(false);
-  const [expandedCategoryKeys, setExpandedCategoryKeys] = useState<
-    Set<string>
-  >(new Set());
+  const [expandedCategoryKeys, setExpandedCategoryKeys] = useState<Set<string>>(
+    new Set(),
+  );
   const defaultCategoriesOpenedReference = useRef(false);
   const manuallyClosedCategoriesReference = useRef(new Set<string>());
-  const [searchCollapsedCategoryKeys, setSearchCollapsedCategoryKeys] = useState(new Set<string>());
+  const [searchCollapsedCategoryKeys, setSearchCollapsedCategoryKeys] =
+    useState(new Set<string>());
   const [hiddenCategoryLabels, setHiddenCategoryLabels] = useState<Set<string>>(
     new Set(),
   );
@@ -2313,7 +2468,12 @@ export function IdentityFontsPage() {
   }, []);
 
   const commitFontSize = (nextFontSize: number) => {
-    setFontSize(Math.min(isSmallViewport ? MOBILE_FONT_SIZE_MAX : DESKTOP_FONT_SIZE_MAX, Math.max(3, nextFontSize)));
+    setFontSize(
+      Math.min(
+        isSmallViewport ? MOBILE_FONT_SIZE_MAX : DESKTOP_FONT_SIZE_MAX,
+        Math.max(3, nextFontSize),
+      ),
+    );
   };
 
   useEffect(() => {
@@ -2732,27 +2892,51 @@ export function IdentityFontsPage() {
   }, [expandedCategoryKeys, fontSections]);
 
   useEffect(() => {
-    if (loading || search.trim() || defaultCategoriesOpenedReference.current || fontSections.length === 0) return;
+    if (
+      loading ||
+      search.trim() ||
+      defaultCategoriesOpenedReference.current ||
+      fontSections.length === 0
+    )
+      return;
     defaultCategoriesOpenedReference.current = true;
-    const defaults = fontSections.filter(section => section.label.startsWith("category: ")).slice(0, 2);
-    setExpandedCategoryKeys(current => new Set([...current, ...defaults.map(section => section.key)]));
+    const defaults = fontSections
+      .filter((section) => section.label.startsWith("category: "))
+      .slice(0, 2);
+    setExpandedCategoryKeys(
+      (current) =>
+        new Set([...current, ...defaults.map((section) => section.key)]),
+    );
   }, [loading, search, fontSections]);
 
   useEffect(() => {
-    if (loading || search.trim() || !defaultCategoriesOpenedReference.current) return;
-    const nextSection = fontSections.find(section =>
-      !expandedCategoryKeys.has(section.key) && !manuallyClosedCategoriesReference.current.has(section.key),
+    if (loading || search.trim() || !defaultCategoriesOpenedReference.current)
+      return;
+    const nextSection = fontSections.find(
+      (section) =>
+        !expandedCategoryKeys.has(section.key) &&
+        !manuallyClosedCategoriesReference.current.has(section.key),
     );
     if (!nextSection) return;
     const header = document.getElementById(`font-category-${nextSection.key}`);
     if (!header) return;
     let opened = false;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || opened || manuallyClosedCategoriesReference.current.has(nextSection.key)) return;
-      opened = true;
-      observer.disconnect();
-      setExpandedCategoryKeys(current => new Set(current).add(nextSection.key));
-    }, { rootMargin: "250px 0px" });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (
+          !entry?.isIntersecting ||
+          opened ||
+          manuallyClosedCategoriesReference.current.has(nextSection.key)
+        )
+          return;
+        opened = true;
+        observer.disconnect();
+        setExpandedCategoryKeys((current) =>
+          new Set(current).add(nextSection.key),
+        );
+      },
+      { rootMargin: "250px 0px" },
+    );
     observer.observe(header);
     return () => observer.disconnect();
   }, [loading, search, fontSections, expandedCategoryKeys]);
@@ -2779,7 +2963,7 @@ export function IdentityFontsPage() {
 
   const selectCategoryFromRail = (sectionKey: string) => {
     categoryNavigationCleanupReference.current?.();
-    setExpandedCategoryKeys(current => new Set(current).add(sectionKey));
+    setExpandedCategoryKeys((current) => new Set(current).add(sectionKey));
 
     const categoryHeader = document.getElementById(
       `font-category-${sectionKey}`,
@@ -3576,12 +3760,22 @@ export function IdentityFontsPage() {
             />
           </div>
         ) : (
-          <DesktopFontSizeControl value={fontSize} onCommit={commitFontSize} onPreview={(size) => {
-            const page = document.querySelector<HTMLElement>(".identity-fonts-page");
-            if (!page) return;
-            page.toggleAttribute("data-font-size-preview", size !== null);
-            if (size !== null) page.style.setProperty("--identity-ghost-font-size", `${size}px`);
-          }} />
+          <DesktopFontSizeControl
+            value={fontSize}
+            onCommit={commitFontSize}
+            onPreview={(size) => {
+              const page = document.querySelector<HTMLElement>(
+                ".identity-fonts-page",
+              );
+              if (!page) return;
+              page.toggleAttribute("data-font-size-preview", size !== null);
+              if (size !== null)
+                page.style.setProperty(
+                  "--identity-ghost-font-size",
+                  `${size}px`,
+                );
+            }}
+          />
         )}
 
         <button
@@ -3879,8 +4073,12 @@ export function IdentityFontsPage() {
                     step="0.05"
                     type="range"
                     value={lineHeight}
-                    onPointerDown={(event) => jumpRangeToPointer(event, setLineHeight)}
-                    onPointerMove={(event) => jumpRangeToPointer(event, setLineHeight)}
+                    onPointerDown={(event) =>
+                      jumpRangeToPointer(event, setLineHeight)
+                    }
+                    onPointerMove={(event) =>
+                      jumpRangeToPointer(event, setLineHeight)
+                    }
                     onChange={(event) => {
                       setLineHeight(Number(event.target.value));
                     }}
@@ -3900,8 +4098,12 @@ export function IdentityFontsPage() {
                     step="0.01"
                     type="range"
                     value={letterSpacing}
-                    onPointerDown={(event) => jumpRangeToPointer(event, setLetterSpacing)}
-                    onPointerMove={(event) => jumpRangeToPointer(event, setLetterSpacing)}
+                    onPointerDown={(event) =>
+                      jumpRangeToPointer(event, setLetterSpacing)
+                    }
+                    onPointerMove={(event) =>
+                      jumpRangeToPointer(event, setLetterSpacing)
+                    }
                     onChange={(event) => {
                       setLetterSpacing(Number(event.target.value));
                     }}
@@ -4290,21 +4492,29 @@ export function IdentityFontsPage() {
                       type="button"
                       onClick={() => {
                         if (search.trim()) {
-                          setSearchCollapsedCategoryKeys(current => {
+                          setSearchCollapsedCategoryKeys((current) => {
                             const next = new Set(current);
-                            collapsed ? next.delete(section.key) : next.add(section.key);
+                            collapsed
+                              ? next.delete(section.key)
+                              : next.add(section.key);
                             return next;
                           });
                           return;
                         }
                         if (collapsed) {
-                          manuallyClosedCategoriesReference.current.delete(section.key);
+                          manuallyClosedCategoriesReference.current.delete(
+                            section.key,
+                          );
                         } else {
-                          manuallyClosedCategoriesReference.current.add(section.key);
+                          manuallyClosedCategoriesReference.current.add(
+                            section.key,
+                          );
                         }
                         setExpandedCategoryKeys((current) => {
                           const next = new Set(current);
-                          collapsed ? next.add(section.key) : next.delete(section.key);
+                          collapsed
+                            ? next.add(section.key)
+                            : next.delete(section.key);
                           return next;
                         });
                       }}
@@ -4337,61 +4547,70 @@ export function IdentityFontsPage() {
                     className={collapsed ? "hidden" : "relative"}
                     id={contentId}
                   >
-                    {!collapsed ? <div className="grid gap-x-8 lg:grid-cols-2 [&>article:first-child]:border-t-0 lg:[&>article:nth-child(2)]:border-t-0">
-                      {section.fonts.map((font) => (
-                        <FontSpecimen
-                          key={font.id}
-                          onCatalogChanged={async () => { setFonts(await listFontCatalog()); }}
-                          onFamilyError={reportFamilyError}
-                          backgroundColor={backgroundColor}
-                          backgroundImageUrl={
-                            backgroundMode === "image"
-                              ? backgroundImage?.url
-                              : undefined
-                          }
-                          backgroundTextAnchor={backgroundTextAnchor}
-                          categoryUpdating={updatingCategoryIds.has(font.id)}
-                          visibilityUpdating={updatingVisibilityIds.has(
-                            font.id,
-                          )}
-                          useCasesUpdating={updatingUseCasesIds.has(font.id)}
-                          deleting={deletingFontIds.has(font.id)}
-                          favorite={fontPreferences.favoriteFontIds.includes(
-                            font.id,
-                          )}
-                          font={font}
-                          fontColor={fontColor}
-                          fontSize={fontSize}
-                          fontWeight={fontWeight}
-                          letterSpacing={letterSpacing}
-                          lineHeight={lineHeight}
-                          pinned={fontPreferences.pinnedFontIds.includes(
-                            font.id,
-                          )}
-                          preferenceControlsEnabled={fontPreferencesReady}
-                          textAlignment={textAlignment}
-                          textCasing={textCasing}
-                          textShadow={textShadow}
-                          onDelete={setFontPendingDeletion}
-                          onFavoriteChange={toggleFavorite}
-                          onEnabledChange={(nextFont, enabled) => {
-                            void changeFontVisibility(nextFont, enabled);
-                          }}
-                          onParentCategoryChange={(
-                            nextFont,
-                            parentCategory,
-                          ) => {
-                            void changeParentCategory(nextFont, parentCategory);
-                          }}
-                          onUseCasesChange={(nextFont, useCases) => {
-                            void changeUseCases(nextFont, useCases);
-                          }}
-                          onBackgroundTextAnchorChange={setBackgroundTextAnchor}
-                          onPinnedChange={togglePinned}
-                          specimen={specimen}
-                        />
-                      ))}
-                    </div> : null}
+                    {!collapsed ? (
+                      <div className="grid gap-x-8 lg:grid-cols-2 [&>article:first-child]:border-t-0 lg:[&>article:nth-child(2)]:border-t-0">
+                        {section.fonts.map((font) => (
+                          <FontSpecimen
+                            key={font.id}
+                            onCatalogChanged={async () => {
+                              setFonts(await listFontCatalog());
+                            }}
+                            onFamilyError={reportFamilyError}
+                            backgroundColor={backgroundColor}
+                            backgroundImageUrl={
+                              backgroundMode === "image"
+                                ? backgroundImage?.url
+                                : undefined
+                            }
+                            backgroundTextAnchor={backgroundTextAnchor}
+                            categoryUpdating={updatingCategoryIds.has(font.id)}
+                            visibilityUpdating={updatingVisibilityIds.has(
+                              font.id,
+                            )}
+                            useCasesUpdating={updatingUseCasesIds.has(font.id)}
+                            deleting={deletingFontIds.has(font.id)}
+                            favorite={fontPreferences.favoriteFontIds.includes(
+                              font.id,
+                            )}
+                            font={font}
+                            fontColor={fontColor}
+                            fontSize={fontSize}
+                            fontWeight={fontWeight}
+                            letterSpacing={letterSpacing}
+                            lineHeight={lineHeight}
+                            pinned={fontPreferences.pinnedFontIds.includes(
+                              font.id,
+                            )}
+                            preferenceControlsEnabled={fontPreferencesReady}
+                            textAlignment={textAlignment}
+                            textCasing={textCasing}
+                            textShadow={textShadow}
+                            onDelete={setFontPendingDeletion}
+                            onFavoriteChange={toggleFavorite}
+                            onEnabledChange={(nextFont, enabled) => {
+                              void changeFontVisibility(nextFont, enabled);
+                            }}
+                            onParentCategoryChange={(
+                              nextFont,
+                              parentCategory,
+                            ) => {
+                              void changeParentCategory(
+                                nextFont,
+                                parentCategory,
+                              );
+                            }}
+                            onUseCasesChange={(nextFont, useCases) => {
+                              void changeUseCases(nextFont, useCases);
+                            }}
+                            onBackgroundTextAnchorChange={
+                              setBackgroundTextAnchor
+                            }
+                            onPinnedChange={togglePinned}
+                            specimen={specimen}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute top-0 bottom-0 left-1/2 z-20 hidden w-[2.5px] -translate-x-1/2 lg:block"

@@ -14,7 +14,6 @@ export type LabelLayer = {
   align: "start" | "middle" | "end";
   visible: boolean;
   arc: "top" | "bottom";
-  arcDegrees?: number;
   width: number;
   imageRatio?: number;
   image?: string;
@@ -158,15 +157,14 @@ export const initialDesign: LabelDesign = {
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 export function circularPath(
-  layer: Pick<LabelLayer, "radius" | "arc" | "arcDegrees">,
+  layer: Pick<LabelLayer, "radius" | "arc">,
 ) {
-  const degrees = layer.arcDegrees ?? 180,
-    center = layer.arc === "top" ? -90 : 90;
-  const start = center + (layer.arc === "top" ? -degrees / 2 : degrees / 2),
-    end = center + (layer.arc === "top" ? degrees / 2 : -degrees / 2);
-  const point = (angle: number) =>
-    `${300 + layer.radius * Math.cos((angle * Math.PI) / 180)} ${300 + layer.radius * Math.sin((angle * Math.PI) / 180)}`;
-  return `M ${point(start)} A ${layer.radius} ${layer.radius} 0 ${degrees > 180 ? 1 : 0} ${layer.arc === "top" ? 1 : 0} ${point(end)}`;
+  // Two semicircles form a complete path; its midpoint remains the text anchor.
+  const radius = layer.radius;
+  const startY = 300 + (layer.arc === "top" ? radius : -radius);
+  const midpointY = 600 - startY;
+  const sweep = layer.arc === "top" ? 1 : 0;
+  return `M 300 ${startY} A ${radius} ${radius} 0 0 ${sweep} 300 ${midpointY} A ${radius} ${radius} 0 0 ${sweep} 300 ${startY}`;
 }
 export type History = {
   past: LabelDesign[];
@@ -264,7 +262,6 @@ export function parseDesign(input: unknown): LabelDesign {
         size: numeric(item.size, base.size, 3, 125),
         spacing: numeric(item.spacing, 0, -10, 30),
         radius: numeric(item.radius, 254, 30, 295),
-        arcDegrees: numeric(item.arcDegrees, 180, 30, 350),
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),
         y: numeric(item.y, 190, 0, 600),

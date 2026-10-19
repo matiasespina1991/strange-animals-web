@@ -93,12 +93,12 @@ export function LabelArtwork({
             strokeWidth=".65"
           />
         )}
-        {design.mark && (
+        {/* {design.mark && (
           <g fill="none" stroke="#20211e" strokeWidth="1">
             <path d="M 274 109 H 326 M 300 98 V 120" />
             <circle cx="300" cy="109" r="7" />
           </g>
-        )}
+        )} */}
         {design[side].map((layer, index) =>
           !layer.visible ? null : (
             <g
@@ -119,6 +119,7 @@ export function LabelArtwork({
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
+              onLostPointerCapture={onPointerUp}
               transform={
                 layer.kind === "circular"
                   ? `rotate(${layer.angle} 300 300)`

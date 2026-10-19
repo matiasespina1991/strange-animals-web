@@ -166,6 +166,7 @@ function FontRow({
   favorite,
   busy,
   choose,
+  preview,
   star,
 }: {
   font: FontCatalogItem;
@@ -174,6 +175,7 @@ function FontRow({
   favorite: boolean;
   busy: boolean;
   choose: () => void;
+  preview: (font: FontCatalogItem | null) => void;
   star: () => void;
 }) {
   const reference = useRef<HTMLDivElement>(null);
@@ -203,7 +205,17 @@ function FontRow({
   }, [font]);
   return (
     <div className="dc-font-row" ref={reference}>
-      <button disabled={busy} onClick={choose} aria-pressed={active}>
+      <button
+        disabled={busy}
+        onClick={choose}
+        aria-pressed={active}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse") preview(font);
+        }}
+        onPointerLeave={() => preview(null)}
+        onFocus={() => preview(font)}
+        onBlur={() => preview(null)}
+      >
         <strong>{font.name}</strong>
         <span
           className="dc-font-specimen"
@@ -240,6 +252,7 @@ export function DesignConfiguratorEditor() {
     future: [],
   });
   const design = history.present;
+  const [dragging, setDragging] = useState(false);
   const [side, setSide] = useState<LabelSide>("A"),
     [selected, setSelected] = useState("legal"),
     [guides, setGuides] = useState(true),
@@ -248,6 +261,23 @@ export function DesignConfiguratorEditor() {
   const [dialog, setDialog] = useState<
     "fonts" | "settings" | "export" | "new" | null
   >(null);
+  const [hoverFamily, setHoverFamily] = useState<string | null>(null);
+  const hoverRequest = useRef(0);
+  useEffect(() => {
+    hoverRequest.current += 1;
+    setHoverFamily(null);
+  }, [dialog, side, selected]);
+  const previewFont = async (font: FontCatalogItem | null) => {
+    const request = ++hoverRequest.current;
+    setHoverFamily(null);
+    if (!font) return;
+    try {
+      const resolved = await resolveLabelFont(font);
+      if (request === hoverRequest.current) setHoverFamily(resolved.family);
+    } catch {
+      // Keep the committed font if the temporary preview cannot load.
+    }
+  };
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]),
     [fontsLoading, setFontsLoading] = useState(true),
     [catalogError, setCatalogError] = useState(""),
@@ -610,6 +640,7 @@ export function DesignConfiguratorEditor() {
       changed: false,
     };
     e.currentTarget.setPointerCapture(e.pointerId);
+    setDragging(true);
     e.preventDefault();
   };
   const moveDrag = (e: ReactPointerEvent<SVGGElement>) => {
@@ -649,6 +680,7 @@ export function DesignConfiguratorEditor() {
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
     drag.current = undefined;
+    setDragging(false);
     end();
   };
   const doExport = async () => {
@@ -706,9 +738,7 @@ export function DesignConfiguratorEditor() {
       : visibleFonts;
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
-      element.kind === "circular" &&
-      textLength >
-        (Math.PI * element.radius * (element.arcDegrees ?? 180)) / 180;
+      element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
   const panelTitle = (n: string, title: string) => (
     <div className="dc-panel-title">
       <span>{n}</span>
@@ -746,7 +776,7 @@ export function DesignConfiguratorEditor() {
   );
   const slider = (
     label: string,
-    key: "radius" | "angle" | "width" | "arcDegrees",
+    key: "radius" | "angle" | "width",
     min: number,
     max: number,
     unit: string,
@@ -777,7 +807,7 @@ export function DesignConfiguratorEditor() {
   );
   return (
     <main
-      className="design-configurator"
+      className={`design-configurator${dragging ? " dc-is-dragging" : ""}`}
       data-native-cursor-surface
       onKeyDown={(e) => {
         const editable =
@@ -1034,21 +1064,26 @@ export function DesignConfiguratorEditor() {
               </label>
             </div>
             <div className="dc-paper-options">
-              {["#e5e8d9", "#f1eadc", "#e0e7ec", "#efcfc3", "#f7f6f0"].map(
-                (c) => (
-                  <button
-                    key={c}
-                    aria-label={`Label color ${c}`}
-                    aria-pressed={design.paper === c}
-                    style={{ backgroundColor: c }}
-                    onClick={() =>
-                      change((current) => ({ ...current, paper: c }))
-                    }
-                  >
-                    {design.paper === c && <Check size={14} />}
-                  </button>
-                ),
-              )}
+              {[
+                "#e5e8d9",
+                "#f1eadc",
+                "#e0e7ec",
+                "#efcfc3",
+                "#f7f6f0",
+                "#FA8AA6",
+              ].map((c) => (
+                <button
+                  key={c}
+                  aria-label={`Label color ${c}`}
+                  aria-pressed={design.paper === c}
+                  style={{ backgroundColor: c }}
+                  onClick={() =>
+                    change((current) => ({ ...current, paper: c }))
+                  }
+                >
+                  {design.paper === c && <Check size={14} />}
+                </button>
+              ))}
             </div>
             <span>
               {design.diameterMm} mm · {design.holeMm} mm center hole
@@ -1080,7 +1115,11 @@ export function DesignConfiguratorEditor() {
                 design={design}
                 side={side}
                 prefix={prefix}
-                fontFamily={familyFor}
+                fontFamily={(layer) =>
+                  dialog === "fonts" && layer.id === element.id && hoverFamily
+                    ? hoverFamily
+                    : familyFor(layer)
+                }
                 selected={element.id}
                 guides={guides}
                 onSelect={selectLayer}
@@ -1277,7 +1316,6 @@ export function DesignConfiguratorEditor() {
                   ))}
                 </div>
                 {slider("Radius", "radius", 30, 295, "PX")}
-                {slider("Arc length", "arcDegrees", 30, 350, "°")}
                 {slider("Rotation", "angle", -180, 180, "°")}
                 <p className="dc-anchor-note">
                   <Circle size={13} />
@@ -1285,7 +1323,7 @@ export function DesignConfiguratorEditor() {
                 </p>
                 {overflow && (
                   <p className="dc-warning" role="status">
-                    El texto supera el arco. Aumentá el arco/radio o reducí
+                    El texto supera la circunferencia. Aumentá el radio o reducí
                     tamaño/espaciado. No se achica automáticamente.
                   </p>
                 )}
@@ -1461,6 +1499,7 @@ export function DesignConfiguratorEditor() {
                   favorite={favoriteFonts.includes(font.id)}
                   busy={fontBusy}
                   choose={() => void selectFont(font)}
+                  preview={(font) => void previewFont(font)}
                   star={() => {
                     const next = favoriteFonts.includes(font.id)
                       ? favoriteFonts.filter((id) => id !== font.id)
