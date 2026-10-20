@@ -66,6 +66,9 @@ import { getFontCategoryDisplayName } from "./font-categories";
 import { pickerCatalog, pickerCategories, pickerCategory, pickerCategoryLabel, standardCategoriesFor, type FontPickerScope } from "./font-picker-catalog";
 import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
+import { AssetLibrary } from "./AssetLibrary";
+import { removeLayers } from "./layer-operations";
+import type { InsertableAsset } from "./asset-library";
 import { ConfirmationDialog } from "./TextColorConfirmation";
 import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor, swapTextAndLabelColors } from "./text-color-model";
 import {
@@ -304,7 +307,7 @@ export function DesignConfiguratorEditor() {
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties");
   const [dialog, setDialog] = useState<
-    "fonts" | "file" | "settings" | "export" | "new" | null
+    "fonts" | "file" | "settings" | "export" | "new" | "assets" | null
   >(initial.showTemplateWelcome ? "new" : null);
   useEffect(() => {
     if (!initial.showTemplateWelcome) return;
@@ -393,12 +396,12 @@ export function DesignConfiguratorEditor() {
   }>();
   const prefix = useId().replaceAll(":", "");
   const layers = design[side],
-    element = layers.find((l) => l.id === selected) ?? layers[0],
+    element = layers.find((l) => l.id === selected) ?? layers[0] ?? initialDesign.A[0],
     currentFont = fonts.find((f) => f.id === element.fontId);
   const defaultFontName = element.id === "title"
     ? "Berlin Type Bold"
     : "Alte DIN 1451 Mittelschrift geprägt";
-  const hasSelection = selected !== null;
+  const hasSelection = selected !== null && layers.some((layer) => layer.id === selected);
   const selection = new Set(!hasSelection ? [] : selectedLayers.length ? selectedLayers : [element.id]);
   const selectedTextLayers = layers.filter((layer) => selection.has(layer.id) && layer.kind !== "image");
   useEffect(() => { setSelectedLayers([]); }, [side]);
@@ -572,13 +575,21 @@ export function DesignConfiguratorEditor() {
     selectLayer(layer);
   };
   const remove = () => {
-    if (!hasSelection || layers.length <= 1) return;
-    const remaining = layers.filter((l) => l.id !== element.id);
-    change((c) => ({
-      ...c,
-      [side]: c[side].filter((l) => l.id !== element.id),
-    }));
-    setSelected(remaining[0].id);
+    if (!hasSelection) return;
+    end();
+    change((current) => removeLayers(current, side, selection));
+    end();
+    setSelectedLayers([]);
+    setSelected(null);
+  };
+  const insertAsset = (asset: InsertableAsset) => {
+    if (layers.length >= 50) { setNotice("Máximo de 50 elementos por lado."); return; }
+    const layer = { ...makeLayer("image"), ...asset, x: 300, y: 300 };
+    end();
+    change((current) => ({ ...current, [side]: [...current[side], layer] }));
+    end();
+    selectLayer(layer);
+    setDialog(null);
   };
   const duplicate = () => {
     if (!hasSelection || layers.length >= 50) return;
@@ -1078,15 +1089,16 @@ export function DesignConfiguratorEditor() {
             </button>
             <button onClick={() => add("circular")}>
               <Circle size={14} />
-              Legal text / arc
+              Arc text
             </button>
+            <button onClick={() => setDialog("assets")}><Layers size={14} />Assets</button>
           </div>
           <div className="dc-multi-controls">
             <div className="dc-layer-actions">
               <button aria-label="Move element toward back" disabled={!hasSelection || index <= 0} onClick={() => reorder(-1)}><ArrowUp size={15} /></button>
               <button aria-label="Move element toward front" disabled={!hasSelection || index >= layers.length - 1} onClick={() => reorder(1)}><ArrowDown size={15} /></button>
               <button aria-label="Duplicate element" disabled={!hasSelection || layers.length >= 50} onClick={duplicate}><Copy size={15} /></button>
-              <button aria-label="Delete element" disabled={!hasSelection || layers.length <= 1} onClick={remove}><Trash2 size={15} /></button>
+              <button aria-label="Delete selected elements" disabled={!hasSelection} onClick={remove}><Trash2 size={15} /></button>
             </div>
             <span>{selection.size} selected</span>
           </div>
@@ -1208,6 +1220,7 @@ export function DesignConfiguratorEditor() {
                     : familyFor(layer)
                 }
                 selected={hasSelection ? element.id : undefined}
+                selectedIds={selection}
                 guides={guides}
                 whiteCenter
                 previewShadow
@@ -1417,6 +1430,9 @@ export function DesignConfiguratorEditor() {
               <>
                 {element.kind === "image" &&
                   slider("Width", "width", 10, 600, "PX")}
+                {element.kind === "image" && <TypographyValueControl label="Border radius" unit="PX"
+                  value={element.borderRadius ?? 0} min={0} max={100} step={1}
+                  onChange={(borderRadius) => update({ borderRadius }, `border-radius-${element.id}`)} onCommit={end} />}
                 {element.kind === "image" && (
                   <label className="dc-field dc-slider-field">
                     <span>Opacity<output>{Math.round((element.opacity ?? 1) * 100)} <small>%</small></output></span>
@@ -1705,6 +1721,11 @@ export function DesignConfiguratorEditor() {
               </p>
             </section>
           </div>
+        </Modal>
+      )}
+      {dialog === "assets" && (
+        <Modal title="Assets" close={() => setDialog(null)}>
+          <AssetLibrary onInsert={insertAsset} />
         </Modal>
       )}
       {dialog === "new" && (

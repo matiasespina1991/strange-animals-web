@@ -14,6 +14,7 @@ export function LabelArtwork({
   prefix,
   fontFamily,
   selected,
+  selectedIds,
   guides = false,
   bleed = false,
   whiteCenter = false,
@@ -28,6 +29,7 @@ export function LabelArtwork({
   prefix: string;
   fontFamily: (layer: LabelLayer) => string;
   selected?: string;
+  selectedIds?: ReadonlySet<string>;
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
@@ -51,6 +53,13 @@ export function LabelArtwork({
       aria-label={`${design.title}, side ${side}`}
     >
       <defs>
+        {design[side].map((layer, index) => layer.kind === "image" && !!layer.borderRadius && (
+          <clipPath key={layer.id} id={`${prefix}-image-corners-${index}`} clipPathUnits="userSpaceOnUse">
+            <rect x={layer.x - layer.width / 2} y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
+              width={layer.width} height={layer.width / (layer.imageRatio ?? 1)}
+              rx={Math.min(layer.borderRadius, layer.width / 2, layer.width / (layer.imageRatio ?? 1) / 2)} />
+          </clipPath>
+        ))}
         {design[side].map((layer, index) => layer.kind !== "image" && !!layer.inkBleed && (
           <InkBleedFilter key={layer.id} id={`${prefix}-ink-bleed-${index}`} amount={layer.inkBleed} />
         ))}
@@ -138,7 +147,7 @@ export function LabelArtwork({
               }
             >
               {guides &&
-                layer.id === selected &&
+                (selectedIds ? selectedIds.has(layer.id) : layer.id === selected) &&
                 (layer.kind === "circular" ? (
                   <circle
                     cx="300"
@@ -160,6 +169,7 @@ export function LabelArtwork({
               {layer.kind === "image" ? (
                 layer.image && (
                   <image
+                    clipPath={layer.borderRadius ? `url(#${prefix}-image-corners-${index})` : undefined}
                     opacity={layer.opacity ?? 1}
                     href={layer.image}
                     x={layer.x - layer.width / 2}

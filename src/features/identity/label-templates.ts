@@ -16,7 +16,7 @@ function template(id: string, name: string, description: string, paper: string, 
 
 // Original layouts based on familiar record-label conventions, not label reproductions.
 export const LABEL_TEMPLATES: Template[] = [
-  template("classic", "Default001", "Centered title · perimeter legal text", "#ffffff", "#20211e", {}),
+  template("classic", "Default001", "Centered title · perimeter arc text", "#ffffff", "#20211e", {}),
   template("white-label", "Default002", "Minimal metadata · open space", "#f7f6f0", "#20211e", {
     artist: { x: 110, y: 195, align: "start", size: 14, spacing: 1 },
     title: { x: 110, y: 229, align: "start", size: 25, spacing: -0.4 },

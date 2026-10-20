@@ -17,6 +17,17 @@ Route: `/identity/design-configurator`, behind the existing Identity access gate
   spans all enabled families. Samples load near the viewport. Variants and
   configurator-specific favorites are available.
 
+## Assets
+
+- Assets, next to Arc text, opens the fixed branding library. Choose a logo to
+  insert it on the active side with the same controls as an uploaded image.
+- Create barcode opens a live preview with EAN-13, UPC-A and CODE128 formats.
+  Invalid values/check digits block insertion. The code is generated locally;
+  this does not register or assign a product identifier.
+- Logos and barcodes are embedded PNG images, retained in project JSON and
+  exports. Barcodes have white quiet zones; preserve them and test a printed
+  sample before production. Each insertion can be undone/redone.
+
 ## Persistence
 
 Projects are local, not stored in Firestore. Automatic recovery uses

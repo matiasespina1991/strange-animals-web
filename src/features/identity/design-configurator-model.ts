@@ -19,6 +19,7 @@ export type LabelLayer = {
   arc: "top" | "bottom";
   width: number;
   imageRatio?: number;
+  borderRadius?: number;
   opacity?: number;
   image?: string;
   fontId?: string;
@@ -51,7 +52,7 @@ export function makeLayer(
     kind,
     name:
       kind === "circular"
-        ? "Legal text"
+        ? "Arc text"
         : kind === "image"
           ? "Image / logo"
           : "New text",
@@ -62,6 +63,7 @@ export function makeLayer(
     size: kind === "circular" ? 11 : 24,
     spacing: 0,
     lineHeight: 1.1,
+    borderRadius: 0,
     radius: 254,
     angle: 0,
     x: 300,
@@ -239,8 +241,8 @@ export function parseDesign(input: unknown): LabelDesign {
   if (input.version !== undefined && input.version !== 2)
     throw Error("Versión de proyecto no compatible.");
   const side = (values: unknown[]): LabelLayer[] => {
-    if (!values.length || values.length > 50)
-      throw Error("Cada lado debe tener entre 1 y 50 elementos.");
+    if (values.length > 50)
+      throw Error("Cada lado admite hasta 50 elementos.");
     const ids = new Set<string>();
     return values.map((item) => {
       if (
@@ -268,7 +270,9 @@ export function parseDesign(input: unknown): LabelDesign {
       return {
         ...base,
         name:
-          typeof item.name === "string" ? item.name.slice(0, 80) : base.name,
+          kind === "circular" && item.name === "Legal text"
+            ? "Arc text"
+            : typeof item.name === "string" ? item.name.slice(0, 80) : base.name,
         text: typeof item.text === "string" ? item.text.slice(0, 3000) : "",
         visible: item.visible !== false,
         size: numeric(item.size, base.size, 3, 500),
@@ -289,6 +293,7 @@ export function parseDesign(input: unknown): LabelDesign {
         arc: item.arc === "top" ? "top" : "bottom",
         image,
         imageRatio: numeric(item.imageRatio, 1, 0.05, 20),
+        borderRadius: numeric(item.borderRadius, 0, 0, 100),
         opacity: numeric(item.opacity, 1, 0, 1),
         fontId: typeof item.fontId === "string" ? item.fontId : undefined,
         variantId:

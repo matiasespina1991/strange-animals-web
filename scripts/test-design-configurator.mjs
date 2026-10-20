@@ -80,6 +80,21 @@ const { LabelArtwork } = await import(asModule(artworkCode));
 const { renderToStaticMarkup } = await import("react-dom/server");
 const artworkProps = { design: lineHeightDesign, side: "A", prefix: "test", fontFamily: () => "Arial" };
 const exportedSvg = renderToStaticMarkup(LabelArtwork(artworkProps));
+const selectedImages = [makeLayer("image", "selection-1"), makeLayer("image", "selection-2"), makeLayer("image", "unselected")];
+const multiGuidesSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, design: { ...lineHeightDesign, A: selectedImages }, guides: true, selectedIds: new Set(["selection-1", "selection-2"]) }));
+assert.equal((multiGuidesSvg.match(/class="dc-selection-guide"/g) ?? []).length, 2, "Each selected layer must have a guide");
+const operations = await import(asModule(jsxModule(await readFile(new URL("../src/features/identity/layer-operations.ts", import.meta.url), "utf8"))));
+const selectedIds = new Set(original.A.slice(0, 2).map((layer) => layer.id));
+const deleted = designReducer({ past: [], present: original, future: [] }, { type: "change", change: (design) => operations.removeLayers(design, "A", selectedIds) });
+assert.equal(deleted.present.A.length, original.A.length - 2);
+assert.strictEqual(deleted.present.B, original.B);
+assert.deepEqual(designReducer(deleted, { type: "undo" }).present, original, "One undo must restore all deleted layers");
+const deleteAll = operations.removeLayers(original, "A", new Set(original.A.map((layer) => layer.id)));
+assert.deepEqual(parseDesign(JSON.parse(JSON.stringify(deleteAll))).A, []);
+const roundedLayer = { ...makeLayer("image", "rounded-test"), image: "data:image/png;base64,aGVsbG8=", borderRadius: 12 };
+const roundedSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, design: { ...lineHeightDesign, A: [roundedLayer] } }));
+assert.ok(roundedSvg.includes('rx="12"'));
+assert.ok(roundedSvg.includes('clip-path="url(#test-image-corners-0)"'));
 assert.equal(parseDesign(original).A[0].inkBleed, 0);
 assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, inkBleed: 99 })) }).A[0].inkBleed, 4);
 assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, lineHeight: 0 })) }).A[0].lineHeight, 0);
@@ -183,7 +198,7 @@ assert.throws(
   /duplicados/,
 );
 assert.throws(() => parseDesign({ ...original, version: 9 }), /Versión/);
-assert.throws(() => parseDesign({ ...original, A: [] }), /1 y 50/);
+assert.deepEqual(parseDesign({ ...original, A: [] }).A, [], "An empty side must survive saving after deleting all layers");
 assert.throws(
   () =>
     parseDesign({

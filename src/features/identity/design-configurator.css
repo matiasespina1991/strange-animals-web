@@ -133,15 +133,15 @@
 .dc-artboard .dc-measure-top::before, .dc-artboard .dc-measure-top::after { background:currentColor; opacity:.5; }
 .dc-layers .dc-side-switch { margin-bottom:0; }
 .dc-layers .dc-side-switch button { padding-block:11px; }
-.dc-layers .dc-add-controls { display:grid; grid-template-columns:.75fr 1fr 1.85fr; width:100%; margin:12px 0; }
+.dc-layers .dc-add-controls { display:flex; flex-wrap:wrap; justify-content:start; width:100%; margin:12px 0; gap:4px; }
 .dc-layers .dc-add-controls + .dc-multi-controls { margin-top:0; }
-.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:8px 5px; }
+.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:8px 9px; gap:4px; flex-shrink:0; }
 @media(max-width:800px) { .dc-layers .dc-add-controls button { padding-block:10px; } }
 .dc-layers .dc-add-controls button svg { flex-shrink:0; }
 @media(min-width:801px) {
-  .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px - 2rem); }
+  .design-configurator .dc-workspace { grid-template-columns:minmax(300px,300px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px - 2rem); }
   .design-configurator .dc-artboard { padding-block:calc(60px - 1rem); min-height:calc(570px - 2rem); }
-  .design-configurator .dc-layers { min-width:280px; min-height:0; contain:size; overflow-y:auto; }
+  .design-configurator .dc-layers { min-width:300px; min-height:0; contain:size; overflow-y:auto; }
   .design-configurator .dc-layers > :not(.dc-layer-list) { flex-shrink:0; }
   .design-configurator .dc-layer-list { min-height:0; flex:1; }
   .design-configurator .dc-properties {
@@ -241,3 +241,16 @@
 .design-configurator .dc-font-search { background-color:#fff; }
 .design-configurator .dc-load { padding-block:12px!important; }
 .design-configurator .dc-swap-colors { display:grid; place-items:center; flex-shrink:0; width:24px; height:22px; border:1px solid #b9c1ad; }
+.dc-assets-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.design-configurator .dc-asset-card { display:flex; flex-direction:column; gap:8px; padding:10px; border:1px solid #cdd2c2; text-align:left; font-size:12px; }
+.dc-asset-preview { display:flex; align-items:center; justify-content:center; width:100%; height:80px; padding:10px; background:#fff; }
+.dc-asset-brand { background:#252620; }
+.dc-asset-preview img { display:block; max-width:100%; max-height:100%; object-fit:contain; }
+.dc-barcode-preview { display:flex; align-items:center; justify-content:center; min-height:130px; margin-top:16px; padding:10px; background:#fff; border:1px solid #cdd2c2; }
+.dc-barcode-preview img { max-width:100%; max-height:180px; object-fit:contain; }
+.dc-barcode-creator .dc-field input[type=text] { display:block; width:100%; border:1px solid #ced2c2; padding:5px 8px; }
+.design-configurator .dc-assets-back { padding:6px 0; font-size:12px; }
+.dc-barcode-colors input[type=color] { display:block; width:100%; height:28px; padding:2px; border:1px solid #ced2c2; background:#fff; }
+@media(min-width:801px) {
+  .dc-layers .dc-add-controls { flex-wrap:wrap; }
+}
