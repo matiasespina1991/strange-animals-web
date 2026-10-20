@@ -3839,12 +3839,6 @@ export function IdentityFontsPage() {
 
             <FontWeightControl value={fontWeight} onChange={setFontWeight} />
 
-            <label className="mb-6 block text-[0.625rem] tracking-[0.08em] text-white/65">
-              <span className="mb-2 flex justify-between"><span>Ink bleed</span><span>{inkBleed === 0 ? "Off" : `${inkBleed.toFixed(2)} px`}</span></span>
-              <input type="range" aria-label="Ink bleed" className="w-full cursor-pointer" min={0} max={2} step={0.05}
-                value={inkBleed} onChange={(event) => setInkBleed(Number(event.target.value))} />
-            </label>
-
             <div className="mb-6">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
@@ -4046,6 +4040,24 @@ export function IdentityFontsPage() {
                 </label>
               </>
             )}
+            <label className="mt-6 block">
+              <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                <span>Ink bleed</span>
+                <span>{inkBleed === 0 ? "Off" : `${inkBleed.toFixed(2)} px`}</span>
+              </span>
+              <input
+                aria-label="Ink bleed"
+                className="identity-font-size-slider block w-full"
+                min={0}
+                max={4}
+                step={0.05}
+                type="range"
+                value={inkBleed}
+                onPointerDown={(event) => jumpRangeToPointer(event, setInkBleed)}
+                onPointerMove={(event) => jumpRangeToPointer(event, setInkBleed)}
+                onChange={(event) => setInkBleed(Number(event.target.value))}
+              />
+            </label>
           </div>
         ) : null}
       </div>

@@ -8,6 +8,10 @@
 - quita un poco de gap y dale lo mismo en padding inline a estos:
 <div class="dc-font-scopes"><button aria-pressed="false">Standard</button><button aria-pressed="true">All</button><button aria-pressed="false">Favorites</button><label class="dc-all-styles"><input type="checkbox" checked="">See all substyles</label><span>1428 families</span></div>
 - Aplicar SEO que corresponda al configurador para que aparezca correctamente cuando envio el link por whataapp por ejemplo.
+- Agregar logo de google al boton de iniciar sesion con google.
+- No hagas que al hacer click en el usuario me abra una ventana que diga account. Debería abrirse un drop down, lo que común y más cómodamente sucede generalmente en cualquier website. No veo un diálogo abrirse hace años. No sé cuál fue tu criterio para usar un diálogo pero usa un dropdown, hagamos todo más fácil.
+- Sacame esto:
+<p class="dc-anchor-note"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle"><circle cx="12" cy="12" r="10"></circle></svg>Type size changes. The circle stays put.</p>
 - Si cliqueo en Type Faces Collection, se debe abrir en una ventana aparte.
 - Export PSD implementado con capas y textos convertidos a formas. Pendiente validación visual en Photoshop; fuentes OTF/TTF/WOFF, sin WOFF2 ni scripts contextuales por ahora. Ver docs/design-configurator.md.
 - Login personal conectado a Firebase (Google/email, registro, logout), independiente de la contraseña de acceso existente. Pendiente prueba con cuentas reales y confirmar Google/authorized domains en Firebase Console. Sin funciones nuevas condicionadas al login.

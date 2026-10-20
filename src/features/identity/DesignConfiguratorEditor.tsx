@@ -2333,9 +2333,9 @@ export function DesignConfiguratorEditor() {
                 <option value="svg">
                   SVG — editable vector, embedded fonts
                 </option>
-                <option value="png">PNG — 300 dpi equivalent pixel size</option>
+                <option value="png">PNG — 600 ppi</option>
                 <option value="psd">
-                  Photoshop PSD — layers, outlined text
+                  Photoshop PSD — 600 ppi, layers, outlined text
                 </option>
                 <option value="pdf">Print / Save as PDF — current side</option>
               </select>

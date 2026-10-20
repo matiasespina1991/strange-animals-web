@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { getBytes, ref } from "firebase/storage";
 import { firebaseStorage } from "@/lib/firebase";
 import { LabelArtwork } from "./LabelArtwork";
+import { PRINT_PPI, printPixelSize } from "./print-resolution";
+import { setPngResolution } from "./png-resolution";
 import {
   listFontVariants,
   loadFontVariant,
@@ -152,20 +154,21 @@ export async function exportLabelPng(svg: string, millimeters: number) {
       image.onerror = () => reject(Error("No se pudo renderizar el PNG."));
       image.src = source;
     });
-    const pixels = Math.round((millimeters / 25.4) * 300),
+    const pixels = printPixelSize(millimeters),
       canvas = document.createElement("canvas");
     canvas.width = pixels;
     canvas.height = pixels;
     const context = canvas.getContext("2d");
     if (!context) throw Error("No se pudo crear el PNG.");
     context.drawImage(image, 0, 0, pixels, pixels);
-    return await new Promise<Blob>((resolve, reject) =>
+    const png = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
         (blob) =>
           blob ? resolve(blob) : reject(Error("No se pudo crear el PNG.")),
         "image/png",
       ),
     );
+    return new Blob([setPngResolution(new Uint8Array(await png.arrayBuffer()), PRINT_PPI)], { type: "image/png" });
   } finally {
     URL.revokeObjectURL(source);
   }

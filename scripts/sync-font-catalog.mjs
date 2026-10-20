@@ -378,7 +378,12 @@ async function buildCatalog() {
   const catalog = [];
 
   for (const [index, source] of sources.entries()) {
-    const id = slugify(source.sourceName);
+    const sourceHash = createHash("sha256")
+      .update(source.sourceName)
+      .digest("hex")
+      .slice(0, 10);
+    const baseId = slugify(source.sourceName) || `font-${sourceHash}`;
+    const id = ids.has(baseId) ? `${baseId}-${sourceHash}` : baseId;
 
     if (!id || ids.has(id)) {
       throw new Error(

@@ -3,6 +3,7 @@ import { createLabelSvg } from "./design-configurator-export";
 import type { FontCatalogItem } from "./font-catalog-repository";
 import type { LabelDesign, LabelSide } from "./design-configurator-model";
 import { embeddedOutlineFonts, outlineText } from "./psd-text-outlines";
+import { PRINT_PPI, printPixelSize } from "./print-resolution";
 
 async function raster(svg: SVGSVGElement, pixels: number): Promise<HTMLCanvasElement> {
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
@@ -26,7 +27,8 @@ export async function createLabelPsd(design: LabelDesign, side: LabelSide, fonts
   onProgress?.("psd:prepare", { side, layerCount: design[side].length });
   const extra = bleed ? design.bleedMm / design.diameterMm * 600 : 0;
   const mm = design.diameterMm + (bleed ? design.bleedMm * 2 : 0);
-  const pixels = Math.round(mm / 25.4 * 300), scale = pixels / (600 + extra * 2);
+  const pixels = printPixelSize(mm), scale = pixels / (600 + extra * 2);
+  onProgress?.("psd:resolution", { ppi: PRINT_PPI, width: pixels, height: pixels });
   if (pixels * pixels * Math.max(1, design[side].length) > 100_000_000)
     throw new Error("This project exceeds the PSD memory budget. Reduce the number of layers or export SVG instead.");
   const allVisible = { ...design, [side]: design[side].map((layer) => ({ ...layer, visible: true })) };
@@ -41,6 +43,10 @@ export async function createLabelPsd(design: LabelDesign, side: LabelSide, fonts
   try {
     onProgress?.("psd:decode-fonts");
     const outlineFonts = embeddedOutlineFonts(svg);
+    const fallbacks = ["Alte DIN Input", "Berlin Type Office"].flatMap((family) => {
+      const font = outlineFonts.get(family);
+      return font ? [{ family, font }] : [];
+    });
     const vectorPaths = new Map<string, ReturnType<typeof outlineText>>();
     for (const text of Array.from(svg.querySelectorAll("text"))) {
       onProgress?.("psd:outline-text", { layerId: text.parentElement?.getAttribute("data-layer-id") ?? undefined, fontFamily: text.getAttribute("font-family") ?? undefined });
@@ -49,7 +55,9 @@ export async function createLabelPsd(design: LabelDesign, side: LabelSide, fonts
       // No per-character outlines for contextual shaping: never silently export broken glyphs.
       if (/[\u0300-\u036f\u0590-\u08ff\u0900-\u0dff]/.test(text.textContent ?? "")) throw new Error("PSD outlining of contextual scripts is not supported yet. Use SVG for this text.");
       text.style.fontVariantLigatures = "none";
-      vectorPaths.set(text.parentElement!.getAttribute("data-layer-id")!, outlineText(text, font, scale, extra));
+      const primaryFamily = text.getAttribute("font-family")!;
+      text.setAttribute("font-family", [primaryFamily, ...fallbacks.map((item) => item.family)].map((family) => JSON.stringify(family)).join(","));
+      vectorPaths.set(text.parentElement!.getAttribute("data-layer-id")!, outlineText(text, font, scale, { extra, fallbacks }));
     }
     const nodes = Array.from(svg.querySelectorAll<SVGGElement>("[data-layer-id]"));
     const content = svg.querySelector<SVGGElement>("svg > g")!;
@@ -93,7 +101,7 @@ export async function createLabelPsd(design: LabelDesign, side: LabelSide, fonts
     onProgress?.("psd:write-file", { layerCount: children.length });
     return new Blob([writePsd({ width: pixels, height: pixels, canvas,
       children: [{ name: `Side ${side}`, children, mask: { canvas: mask, defaultColor: 0 } }],
-      imageResources: { resolutionInfo: { horizontalResolution: 300, verticalResolution: 300, horizontalResolutionUnit: "PPI", verticalResolutionUnit: "PPI", widthUnit: "Centimeters", heightUnit: "Centimeters" } },
+      imageResources: { resolutionInfo: { horizontalResolution: PRINT_PPI, verticalResolution: PRINT_PPI, horizontalResolutionUnit: "PPI", verticalResolutionUnit: "PPI", widthUnit: "Centimeters", heightUnit: "Centimeters" } },
     })], { type: "image/vnd.adobe.photoshop" });
   } finally { host.remove(); }
 }

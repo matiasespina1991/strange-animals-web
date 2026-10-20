@@ -40,17 +40,19 @@ and do not prevent downloading JSON.
 
 ## Exports
 
-- Photoshop PSD: separate image/shape layers at 300 PPI. Text becomes vector
+- Photoshop PSD: separate image/shape layers at 600 PPI (100 mm ≈ 2362 px). Text becomes vector
   outlines, not live type. Font bytes are embedded/decoded during export, not
   resolved from the recipient's installed fonts. OTF/TTF/WOFF are supported;
-  unsupported fonts, contextual scripts and missing glyphs produce an error
-  instead of silently substituting raster text. Per-layer ink bleed is retained
+  unsupported font files and contextual scripts produce an error instead of
+  silently substituting raster text. Missing glyphs use the embedded default
+  fonts (Alte DIN Input, then Berlin Type Office) per character, with a console
+  warning; export fails only if none contains that character. Per-layer ink bleed is retained
   as an appearance layer alongside a hidden outline source. The document has a
   shared trim/center-hole mask. This exporter still needs a visual roundtrip
   check in real Photoshop; automated tests cover PSD structure/vector paths.
 
 - SVG: vector, editable text, embedded fonts/images, exact millimeter dimensions.
-- PNG: transparent, pixel dimensions calculated at 300 pixels per inch.
+- PNG: transparent, pixel dimensions and physical density metadata at 600 PPI.
 - Print / PDF: current side through the browser's print dialog; use 100% scale
   and no margins/headers/footers. Confirm custom paper size in the print UI.
 - SVG/PNG can export both sides as separate files. Allow multiple downloads.

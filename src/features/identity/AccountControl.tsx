@@ -36,7 +36,7 @@ export function AccountControl() {
         onClick={() => setOpen(true)}
         aria-label={user ? "Account" : "Sign in"}
       >
-        <UserRound size={15} />
+        <UserRound size={15} fill="currentColor" strokeWidth={0} />
         <span>
           {user
             ? (user.displayName ?? user.email?.split("@")[0] ?? "Account")
