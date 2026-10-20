@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronsRight } from "lucide-react";
 
-/** Secondary toolbar options stay inline on wide screens and in overflow below 1600px. */
+/** Secondary toolbar options stay inline on wide screens and in overflow below 1360px. */
 export function SleeveToolbar({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);

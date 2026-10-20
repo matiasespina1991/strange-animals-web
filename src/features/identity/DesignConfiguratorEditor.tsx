@@ -1306,6 +1306,19 @@ export function DesignConfiguratorEditor() {
                 <div className="dc-section-caption">
                   Typography
                 </div>
+                <label className="dc-field">
+                  <span>Font family</span>
+                  <button className="dc-font-trigger" disabled={fontBusy} onClick={() => setDialog("fonts")}>
+                    <span>
+                      {currentFont?.name ?? (element.fontId ? "Font unavailable" : defaultFontName)}
+                      <small>{currentFont ? (currentFont.parentCategory ?? "Uncategorized") : "Browse your typeface library"}</small>
+                    </span>
+                    <ChevronDown size={15} />
+                  </button>
+                </label>
+                {fontErrors[fontKey(element)] && (
+                  <p className="dc-warning" role="alert">{fontErrors[fontKey(element)]}</p>
+                )}
                 {selectedTextLayers.length > 0 && (
                   <div className="dc-ink dc-ink-priority">
                     <span>Ink color{selectedTextLayers.length > 1 ? ` · ${selectedTextLayers.length} text layers` : ""}</span>
@@ -1328,34 +1341,6 @@ export function DesignConfiguratorEditor() {
                       }} />
                     </div>
                   </div>
-                )}
-                <label className="dc-field">
-                  <span>Font family</span>
-                  <button
-                    className="dc-font-trigger"
-                    disabled={fontBusy}
-                    onClick={() => {
-                      setDialog("fonts");
-                    }}
-                  >
-                    <span>
-                      {currentFont?.name ??
-                        (element.fontId
-                          ? "Font unavailable"
-                          : defaultFontName)}
-                      <small>
-                        {currentFont
-                          ? (currentFont.parentCategory ?? "Uncategorized")
-                          : "Browse your typeface library"}
-                      </small>
-                    </span>
-                    <ChevronDown size={15} />
-                  </button>
-                </label>
-                {fontErrors[fontKey(element)] && (
-                  <p className="dc-warning" role="alert">
-                    {fontErrors[fontKey(element)]}
-                  </p>
                 )}
                 <div className="dc-field-pair">
                   <TypographyValueControl label="Size" unit="PX" value={element.size} min={3} max={500} sliderMax={200} step={0.5}

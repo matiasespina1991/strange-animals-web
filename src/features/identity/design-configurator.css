@@ -80,6 +80,7 @@
 .dc-layers .dc-panel-title, .dc-properties .dc-panel-title { margin-bottom:16px; }
 .dc-properties .dc-selected-heading { margin-bottom:14px; }
 .dc-properties-heading { justify-content:space-between; }
+.dc-layers .dc-panel-title h2, .dc-properties .dc-panel-title h2 { font-size:14px; font-weight:400; }
 .dc-properties-heading .dc-reset { margin-top:0; }
 .dc-properties .dc-position-section { margin-top:12px; padding-top:10px; }
 .dc-properties .dc-selected-heading h3 { font-size:14px; }
@@ -129,7 +130,8 @@
 .dc-layers .dc-side-switch { margin-bottom:0; }
 .dc-layers .dc-add-controls { display:grid; grid-template-columns:.75fr 1fr 1.85fr; width:100%; margin:12px 0; }
 .dc-layers .dc-add-controls + .dc-multi-controls { margin-top:0; }
-.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:5px; }
+.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:8px 5px; }
+@media(max-width:800px) { .dc-layers .dc-add-controls button { padding-block:10px; } }
 .dc-layers .dc-add-controls button svg { flex-shrink:0; }
 @media(min-width:801px) {
   .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px + 2rem); }
@@ -202,7 +204,7 @@
 .dc-sleeve-overflow, .dc-sleeve-overflow-panel { display:contents; }
 .design-configurator .dc-sleeve-overflow-trigger { display:none; }
 .dc-sleeve-overflow-panel > .dc-preview-stock { align-self:flex-end; flex-shrink:0; }
-@media(max-width:1599px) {
+@media(max-width:1359px) {
   .dc-sleeve-overflow { display:flex; align-self:flex-end; flex-shrink:0; margin-left:-10px; }
   .design-configurator .dc-sleeve-overflow-trigger { display:grid; place-items:center; width:20px; height:28px; padding:0; flex-shrink:0; border:1px solid transparent; }
   .design-configurator .dc-sleeve-overflow-trigger:hover { border-color:#c7c9be; }
