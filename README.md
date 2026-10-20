@@ -1,3 +1,5 @@
 # TODO
 
-- [x] Assets a la derecha de Arc text: biblioteca fija con logo y logo outlined de Strange Animals, más generador de barcode EAN-13 / UPC-A / CODE128 con preview y validación. Se insertan como capas de imagen en el lado activo, sin controles de color.
+- Export PSD implementado con capas y textos convertidos a formas. Pendiente validación visual en Photoshop; fuentes OTF/TTF/WOFF, sin WOFF2 ni scripts contextuales por ahora. Ver docs/design-configurator.md.
+- Login personal conectado a Firebase (Google/email, registro, logout), independiente de la contraseña de acceso existente. Pendiente prueba con cuentas reales y confirmar Google/authorized domains en Firebase Console. Sin funciones nuevas condicionadas al login.
+- Investigar por qué hay subestilos que no aparecen (pospuesto por ahora).

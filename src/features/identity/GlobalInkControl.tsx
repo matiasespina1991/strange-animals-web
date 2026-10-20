@@ -11,9 +11,10 @@ type Props = {
   onApply: (color: string) => void;
   labelColor?: string;
   onSwap?: () => void;
+  onPreview?: (color: string | null) => void;
 };
 
-export function GlobalInkControl({ side, colors, hasCustomColors, onApply, labelColor, onSwap }: Props) {
+export function GlobalInkControl({ side, colors, hasCustomColors, onApply, labelColor, onSwap, onPreview }: Props) {
   const current = colors[0] ?? "#20211e";
   const mixed = colors.some(
     (color) => color.toLowerCase() !== current.toLowerCase(),
@@ -53,6 +54,7 @@ export function GlobalInkControl({ side, colors, hasCustomColors, onApply, label
         value={mixed ? undefined : current}
         label="Text color"
         onChoose={apply}
+        onPreview={onPreview}
       >
         {pendingColor && (
           <TextColorConfirmation

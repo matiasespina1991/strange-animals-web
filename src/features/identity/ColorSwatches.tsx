@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Plus } from "lucide-react";
 
-type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void; children?: ReactNode };
+type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void; onPreview?: (color: string | null) => void; children?: ReactNode };
 
-export function ColorSwatches({ colors, value, label, onChoose, children }: Props) {
+export function ColorSwatches({ colors, value, label, onChoose, onPreview, children }: Props) {
+  const preview = useRef(onPreview);
+  preview.current = onPreview;
+  useEffect(() => () => preview.current?.(null), []);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -50,7 +53,9 @@ export function ColorSwatches({ colors, value, label, onChoose, children }: Prop
     const light = parseInt(rgb.slice(0, 2), 16) * .299 + parseInt(rgb.slice(2, 4), 16) * .587 + parseInt(rgb.slice(4, 6), 16) * .114 > 140;
     return <button key={color} title={color.toUpperCase()} aria-label={`${label} ${color}`} aria-pressed={selected}
       style={{ backgroundColor: color, color: light ? "#20211e" : "#ffffff" }}
-      onClick={() => onChoose(color)}>
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") onPreview?.(color); }}
+      onPointerLeave={() => onPreview?.(null)}
+      onClick={() => { onPreview?.(null); onChoose(color); }}>
       {selected && <Check size={14} />}
     </button>;
   };

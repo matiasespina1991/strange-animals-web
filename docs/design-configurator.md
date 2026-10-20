@@ -40,6 +40,15 @@ and do not prevent downloading JSON.
 
 ## Exports
 
+- Photoshop PSD: separate image/shape layers at 300 PPI. Text becomes vector
+  outlines, not live type. Font bytes are embedded/decoded during export, not
+  resolved from the recipient's installed fonts. OTF/TTF/WOFF are supported;
+  unsupported fonts, contextual scripts and missing glyphs produce an error
+  instead of silently substituting raster text. Per-layer ink bleed is retained
+  as an appearance layer alongside a hidden outline source. The document has a
+  shared trim/center-hole mask. This exporter still needs a visual roundtrip
+  check in real Photoshop; automated tests cover PSD structure/vector paths.
+
 - SVG: vector, editable text, embedded fonts/images, exact millimeter dimensions.
 - PNG: transparent, pixel dimensions calculated at 300 pixels per inch.
 - Print / PDF: current side through the browser's print dialog; use 100% scale
@@ -48,14 +57,41 @@ and do not prevent downloading JSON.
 - Bleed is optional and expands the paper color beyond the trim circle. The
   center hole is transparent; editor and safe-area guides never export.
 
-Exports use RGB and retain live text. They are not a CMYK conversion or an
-outlined-font press proof. Verify the printer's template and font embedding
+Exports use RGB. SVG/PDF retain live text; PSD uses outlined shape layers.
+They are not a CMYK press proof. Verify the printer's template and font embedding
 licenses before production. Export fails visibly rather than substituting an
 unavailable explicitly chosen catalog font.
 
 ## Verification
 
 `node scripts/test-design-configurator.mjs` checks history, grouping, import
-validation, legacy migration, and circular geometry. Browser tests additionally
-cover responsive layouts, layer editing, images, JSON, SVG dimensions and font
-embedding, PNG size/transparency, and the print document.
+validation, legacy migration, and circular geometry.
+`node scripts/test-configurator-preview-auth.mjs` checks palette preview versus
+commit, dirty-project detection and independent account initialization with a
+mocked Firebase SDK. `node scripts/test-psd-vectors.mjs` checks glyph-to-Bezier
+conversion, embedded font decoding and layered PSD write/read.
+Manual browser checks are still needed for responsive layouts, login with real
+accounts, SVG/PNG rendering and Photoshop visual compatibility.
+
+## Optional personal account
+
+The header offers Sign-in before Typefaces collection. Email/password and
+Google use a separate named Firebase client (`identity-account`) in the same
+project. This intentionally does not replace the default client's shared
+Identity access-key session. Sign-out only affects the personal account; it
+does not reset the current project or remove access granted by the key.
+
+No cloud project storage, font-upload permissions, database rules or storage
+rules were added or changed. Existing editor functionality remains available
+without a personal login. Future user-owned data must use the personal auth
+session and appropriate backend rules, never the shared access-key identity.
+
+Before live verification, check Firebase Console → Authentication:
+
+- Enable Email/Password and Google providers if not enabled already.
+- Authorize `localhost` and production hostnames (no protocol/port) for Google.
+- Test sign-in, refresh persistence and sign-out with a real test account.
+
+Provider settings were not deployed/changed by this implementation. The UI
+reports provider-disabled, unauthorized-domain, blocked-popup and network
+errors without showing passwords or raw Firebase error payloads.

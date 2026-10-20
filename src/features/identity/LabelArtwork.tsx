@@ -15,6 +15,7 @@ export function LabelArtwork({
   fontFamily,
   selected,
   selectedIds,
+  hiddenTextId,
   guides = false,
   bleed = false,
   whiteCenter = false,
@@ -30,6 +31,7 @@ export function LabelArtwork({
   fontFamily: (layer: LabelLayer) => string;
   selected?: string;
   selectedIds?: ReadonlySet<string>;
+  hiddenTextId?: string;
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
@@ -181,6 +183,7 @@ export function LabelArtwork({
                 )
               ) : (
                 <text
+                  visibility={layer.id === hiddenTextId ? "hidden" : undefined}
                   filter={layer.inkBleed ? `url(#${prefix}-ink-bleed-${index})` : undefined}
                   fill={layer.color}
                   fontSize={layer.size}

@@ -251,6 +251,18 @@
 .dc-barcode-creator .dc-field input[type=text] { display:block; width:100%; border:1px solid #ced2c2; padding:5px 8px; }
 .design-configurator .dc-assets-back { padding:6px 0; font-size:12px; }
 .dc-barcode-colors input[type=color] { display:block; width:100%; height:28px; padding:2px; border:1px solid #ced2c2; background:#fff; }
+.dc-header-actions { margin-left:auto; display:flex; align-items:center; gap:18px; }
+.dc-header-actions .dc-back { margin-left:0; }
+.dc-account-trigger { display:flex; align-items:center; gap:6px; font-size:12px!important; }
+.dc-account-trigger span { max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dc-account-dialog { margin:auto; width:min(360px,calc(100vw - 24px)); padding:18px; border:1px solid #b9c1ad; background:#fafaf7; color:#252620; }
+.dc-account-dialog::backdrop { background:#0005; }
+.dc-account-dialog .dc-picker-heading h2 { font-size:24px; margin:0; }
+.dc-account-dialog .dc-picker-heading button { padding:4px; align-self:center; }
+.dc-account-dialog .dc-field input { width:100%; padding:6px 8px; border:1px solid #ced2c2; }
+.dc-account-dialog .dc-export-confirm { margin-top:16px; min-height:36px; padding:8px!important; }
+.design-configurator .dc-account-google { width:100%; margin-top:16px; padding:8px; border:1px solid #b9c1ad; font-size:12px; }
+.dc-account-links { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:12px; font-size:11px; }
 @media(min-width:801px) {
   .dc-layers .dc-add-controls { flex-wrap:wrap; }
 }

@@ -63,14 +63,33 @@ import { FontStyleTiles } from "./FontStyleTiles";
 import { FontSpecimen } from "./FontSpecimen";
 import { FontCategoryChips } from "./FontCategoryChips";
 import { getFontCategoryDisplayName } from "./font-categories";
-import { pickerCatalog, pickerCategories, pickerCategory, pickerCategoryLabel, standardCategoriesFor, type FontPickerScope } from "./font-picker-catalog";
-import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
+import {
+  pickerCatalog,
+  pickerCategories,
+  pickerCategory,
+  pickerCategoryLabel,
+  standardCategoriesFor,
+  type FontPickerScope,
+} from "./font-picker-catalog";
+import {
+  familyIsExpanded,
+  familyClickAction,
+  toggleFamily,
+} from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
 import { AssetLibrary } from "./AssetLibrary";
+import { AccountControl } from "./AccountControl";
+import { createExportDiagnostics } from "./export-diagnostics";
+import { hasUnsavedProject } from "./project-dirty-state";
 import { removeLayers } from "./layer-operations";
 import type { InsertableAsset } from "./asset-library";
 import { ConfirmationDialog } from "./TextColorConfirmation";
-import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor, swapTextAndLabelColors } from "./text-color-model";
+import {
+  hasCustomTextColors,
+  changeLayerTextColors,
+  changeGlobalTextColor,
+  swapTextAndLabelColors,
+} from "./text-color-model";
 import {
   clamp,
   designReducer,
@@ -102,13 +121,19 @@ function seed() {
   try {
     const value = localStorage.getItem(RECOVERY_KEY);
     if (value)
-      return { design: parseDesign(JSON.parse(value)), recovered: true, showTemplateWelcome: false };
+      return {
+        design: parseDesign(JSON.parse(value)),
+        recovered: true,
+        showTemplateWelcome: false,
+      };
   } catch {
     /* Invalid recovery must not block the editor. */
   }
   let showTemplateWelcome = true;
   try {
-    showTemplateWelcome = !localStorage.getItem(TEMPLATE_WELCOME_KEY) && !localStorage.getItem(DRAFT_KEY);
+    showTemplateWelcome =
+      !localStorage.getItem(TEMPLATE_WELCOME_KEY) &&
+      !localStorage.getItem(DRAFT_KEY);
   } catch {
     // The welcome can still open when browser storage is unavailable.
   }
@@ -166,7 +191,10 @@ function Modal({
     };
   }, []);
   return (
-    <div className={`dc-picker-overlay${wide ? " dc-template-overlay" : ""}${allowBackgroundScroll ? " dc-picker-nonmodal" : ""}`} onClick={close}>
+    <div
+      className={`dc-picker-overlay${wide ? " dc-template-overlay" : ""}${allowBackgroundScroll ? " dc-picker-nonmodal" : ""}`}
+      onClick={close}
+    >
       <section
         className={`dc-font-picker${wide ? " dc-template-dialog" : ""}`}
         ref={reference}
@@ -230,15 +258,26 @@ function FontRow({
         <FontSpecimen font={font} sample={sample} />
         <small>
           {getFontCategoryDisplayName(pickerCategory(font))}
-          {font.variantCount > 1 && <> · <b>{font.variantCount} styles</b></>}
+          {font.variantCount > 1 && (
+            <>
+              {" "}
+              · <b>{font.variantCount} styles</b>
+            </>
+          )}
         </small>
       </button>
-      {font.variantCount > 1 && <button className="dc-font-expand"
-        aria-label={`${expanded ? "Collapse" : "Expand"} ${font.name} styles`}
-        aria-expanded={expanded} aria-controls={stylesId} disabled={busy}
-        onClick={toggleExpanded}>
-        {expanded ? <ChevronDown size={15} /> : <ChevronLeft size={15} />}
-      </button>}
+      {font.variantCount > 1 && (
+        <button
+          className="dc-font-expand"
+          aria-label={`${expanded ? "Collapse" : "Expand"} ${font.name} styles`}
+          aria-expanded={expanded}
+          aria-controls={stylesId}
+          disabled={busy}
+          onClick={toggleExpanded}
+        >
+          {expanded ? <ChevronDown size={15} /> : <ChevronLeft size={15} />}
+        </button>
+      )}
       <button
         className="dc-font-star"
         aria-label={`${favorite ? "Unfavorite" : "Favorite"} ${font.name}`}
@@ -267,7 +306,8 @@ export function DesignConfiguratorEditor() {
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenFallback, setFullscreenFallback] = useState(false);
   useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement === editorRoot.current);
+    const sync = () =>
+      setFullscreen(document.fullscreenElement === editorRoot.current);
     document.addEventListener("fullscreenchange", sync);
     return () => document.removeEventListener("fullscreenchange", sync);
   }, []);
@@ -285,20 +325,29 @@ export function DesignConfiguratorEditor() {
     };
   }, [fullscreenFallback]);
   const toggleFullscreen = async () => {
-    if (fullscreenFallback) { setFullscreenFallback(false); return; }
+    if (fullscreenFallback) {
+      setFullscreenFallback(false);
+      return;
+    }
     if (document.fullscreenElement === editorRoot.current) {
       await document.exitFullscreen();
       return;
     }
     try {
-      if (!editorRoot.current?.requestFullscreen) { setFullscreenFallback(true); return; }
+      if (!editorRoot.current?.requestFullscreen) {
+        setFullscreenFallback(true);
+        return;
+      }
       await editorRoot.current.requestFullscreen();
     } catch {
       setFullscreenFallback(true);
     }
   };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
-  const [resetTarget, setResetTarget] = useState<{ side: LabelSide; layer: LabelLayer } | null>(null);
+  const [resetTarget, setResetTarget] = useState<{
+    side: LabelSide;
+    layer: LabelLayer;
+  } | null>(null);
   const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [side, setSide] = useState<LabelSide>("A"),
@@ -318,24 +367,44 @@ export function DesignConfiguratorEditor() {
     }
   }, [initial.showTemplateWelcome]);
   const [hoverFamily, setHoverFamily] = useState<string | null>(null);
+  const [hoverFontLoading, setHoverFontLoading] = useState(false);
+  const [colorPreview, setColorPreview] = useState<{
+    target: "text" | "ink" | "paper" | "sleeve";
+    color: string;
+  } | null>(null);
+  const [pendingTemplate, setPendingTemplate] = useState<LabelDesign | null>(
+    null,
+  );
   const hoverRequest = useRef(0);
   useEffect(() => {
     hoverRequest.current += 1;
     setHoverFamily(null);
+    setHoverFontLoading(false);
+    setColorPreview(null);
   }, [dialog, side, selected]);
-  const [expandedFonts, setExpandedFonts] = useState<Set<string>>(() => new Set());
-  const [seeAllStyles, setSeeAllStyles] = useState(false);
+  const [expandedFonts, setExpandedFonts] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [seeAllStyles, setSeeAllStyles] = useState(true);
   const fontResults = useRef<HTMLDivElement>(null);
   const fontScrollPositions = useRef(new Map<string, number>());
   const fontViewLimits = useRef(new Map<string, number>());
-  const previewFont = async (font: FontCatalogItem | null, variantId?: string) => {
+  const previewFont = async (
+    font: FontCatalogItem | null,
+    variantId?: string,
+  ) => {
     const request = ++hoverRequest.current;
     setHoverFamily(null);
+    setHoverFontLoading(!!font);
     if (!font) return;
     try {
       const resolved = await resolveLabelFont(font, variantId);
-      if (request === hoverRequest.current) setHoverFamily(resolved.family);
+      if (request === hoverRequest.current) {
+        setHoverFamily(resolved.family);
+        setHoverFontLoading(false);
+      }
     } catch {
+      if (request === hoverRequest.current) setHoverFontLoading(false);
       // Keep the committed font if the temporary preview cannot load.
     }
   };
@@ -344,19 +413,30 @@ export function DesignConfiguratorEditor() {
     [catalogError, setCatalogError] = useState(""),
     [catalogAttempt, setCatalogAttempt] = useState(0);
   const [scope, setScope] = useState<FontPickerScope>("standard");
-  const fontContext = design[side].find((layer) => layer.id === selected)?.kind ?? "text";
+  const fontContext =
+    design[side].find((layer) => layer.id === selected)?.kind ?? "text";
   const categoryScopeKey = `${scope}:${fontContext}`;
-  const [categoryByScope, setCategoryByScope] = useState<Record<string, string | null>>({});
+  const [categoryByScope, setCategoryByScope] = useState<
+    Record<string, string | null>
+  >({});
   const selectedCategory = categoryByScope[categoryScopeKey] ?? null;
   const [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
   const deferredQuery = useDeferredValue(query);
-  const fontScrollKey = JSON.stringify([categoryScopeKey, deferredQuery, selectedCategory]);
+  const fontScrollKey = JSON.stringify([
+    categoryScopeKey,
+    deferredQuery,
+    selectedCategory,
+  ]);
   useLayoutEffect(() => {
     if (dialog === "fonts" && fontResults.current) {
       const limit = fontViewLimits.current.get(fontScrollKey) ?? 40;
-      if (fontLimit !== limit) { setFontLimit(limit); return; }
-      fontResults.current.scrollTop = fontScrollPositions.current.get(fontScrollKey) ?? 0;
+      if (fontLimit !== limit) {
+        setFontLimit(limit);
+        return;
+      }
+      fontResults.current.scrollTop =
+        fontScrollPositions.current.get(fontScrollKey) ?? 0;
     }
   }, [dialog, fontScrollKey, fontLimit, fonts.length]);
   const [favoriteFonts, setFavoriteFonts] = useState<string[]>(() => {
@@ -379,7 +459,16 @@ export function DesignConfiguratorEditor() {
         : "",
     ),
     [storageError, setStorageError] = useState("");
-  const [lastSaved, setLastSaved] = useState<string>(),
+  const [lastSaved, setLastSaved] = useState<string | undefined>(() => {
+      try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        return saved
+          ? JSON.stringify(parseDesign(JSON.parse(saved)))
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }),
     [exportFormat, setExportFormat] = useState("svg"),
     [exportSides, setExportSides] = useState("current"),
     [includeBleed, setIncludeBleed] = useState(false),
@@ -396,27 +485,69 @@ export function DesignConfiguratorEditor() {
   }>();
   const prefix = useId().replaceAll(":", "");
   const layers = design[side],
-    element = layers.find((l) => l.id === selected) ?? layers[0] ?? initialDesign.A[0],
+    element =
+      layers.find((l) => l.id === selected) ?? layers[0] ?? initialDesign.A[0],
     currentFont = fonts.find((f) => f.id === element.fontId);
-  const defaultFontName = element.id === "title"
-    ? "Berlin Type Bold"
-    : "Alte DIN 1451 Mittelschrift geprägt";
-  const hasSelection = selected !== null && layers.some((layer) => layer.id === selected);
-  const selection = new Set(!hasSelection ? [] : selectedLayers.length ? selectedLayers : [element.id]);
-  const selectedTextLayers = layers.filter((layer) => selection.has(layer.id) && layer.kind !== "image");
-  useEffect(() => { setSelectedLayers([]); }, [side]);
+  const defaultFontName =
+    element.id === "title"
+      ? "Berlin Type Bold"
+      : "Alte DIN 1451 Mittelschrift geprägt";
+  const hasSelection =
+    selected !== null && layers.some((layer) => layer.id === selected);
+  const selection = new Set(
+    !hasSelection ? [] : selectedLayers.length ? selectedLayers : [element.id],
+  );
+  const selectedTextLayers = layers.filter(
+    (layer) => selection.has(layer.id) && layer.kind !== "image",
+  );
+  const previewColor = (
+    target: "text" | "ink" | "paper" | "sleeve",
+    color: string | null,
+  ) => setColorPreview(color ? { target, color } : null);
+  const previewDesign = !colorPreview
+    ? design
+    : colorPreview.target === "paper"
+      ? { ...design, paper: colorPreview.color }
+      : colorPreview.target === "sleeve"
+        ? { ...design, sleeveColor: colorPreview.color }
+        : {
+            ...design,
+            [side]: design[side].map((layer) =>
+              layer.kind !== "image" &&
+              (colorPreview.target === "text" || selection.has(layer.id))
+                ? { ...layer, color: colorPreview.color }
+                : layer,
+            ),
+          };
+  const applyTemplate = (next: LabelDesign) => {
+    end();
+    change(() => next);
+    end();
+    setSelectedLayers([]);
+    setSelected("title");
+    setSide("A");
+    setDialog(null);
+    setPendingTemplate(null);
+  };
   useEffect(() => {
-    if (selectedLayers.length && !selectedLayers.includes(element.id)) setSelectedLayers([]);
+    setSelectedLayers([]);
+  }, [side]);
+  useEffect(() => {
+    if (selectedLayers.length && !selectedLayers.includes(element.id))
+      setSelectedLayers([]);
   }, [element.id, selectedLayers]);
   useEffect(() => {
     if (!hasSelection) return;
     const list = layerList.current;
-    const tile = Array.from(list?.querySelectorAll<HTMLElement>("[data-layer-tile]") ?? [])
-      .find((node) => node.dataset.layerTile === element.id);
+    const tile = Array.from(
+      list?.querySelectorAll<HTMLElement>("[data-layer-tile]") ?? [],
+    ).find((node) => node.dataset.layerTile === element.id);
     if (!list || !tile) return;
-    const bounds = list.getBoundingClientRect(), item = tile.getBoundingClientRect();
+    const bounds = list.getBoundingClientRect(),
+      item = tile.getBoundingClientRect();
     if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
-    else if (item.bottom > bounds.bottom) list.scrollTop += item.bottom - bounds.bottom;
+    else if (item.bottom > bounds.bottom)
+      list.scrollTop += item.bottom - bounds.bottom;
   }, [element.id, side, mobileTab, hasSelection]);
   const change = (
     update: (current: LabelDesign) => LabelDesign,
@@ -583,7 +714,10 @@ export function DesignConfiguratorEditor() {
     setSelected(null);
   };
   const insertAsset = (asset: InsertableAsset) => {
-    if (layers.length >= 50) { setNotice("Máximo de 50 elementos por lado."); return; }
+    if (layers.length >= 50) {
+      setNotice("Máximo de 50 elementos por lado.");
+      return;
+    }
     const layer = { ...makeLayer("image"), ...asset, x: 300, y: 300 };
     end();
     change((current) => ({ ...current, [side]: [...current[side], layer] }));
@@ -771,9 +905,16 @@ export function DesignConfiguratorEditor() {
   };
   const doExport = async () => {
     if (exportBusy) return;
+    const diagnostics = createExportDiagnostics({
+      format: exportFormat,
+      side,
+      bothSides: exportSides === "both",
+      includeBleed,
+    });
     const printWindow =
       exportFormat === "pdf" ? window.open("", "_blank") : null;
     if (exportFormat === "pdf" && !printWindow) {
+      diagnostics.fail(new Error("Print popup was blocked."));
       setNotice("Permití ventanas emergentes para imprimir/PDF.");
       return;
     }
@@ -782,32 +923,70 @@ export function DesignConfiguratorEditor() {
       const sides: LabelSide[] = exportSides === "both" ? ["A", "B"] : [side],
         mm = design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0);
       for (const s of sides) {
+        if (exportFormat === "psd") {
+          diagnostics.stage("load-psd-module", { side: s });
+          const { createLabelPsd } = await import("./design-configurator-psd");
+          const blob = await createLabelPsd(design, s, fonts, {
+            bleed: includeBleed,
+            onProgress: diagnostics.stage,
+          });
+          diagnostics.stage("download", { side: s, bytes: blob.size });
+          downloadDesignFile(blob, labelExportName(design, s, "psd"));
+          continue;
+        }
+        diagnostics.stage("create-svg", { side: s });
         const svg = await createLabelSvg(design, s, fonts, includeBleed);
         if (exportFormat === "pdf" && printWindow) {
           printLabel(printWindow, svg, mm);
           break;
         }
+        diagnostics.stage("encode-file", { side: s });
         const blob =
           exportFormat === "png"
             ? await exportLabelPng(svg, mm)
             : new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+        diagnostics.stage("download", { side: s, bytes: blob.size });
         downloadDesignFile(blob, labelExportName(design, s, exportFormat));
       }
+      diagnostics.complete();
       setNotice(
         exportFormat === "pdf"
           ? "Elegí Guardar como PDF: escala 100%, sin encabezados ni márgenes."
           : "Exportación completada con fuentes incluidas, sin guías del editor.",
       );
     } catch (e) {
+      diagnostics.fail(e);
       printWindow?.close();
       setNotice(e instanceof Error ? e.message : "No se pudo exportar.");
     } finally {
       setExportBusy(false);
     }
   };
-  const visibleFonts = useMemo(() => pickerCatalog(fonts, scope, favoriteFonts, deferredQuery, fontContext), [fonts, scope, favoriteFonts, deferredQuery, fontContext]);
-  const categories = useMemo(() => pickerCategories(visibleFonts, selectedCategory, scope === "standard" && !deferredQuery.trim() ? standardCategoriesFor(fontContext) : undefined), [visibleFonts, selectedCategory, scope, deferredQuery, fontContext]);
-  const sortedFonts = useMemo(() => selectedCategory ? visibleFonts.filter((font) => pickerCategory(font) === selectedCategory) : visibleFonts, [visibleFonts, selectedCategory]);
+  const visibleFonts = useMemo(
+    () =>
+      pickerCatalog(fonts, scope, favoriteFonts, deferredQuery, fontContext),
+    [fonts, scope, favoriteFonts, deferredQuery, fontContext],
+  );
+  const categories = useMemo(
+    () =>
+      pickerCategories(
+        visibleFonts,
+        selectedCategory,
+        scope === "standard" && !deferredQuery.trim()
+          ? standardCategoriesFor(fontContext)
+          : undefined,
+      ),
+    [visibleFonts, selectedCategory, scope, deferredQuery, fontContext],
+  );
+  const sortedFonts = useMemo(
+    () =>
+      selectedCategory
+        ? visibleFonts.filter(
+            (font) => pickerCategory(font) === selectedCategory,
+          )
+        : visibleFonts,
+    [visibleFonts, selectedCategory],
+  );
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
@@ -945,10 +1124,13 @@ export function DesignConfiguratorEditor() {
           <ChevronRight size={12} />
           <strong>design configurator</strong>
         </div>
-        <a className="dc-back" href="/identity/typography/typefaces">
-          <ArrowUpRight size={15} />
-          Typefaces collection
-        </a>
+        <div className="dc-header-actions">
+          <AccountControl />
+          <a className="dc-back" href="/identity/typography/typefaces">
+            <ArrowUpRight size={15} />
+            Typefaces collection
+          </a>
+        </div>
       </header>
       <div className="dc-project-bar">
         <div>
@@ -974,12 +1156,18 @@ export function DesignConfiguratorEditor() {
           </label>
         </div>
         <GlobalInkControl
+          onPreview={(color) => previewColor("text", color)}
           key={side}
           side={side}
           labelColor={design.paper}
-          onSwap={() => { end(); change((current) => swapTextAndLabelColors(current, side)); }}
+          onSwap={() => {
+            end();
+            change((current) => swapTextAndLabelColors(current, side));
+          }}
           hasCustomColors={hasCustomTextColors(design, side)}
-          colors={design[side].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
+          colors={design[side]
+            .filter((layer) => layer.kind !== "image")
+            .map((layer) => layer.color)}
           onApply={(color) => {
             end();
             change((current) => changeGlobalTextColor(current, color, side));
@@ -989,32 +1177,70 @@ export function DesignConfiguratorEditor() {
           <span>Label</span>
           <label className="dc-custom-paper">
             <span className="sr-only">Custom label color</span>
-            <input type="color" value={design.paper}
-              onChange={(event) => change((current) => ({ ...current, paper: event.target.value }), "paper")}
-              onBlur={end} />
+            <input
+              type="color"
+              value={design.paper}
+              onChange={(event) =>
+                change(
+                  (current) => ({ ...current, paper: event.target.value }),
+                  "paper",
+                )
+              }
+              onBlur={end}
+            />
           </label>
-          <ColorSwatches colors={DESIGN_COLOR_PRESETS}
-            value={design.paper} label="Label"
-            onChoose={(color) => change((current) => ({ ...current, paper: color }))} />
+          <ColorSwatches
+            colors={DESIGN_COLOR_PRESETS}
+            onPreview={(color) => previewColor("paper", color)}
+            value={design.paper}
+            label="Label"
+            onChoose={(color) =>
+              change((current) => ({ ...current, paper: color }))
+            }
+          />
         </div>
         <SleeveToolbar>
-        <div className="dc-preview-stock">
-          <span>Sleeve</span>
-          <label className="dc-custom-paper">
-            <span className="sr-only">Custom sleeve color</span>
-            <input type="color" value={design.sleeveColor}
-              onChange={(event) => change((current) => ({ ...current, sleeveColor: event.target.value }), "sleeve-color")}
-              onBlur={end} />
-          </label>
-          <SleeveImageControl image={design.sleeveImage} onError={setNotice}
-            onChange={(sleeveImage) => {
-              end();
-              change((current) => ({ ...current, sleeveImage, sleeveZoom: 1 }));
-            }} />
-          <ColorSwatches colors={DESIGN_COLOR_PRESETS}
-            value={design.sleeveColor} label="Sleeve color"
-            onChoose={(color) => change((current) => ({ ...current, sleeveColor: color }))} />
-        </div>
+          <div className="dc-preview-stock">
+            <span>Sleeve</span>
+            <label className="dc-custom-paper">
+              <span className="sr-only">Custom sleeve color</span>
+              <input
+                type="color"
+                value={design.sleeveColor}
+                onChange={(event) =>
+                  change(
+                    (current) => ({
+                      ...current,
+                      sleeveColor: event.target.value,
+                    }),
+                    "sleeve-color",
+                  )
+                }
+                onBlur={end}
+              />
+            </label>
+            <SleeveImageControl
+              image={design.sleeveImage}
+              onError={setNotice}
+              onChange={(sleeveImage) => {
+                end();
+                change((current) => ({
+                  ...current,
+                  sleeveImage,
+                  sleeveZoom: 1,
+                }));
+              }}
+            />
+            <ColorSwatches
+              colors={DESIGN_COLOR_PRESETS}
+              onPreview={(color) => previewColor("sleeve", color)}
+              value={design.sleeveColor}
+              label="Sleeve color"
+              onChoose={(color) =>
+                change((current) => ({ ...current, sleeveColor: color }))
+              }
+            />
+          </div>
         </SleeveToolbar>
         <div className="dc-project-actions">
           <div className="dc-history">
@@ -1091,14 +1317,41 @@ export function DesignConfiguratorEditor() {
               <Circle size={14} />
               Arc text
             </button>
-            <button onClick={() => setDialog("assets")}><Layers size={14} />Assets</button>
+            <button onClick={() => setDialog("assets")}>
+              <Layers size={14} />
+              Assets
+            </button>
           </div>
           <div className="dc-multi-controls">
             <div className="dc-layer-actions">
-              <button aria-label="Move element toward back" disabled={!hasSelection || index <= 0} onClick={() => reorder(-1)}><ArrowUp size={15} /></button>
-              <button aria-label="Move element toward front" disabled={!hasSelection || index >= layers.length - 1} onClick={() => reorder(1)}><ArrowDown size={15} /></button>
-              <button aria-label="Duplicate element" disabled={!hasSelection || layers.length >= 50} onClick={duplicate}><Copy size={15} /></button>
-              <button aria-label="Delete selected elements" disabled={!hasSelection} onClick={remove}><Trash2 size={15} /></button>
+              <button
+                aria-label="Move element toward back"
+                disabled={!hasSelection || index <= 0}
+                onClick={() => reorder(-1)}
+              >
+                <ArrowUp size={15} />
+              </button>
+              <button
+                aria-label="Move element toward front"
+                disabled={!hasSelection || index >= layers.length - 1}
+                onClick={() => reorder(1)}
+              >
+                <ArrowDown size={15} />
+              </button>
+              <button
+                aria-label="Duplicate element"
+                disabled={!hasSelection || layers.length >= 50}
+                onClick={duplicate}
+              >
+                <Copy size={15} />
+              </button>
+              <button
+                aria-label="Delete selected elements"
+                disabled={!hasSelection}
+                onClick={remove}
+              >
+                <Trash2 size={15} />
+              </button>
             </div>
             <span>{selection.size} selected</span>
           </div>
@@ -1114,13 +1367,22 @@ export function DesignConfiguratorEditor() {
                   aria-pressed={selection.has(layer.id)}
                   onClick={(event) => {
                     if (event.shiftKey) {
-                      const anchor = layers.findIndex((item) => item.id === element.id);
-                      const range = layers.slice(Math.min(anchor, i), Math.max(anchor, i) + 1).map((item) => item.id);
-                      setSelectedLayers(event.metaKey || event.ctrlKey ? [...new Set([...selection, ...range])] : range);
+                      const anchor = layers.findIndex(
+                        (item) => item.id === element.id,
+                      );
+                      const range = layers
+                        .slice(Math.min(anchor, i), Math.max(anchor, i) + 1)
+                        .map((item) => item.id);
+                      setSelectedLayers(
+                        event.metaKey || event.ctrlKey
+                          ? [...new Set([...selection, ...range])]
+                          : range,
+                      );
                       setSelected(layer.id);
                     } else if (event.metaKey || event.ctrlKey) {
                       const next = new Set(selection);
-                      if (next.has(layer.id)) next.delete(layer.id); else next.add(layer.id);
+                      if (next.has(layer.id)) next.delete(layer.id);
+                      else next.add(layer.id);
                       if (!next.size) return;
                       setSelectedLayers([...next]);
                       setSelected(next.has(layer.id) ? layer.id : [...next][0]);
@@ -1173,45 +1435,114 @@ export function DesignConfiguratorEditor() {
               SIDE {side} / PREVIEW
             </span>
             <label className="dc-preview-border">
-              <input type="checkbox" checked={design.frame}
-                onChange={(event) => change((current) => ({ ...current, frame: event.target.checked }))} />
+              <input
+                type="checkbox"
+                checked={design.frame}
+                onChange={(event) =>
+                  change((current) => ({
+                    ...current,
+                    frame: event.target.checked,
+                  }))
+                }
+              />
               Decorative border
             </label>
             <div className="dc-preview-controls">
-            {design.sleeveImage && <label className="dc-sleeve-zoom">
-              <span>Sleeve zoom</span>
-              <input type="range" min={100} max={300} step={1}
-                value={Math.round(design.sleeveZoom * 100)}
-                onChange={(event) => change((current) => ({ ...current, sleeveZoom: Number(event.target.value) / 100 }), "sleeve-zoom")}
-                onPointerUp={end} onBlur={end} />
-              <output>{Math.round(design.sleeveZoom * 100)}%</output>
-            </label>}
-            <div className="dc-guides-control">
-              <Grid2X2 size={14} aria-hidden="true" />
-              <span id={`${prefix}-guides-label`}>Guides</span>
-              <button className="dc-guides-switch" role="switch"
-                aria-checked={guides} aria-labelledby={`${prefix}-guides-label`}
-                onClick={() => setGuides(!guides)}>
-                <span className={!guides ? "is-active" : ""} aria-hidden="true">OFF</span>
-                <span className={guides ? "is-active" : ""} aria-hidden="true">ON</span>
-              </button>
-            </div>
+              {design.sleeveImage && (
+                <label className="dc-sleeve-zoom">
+                  <span>Sleeve zoom</span>
+                  <input
+                    type="range"
+                    min={100}
+                    max={300}
+                    step={1}
+                    value={Math.round(design.sleeveZoom * 100)}
+                    onChange={(event) =>
+                      change(
+                        (current) => ({
+                          ...current,
+                          sleeveZoom: Number(event.target.value) / 100,
+                        }),
+                        "sleeve-zoom",
+                      )
+                    }
+                    onPointerUp={end}
+                    onBlur={end}
+                  />
+                  <output>{Math.round(design.sleeveZoom * 100)}%</output>
+                </label>
+              )}
+              <div className="dc-guides-control">
+                <Grid2X2 size={14} aria-hidden="true" />
+                <span id={`${prefix}-guides-label`}>Guides</span>
+                <button
+                  className="dc-guides-switch"
+                  role="switch"
+                  aria-checked={guides}
+                  aria-labelledby={`${prefix}-guides-label`}
+                  onClick={() => setGuides(!guides)}
+                >
+                  <span
+                    className={!guides ? "is-active" : ""}
+                    aria-hidden="true"
+                  >
+                    OFF
+                  </span>
+                  <span
+                    className={guides ? "is-active" : ""}
+                    aria-hidden="true"
+                  >
+                    ON
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
-          <div className="dc-artboard" onPointerDown={(event) => {
-            if (event.button !== 0 || (event.target instanceof Element && event.target.closest("[data-layer-id]"))) return;
-            end();
-            setSelected(null);
-            setSelectedLayers([]);
-          }} style={{
-            backgroundColor: design.sleeveColor,
-            color: (parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 + parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 + parseInt(design.sleeveColor.slice(5, 7), 16) * 0.114) < 140 ? "#d9ddcd" : "#4c5740",
-          }}>
-            {design.sleeveImage && <div className="dc-sleeve-background" aria-hidden="true"
-              style={{ backgroundImage: `url("${design.sleeveImage}")`, transform: `scale(${design.sleeveZoom})` }} />}
-            <div className="dc-disc-wrap" style={{ transform: `scale(${zoom / 100})` }}>
+          <div
+            className="dc-artboard"
+            onPointerDown={(event) => {
+              if (
+                event.button !== 0 ||
+                (event.target instanceof Element &&
+                  event.target.closest("[data-layer-id]"))
+              )
+                return;
+              end();
+              setSelected(null);
+              setSelectedLayers([]);
+            }}
+            style={{
+              backgroundColor: previewDesign.sleeveColor,
+              color:
+                parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 +
+                  parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 +
+                  parseInt(design.sleeveColor.slice(5, 7), 16) * 0.114 <
+                140
+                  ? "#d9ddcd"
+                  : "#4c5740",
+            }}
+          >
+            {design.sleeveImage && (
+              <div
+                className="dc-sleeve-background"
+                aria-hidden="true"
+                style={{
+                  backgroundImage: `url("${design.sleeveImage}")`,
+                  transform: `scale(${design.sleeveZoom})`,
+                }}
+              />
+            )}
+            <div
+              className="dc-disc-wrap"
+              style={{ transform: `scale(${zoom / 100})` }}
+            >
               <LabelArtwork
-                design={design}
+                design={previewDesign}
+                hiddenTextId={
+                  dialog === "fonts" && hoverFontLoading
+                    ? element.id
+                    : undefined
+                }
                 side={side}
                 prefix={prefix}
                 fontFamily={(layer) =>
@@ -1254,10 +1585,20 @@ export function DesignConfiguratorEditor() {
               <button aria-label="Fit to canvas" onClick={() => setZoom(100)}>
                 <Focus size={16} />
               </button>
-              <button aria-label={fullscreen || fullscreenFallback ? "Exit fullscreen" : "Enter fullscreen"}
+              <button
+                aria-label={
+                  fullscreen || fullscreenFallback
+                    ? "Exit fullscreen"
+                    : "Enter fullscreen"
+                }
                 aria-pressed={fullscreen || fullscreenFallback}
-                onClick={() => void toggleFullscreen()}>
-                {fullscreen || fullscreenFallback ? <Minimize size={16} /> : <Maximize size={16} />}
+                onClick={() => void toggleFullscreen()}
+              >
+                {fullscreen || fullscreenFallback ? (
+                  <Minimize size={16} />
+                ) : (
+                  <Maximize size={16} />
+                )}
               </button>
             </div>
           </div>
@@ -1267,191 +1608,344 @@ export function DesignConfiguratorEditor() {
         >
           <div className="dc-panel-title dc-properties-heading">
             <h2>Properties</h2>
-            {hasSelection && <button className="dc-reset" onClick={() => setResetTarget({ side, layer: element })}>
-              <RotateCcw size={13} />Reset this element
-            </button>}
+            {hasSelection && (
+              <button
+                className="dc-reset"
+                onClick={() => setResetTarget({ side, layer: element })}
+              >
+                <RotateCcw size={13} />
+                Reset this element
+              </button>
+            )}
           </div>
-          {resetTarget && <ConfirmationDialog title="Reset this element?"
-            description={`Are you sure you want to reset “${resetTarget.layer.name}”? You can undo this change.`}
-            onCancel={() => setResetTarget(null)}
-            onConfirm={() => {
-              const { side: targetSide, layer } = resetTarget;
-              const defaults = initialDesign[targetSide].find((item) => item.id === layer.id)
-                ?? makeLayer(layer.kind, layer.id);
-              end();
-              patchLayer(targetSide, layer.id, {
-                ...defaults,
-                fontId: defaults.fontId,
-                variantId: defaults.variantId,
-                inkBleed: defaults.inkBleed ?? 0,
-                image: layer.kind === "image" ? layer.image : undefined,
-                imageRatio: layer.kind === "image" ? layer.imageRatio : undefined,
-              });
-              end();
-              setResetTarget(null);
-            }} />}
-          {!hasSelection ? <p className="dc-font-explanation">Select a layer to edit its properties.</p> : <>
-          <div className="dc-selected-heading">
-            <div>
-              {element.kind === "circular" ? (
-                <Circle size={17} />
-              ) : element.kind === "image" ? (
-                <ImagePlus size={17} />
-              ) : (
-                <Type size={17} />
-              )}
-              <h3>{element.name}</h3>
-            </div>
-          </div>
-          <label className="dc-field">
-            <span>Element name</span>
-            <input
-              maxLength={80}
-              value={element.name}
-              onChange={(e) =>
-                update({ name: e.target.value }, `name-${element.id}`)
-              }
-              onBlur={end}
+          {resetTarget && (
+            <ConfirmationDialog
+              title="Reset this element?"
+              description={`Are you sure you want to reset “${resetTarget.layer.name}”? You can undo this change.`}
+              onCancel={() => setResetTarget(null)}
+              onConfirm={() => {
+                const { side: targetSide, layer } = resetTarget;
+                const defaults =
+                  initialDesign[targetSide].find(
+                    (item) => item.id === layer.id,
+                  ) ?? makeLayer(layer.kind, layer.id);
+                end();
+                patchLayer(targetSide, layer.id, {
+                  ...defaults,
+                  fontId: defaults.fontId,
+                  variantId: defaults.variantId,
+                  inkBleed: defaults.inkBleed ?? 0,
+                  image: layer.kind === "image" ? layer.image : undefined,
+                  imageRatio:
+                    layer.kind === "image" ? layer.imageRatio : undefined,
+                });
+                end();
+                setResetTarget(null);
+              }}
             />
-          </label>
-          {element.kind !== "image" && (
+          )}
+          {!hasSelection ? (
+            <p className="dc-font-explanation">
+              Select a layer to edit its properties.
+            </p>
+          ) : (
             <>
-              <label className="dc-field dc-text-field">
-                <span>
-                  Content<span>{element.text.length} characters</span>
-                </span>
-                <textarea
-                  maxLength={3000}
-                  rows={4}
-                  value={element.text}
+              <div className="dc-selected-heading">
+                <div>
+                  {element.kind === "circular" ? (
+                    <Circle size={17} />
+                  ) : element.kind === "image" ? (
+                    <ImagePlus size={17} />
+                  ) : (
+                    <Type size={17} />
+                  )}
+                  <h3>{element.name}</h3>
+                </div>
+              </div>
+              <label className="dc-field">
+                <span>Element name</span>
+                <input
+                  maxLength={80}
+                  value={element.name}
                   onChange={(e) =>
-                    update({ text: e.target.value }, `text-${element.id}`)
+                    update({ name: e.target.value }, `name-${element.id}`)
                   }
                   onBlur={end}
                 />
               </label>
-              <section className="dc-property-section dc-typography-section">
-                <div className="dc-section-caption">
-                  Typography
-                </div>
-                <label className="dc-field">
-                  <span>Font family</span>
-                  <button className="dc-font-trigger" disabled={fontBusy} onClick={() => setDialog("fonts")}>
+              {element.kind !== "image" && (
+                <>
+                  <label className="dc-field dc-text-field">
                     <span>
-                      {currentFont?.name ?? (element.fontId ? "Font unavailable" : defaultFontName)}
-                      <small>{currentFont ? (currentFont.parentCategory ?? "Uncategorized") : "Browse your typeface library"}</small>
+                      Content<span>{element.text.length} characters</span>
                     </span>
-                    <ChevronDown size={15} />
-                  </button>
-                </label>
-                {fontErrors[fontKey(element)] && (
-                  <p className="dc-warning" role="alert">{fontErrors[fontKey(element)]}</p>
-                )}
-                {selectedTextLayers.length > 0 && (
-                  <div className="dc-ink dc-ink-priority">
-                    <span>Ink color{selectedTextLayers.length > 1 ? ` · ${selectedTextLayers.length} text layers` : ""}</span>
-                    <div className="dc-preview-stock dc-layer-ink-controls">
-                    <label className="dc-custom-paper">
-                      <input aria-label="Selected text ink color" type="color"
-                        value={selectedTextLayers[0].color}
-                        onChange={(event) => {
-                          const color = event.target.value;
-                          const ids = new Set(selectedTextLayers.map((layer) => layer.id));
-                          change((current) => changeLayerTextColors(current, side, ids, color), `ink-${[...ids].join("-")}`);
-                        }} onBlur={end} />
+                    <textarea
+                      maxLength={3000}
+                      rows={4}
+                      value={element.text}
+                      onChange={(e) =>
+                        update({ text: e.target.value }, `text-${element.id}`)
+                      }
+                      onBlur={end}
+                    />
+                  </label>
+                  <section className="dc-property-section dc-typography-section">
+                    <div className="dc-section-caption">Typography</div>
+                    <label className="dc-field">
+                      <span>Font family</span>
+                      <button
+                        className="dc-font-trigger"
+                        disabled={fontBusy}
+                        onClick={() => setDialog("fonts")}
+                      >
+                        <span>
+                          {currentFont?.name ??
+                            (element.fontId
+                              ? "Font unavailable"
+                              : defaultFontName)}
+                          <small>
+                            {currentFont
+                              ? (currentFont.parentCategory ?? "Uncategorized")
+                              : "Browse your typeface library"}
+                          </small>
+                        </span>
+                        <ChevronDown size={15} />
+                      </button>
                     </label>
-                    <ColorSwatches colors={DESIGN_COLOR_PRESETS} label="Ink color"
-                      value={selectedTextLayers.some((layer) => layer.color !== selectedTextLayers[0].color) ? undefined : selectedTextLayers[0].color}
-                      onChoose={(color) => {
-                        end();
-                        const ids = new Set(selectedTextLayers.map((layer) => layer.id));
-                        change((current) => changeLayerTextColors(current, side, ids, color));
-                      }} />
-                    </div>
-                  </div>
-                )}
-                <div className="dc-field-pair">
-                  <TypographyValueControl label="Size" unit="PX" value={element.size} min={3} max={500} sliderMax={200} step={0.5}
-                    onChange={(size) => update({ size }, `size-${element.id}`)} onCommit={end} />
-                  <TypographyValueControl label="Tracking" unit="PX" value={element.spacing} min={-10} max={30} step={0.1}
-                    onChange={(spacing) => update({ spacing }, `spacing-${element.id}`)} onCommit={end} />
-                </div>
-                <div className="dc-field-pair">
-                  {element.kind === "text" ? <TypographyValueControl label="Line height" value={element.lineHeight ?? 1.1} min={0} max={3} step={0.05}
-                    onChange={(lineHeight) => update({ lineHeight }, `line-height-${element.id}`)} onCommit={end} /> : <div />}
-                  <TypographyValueControl label="Ink bleed" unit="PX" value={element.inkBleed ?? 0} min={0} max={4} step={0.05}
-                    onChange={(inkBleed) => update({ inkBleed }, `ink-bleed-${element.id}`)} onCommit={end} />
-                </div>
-                <div className="dc-alignment">
-                  <span>Anchor</span>
-                  <div>
-                    {(["start", "middle", "end"] as const).map((value, i) => {
-                      const Icon = [AlignLeft, AlignCenter, AlignRight][i];
-                      return (
-                        <button
-                          key={value}
-                          aria-label={
-                            ["Start anchor", "Center anchor", "End anchor"][i]
+                    {fontErrors[fontKey(element)] && (
+                      <p className="dc-warning" role="alert">
+                        {fontErrors[fontKey(element)]}
+                      </p>
+                    )}
+                    {selectedTextLayers.length > 0 && (
+                      <div className="dc-ink dc-ink-priority">
+                        <span>
+                          Ink color
+                          {selectedTextLayers.length > 1
+                            ? ` · ${selectedTextLayers.length} text layers`
+                            : ""}
+                        </span>
+                        <div className="dc-preview-stock dc-layer-ink-controls">
+                          <label className="dc-custom-paper">
+                            <input
+                              aria-label="Selected text ink color"
+                              type="color"
+                              value={selectedTextLayers[0].color}
+                              onChange={(event) => {
+                                const color = event.target.value;
+                                const ids = new Set(
+                                  selectedTextLayers.map((layer) => layer.id),
+                                );
+                                change(
+                                  (current) =>
+                                    changeLayerTextColors(
+                                      current,
+                                      side,
+                                      ids,
+                                      color,
+                                    ),
+                                  `ink-${[...ids].join("-")}`,
+                                );
+                              }}
+                              onBlur={end}
+                            />
+                          </label>
+                          <ColorSwatches
+                            colors={DESIGN_COLOR_PRESETS}
+                            label="Ink color"
+                            onPreview={(color) => previewColor("ink", color)}
+                            value={
+                              selectedTextLayers.some(
+                                (layer) =>
+                                  layer.color !== selectedTextLayers[0].color,
+                              )
+                                ? undefined
+                                : selectedTextLayers[0].color
+                            }
+                            onChoose={(color) => {
+                              end();
+                              const ids = new Set(
+                                selectedTextLayers.map((layer) => layer.id),
+                              );
+                              change((current) =>
+                                changeLayerTextColors(
+                                  current,
+                                  side,
+                                  ids,
+                                  color,
+                                ),
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="dc-field-pair">
+                      <TypographyValueControl
+                        label="Size"
+                        unit="PX"
+                        value={element.size}
+                        min={3}
+                        max={500}
+                        sliderMax={200}
+                        step={0.5}
+                        onChange={(size) =>
+                          update({ size }, `size-${element.id}`)
+                        }
+                        onCommit={end}
+                      />
+                      {element.kind === "text" ? (
+                        <TypographyValueControl
+                          label="Line height"
+                          value={element.lineHeight ?? 1.1}
+                          min={0}
+                          max={3}
+                          step={0.05}
+                          onChange={(lineHeight) =>
+                            update({ lineHeight }, `line-height-${element.id}`)
                           }
-                          aria-pressed={element.align === value}
-                          onClick={() => update({ align: value })}
-                        >
-                          <Icon size={16} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                          onCommit={end}
+                        />
+                      ) : (
+                        <div />
+                      )}
+                    </div>
+                    <div className="dc-field-pair">
+                      <TypographyValueControl
+                        label="Tracking"
+                        unit="PX"
+                        value={element.spacing}
+                        min={-10}
+                        max={30}
+                        step={0.1}
+                        onChange={(spacing) =>
+                          update({ spacing }, `spacing-${element.id}`)
+                        }
+                        onCommit={end}
+                      />
+                      <TypographyValueControl
+                        label="Ink bleed"
+                        unit="PX"
+                        value={element.inkBleed ?? 0}
+                        min={0}
+                        max={4}
+                        step={0.05}
+                        onChange={(inkBleed) =>
+                          update({ inkBleed }, `ink-bleed-${element.id}`)
+                        }
+                        onCommit={end}
+                      />
+                    </div>
+                    <div className="dc-alignment">
+                      <span>Anchor</span>
+                      <div>
+                        {(["start", "middle", "end"] as const).map(
+                          (value, i) => {
+                            const Icon = [AlignLeft, AlignCenter, AlignRight][
+                              i
+                            ];
+                            return (
+                              <button
+                                key={value}
+                                aria-label={
+                                  [
+                                    "Start anchor",
+                                    "Center anchor",
+                                    "End anchor",
+                                  ][i]
+                                }
+                                aria-pressed={element.align === value}
+                                onClick={() => update({ align: value })}
+                              >
+                                <Icon size={16} />
+                              </button>
+                            );
+                          },
+                        )}
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+              <section className="dc-property-section dc-position-section">
+                <div className="dc-section-caption">
+                  {element.kind === "circular"
+                    ? "Circular path"
+                    : "Position & size"}
                 </div>
+                {element.kind === "circular" ? (
+                  <>
+                    {slider("Radius", "radius", 30, 295, "PX")}
+                    {slider("Rotation", "angle", -180, 180, "°")}
+                    <p className="dc-anchor-note">
+                      <Circle size={13} />
+                      Type size changes. The circle stays put.
+                    </p>
+                    {overflow && (
+                      <p className="dc-warning" role="status">
+                        El texto supera la circunferencia. Aumentá el radio o
+                        reducí tamaño/espaciado. No se achica automáticamente.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {element.kind === "image" &&
+                      slider("Width", "width", 10, 600, "PX")}
+                    {element.kind === "image" && (
+                      <TypographyValueControl
+                        label="Border radius"
+                        unit="PX"
+                        value={element.borderRadius ?? 0}
+                        min={0}
+                        max={100}
+                        step={1}
+                        onChange={(borderRadius) =>
+                          update(
+                            { borderRadius },
+                            `border-radius-${element.id}`,
+                          )
+                        }
+                        onCommit={end}
+                      />
+                    )}
+                    {element.kind === "image" && (
+                      <label className="dc-field dc-slider-field">
+                        <span>
+                          Opacity
+                          <output>
+                            {Math.round((element.opacity ?? 1) * 100)}{" "}
+                            <small>%</small>
+                          </output>
+                        </span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          aria-label="Image opacity"
+                          value={Math.round((element.opacity ?? 1) * 100)}
+                          onChange={(event) =>
+                            update(
+                              { opacity: Number(event.target.value) / 100 },
+                              `opacity-${element.id}`,
+                            )
+                          }
+                          onPointerUp={end}
+                          onBlur={end}
+                        />
+                      </label>
+                    )}
+                    <div className="dc-field-pair">
+                      {number("Horizontal", "x", 0, 600, "PX")}
+                      {number("Vertical", "y", 0, 600, "PX")}
+                    </div>
+                    {slider("Rotation", "angle", -180, 180, "°")}
+                  </>
+                )}
               </section>
             </>
           )}
-          <section className="dc-property-section dc-position-section">
-            <div className="dc-section-caption">
-              {element.kind === "circular"
-                ? "Circular path"
-                : "Position & size"}
-            </div>
-            {element.kind === "circular" ? (
-              <>
-                {slider("Radius", "radius", 30, 295, "PX")}
-                {slider("Rotation", "angle", -180, 180, "°")}
-                <p className="dc-anchor-note">
-                  <Circle size={13} />
-                  Type size changes. The circle stays put.
-                </p>
-                {overflow && (
-                  <p className="dc-warning" role="status">
-                    El texto supera la circunferencia. Aumentá el radio o reducí
-                    tamaño/espaciado. No se achica automáticamente.
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                {element.kind === "image" &&
-                  slider("Width", "width", 10, 600, "PX")}
-                {element.kind === "image" && <TypographyValueControl label="Border radius" unit="PX"
-                  value={element.borderRadius ?? 0} min={0} max={100} step={1}
-                  onChange={(borderRadius) => update({ borderRadius }, `border-radius-${element.id}`)} onCommit={end} />}
-                {element.kind === "image" && (
-                  <label className="dc-field dc-slider-field">
-                    <span>Opacity<output>{Math.round((element.opacity ?? 1) * 100)} <small>%</small></output></span>
-                    <input type="range" min={0} max={100} step={1}
-                      aria-label="Image opacity"
-                      value={Math.round((element.opacity ?? 1) * 100)}
-                      onChange={(event) => update({ opacity: Number(event.target.value) / 100 }, `opacity-${element.id}`)}
-                      onPointerUp={end} onBlur={end} />
-                  </label>
-                )}
-                <div className="dc-field-pair">
-                  {number("Horizontal", "x", 0, 600, "PX")}
-                  {number("Vertical", "y", 0, 600, "PX")}
-                </div>
-                {slider("Rotation", "angle", -180, 180, "°")}
-              </>
-            )}
-          </section>
-          </>}
         </aside>
       </div>
       <footer className="dc-statusbar">
@@ -1462,7 +1956,9 @@ export function DesignConfiguratorEditor() {
         <span>
           VINYL LABEL / SIDE {side} / {layers.length} ELEMENTS
         </span>
-        <span>© {new Date().getFullYear()} STRANGE ANIMALS. ALL RIGHTS RESERVED.</span>
+        <span>
+          © {new Date().getFullYear()} STRANGE ANIMALS. ALL RIGHTS RESERVED.
+        </span>
       </footer>
       <nav className="dc-mobile-tabs" aria-label="Editor panels">
         <button
@@ -1511,7 +2007,11 @@ export function DesignConfiguratorEditor() {
         }}
       />
       {dialog === "fonts" && (
-        <Modal title="Fonts" allowBackgroundScroll close={() => setDialog(null)}>
+        <Modal
+          title="Fonts"
+          allowBackgroundScroll
+          close={() => setDialog(null)}
+        >
           <label className="dc-font-search">
             <Search size={17} />
             <span className="sr-only">Search all fonts</span>
@@ -1537,21 +2037,42 @@ export function DesignConfiguratorEditor() {
               </button>
             ))}
             <label className="dc-all-styles">
-              <input type="checkbox" checked={seeAllStyles}
+              <input
+                type="checkbox"
+                checked={seeAllStyles}
                 onChange={(event) => {
                   const enabled = event.target.checked;
                   setSeeAllStyles(enabled);
                   if (!enabled) setExpandedFonts(new Set());
-                }} />
+                }}
+              />
               See all substyles
             </label>
             <span>{sortedFonts.length} families</span>
           </div>
-          <FontCategoryChips categories={categories} selected={selectedCategory}
-            labelFor={(category) => pickerCategoryLabel(category, scope, fontContext)}
-            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [categoryScopeKey]: category }))} />
-          <div className="dc-font-results" ref={fontResults}
-            onScroll={(event) => fontScrollPositions.current.set(fontScrollKey, event.currentTarget.scrollTop)}>
+          <FontCategoryChips
+            categories={categories}
+            selected={selectedCategory}
+            labelFor={(category) =>
+              pickerCategoryLabel(category, scope, fontContext)
+            }
+            onSelect={(category) =>
+              setCategoryByScope((current) => ({
+                ...current,
+                [categoryScopeKey]: category,
+              }))
+            }
+          />
+          <div
+            className="dc-font-results"
+            ref={fontResults}
+            onScroll={(event) =>
+              fontScrollPositions.current.set(
+                fontScrollKey,
+                event.currentTarget.scrollTop,
+              )
+            }
+          >
             {fontsLoading && <p role="status">Loading your library…</p>}
             {catalogError && (
               <p role="alert">
@@ -1566,23 +2087,48 @@ export function DesignConfiguratorEditor() {
             )}
             {sortedFonts.slice(0, fontLimit).map((font, i) => (
               <div key={font.id}>
-                {(i === 0 || pickerCategory(sortedFonts[i - 1]) !== pickerCategory(font)) && (
-                    <h3 className="dc-font-group">{pickerCategoryLabel(pickerCategory(font), scope, fontContext)}</h3>
-                  )}
+                {(i === 0 ||
+                  pickerCategory(sortedFonts[i - 1]) !==
+                    pickerCategory(font)) && (
+                  <h3 className="dc-font-group">
+                    {pickerCategoryLabel(
+                      pickerCategory(font),
+                      scope,
+                      fontContext,
+                    )}
+                  </h3>
+                )}
                 <FontRow
                   font={font}
                   sample={element.text}
                   active={element.fontId === font.id}
                   favorite={favoriteFonts.includes(font.id)}
                   busy={fontBusy}
-                  expanded={font.variantCount > 1 ? familyIsExpanded(font, expandedFonts, seeAllStyles) : undefined}
+                  expanded={
+                    font.variantCount > 1
+                      ? familyIsExpanded(font, expandedFonts, seeAllStyles)
+                      : undefined
+                  }
                   stylesId={`${prefix}-styles-${font.id}`}
                   toggleExpanded={() => {
                     setSeeAllStyles(false);
-                    setExpandedFonts(toggleFamily(font, expandedFonts, seeAllStyles, sortedFonts));
+                    setExpandedFonts(
+                      toggleFamily(
+                        font,
+                        expandedFonts,
+                        seeAllStyles,
+                        sortedFonts,
+                      ),
+                    );
                   }}
                   choose={() => {
-                    if (familyClickAction(font, expandedFonts, seeAllStyles) === "expand") setExpandedFonts((current) => new Set([...current, font.id]));
+                    if (
+                      familyClickAction(font, expandedFonts, seeAllStyles) ===
+                      "expand"
+                    )
+                      setExpandedFonts(
+                        (current) => new Set([...current, font.id]),
+                      );
                     else void selectFont(font);
                   }}
                   preview={(font) => void previewFont(font)}
@@ -1602,21 +2148,31 @@ export function DesignConfiguratorEditor() {
                   }}
                 />
                 {familyIsExpanded(font, expandedFonts, seeAllStyles) && (
-                  <FontStyleTiles font={font} sample={element.text} busy={fontBusy}
+                  <FontStyleTiles
+                    font={font}
+                    sample={element.text}
+                    busy={fontBusy}
                     id={`${prefix}-styles-${font.id}`}
-                    selected={element.fontId === font.id ? element.variantId : undefined}
-                    preview={(family, variantId) => void previewFont(family, variantId)}
-                    choose={(variantId) => void selectFont(font, variantId)} />
+                    selected={
+                      element.fontId === font.id ? element.variantId : undefined
+                    }
+                    preview={(family, variantId) =>
+                      void previewFont(family, variantId)
+                    }
+                    choose={(variantId) => void selectFont(font, variantId)}
+                  />
                 )}
               </div>
             ))}
             {sortedFonts.length > fontLimit && (
               <button
                 className="dc-more-fonts"
-                onClick={() => setFontLimit((n) => {
-                  fontViewLimits.current.set(fontScrollKey, n + 40);
-                  return n + 40;
-                })}
+                onClick={() =>
+                  setFontLimit((n) => {
+                    fontViewLimits.current.set(fontScrollKey, n + 40);
+                    return n + 40;
+                  })
+                }
               >
                 Load more · {sortedFonts.length - fontLimit} remaining
               </button>
@@ -1730,17 +2286,22 @@ export function DesignConfiguratorEditor() {
       )}
       {dialog === "new" && (
         <Modal title="New project" wide close={() => setDialog(null)}>
-          <p className="dc-font-explanation">
-            Choose a template to start.
-          </p>
-          <LabelTemplatePicker onChoose={(next) => {
-            end();
-            change(() => next);
-            setSelectedLayers([]);
-            setSelected("title");
-            setSide("A");
-            setDialog(null);
-          }} />
+          <p className="dc-font-explanation">Choose a template to start.</p>
+          <LabelTemplatePicker
+            onChoose={(next) => {
+              if (hasUnsavedProject(design, lastSaved))
+                setPendingTemplate(next);
+              else applyTemplate(next);
+            }}
+          />
+          {pendingTemplate && (
+            <ConfirmationDialog
+              title="Replace current project?"
+              description="Your current project has unsaved changes. Replace it with this template? You can undo this change."
+              onCancel={() => setPendingTemplate(null)}
+              onConfirm={() => applyTemplate(pendingTemplate)}
+            />
+          )}
           <div className="dc-picker-footer">
             <button onClick={() => setDialog(null)}>Cancel</button>
           </div>
@@ -1748,7 +2309,7 @@ export function DesignConfiguratorEditor() {
       )}
       {dialog === "export" && (
         <Modal
-          title="Ready to leave the studio."
+          title="Export"
           close={() => {
             if (!exportBusy) setDialog(null);
           }}
@@ -1773,9 +2334,20 @@ export function DesignConfiguratorEditor() {
                   SVG — editable vector, embedded fonts
                 </option>
                 <option value="png">PNG — 300 dpi equivalent pixel size</option>
+                <option value="psd">
+                  Photoshop PSD — layers, outlined text
+                </option>
                 <option value="pdf">Print / Save as PDF — current side</option>
               </select>
             </label>
+            {exportFormat === "psd" && (
+              <p className="dc-font-explanation">
+                Text is converted to editable vector shapes, not live type. OTF,
+                TTF and WOFF sources supported; contextual scripts are not
+                supported yet. Ink bleed keeps a separate appearance layer and
+                hidden vector source.
+              </p>
+            )}
             <label className="dc-field">
               <span>Sides</span>
               <select
