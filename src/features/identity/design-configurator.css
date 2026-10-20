@@ -135,8 +135,11 @@
 @media(max-width:800px) { .dc-layers .dc-add-controls button { padding-block:10px; } }
 .dc-layers .dc-add-controls button svg { flex-shrink:0; }
 @media(min-width:801px) {
-  .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px + 2rem); }
-  .design-configurator .dc-layers { min-width:280px; }
+  .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px - 2rem); }
+  .design-configurator .dc-artboard { padding-block:calc(60px - 1rem); min-height:calc(570px - 2rem); }
+  .design-configurator .dc-layers { min-width:280px; min-height:0; contain:size; overflow-y:auto; }
+  .design-configurator .dc-layers > :not(.dc-layer-list) { flex-shrink:0; }
+  .design-configurator .dc-layer-list { min-height:0; flex:1; }
   .design-configurator .dc-properties {
     min-width:320px;
     min-height:0;
@@ -174,6 +177,12 @@
 @keyframes dc-font-spin { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .dc-loading-circle { animation:none; } }
 .dc-artboard { isolation:isolate; }
+@media(min-width:1600px) {
+  .design-configurator .dc-artboard { min-height:calc(660px - 2rem); }
+}
+@media(min-width:801px) and (max-width:1100px) {
+  .design-configurator .dc-artboard { padding-block:calc(55px - 1rem); min-height:calc(490px - 2rem); }
+}
 .dc-sleeve-background { position:absolute; inset:0; z-index:-1; background-position:center; background-repeat:no-repeat; background-size:cover; pointer-events:none; transform-origin:center; }
 .dc-preview-stock .dc-sleeve-image { display:grid; place-items:center; width:var(--dc-swatch-size); height:var(--dc-swatch-size); flex-shrink:0; padding:0; border:1px solid #aab19c; overflow:hidden; }
 .dc-sleeve-image img { width:100%; height:100%; object-fit:cover; }
@@ -221,5 +230,6 @@
 .dc-label-shadow { filter:drop-shadow(0 5px 8px #0004); pointer-events:none; }
 .dc-typography-value > input[type=range] { display:block; width:100%; height:20px; margin:3px 0 0; padding:0; accent-color:#657248; }
 .dc-properties .dc-field input[type=number] { padding:5px 8px; }
+.dc-properties .dc-field > input:not([type]), .dc-properties .dc-field textarea { padding-block:5px; }
 .design-configurator .dc-load { padding-block:12px!important; }
 .design-configurator .dc-swap-colors { display:grid; place-items:center; flex-shrink:0; width:24px; height:22px; border:1px solid #b9c1ad; }
