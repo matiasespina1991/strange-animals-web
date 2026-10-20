@@ -28,6 +28,8 @@ export type LabelDesign = {
   B: LabelLayer[];
   paper: string;
   sleeveColor: string;
+  sleeveImage?: string;
+  sleeveZoom: number;
   diameterMm: number;
   holeMm: number;
   bleedMm: number;
@@ -151,6 +153,7 @@ export const initialDesign: LabelDesign = {
   })),
   paper: "#e5e8d9",
   sleeveColor: "#000000",
+  sleeveZoom: 1,
   diameterMm: 100,
   holeMm: 7.3,
   bleedMm: 3,
@@ -286,6 +289,9 @@ export function parseDesign(input: unknown): LabelDesign {
     });
   };
   const diameterMm = numeric(input.diameterMm, 100, 50, 150);
+  const sleeveImage = typeof input.sleeveImage === "string" ? input.sleeveImage : undefined;
+  if (sleeveImage && (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z\d+/=]+$/.test(sleeveImage) || sleeveImage.length > 7_000_000))
+    throw Error("Imagen de sleeve inválida o demasiado grande.");
   return {
     version: 2,
     title:
@@ -296,6 +302,8 @@ export function parseDesign(input: unknown): LabelDesign {
     B: side(input.B),
     paper: hex(input.paper, "#e5e8d9"),
     sleeveColor: hex(input.sleeveColor, "#000000"),
+    sleeveImage,
+    sleeveZoom: numeric(input.sleeveZoom, 1, 1, 3),
     diameterMm,
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),

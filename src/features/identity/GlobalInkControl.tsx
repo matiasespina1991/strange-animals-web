@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ColorSwatches } from "./ColorSwatches";
+import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 
 type Props = { colors: string[]; onApply: (color: string) => void };
 
@@ -19,15 +20,15 @@ export function GlobalInkControl({ colors, onApply }: Props) {
     onApply(color);
   };
   return (
-    <div className="dc-preview-stock" aria-label="Global font color">
-      <span>Font color{mixed ? " · Mixed" : ""}</span>
-      <ColorSwatches colors={["#ffffff", "#000000", "#FA8AA6"]}
-        value={mixed ? undefined : current} label="Font color" onChoose={apply} />
+    <div className="dc-preview-stock" aria-label="Global text color">
+      <span>Text color{mixed ? " · Mixed" : ""}</span>
       <label className="dc-custom-paper">
         <span className="sr-only">Custom color for all text on sides A and B</span>
         <input type="color" value={draft} onChange={(event) => setDraft(event.target.value)}
           onBlur={() => apply(draft)} />
       </label>
+      <ColorSwatches colors={DESIGN_COLOR_PRESETS}
+        value={mixed ? undefined : current} label="Text color" onChoose={apply} />
     </div>
   );
 }

@@ -74,8 +74,14 @@
 .dc-preview-controls { display:flex; align-items:center; justify-content:flex-end; gap:20px; margin-left:auto; flex-wrap:wrap; }
 .dc-preview-stock { display:flex; align-items:center; gap:10px; letter-spacing:0; font-size:11px; }
 .dc-preview-stock .dc-paper-options { display:flex; gap:7px; margin:0; }
-.dc-preview-stock .dc-paper-options button { justify-content:center; width:26px; height:26px; }
-@media(max-width:800px) { .dc-preview-controls { gap:12px; } .dc-preview-stock .dc-paper-options button { width:32px; height:32px; } }
+.dc-preview-stock { --dc-swatch-size:22px; }
+.dc-preview-stock .dc-paper-options button { justify-content:center; width:var(--dc-swatch-size); height:var(--dc-swatch-size); }
+.dc-preview-stock .dc-custom-paper { display:flex; align-items:center; }
+.dc-preview-stock .dc-custom-paper input { appearance:none; -webkit-appearance:none; width:var(--dc-swatch-size); height:var(--dc-swatch-size); padding:0; border:1px solid #aab19c; border-radius:0; }
+.dc-preview-stock .dc-custom-paper input::-webkit-color-swatch-wrapper { padding:0; }
+.dc-preview-stock .dc-custom-paper input::-webkit-color-swatch { border:0; border-radius:0; }
+.dc-preview-stock .dc-custom-paper input::-moz-color-swatch { border:0; border-radius:0; }
+@media(max-width:800px) { .dc-preview-controls { gap:12px; } .dc-preview-stock { --dc-swatch-size:28px; } }
 .dc-guides-control { display:flex; align-items:center; gap:9px; font-size:11px; letter-spacing:0; }
 .dc-stage-top .dc-guides-switch { display:grid; grid-template-columns:1fr 1fr; gap:0; padding:1px; border:1px solid #aab19c; border-radius:0; }
 .dc-stage-top .dc-guides-switch span { display:grid; place-items:center; min-width:20px; min-height:14px; padding:0 2px; font-size:8px; line-height:1; color:#616953; }
@@ -115,8 +121,8 @@
 .dc-project-bar > .dc-preview-stock { flex-shrink:0; }
 .dc-multi-controls > span { white-space:nowrap; }
 .dc-color-swatches { position:relative; display:flex; align-items:center; gap:7px; }
-.design-configurator .dc-color-more { font-weight:700; font-size:22px; line-height:1; min-width:26px; min-height:26px; display:grid; place-items:center; }
-.dc-color-popover { position:absolute; top:calc(100% + 10px); left:0; z-index:200; display:grid; grid-template-columns:repeat(4,32px); grid-auto-rows:32px; gap:8px; padding:10px; max-height:132px; overflow-y:auto; overscroll-behavior:contain; background:#fafaf7; border:1px solid #aab19c; box-shadow:0 4px 16px #0002; }
+.design-configurator .dc-color-more { padding:0; width:26px; height:26px; flex-shrink:0; display:grid; place-items:center; }
+.dc-color-popover { position:absolute; top:calc(100% + 10px); left:0; z-index:200; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); grid-auto-rows:32px; gap:8px; padding:10px; width:274px; max-height:174px; overflow-x:hidden; overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain; background:#fafaf7; border:1px solid #aab19c; box-shadow:0 4px 16px #0002; }
 .design-configurator .dc-color-popover button { width:32px; height:32px; border:1px solid #aab19c; border-radius:50%; display:grid; place-items:center; }
 .dc-color-popover button[aria-pressed=true] { outline:1px solid #657248; outline-offset:2px; }
 .dc-artboard .dc-disc-wrap { width:100%; }
@@ -124,3 +130,33 @@
 .design-configurator:fullscreen { width:100%; height:100%; overflow-y:auto; }
 .design-configurator.dc-fullscreen-fallback { position:fixed; inset:0; width:100%; height:100dvh; z-index:10000; overflow-y:auto; }
 .dc-canvas-footer .dc-zoom { margin-left:auto; }
+.dc-font-expand { width:28px; flex-shrink:0; display:grid; place-items:center; align-self:flex-end; height:32px; margin-bottom:8px; }
+.dc-font-row small b { display:inline; font-weight:700; }
+.dc-font-scopes .dc-all-styles { display:flex; gap:6px; align-items:center; font-size:10px; margin-left:auto; cursor:pointer!important; }
+.dc-all-styles input { margin:0; accent-color:#657248; }
+.dc-font-scopes .dc-all-styles + span { margin-left:0; }
+.dc-loading-circle { display:inline-block!important; width:16px; height:16px; border:2px solid #b9c0ab; border-top-color:#394829; border-radius:50%; animation:dc-font-spin .7s linear infinite; flex-shrink:0; }
+.dc-font-specimen .dc-font-loading { display:flex; align-items:center; min-height:30px; margin:0; }
+.dc-font-styles .dc-font-specimen { display:block; margin:0; min-height:44px; }
+.dc-font-styles .dc-font-specimen > span { margin:0; }
+.dc-font-specimen .dc-font-load-error { font:11px "Alte DIN Input",sans-serif; }
+.dc-font-row .dc-font-specimen { height:58px; }
+.dc-font-styles .dc-font-specimen { height:52px; }
+@keyframes dc-font-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .dc-loading-circle { animation:none; } }
+.dc-artboard { isolation:isolate; }
+.dc-sleeve-background { position:absolute; inset:0; z-index:-1; background-position:center; background-repeat:no-repeat; background-size:cover; pointer-events:none; transform-origin:center; }
+.dc-preview-stock .dc-sleeve-image { display:grid; place-items:center; width:var(--dc-swatch-size); height:var(--dc-swatch-size); flex-shrink:0; padding:0; border:1px solid #aab19c; overflow:hidden; }
+.dc-sleeve-image img { width:100%; height:100%; object-fit:cover; }
+.dc-sleeve-image-remove { display:grid; place-items:center; width:16px; height:22px; margin-left:-7px; }
+.dc-sleeve-zoom { display:flex; align-items:center; gap:7px; font-size:10px; letter-spacing:0; }
+.dc-sleeve-zoom input { width:85px; height:22px; margin:0; accent-color:#657248; }
+.dc-sleeve-zoom output { min-width:30px; font-variant-numeric:tabular-nums; }
+.design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:16px; }
+.design-configurator .dc-properties { padding-right:10.5px; }
+@media(min-width:1600px) { .design-configurator .dc-properties { padding-right:14px; } }
+@media(min-width:801px) and (max-width:1100px) { .design-configurator .dc-properties { padding-right:8px; } }
+@media(max-width:800px) {
+  .design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:9px; }
+  .design-configurator .dc-properties { padding-right:12px; }
+}

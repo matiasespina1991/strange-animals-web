@@ -2,6 +2,7 @@ import {
   useDeferredValue,
   useEffect,
   useId,
+  useLayoutEffect,
   useReducer,
   useRef,
   useState,
@@ -18,6 +19,7 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Circle,
   Copy,
@@ -50,9 +52,13 @@ import {
   type FontCatalogItem,
 } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
+import { SleeveImageControl } from "./SleeveImageControl";
 import { ColorSwatches } from "./ColorSwatches";
+import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
 import { FontStyleTiles } from "./FontStyleTiles";
+import { FontSpecimen } from "./FontSpecimen";
+import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
 import {
   clamp,
@@ -173,6 +179,8 @@ function FontRow({
   choose,
   preview,
   expanded,
+  toggleExpanded,
+  stylesId,
   star,
 }: {
   font: FontCatalogItem;
@@ -183,40 +191,16 @@ function FontRow({
   choose: () => void;
   preview: (font: FontCatalogItem | null) => void;
   expanded?: boolean;
+  toggleExpanded: () => void;
+  stylesId: string;
   star: () => void;
 }) {
-  const reference = useRef<HTMLDivElement>(null);
-  const [family, setFamily] = useState<string>();
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    let active = true;
-    const observer = new IntersectionObserver(
-      ([e]) => {
-        if (!e.isIntersecting) return;
-        observer.disconnect();
-        resolveLabelFont(font)
-          .then((v) => {
-            if (active) setFamily(v.family);
-          })
-          .catch(() => {
-            if (active) setError(true);
-          });
-      },
-      { rootMargin: "80px" },
-    );
-    if (reference.current) observer.observe(reference.current);
-    return () => {
-      active = false;
-      observer.disconnect();
-    };
-  }, [font]);
   return (
-    <div className="dc-font-row" ref={reference}>
+    <div className="dc-font-row">
       <button
         disabled={busy}
         onClick={choose}
         aria-pressed={active}
-        aria-expanded={expanded}
         onPointerEnter={(event) => {
           if (event.pointerType === "mouse") preview(font);
         }}
@@ -225,17 +209,18 @@ function FontRow({
         onBlur={() => preview(null)}
       >
         <strong>{font.name}</strong>
-        <span
-          className="dc-font-specimen"
-          style={{ fontFamily: family ?? "Alte DIN Input" }}
-        >
-          {sample.replace(/\n/g, " ").slice(0, 65) || "Other frequencies"}
-        </span>
+        <FontSpecimen font={font} sample={sample} />
         <small>
-          {font.parentCategory ?? "Uncategorized"} · {font.variantCount} styles{" "}
-          {error ? "· preview unavailable" : !family ? "· loading…" : ""}
+          {font.parentCategory ?? "Uncategorized"}
+          {font.variantCount > 1 && <> · <b>{font.variantCount} styles</b></>}
         </small>
       </button>
+      {font.variantCount > 1 && <button className="dc-font-expand"
+        aria-label={`${expanded ? "Collapse" : "Expand"} ${font.name} styles`}
+        aria-expanded={expanded} aria-controls={stylesId} disabled={busy}
+        onClick={toggleExpanded}>
+        {expanded ? <ChevronDown size={15} /> : <ChevronLeft size={15} />}
+      </button>}
       <button
         className="dc-font-star"
         aria-label={`${favorite ? "Unfavorite" : "Favorite"} ${font.name}`}
@@ -298,7 +283,7 @@ export function DesignConfiguratorEditor() {
   const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [side, setSide] = useState<LabelSide>("A"),
-    [selected, setSelected] = useState("legal"),
+    [selected, setSelected] = useState<string | null>("legal"),
     [guides, setGuides] = useState(true),
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties");
@@ -311,7 +296,10 @@ export function DesignConfiguratorEditor() {
     hoverRequest.current += 1;
     setHoverFamily(null);
   }, [dialog, side, selected]);
-  const [expandedFont, setExpandedFont] = useState<string | null>(null);
+  const [expandedFonts, setExpandedFonts] = useState<Set<string>>(() => new Set());
+  const [seeAllStyles, setSeeAllStyles] = useState(false);
+  const fontResults = useRef<HTMLDivElement>(null);
+  const fontScrollPositions = useRef(new Map<string, number>());
   const previewFont = async (font: FontCatalogItem | null, variantId?: string) => {
     const request = ++hoverRequest.current;
     setHoverFamily(null);
@@ -331,6 +319,12 @@ export function DesignConfiguratorEditor() {
     [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
   const deferredQuery = useDeferredValue(query);
+  const fontScrollKey = `${scope}:${deferredQuery}`;
+  useLayoutEffect(() => {
+    if (dialog === "fonts" && fontResults.current) {
+      fontResults.current.scrollTop = fontScrollPositions.current.get(fontScrollKey) ?? 0;
+    }
+  }, [dialog, fontScrollKey, fontLimit, fonts.length]);
   const [favoriteFonts, setFavoriteFonts] = useState<string[]>(() => {
     try {
       const d = JSON.parse(
@@ -373,13 +367,15 @@ export function DesignConfiguratorEditor() {
   const defaultFontName = element.id === "title"
     ? "Berlin Type Bold"
     : "Alte DIN 1451 Mittelschrift geprägt";
-  const selection = new Set(selectedLayers.length ? selectedLayers : [element.id]);
+  const hasSelection = selected !== null;
+  const selection = new Set(!hasSelection ? [] : selectedLayers.length ? selectedLayers : [element.id]);
   const selectedTextLayers = layers.filter((layer) => selection.has(layer.id) && layer.kind !== "image");
   useEffect(() => { setSelectedLayers([]); }, [side]);
   useEffect(() => {
     if (selectedLayers.length && !selectedLayers.includes(element.id)) setSelectedLayers([]);
   }, [element.id, selectedLayers]);
   useEffect(() => {
+    if (!hasSelection) return;
     const list = layerList.current;
     const tile = Array.from(list?.querySelectorAll<HTMLElement>("[data-layer-tile]") ?? [])
       .find((node) => node.dataset.layerTile === element.id);
@@ -387,7 +383,7 @@ export function DesignConfiguratorEditor() {
     const bounds = list.getBoundingClientRect(), item = tile.getBoundingClientRect();
     if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
     else if (item.bottom > bounds.bottom) list.scrollTop += item.bottom - bounds.bottom;
-  }, [element.id, side, mobileTab]);
+  }, [element.id, side, mobileTab, hasSelection]);
   const change = (
     update: (current: LabelDesign) => LabelDesign,
     group?: string,
@@ -546,7 +542,7 @@ export function DesignConfiguratorEditor() {
     selectLayer(layer);
   };
   const remove = () => {
-    if (layers.length <= 1) return;
+    if (!hasSelection || layers.length <= 1) return;
     const remaining = layers.filter((l) => l.id !== element.id);
     change((c) => ({
       ...c,
@@ -555,7 +551,7 @@ export function DesignConfiguratorEditor() {
     setSelected(remaining[0].id);
   };
   const duplicate = () => {
-    if (layers.length >= 50) return;
+    if (!hasSelection || layers.length >= 50) return;
     const copy = {
       ...element,
       id: crypto.randomUUID(),
@@ -567,6 +563,7 @@ export function DesignConfiguratorEditor() {
   };
   const reorder = (direction: number) =>
     change((c) => {
+      if (!hasSelection) return c;
       const next = [...c[side]],
         i = next.findIndex((l) => l.id === element.id),
         target = i + direction;
@@ -885,6 +882,7 @@ export function DesignConfiguratorEditor() {
           (e.target instanceof HTMLElement && e.target.closest("button,a"))
         )
           return;
+        if (!hasSelection) return;
         const movements: Record<string, [number, number]> = {
           ArrowLeft: [-1, 0],
           ArrowRight: [1, 0],
@@ -948,18 +946,6 @@ export function DesignConfiguratorEditor() {
             />
           </label>
         </div>
-        <div className="dc-preview-stock">
-          <span>Label stock</span>
-          <ColorSwatches colors={["#ffffff", "#FA8AA6", "#000000", "#1A2925"]}
-            value={design.paper} label="Label stock"
-            onChoose={(color) => change((current) => ({ ...current, paper: color }))} />
-          <label className="dc-custom-paper">
-            <span className="sr-only">Custom label color</span>
-            <input type="color" value={design.paper}
-              onChange={(event) => change((current) => ({ ...current, paper: event.target.value }), "paper")}
-              onBlur={end} />
-          </label>
-        </div>
         <GlobalInkControl
           colors={[...design.A, ...design.B].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
           onApply={(color) => {
@@ -972,21 +958,33 @@ export function DesignConfiguratorEditor() {
           }}
         />
         <div className="dc-preview-stock">
-          <span>Sleeve color</span>
-          <div className="dc-paper-options">
-            {["#000000", "#ffffff", "#FA8AA6", "#1A2925"].map((color) => (
-              <button key={color} aria-label={`Sleeve color ${color}`}
-                aria-pressed={design.sleeveColor.toLowerCase() === color.toLowerCase()}
-                style={{ backgroundColor: color }}
-                onClick={() => change((current) => ({ ...current, sleeveColor: color }))} />
-            ))}
-          </div>
+          <span>Label</span>
+          <label className="dc-custom-paper">
+            <span className="sr-only">Custom label color</span>
+            <input type="color" value={design.paper}
+              onChange={(event) => change((current) => ({ ...current, paper: event.target.value }), "paper")}
+              onBlur={end} />
+          </label>
+          <ColorSwatches colors={DESIGN_COLOR_PRESETS}
+            value={design.paper} label="Label"
+            onChoose={(color) => change((current) => ({ ...current, paper: color }))} />
+        </div>
+        <div className="dc-preview-stock">
+          <span>Sleeve</span>
           <label className="dc-custom-paper">
             <span className="sr-only">Custom sleeve color</span>
             <input type="color" value={design.sleeveColor}
               onChange={(event) => change((current) => ({ ...current, sleeveColor: event.target.value }), "sleeve-color")}
               onBlur={end} />
           </label>
+          <SleeveImageControl image={design.sleeveImage} onError={setNotice}
+            onChange={(sleeveImage) => {
+              end();
+              change((current) => ({ ...current, sleeveImage, sleeveZoom: 1 }));
+            }} />
+          <ColorSwatches colors={DESIGN_COLOR_PRESETS}
+            value={design.sleeveColor} label="Sleeve color"
+            onChoose={(color) => change((current) => ({ ...current, sleeveColor: color }))} />
         </div>
         <div className="dc-project-actions">
           <div className="dc-history">
@@ -1067,10 +1065,10 @@ export function DesignConfiguratorEditor() {
           </div>
           <div className="dc-multi-controls">
             <div className="dc-layer-actions">
-              <button aria-label="Move element toward back" disabled={index <= 0} onClick={() => reorder(-1)}><ArrowUp size={15} /></button>
-              <button aria-label="Move element toward front" disabled={index >= layers.length - 1} onClick={() => reorder(1)}><ArrowDown size={15} /></button>
-              <button aria-label="Duplicate element" disabled={layers.length >= 50} onClick={duplicate}><Copy size={15} /></button>
-              <button aria-label="Delete element" disabled={layers.length <= 1} onClick={remove}><Trash2 size={15} /></button>
+              <button aria-label="Move element toward back" disabled={!hasSelection || index <= 0} onClick={() => reorder(-1)}><ArrowUp size={15} /></button>
+              <button aria-label="Move element toward front" disabled={!hasSelection || index >= layers.length - 1} onClick={() => reorder(1)}><ArrowDown size={15} /></button>
+              <button aria-label="Duplicate element" disabled={!hasSelection || layers.length >= 50} onClick={duplicate}><Copy size={15} /></button>
+              <button aria-label="Delete element" disabled={!hasSelection || layers.length <= 1} onClick={remove}><Trash2 size={15} /></button>
             </div>
             <span>{selection.size} selected</span>
           </div>
@@ -1145,6 +1143,14 @@ export function DesignConfiguratorEditor() {
               SIDE {side} / PREVIEW
             </span>
             <div className="dc-preview-controls">
+            {design.sleeveImage && <label className="dc-sleeve-zoom">
+              <span>Sleeve zoom</span>
+              <input type="range" min={100} max={300} step={1}
+                value={Math.round(design.sleeveZoom * 100)}
+                onChange={(event) => change((current) => ({ ...current, sleeveZoom: Number(event.target.value) / 100 }), "sleeve-zoom")}
+                onPointerUp={end} onBlur={end} />
+              <output>{Math.round(design.sleeveZoom * 100)}%</output>
+            </label>}
             <div className="dc-guides-control">
               <Grid2X2 size={14} aria-hidden="true" />
               <span id={`${prefix}-guides-label`}>Guides</span>
@@ -1157,10 +1163,17 @@ export function DesignConfiguratorEditor() {
             </div>
             </div>
           </div>
-          <div className="dc-artboard" style={{
+          <div className="dc-artboard" onPointerDown={(event) => {
+            if (event.button !== 0 || (event.target instanceof Element && event.target.closest("[data-layer-id]"))) return;
+            end();
+            setSelected(null);
+            setSelectedLayers([]);
+          }} style={{
             backgroundColor: design.sleeveColor,
             color: (parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 + parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 + parseInt(design.sleeveColor.slice(5, 7), 16) * 0.114) < 140 ? "#d9ddcd" : "#4c5740",
           }}>
+            {design.sleeveImage && <div className="dc-sleeve-background" aria-hidden="true"
+              style={{ backgroundImage: `url("${design.sleeveImage}")`, transform: `scale(${design.sleeveZoom})` }} />}
             <div className="dc-disc-wrap" style={{ transform: `scale(${zoom / 100})` }}>
               <LabelArtwork
                 design={design}
@@ -1171,8 +1184,9 @@ export function DesignConfiguratorEditor() {
                     ? hoverFamily
                     : familyFor(layer)
                 }
-                selected={element.id}
+                selected={hasSelection ? element.id : undefined}
                 guides={guides}
+                whiteCenter
                 onSelect={selectLayer}
                 onPointerDown={startDrag}
                 onPointerMove={moveDrag}
@@ -1215,6 +1229,7 @@ export function DesignConfiguratorEditor() {
           className={`dc-properties ${mobileTab === "properties" ? "dc-mobile-visible" : ""}`}
         >
           {panelTitle("Properties")}
+          {!hasSelection ? <p className="dc-font-explanation">Select a layer to edit its properties.</p> : <>
           <div className="dc-selected-heading">
             <div>
               {element.kind === "circular" ? (
@@ -1280,7 +1295,6 @@ export function DesignConfiguratorEditor() {
                     disabled={fontBusy}
                     onClick={() => {
                       setDialog("fonts");
-                      setQuery("");
                     }}
                   >
                     <span>
@@ -1412,6 +1426,7 @@ export function DesignConfiguratorEditor() {
             <RotateCcw size={13} />
             Reset this element
           </button>
+          </>}
         </aside>
       </div>
       <footer className="dc-statusbar">
@@ -1440,6 +1455,7 @@ export function DesignConfiguratorEditor() {
           Properties
         </button>
         <button
+          disabled={!hasSelection}
           onClick={() => {
             setDialog("fonts");
             setQuery("");
@@ -1495,9 +1511,19 @@ export function DesignConfiguratorEditor() {
                 {title}
               </button>
             ))}
+            <label className="dc-all-styles">
+              <input type="checkbox" checked={seeAllStyles}
+                onChange={(event) => {
+                  const enabled = event.target.checked;
+                  setSeeAllStyles(enabled);
+                  if (!enabled) setExpandedFonts(new Set());
+                }} />
+              See all substyles
+            </label>
             <span>{sortedFonts.length} families</span>
           </div>
-          <div className="dc-font-results">
+          <div className="dc-font-results" ref={fontResults}
+            onScroll={(event) => fontScrollPositions.current.set(fontScrollKey, event.currentTarget.scrollTop)}>
             {fontsLoading && <p role="status">Loading your library…</p>}
             {catalogError && (
               <p role="alert">
@@ -1525,9 +1551,14 @@ export function DesignConfiguratorEditor() {
                   active={element.fontId === font.id}
                   favorite={favoriteFonts.includes(font.id)}
                   busy={fontBusy}
-                  expanded={font.variantCount > 1 ? expandedFont === font.id : undefined}
+                  expanded={font.variantCount > 1 ? familyIsExpanded(font, expandedFonts, seeAllStyles) : undefined}
+                  stylesId={`${prefix}-styles-${font.id}`}
+                  toggleExpanded={() => {
+                    setSeeAllStyles(false);
+                    setExpandedFonts(toggleFamily(font, expandedFonts, seeAllStyles, sortedFonts));
+                  }}
                   choose={() => {
-                    if (font.variantCount > 1) setExpandedFont((current) => current === font.id ? null : font.id);
+                    if (familyClickAction(font, expandedFonts, seeAllStyles) === "expand") setExpandedFonts((current) => new Set([...current, font.id]));
                     else void selectFont(font);
                   }}
                   preview={(font) => void previewFont(font)}
@@ -1546,8 +1577,9 @@ export function DesignConfiguratorEditor() {
                     }
                   }}
                 />
-                {expandedFont === font.id && (
+                {familyIsExpanded(font, expandedFonts, seeAllStyles) && (
                   <FontStyleTiles font={font} sample={element.text} busy={fontBusy}
+                    id={`${prefix}-styles-${font.id}`}
                     selected={element.fontId === font.id ? element.variantId : undefined}
                     preview={(family, variantId) => void previewFont(family, variantId)}
                     choose={(variantId) => void selectFont(font, variantId)} />

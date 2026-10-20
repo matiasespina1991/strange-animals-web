@@ -15,6 +15,7 @@ export function LabelArtwork({
   selected,
   guides = false,
   bleed = false,
+  whiteCenter = false,
   onSelect,
   onPointerDown,
   onPointerMove,
@@ -27,6 +28,7 @@ export function LabelArtwork({
   selected?: string;
   guides?: boolean;
   bleed?: boolean;
+  whiteCenter?: boolean;
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
@@ -77,6 +79,7 @@ export function LabelArtwork({
             ),
         )}
       </defs>
+      {whiteCenter && <circle cx="300" cy="300" r={hole} fill="#ffffff" />}
       <g
         mask={`url(#${prefix}-hole)`}
         clipPath={`url(#${prefix}-trim)`}

@@ -26,6 +26,11 @@ const {
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
 const original = structuredClone(initialDesign);
+assert.equal(parseDesign({ ...original, sleeveZoom: undefined }).sleeveZoom, 1);
+assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 3);
+assert.equal(parseDesign({ ...original, sleeveImage: "data:image/png;base64,aGVsbG8=" }).sleeveImage, "data:image/png;base64,aGVsbG8=");
+assert.throws(() => parseDesign({ ...original, sleeveImage: "https://example.com/image.png" }));
+assert.throws(() => parseDesign({ ...original, sleeveImage: "data:image/svg+xml;base64,PHN2Zz4=" }));
 const templateSource = await readFile(new URL("../src/features/identity/label-templates.ts", import.meta.url), "utf8");
 const templateCode = ts.transpileModule(templateSource, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

@@ -8,7 +8,7 @@ export function LabelTemplatePicker({ onChoose }: { onChoose: (design: LabelDesi
     {LABEL_TEMPLATES.map((template) => (
       <button key={template.id} className="dc-template-card" onClick={() => onChoose(structuredClone(template.design))}>
         <div className="dc-template-preview" aria-hidden="true">
-          <LabelArtwork design={template.design} side="A" prefix={`template-${template.id}`} fontFamily={defaultLabelFont} />
+          <LabelArtwork design={template.design} side="A" prefix={`template-${template.id}`} fontFamily={defaultLabelFont} whiteCenter />
         </div>
         <strong>{template.name}</strong>
         <span>{template.description}</span>
