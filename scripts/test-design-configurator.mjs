@@ -28,7 +28,7 @@ const {
 const original = structuredClone(initialDesign);
 const colorSource = await readFile(new URL("../src/features/identity/text-color-model.ts", import.meta.url), "utf8");
 const colorCode = ts.transpileModule(colorSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-const { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor } = await import(`data:text/javascript;base64,${Buffer.from(colorCode).toString("base64")}`);
+const { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor, swapTextAndLabelColors } = await import(`data:text/javascript;base64,${Buffer.from(colorCode).toString("base64")}`);
 assert.equal(hasCustomTextColors(original), false);
 const globalPink = changeGlobalTextColor(original, "#FA8AA6");
 assert.equal(hasCustomTextColors(globalPink), false, "A global color must not count as a layer customization");
@@ -48,6 +48,36 @@ assert.equal(hasCustomTextColors(parseDesign({ ...original, A: original.A.map((l
 const customHistory = { past: [], present: customArtist, future: [] };
 const changedHistory = designReducer(customHistory, { type: "change", change: (design) => changeGlobalTextColor(design, "#ffffff") });
 assert.equal(hasCustomTextColors(designReducer(changedHistory, { type: "undo" }).present), true, "Undo must restore manual color provenance");
+const swapped = swapTextAndLabelColors(globalGreen);
+assert.equal(swapped.paper, "#1A2925");
+assert.ok([...swapped.A, ...swapped.B].every((layer) => layer.kind === "image" || layer.color === globalGreen.paper));
+assert.equal(swapped.sleeveColor, globalGreen.sleeveColor);
+assert.equal(swapTextAndLabelColors(customArtist), customArtist, "Mixed text colors cannot be swapped ambiguously");
+assert.equal(parseDesign({ ...original, frame: undefined }).frame, false);
+assert.equal(parseDesign({ ...original, frame: true }).frame, true, "Existing projects must retain an enabled border");
+const lineHeightDesign = structuredClone(original);
+lineHeightDesign.A.find((layer) => layer.id === "title").lineHeight = 1.75;
+assert.equal(parseDesign(JSON.parse(JSON.stringify(lineHeightDesign))).A.find((layer) => layer.id === "title").lineHeight, 1.75);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, lineHeight: undefined })) }).A[0].lineHeight, 1.1);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, lineHeight: 99 })) }).A[0].lineHeight, 3);
+const jsxModule = (source) => ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
+  .replaceAll('"react"', JSON.stringify(import.meta.resolve("react")))
+  .replaceAll('"react/jsx-runtime"', JSON.stringify(import.meta.resolve("react/jsx-runtime")));
+const asModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
+const guideModule = asModule(jsxModule(await readFile(new URL("../src/features/identity/TextSelectionGuide.tsx", import.meta.url), "utf8")));
+const artworkCode = jsxModule(await readFile(new URL("../src/features/identity/LabelArtwork.tsx", import.meta.url), "utf8"))
+  .replace('"./design-configurator-model"', JSON.stringify(asModule(compiled)))
+  .replace('"./TextSelectionGuide"', JSON.stringify(guideModule));
+const { LabelArtwork } = await import(asModule(artworkCode));
+const { renderToStaticMarkup } = await import("react-dom/server");
+const artworkProps = { design: lineHeightDesign, side: "A", prefix: "test", fontFamily: () => "Arial" };
+const exportedSvg = renderToStaticMarkup(LabelArtwork(artworkProps));
+assert.ok(exportedSvg.includes('dy="1.75em"'), "Exported SVG must use the selected line height");
+assert.ok(!exportedSvg.includes("dc-label-shadow"), "Preview shadows must not export");
+assert.ok(!/<circle[^>]+fill="#ffffff"/.test(exportedSvg), "Print hole must remain transparent");
+const previewSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, previewShadow: true, whiteCenter: true }));
+assert.ok(previewSvg.includes("dc-label-shadow"));
+assert.match(previewSvg, /<circle[^>]+fill="#ffffff"/, "Preview center must stay white");
 assert.equal(parseDesign({ ...original, sleeveZoom: undefined }).sleeveZoom, 1);
 assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 3);
 assert.equal(parseDesign({ ...original, sleeveImage: "data:image/png;base64,aGVsbG8=" }).sleeveImage, "data:image/png;base64,aGVsbG8=");

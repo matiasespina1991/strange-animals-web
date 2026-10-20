@@ -16,6 +16,7 @@ export function LabelArtwork({
   guides = false,
   bleed = false,
   whiteCenter = false,
+  previewShadow = false,
   onSelect,
   onPointerDown,
   onPointerMove,
@@ -29,6 +30,7 @@ export function LabelArtwork({
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
+  previewShadow?: boolean;
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
@@ -79,6 +81,7 @@ export function LabelArtwork({
             ),
         )}
       </defs>
+      {previewShadow && <circle cx="300" cy="300" r={300 + extra} fill={design.paper} className="dc-label-shadow" />}
       {whiteCenter && <circle cx="300" cy="300" r={hole} fill="#ffffff" />}
       <g
         mask={`url(#${prefix}-hole)`}
@@ -188,7 +191,7 @@ export function LabelArtwork({
                     </textPath>
                   ) : (
                     layer.text.split("\n").map((line, i) => (
-                      <tspan key={i} x={layer.x} dy={i ? "1.1em" : 0}>
+                      <tspan key={i} x={layer.x} dy={i ? `${layer.lineHeight ?? 1.1}em` : 0}>
                         {line || "\u00a0"}
                       </tspan>
                     ))

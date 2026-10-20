@@ -7,7 +7,7 @@ const categoriesUrl = data(compile(await readFile(new URL("../src/features/ident
 const { FONT_PARENT_CATEGORIES, compareFontSectionCategoryLabels, getFontCategoryDisplayName } = await import(categoriesUrl);
 const catalogCode = compile(await readFile(new URL("../src/features/identity/font-picker-catalog.ts", import.meta.url), "utf8"))
   .replace('"./font-categories"', JSON.stringify(categoriesUrl));
-const { pickerCatalog, pickerCategories, pickerCategory } = await import(data(catalogCode));
+const { pickerCatalog, pickerCategories, pickerCategory, standardCategoriesFor } = await import(data(catalogCode));
 const fonts = [
   { id: "s", name: "Zulu", parentCategory: "Paragraph / Standard" },
   { id: "c", name: "Narrow", parentCategory: "Condensed / Narrow" },
@@ -29,4 +29,10 @@ assert.equal(getFontCategoryDisplayName("LCD Display"), "LCD/LED Display");
 assert.equal(getFontCategoryDisplayName("Non-Latin Script"), "Non-Latin / 日本語");
 assert.deepEqual(pickerCategories([], "Goth"), ["Goth"], "An active empty filter must remain removable");
 assert.deepEqual([...FONT_PARENT_CATEGORIES].reverse().sort(compareFontSectionCategoryLabels), [...FONT_PARENT_CATEGORIES]);
+const withTitle = [...fonts, { id: "title", name: "Display", parentCategory: "Title / Bold" }];
+assert.deepEqual(standardCategoriesFor("circular"), ["Condensed / Narrow", "Paragraph / Standard"]);
+assert.deepEqual(standardCategoriesFor("text"), ["Paragraph / Standard", "Title / Bold", "Condensed / Narrow"]);
+assert.deepEqual(pickerCatalog(withTitle, "standard", [], "", "circular").map((font) => font.id), ["c", "s"]);
+assert.deepEqual(pickerCatalog(withTitle, "standard", [], "", "text").map((font) => font.id), ["s", "title", "c"]);
+assert.deepEqual(pickerCategories([], null, standardCategoriesFor("text")), standardCategoriesFor("text"), "Context chips retain their specified order even before the fonts load");
 console.log("Font catalogue: shared category order, grouping, Standard, search, Favorites, active filters and labels passed.");

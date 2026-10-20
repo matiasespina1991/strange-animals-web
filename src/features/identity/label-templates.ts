@@ -16,7 +16,7 @@ function template(id: string, name: string, description: string, paper: string, 
 
 // Original layouts based on familiar record-label conventions, not label reproductions.
 export const LABEL_TEMPLATES: Template[] = [
-  template("classic", "Default001", "Centered title · perimeter legal text", "#ffffff", "#20211e", {}, true),
+  template("classic", "Default001", "Centered title · perimeter legal text", "#ffffff", "#20211e", {}),
   template("white-label", "Default002", "Minimal metadata · open space", "#f7f6f0", "#20211e", {
     artist: { x: 110, y: 195, align: "start", size: 14, spacing: 1 },
     title: { x: 110, y: 229, align: "start", size: 25, spacing: -0.4 },
@@ -46,7 +46,7 @@ export const LABEL_TEMPLATES: Template[] = [
     tracks: { y: 375, size: 11, spacing: 0 }, side: { y: 445, size: 32 },
     rpm: { x: 300, y: 475, align: "middle", size: 10 },
     imprint: { y: 502, size: 8, spacing: 1 }, legal: { radius: 265, size: 7 },
-  }, true),
+  }),
   template("pink", "Default006", "Pink stock · oversized side marker", "#FA8AA6", "#252020", {
     title: { y: 179, size: 42, spacing: -1 }, artist: { y: 122, size: 13, spacing: 2 },
     tracks: { x: 112, y: 365, align: "start", size: 10, spacing: 0 },

@@ -6,6 +6,7 @@ export type LabelLayer = {
   text: string;
   size: number;
   spacing: number;
+  lineHeight: number;
   radius: number;
   angle: number;
   x: number;
@@ -59,6 +60,7 @@ export function makeLayer(
         : "Your text",
     size: kind === "circular" ? 11 : 24,
     spacing: 0,
+    lineHeight: 1.1,
     radius: 254,
     angle: 0,
     x: 300,
@@ -160,7 +162,7 @@ export const initialDesign: LabelDesign = {
   holeMm: 7.3,
   bleedMm: 3,
   safeMm: 3,
-  frame: true,
+  frame: false,
   mark: true,
 };
 export const clamp = (value: number, min: number, max: number) =>
@@ -270,6 +272,7 @@ export function parseDesign(input: unknown): LabelDesign {
         visible: item.visible !== false,
         size: numeric(item.size, base.size, 3, 125),
         spacing: numeric(item.spacing, 0, -10, 30),
+        lineHeight: numeric(item.lineHeight, 1.1, 0.5, 3),
         radius: numeric(item.radius, 254, 30, 295),
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),
@@ -311,7 +314,7 @@ export function parseDesign(input: unknown): LabelDesign {
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),
     safeMm: numeric(input.safeMm, 3, 0, 10),
-    frame: input.frame !== false,
+    frame: input.frame === true,
     mark: input.mark !== false,
   };
 }

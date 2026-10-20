@@ -53,7 +53,9 @@ import {
   type FontCatalogItem,
 } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
+import { TypographyValueControl } from "./TypographyValueControl";
 import { SleeveImageControl } from "./SleeveImageControl";
+import { SleeveToolbar } from "./SleeveToolbar";
 import { ColorSwatches } from "./ColorSwatches";
 import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
@@ -61,10 +63,10 @@ import { FontStyleTiles } from "./FontStyleTiles";
 import { FontSpecimen } from "./FontSpecimen";
 import { FontCategoryChips } from "./FontCategoryChips";
 import { getFontCategoryDisplayName } from "./font-categories";
-import { pickerCatalog, pickerCategories, pickerCategory, type FontPickerScope } from "./font-picker-catalog";
+import { pickerCatalog, pickerCategories, pickerCategory, pickerCategoryLabel, standardCategoriesFor, type FontPickerScope } from "./font-picker-catalog";
 import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
-import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor } from "./text-color-model";
+import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor, swapTextAndLabelColors } from "./text-color-model";
 import {
   clamp,
   designReducer,
@@ -319,12 +321,14 @@ export function DesignConfiguratorEditor() {
     [catalogError, setCatalogError] = useState(""),
     [catalogAttempt, setCatalogAttempt] = useState(0);
   const [scope, setScope] = useState<FontPickerScope>("standard");
-  const [categoryByScope, setCategoryByScope] = useState<Partial<Record<FontPickerScope, string | null>>>({});
-  const selectedCategory = categoryByScope[scope] ?? null;
+  const fontContext = design[side].find((layer) => layer.id === selected)?.kind ?? "text";
+  const categoryScopeKey = `${scope}:${fontContext}`;
+  const [categoryByScope, setCategoryByScope] = useState<Record<string, string | null>>({});
+  const selectedCategory = categoryByScope[categoryScopeKey] ?? null;
   const [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
   const deferredQuery = useDeferredValue(query);
-  const fontScrollKey = JSON.stringify([scope, deferredQuery, selectedCategory]);
+  const fontScrollKey = JSON.stringify([categoryScopeKey, deferredQuery, selectedCategory]);
   useLayoutEffect(() => {
     if (dialog === "fonts" && fontResults.current) {
       const limit = fontViewLimits.current.get(fontScrollKey) ?? 40;
@@ -770,8 +774,8 @@ export function DesignConfiguratorEditor() {
       setExportBusy(false);
     }
   };
-  const visibleFonts = useMemo(() => pickerCatalog(fonts, scope, favoriteFonts, deferredQuery), [fonts, scope, favoriteFonts, deferredQuery]);
-  const categories = useMemo(() => pickerCategories(visibleFonts, selectedCategory), [visibleFonts, selectedCategory]);
+  const visibleFonts = useMemo(() => pickerCatalog(fonts, scope, favoriteFonts, deferredQuery, fontContext), [fonts, scope, favoriteFonts, deferredQuery, fontContext]);
+  const categories = useMemo(() => pickerCategories(visibleFonts, selectedCategory, scope === "standard" && !deferredQuery.trim() ? standardCategoriesFor(fontContext) : undefined), [visibleFonts, selectedCategory, scope, deferredQuery, fontContext]);
   const sortedFonts = useMemo(() => selectedCategory ? visibleFonts.filter((font) => pickerCategory(font) === selectedCategory) : visibleFonts, [visibleFonts, selectedCategory]);
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
@@ -939,6 +943,8 @@ export function DesignConfiguratorEditor() {
           </label>
         </div>
         <GlobalInkControl
+          labelColor={design.paper}
+          onSwap={() => { end(); change(swapTextAndLabelColors); }}
           hasCustomColors={hasCustomTextColors(design)}
           colors={[...design.A, ...design.B].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
           onApply={(color) => {
@@ -958,6 +964,7 @@ export function DesignConfiguratorEditor() {
             value={design.paper} label="Label"
             onChoose={(color) => change((current) => ({ ...current, paper: color }))} />
         </div>
+        <SleeveToolbar>
         <div className="dc-preview-stock">
           <span>Sleeve</span>
           <label className="dc-custom-paper">
@@ -975,6 +982,7 @@ export function DesignConfiguratorEditor() {
             value={design.sleeveColor} label="Sleeve color"
             onChoose={(color) => change((current) => ({ ...current, sleeveColor: color }))} />
         </div>
+        </SleeveToolbar>
         <div className="dc-project-actions">
           <div className="dc-history">
             <button
@@ -1131,6 +1139,11 @@ export function DesignConfiguratorEditor() {
               <span className="dc-live-dot" />
               SIDE {side} / PREVIEW
             </span>
+            <label className="dc-preview-border">
+              <input type="checkbox" checked={design.frame}
+                onChange={(event) => change((current) => ({ ...current, frame: event.target.checked }))} />
+              Decorative border
+            </label>
             <div className="dc-preview-controls">
             {design.sleeveImage && <label className="dc-sleeve-zoom">
               <span>Sleeve zoom</span>
@@ -1176,6 +1189,7 @@ export function DesignConfiguratorEditor() {
                 selected={hasSelection ? element.id : undefined}
                 guides={guides}
                 whiteCenter
+                previewShadow
                 onSelect={selectLayer}
                 onPointerDown={startDrag}
                 onPointerMove={moveDrag}
@@ -1324,9 +1338,13 @@ export function DesignConfiguratorEditor() {
                   </button>
                 )}
                 <div className="dc-field-pair">
-                  {number("Size", "size", 3, 125, "PX", 0.5)}
-                  {number("Tracking", "spacing", -10, 30, "PX", 0.1)}
+                  <TypographyValueControl label="Size" unit="PX" value={element.size} min={3} max={125} step={0.5}
+                    onChange={(size) => update({ size }, `size-${element.id}`)} onCommit={end} />
+                  <TypographyValueControl label="Tracking" unit="PX" value={element.spacing} min={-10} max={30} step={0.1}
+                    onChange={(spacing) => update({ spacing }, `spacing-${element.id}`)} onCommit={end} />
                 </div>
+                {element.kind === "text" && <TypographyValueControl label="Line height" value={element.lineHeight ?? 1.1} min={0.5} max={3} step={0.05}
+                  onChange={(lineHeight) => update({ lineHeight }, `line-height-${element.id}`)} onCommit={end} />}
                 <div className="dc-alignment">
                   <span>Anchor</span>
                   <div>
@@ -1520,7 +1538,8 @@ export function DesignConfiguratorEditor() {
             <span>{sortedFonts.length} families</span>
           </div>
           <FontCategoryChips categories={categories} selected={selectedCategory}
-            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [scope]: category }))} />
+            labelFor={(category) => pickerCategoryLabel(category, scope, fontContext)}
+            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [categoryScopeKey]: category }))} />
           <div className="dc-font-results" ref={fontResults}
             onScroll={(event) => fontScrollPositions.current.set(fontScrollKey, event.currentTarget.scrollTop)}>
             {fontsLoading && <p role="status">Loading your library…</p>}
@@ -1538,7 +1557,7 @@ export function DesignConfiguratorEditor() {
             {sortedFonts.slice(0, fontLimit).map((font, i) => (
               <div key={font.id}>
                 {(i === 0 || pickerCategory(sortedFonts[i - 1]) !== pickerCategory(font)) && (
-                    <h3 className="dc-font-group">{getFontCategoryDisplayName(pickerCategory(font))}</h3>
+                    <h3 className="dc-font-group">{pickerCategoryLabel(pickerCategory(font), scope, fontContext)}</h3>
                   )}
                 <FontRow
                   font={font}
@@ -1676,16 +1695,6 @@ export function DesignConfiguratorEditor() {
             </section>
             <section className="dc-property-section">
               <div className="dc-section-caption">Template details</div>
-              <label className="dc-check">
-                <input
-                  type="checkbox"
-                  checked={design.frame}
-                  onChange={(e) =>
-                    change((c) => ({ ...c, frame: e.target.checked }))
-                  }
-                />
-                Decorative border
-              </label>
               <label className="dc-check">
                 <input
                   type="checkbox"
