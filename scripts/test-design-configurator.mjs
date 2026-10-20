@@ -26,6 +26,28 @@ const {
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
 const original = structuredClone(initialDesign);
+const colorSource = await readFile(new URL("../src/features/identity/text-color-model.ts", import.meta.url), "utf8");
+const colorCode = ts.transpileModule(colorSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor } = await import(`data:text/javascript;base64,${Buffer.from(colorCode).toString("base64")}`);
+assert.equal(hasCustomTextColors(original), false);
+const globalPink = changeGlobalTextColor(original, "#FA8AA6");
+assert.equal(hasCustomTextColors(globalPink), false, "A global color must not count as a layer customization");
+const globalGreen = changeGlobalTextColor(globalPink, "#1A2925");
+assert.equal(hasCustomTextColors(globalGreen), false, "Repeated global palette changes must not require confirmation");
+const customArtist = changeLayerTextColors(globalGreen, "A", new Set(["artist"]), "#FF1493");
+assert.equal(hasCustomTextColors(customArtist), true);
+assert.equal(customArtist.A.find((layer) => layer.id === "artist").customTextColor, true);
+assert.equal(customArtist.B.find((layer) => layer.id === "artist").customTextColor, false);
+assert.equal(hasCustomTextColors(parseDesign(JSON.parse(JSON.stringify(customArtist)))) , true, "Manual color provenance must survive project save/import");
+const unified = changeGlobalTextColor(customArtist, "#ffffff");
+assert.equal(hasCustomTextColors(unified), false, "Confirming global color clears layer overrides");
+assert.ok([...unified.A, ...unified.B].filter((layer) => layer.kind !== "image").every((layer) => layer.color === "#ffffff"));
+assert.equal(hasCustomTextColors(changeLayerTextColors(unified, "A", new Set(["artist"]), "#FFFFFF")), false, "Selecting the same color is not a customization");
+assert.equal(hasCustomTextColors(changeLayerTextColors(unified, "B", new Set(["tracks"]), "#592C63")), true, "A new individual edit must require confirmation again");
+assert.equal(hasCustomTextColors(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, color: "#123456", customTextColor: undefined })) })), false, "Do not infer manual edits from a non-default color");
+const customHistory = { past: [], present: customArtist, future: [] };
+const changedHistory = designReducer(customHistory, { type: "change", change: (design) => changeGlobalTextColor(design, "#ffffff") });
+assert.equal(hasCustomTextColors(designReducer(changedHistory, { type: "undo" }).present), true, "Undo must restore manual color provenance");
 assert.equal(parseDesign({ ...original, sleeveZoom: undefined }).sleeveZoom, 1);
 assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 3);
 assert.equal(parseDesign({ ...original, sleeveImage: "data:image/png;base64,aGVsbG8=" }).sleeveImage, "data:image/png;base64,aGVsbG8=");

@@ -11,6 +11,7 @@ export type LabelLayer = {
   x: number;
   y: number;
   color: string;
+  customTextColor?: boolean;
   align: "start" | "middle" | "end";
   visible: boolean;
   arc: "top" | "bottom";
@@ -63,6 +64,7 @@ export function makeLayer(
     x: 300,
     y: 190,
     color: "#20211e",
+    customTextColor: false,
     align: "middle",
     visible: true,
     arc: "bottom",
@@ -274,6 +276,7 @@ export function parseDesign(input: unknown): LabelDesign {
         y: numeric(item.y, 190, 0, 600),
         width: numeric(item.width, 150, 10, 600),
         color: hex(item.color, base.color),
+        customTextColor: kind !== "image" && item.customTextColor === true,
         align:
           item.align === "start" || item.align === "end"
             ? item.align

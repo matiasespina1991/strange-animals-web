@@ -3,6 +3,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -58,8 +59,12 @@ import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
 import { FontStyleTiles } from "./FontStyleTiles";
 import { FontSpecimen } from "./FontSpecimen";
+import { FontCategoryChips } from "./FontCategoryChips";
+import { getFontCategoryDisplayName } from "./font-categories";
+import { pickerCatalog, pickerCategories, pickerCategory, type FontPickerScope } from "./font-picker-catalog";
 import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
+import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor } from "./text-color-model";
 import {
   clamp,
   designReducer,
@@ -85,9 +90,6 @@ import {
 } from "./design-configurator-export";
 import "./design-configurator.css";
 
-const recommended = new Set(["Paragraph / Standard", "Condensed / Narrow"]);
-const normalize = (text: string) =>
-  text.toLocaleLowerCase().replace(/[\s_-]+/g, "");
 function seed() {
   try {
     const value = localStorage.getItem(RECOVERY_KEY);
@@ -211,7 +213,7 @@ function FontRow({
         <strong>{font.name}</strong>
         <FontSpecimen font={font} sample={sample} />
         <small>
-          {font.parentCategory ?? "Uncategorized"}
+          {getFontCategoryDisplayName(pickerCategory(font))}
           {font.variantCount > 1 && <> · <b>{font.variantCount} styles</b></>}
         </small>
       </button>
@@ -300,6 +302,7 @@ export function DesignConfiguratorEditor() {
   const [seeAllStyles, setSeeAllStyles] = useState(false);
   const fontResults = useRef<HTMLDivElement>(null);
   const fontScrollPositions = useRef(new Map<string, number>());
+  const fontViewLimits = useRef(new Map<string, number>());
   const previewFont = async (font: FontCatalogItem | null, variantId?: string) => {
     const request = ++hoverRequest.current;
     setHoverFamily(null);
@@ -315,13 +318,17 @@ export function DesignConfiguratorEditor() {
     [fontsLoading, setFontsLoading] = useState(true),
     [catalogError, setCatalogError] = useState(""),
     [catalogAttempt, setCatalogAttempt] = useState(0);
-  const [scope, setScope] = useState("recommended"),
-    [query, setQuery] = useState(""),
+  const [scope, setScope] = useState<FontPickerScope>("standard");
+  const [categoryByScope, setCategoryByScope] = useState<Partial<Record<FontPickerScope, string | null>>>({});
+  const selectedCategory = categoryByScope[scope] ?? null;
+  const [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
   const deferredQuery = useDeferredValue(query);
-  const fontScrollKey = `${scope}:${deferredQuery}`;
+  const fontScrollKey = JSON.stringify([scope, deferredQuery, selectedCategory]);
   useLayoutEffect(() => {
     if (dialog === "fonts" && fontResults.current) {
+      const limit = fontViewLimits.current.get(fontScrollKey) ?? 40;
+      if (fontLimit !== limit) { setFontLimit(limit); return; }
       fontResults.current.scrollTop = fontScrollPositions.current.get(fontScrollKey) ?? 0;
     }
   }, [dialog, fontScrollKey, fontLimit, fonts.length]);
@@ -484,7 +491,6 @@ export function DesignConfiguratorEditor() {
     const timer = window.setTimeout(() => setNotice(""), 5500);
     return () => window.clearTimeout(timer);
   }, [notice]);
-  useEffect(() => setFontLimit(40), [deferredQuery, scope]);
   useEffect(() => {
     if (element.kind !== "circular") {
       setTextLength(0);
@@ -764,23 +770,9 @@ export function DesignConfiguratorEditor() {
       setExportBusy(false);
     }
   };
-  const visibleFonts = fonts.filter((f) =>
-    deferredQuery.trim()
-      ? normalize(f.name).includes(normalize(deferredQuery))
-      : scope === "all"
-        ? true
-        : scope === "favorites"
-          ? favoriteFonts.includes(f.id)
-          : recommended.has(f.parentCategory ?? ""),
-  );
-  const sortedFonts =
-    scope === "recommended" && !deferredQuery.trim()
-      ? [...visibleFonts].sort(
-          (a, b) =>
-            (a.parentCategory ?? "").localeCompare(b.parentCategory ?? "") ||
-            a.name.localeCompare(b.name),
-        )
-      : visibleFonts;
+  const visibleFonts = useMemo(() => pickerCatalog(fonts, scope, favoriteFonts, deferredQuery), [fonts, scope, favoriteFonts, deferredQuery]);
+  const categories = useMemo(() => pickerCategories(visibleFonts, selectedCategory), [visibleFonts, selectedCategory]);
+  const sortedFonts = useMemo(() => selectedCategory ? visibleFonts.filter((font) => pickerCategory(font) === selectedCategory) : visibleFonts, [visibleFonts, selectedCategory]);
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
@@ -947,14 +939,11 @@ export function DesignConfiguratorEditor() {
           </label>
         </div>
         <GlobalInkControl
+          hasCustomColors={hasCustomTextColors(design)}
           colors={[...design.A, ...design.B].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
           onApply={(color) => {
             end();
-            change((current) => ({
-              ...current,
-              A: current.A.map((layer) => layer.kind === "image" ? layer : { ...layer, color }),
-              B: current.B.map((layer) => layer.kind === "image" ? layer : { ...layer, color }),
-            }));
+            change((current) => changeGlobalTextColor(current, color));
           }}
         />
         <div className="dc-preview-stock">
@@ -1282,7 +1271,7 @@ export function DesignConfiguratorEditor() {
                         onChange={(event) => {
                           const color = event.target.value;
                           const ids = new Set(selectedTextLayers.map((layer) => layer.id));
-                          change((current) => ({ ...current, [side]: current[side].map((layer) => ids.has(layer.id) ? { ...layer, color } : layer) }), `ink-${[...ids].join("-")}`);
+                          change((current) => changeLayerTextColors(current, side, ids, color), `ink-${[...ids].join("-")}`);
                         }} onBlur={end} />
                       <span>{selectedTextLayers.some((layer) => layer.color !== selectedTextLayers[0].color) ? "Mixed" : selectedTextLayers[0].color.toUpperCase()}</span>
                     </label>
@@ -1499,14 +1488,14 @@ export function DesignConfiguratorEditor() {
           </label>
           <div className="dc-font-scopes">
             {[
-              ["recommended", "Recommended"],
+              ["standard", "Standard"],
               ["all", "All"],
               ["favorites", "Favorites"],
             ].map(([key, title]) => (
               <button
                 key={key}
                 aria-pressed={scope === key}
-                onClick={() => setScope(key)}
+                onClick={() => setScope(key as FontPickerScope)}
               >
                 {title}
               </button>
@@ -1522,6 +1511,8 @@ export function DesignConfiguratorEditor() {
             </label>
             <span>{sortedFonts.length} families</span>
           </div>
+          <FontCategoryChips categories={categories} selected={selectedCategory}
+            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [scope]: category }))} />
           <div className="dc-font-results" ref={fontResults}
             onScroll={(event) => fontScrollPositions.current.set(fontScrollKey, event.currentTarget.scrollTop)}>
             {fontsLoading && <p role="status">Loading your library…</p>}
@@ -1538,12 +1529,8 @@ export function DesignConfiguratorEditor() {
             )}
             {sortedFonts.slice(0, fontLimit).map((font, i) => (
               <div key={font.id}>
-                {scope === "recommended" &&
-                  !query &&
-                  (i === 0 ||
-                    sortedFonts[i - 1].parentCategory !==
-                      font.parentCategory) && (
-                    <h3 className="dc-font-group">{font.parentCategory}</h3>
+                {(i === 0 || pickerCategory(sortedFonts[i - 1]) !== pickerCategory(font)) && (
+                    <h3 className="dc-font-group">{getFontCategoryDisplayName(pickerCategory(font))}</h3>
                   )}
                 <FontRow
                   font={font}
@@ -1589,7 +1576,10 @@ export function DesignConfiguratorEditor() {
             {sortedFonts.length > fontLimit && (
               <button
                 className="dc-more-fonts"
-                onClick={() => setFontLimit((n) => n + 40)}
+                onClick={() => setFontLimit((n) => {
+                  fontViewLimits.current.set(fontScrollKey, n + 40);
+                  return n + 40;
+                })}
               >
                 Load more · {sortedFonts.length - fontLimit} remaining
               </button>

@@ -67,33 +67,11 @@ import {
   type IdentityFontPreferences,
 } from "./identity-font-preferences";
 
+import {
+  FONT_PARENT_CATEGORIES, UNCATEGORIZED_LABEL, getFontCategoryDisplayName,
+  compareCategoryNames, compareFontFilterCategoryLabels, compareFontSectionCategoryLabels,
+} from "./font-categories";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
-const FONT_PARENT_CATEGORIES = [
-  "Abstract",
-  "Semi-Abstract",
-  "Cyber",
-  "Dotted",
-  "LCD Display",
-  "Goth",
-  "Grunge",
-  "Handwritten",
-  "Outlined",
-  "Paragraph / Standard",
-  "Serif",
-  "Rounded",
-  "Squared / Tech",
-  "Condensed / Narrow",
-  "Cursive",
-  "Title / Bold",
-  "3D",
-  "Pixel",
-  "Playful",
-  "Ornamental",
-  "Vintage",
-  "Wide",
-  "Symbols & Others",
-  "Non-Latin Script",
-] as const;
 
 function getSupportedPreviewText(
   value: string,
@@ -161,20 +139,6 @@ function SupportedPreviewText({
 
   return previewText.trim() ? previewText : (fallbackValue ?? value);
 }
-const UNCATEGORIZED_LABEL = "Uncategorized";
-const FONT_CATEGORY_DISPLAY_NAMES: Record<string, string> = {
-  "LCD Display": "LCD/LED Display",
-  "Non-Latin Script": "Non-Latin / 日本語",
-};
-
-function getFontCategoryDisplayName(category: string) {
-  return FONT_CATEGORY_DISPLAY_NAMES[category] ?? category;
-}
-
-const FONT_CATEGORY_DISPLAY_ORDER = [
-  ...FONT_PARENT_CATEGORIES,
-  UNCATEGORIZED_LABEL,
-] as const;
 const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
@@ -193,44 +157,6 @@ const IDENTITY_THEME_STORAGE_KEY = "strange-animals.identity-theme.v1";
 const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
   "strange-animals.identity-fonts-onboarding-dismissed.v1";
 
-function compareCategoryNames(left: string, right: string) {
-  if (left === "3D") {
-    return right.localeCompare("Squared / Tech", undefined, {
-      sensitivity: "base",
-    }) <= 0
-      ? 1
-      : -1;
-  }
-
-  if (right === "3D") {
-    return left.localeCompare("Squared / Tech", undefined, {
-      sensitivity: "base",
-    }) <= 0
-      ? -1
-      : 1;
-  }
-
-  return left.localeCompare(right, undefined, { sensitivity: "base" });
-}
-
-function compareFontFilterCategoryLabels(left: string, right: string) {
-  const leftIndex = FONT_CATEGORY_DISPLAY_ORDER.indexOf(
-    left as (typeof FONT_CATEGORY_DISPLAY_ORDER)[number],
-  );
-  const rightIndex = FONT_CATEGORY_DISPLAY_ORDER.indexOf(
-    right as (typeof FONT_CATEGORY_DISPLAY_ORDER)[number],
-  );
-
-  if (leftIndex !== -1 && rightIndex !== -1) return leftIndex - rightIndex;
-  if (leftIndex !== -1) return -1;
-  if (rightIndex !== -1) return 1;
-
-  return compareCategoryNames(left, right);
-}
-
-function compareFontSectionCategoryLabels(left: string, right: string) {
-  return compareFontFilterCategoryLabels(left, right);
-}
 const DESKTOP_FONT_SIZE_MAX = 125;
 const FONT_TOOLBAR_GRID_CLASS =
   "grid grid-cols-2 gap-x-3 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] md:gap-x-4 md:gap-y-3";

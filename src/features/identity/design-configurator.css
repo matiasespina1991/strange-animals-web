@@ -160,3 +160,15 @@
   .design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:9px; }
   .design-configurator .dc-properties { padding-right:12px; }
 }
+.dc-category-chips { display:flex; flex-shrink:0; gap:6px; overflow-x:auto; overflow-y:hidden; max-width:100%; min-width:0; padding:10px 2px; overscroll-behavior-x:contain; scrollbar-width:thin; }
+.design-configurator .dc-category-chips button { flex-shrink:0; white-space:nowrap; padding:6px 9px; border:1px solid #b9c1ad; border-radius:3px; font-size:11px; }
+.design-configurator .dc-category-chips button[aria-pressed=true] { background:#29331f; color:#ffffff; border-color:#29331f; }
+.dc-text-color-confirmation { width:min(430px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; margin:auto; padding:24px; border:1px solid #b9c1ad; border-radius:0; background:#fafaf7; color:#252620; box-shadow:0 12px 40px #0003; font:14px/1.5 "Alte DIN Input",Arial,sans-serif; }
+.dc-text-color-confirmation::backdrop { background:#0005; }
+.dc-text-color-confirmation h2 { margin:0 0 12px; font-size:20px; font-weight:400; }
+.dc-text-color-confirmation p { margin:0; color:#566047; font-size:13px; }
+.dc-confirm-color { display:flex; align-items:center; gap:9px; margin:18px 0; font-size:12px; }
+.dc-confirm-color>span { width:24px; height:24px; border:1px solid #aab19c; }
+.dc-confirm-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.design-configurator .dc-confirm-actions button { border:1px solid #b9c1ad; padding:8px 12px; min-height:36px; font-size:12px; }
+.design-configurator .dc-confirm-actions .dc-confirm-apply { background:#29331f; border-color:#29331f; color:#fff; }

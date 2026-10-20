@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useId, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Plus } from "lucide-react";
 
-type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void };
+type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void; children?: ReactNode };
 
-export function ColorSwatches({ colors, value, label, onChoose }: Props) {
+export function ColorSwatches({ colors, value, label, onChoose, children }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -29,6 +29,7 @@ export function ColorSwatches({ colors, value, label, onChoose }: Props) {
       if (event.target instanceof Node && !root.current?.contains(event.target)) setOpen(false);
     };
     const escape = (event: KeyboardEvent) => {
+      if (root.current?.querySelector("dialog[open]")) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -61,5 +62,6 @@ export function ColorSwatches({ colors, value, label, onChoose }: Props) {
       onScroll={(event) => { lastScroll.current = event.currentTarget.scrollTop; }}>
       {colors.slice(3).map((color) => swatch(color))}
     </div>}
+    {children}
   </div>;
 }
