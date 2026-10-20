@@ -79,6 +79,9 @@
 .design-configurator .dc-layers, .design-configurator .dc-properties { padding-top:16px; }
 .dc-layers .dc-panel-title, .dc-properties .dc-panel-title { margin-bottom:16px; }
 .dc-properties .dc-selected-heading { margin-bottom:14px; }
+.dc-properties-heading { justify-content:space-between; }
+.dc-properties-heading .dc-reset { margin-top:0; }
+.dc-properties .dc-position-section { margin-top:12px; padding-top:10px; }
 .dc-properties .dc-selected-heading h3 { font-size:14px; }
 .dc-properties .dc-field { margin-top:11px; }
 .dc-properties .dc-field>span { margin-bottom:5px; }
@@ -123,11 +126,13 @@
 @media(max-width:640px) { .dc-template-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .dc-picker-overlay.dc-template-overlay { padding:10px; } .dc-font-picker.dc-template-dialog { max-height:calc(100dvh - 20px); } }
 .dc-artboard .dc-measure, .dc-artboard .dc-measure span { color:inherit; }
 .dc-artboard .dc-measure-top::before, .dc-artboard .dc-measure-top::after { background:currentColor; opacity:.5; }
-.dc-layers .dc-add-controls { display:grid; grid-template-columns:.75fr 1fr 1.85fr; width:100%; }
-.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding-inline:5px; }
+.dc-layers .dc-side-switch { margin-bottom:0; }
+.dc-layers .dc-add-controls { display:grid; grid-template-columns:.75fr 1fr 1.85fr; width:100%; margin:12px 0; }
+.dc-layers .dc-add-controls + .dc-multi-controls { margin-top:0; }
+.dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:5px; }
 .dc-layers .dc-add-controls button svg { flex-shrink:0; }
 @media(min-width:801px) {
-  .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); }
+  .design-configurator .dc-workspace { grid-template-columns:minmax(280px,280px) minmax(0,1fr) minmax(320px,320px); min-height:calc(730px + 2rem); }
   .design-configurator .dc-layers { min-width:280px; }
   .design-configurator .dc-properties {
     min-width:320px;
@@ -149,6 +154,8 @@
 .design-configurator:fullscreen { width:100%; height:100%; overflow-y:auto; }
 .design-configurator.dc-fullscreen-fallback { position:fixed; inset:0; width:100%; height:100dvh; z-index:10000; overflow-y:auto; }
 .dc-canvas-footer .dc-zoom { margin-left:auto; }
+.dc-canvas-footer { position:relative; }
+.dc-canvas-footer .dc-measure-bottom { top:50%; bottom:auto; transform:translate(-50%,-50%); max-width:none; }
 .dc-font-expand { width:28px; flex-shrink:0; display:grid; place-items:center; align-self:flex-end; height:32px; margin-bottom:8px; }
 .dc-font-row small b { display:inline; font-weight:700; }
 .dc-font-scopes .dc-all-styles { display:flex; gap:6px; align-items:center; font-size:10px; margin-left:auto; cursor:pointer!important; }
@@ -178,7 +185,8 @@
 .dc-text-color-confirmation::backdrop { background:#0005; }
 .dc-text-color-confirmation h2 { margin:0 0 12px; font-size:20px; font-weight:400; }
 .dc-text-color-confirmation p { margin:0; color:#566047; font-size:13px; }
-.dc-confirm-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-top:18px; }
+.dc-confirm-actions { display:grid; grid-template-columns:repeat(2,1fr); width:max-content; margin-left:auto; gap:8px; margin-top:18px; }
+.dc-confirm-actions > button { min-width:72px; }
 .design-configurator .dc-confirm-actions button { border:1px solid #b9c1ad; padding:8px 12px; min-height:36px; font-size:12px; }
 .design-configurator .dc-confirm-actions .dc-confirm-apply { background:#29331f; border-color:#29331f; color:#fff; }
 .dc-ink .dc-layer-ink-controls { gap:7px; }
@@ -210,4 +218,5 @@
 .dc-label-shadow { filter:drop-shadow(0 5px 8px #0004); pointer-events:none; }
 .dc-typography-value > input[type=range] { display:block; width:100%; height:20px; margin:3px 0 0; padding:0; accent-color:#657248; }
 .dc-properties .dc-field input[type=number] { padding:5px 8px; }
+.design-configurator .dc-load { padding-block:12px!important; }
 .design-configurator .dc-swap-colors { display:grid; place-items:center; flex-shrink:0; width:24px; height:22px; border:1px solid #b9c1ad; }

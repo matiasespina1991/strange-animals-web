@@ -35,6 +35,12 @@ assert.equal(hasCustomTextColors(globalPink), false, "A global color must not co
 const globalGreen = changeGlobalTextColor(globalPink, "#1A2925");
 assert.equal(hasCustomTextColors(globalGreen), false, "Repeated global palette changes must not require confirmation");
 const customArtist = changeLayerTextColors(globalGreen, "A", new Set(["artist"]), "#FF1493");
+const sidePink = changeGlobalTextColor(customArtist, "#FA8AA6", "A");
+assert.strictEqual(sidePink.B, customArtist.B, "Changing side A text must preserve side B");
+assert.equal(hasCustomTextColors(sidePink, "A"), false);
+assert.equal(hasCustomTextColors(customArtist, "B"), false, "Custom colors on A must not trigger a warning on B");
+const sideSwap = swapTextAndLabelColors(globalGreen, "A");
+assert.strictEqual(sideSwap.B, globalGreen.B, "Swapping on A must not recolor B text");
 assert.equal(hasCustomTextColors(customArtist), true);
 assert.equal(customArtist.A.find((layer) => layer.id === "artist").customTextColor, true);
 assert.equal(customArtist.B.find((layer) => layer.id === "artist").customTextColor, false);

@@ -5,6 +5,7 @@ import { TextColorConfirmation } from "./TextColorConfirmation";
 import { ArrowLeftRight } from "lucide-react";
 
 type Props = {
+  side: "A" | "B";
   colors: string[];
   hasCustomColors: boolean;
   onApply: (color: string) => void;
@@ -12,7 +13,7 @@ type Props = {
   onSwap?: () => void;
 };
 
-export function GlobalInkControl({ colors, hasCustomColors, onApply, labelColor, onSwap }: Props) {
+export function GlobalInkControl({ side, colors, hasCustomColors, onApply, labelColor, onSwap }: Props) {
   const current = colors[0] ?? "#20211e";
   const mixed = colors.some(
     (color) => color.toLowerCase() !== current.toLowerCase(),
@@ -38,7 +39,7 @@ export function GlobalInkControl({ colors, hasCustomColors, onApply, labelColor,
       <span>Text color</span>
       <label className="dc-custom-paper">
         <span className="sr-only">
-          Custom color for all text on sides A and B
+          Custom color for all text on side {side}
         </span>
         <input
           type="color"
@@ -55,6 +56,7 @@ export function GlobalInkControl({ colors, hasCustomColors, onApply, labelColor,
       >
         {pendingColor && (
           <TextColorConfirmation
+            side={side}
             onCancel={() => {
               setPendingColor(null);
               setDraft(current);

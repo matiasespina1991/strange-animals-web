@@ -39,7 +39,7 @@ import {
   RotateCcw,
   Save,
   Search,
-  Settings2,
+  Settings,
   SlidersHorizontal,
   Star,
   Trash2,
@@ -66,6 +66,7 @@ import { getFontCategoryDisplayName } from "./font-categories";
 import { pickerCatalog, pickerCategories, pickerCategory, pickerCategoryLabel, standardCategoriesFor, type FontPickerScope } from "./font-picker-catalog";
 import { familyIsExpanded, familyClickAction, toggleFamily } from "./font-picker-state";
 import { GlobalInkControl } from "./GlobalInkControl";
+import { ConfirmationDialog } from "./TextColorConfirmation";
 import { hasCustomTextColors, changeLayerTextColors, changeGlobalTextColor, swapTextAndLabelColors } from "./text-color-model";
 import {
   clamp,
@@ -286,6 +287,7 @@ export function DesignConfiguratorEditor() {
     }
   };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
+  const [resetTarget, setResetTarget] = useState<{ side: LabelSide; layer: LabelLayer } | null>(null);
   const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [side, setSide] = useState<LabelSide>("A"),
@@ -945,13 +947,15 @@ export function DesignConfiguratorEditor() {
           </label>
         </div>
         <GlobalInkControl
+          key={side}
+          side={side}
           labelColor={design.paper}
-          onSwap={() => { end(); change(swapTextAndLabelColors); }}
-          hasCustomColors={hasCustomTextColors(design)}
-          colors={[...design.A, ...design.B].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
+          onSwap={() => { end(); change((current) => swapTextAndLabelColors(current, side)); }}
+          hasCustomColors={hasCustomTextColors(design, side)}
+          colors={design[side].filter((layer) => layer.kind !== "image").map((layer) => layer.color)}
           onApply={(color) => {
             end();
-            change((current) => changeGlobalTextColor(current, color));
+            change((current) => changeGlobalTextColor(current, color, side));
           }}
         />
         <div className="dc-preview-stock">
@@ -1013,7 +1017,7 @@ export function DesignConfiguratorEditor() {
             Save
           </button>
           <button className="dc-save" onClick={() => setDialog("settings")}>
-            <Settings2 size={15} />
+            <Settings size={15} />
             <span>Project settings</span>
           </button>
           <button className="dc-export" onClick={() => setDialog("export")}>
@@ -1130,7 +1134,7 @@ export function DesignConfiguratorEditor() {
             ))}
           </div>
           <button className="dc-load" onClick={() => setDialog("settings")}>
-            <FileText size={15} />
+            <Settings size={15} />
             Project settings
             <ArrowUpRight size={13} />
           </button>
@@ -1198,11 +1202,11 @@ export function DesignConfiguratorEditor() {
                 onPointerUp={endDrag}
               />
             </div>
+          </div>
+          <div className="dc-canvas-footer">
             <span className="dc-measure dc-measure-bottom">
               <span>SIDE {side}</span>Ø {design.holeMm} mm center hole
             </span>
-          </div>
-          <div className="dc-canvas-footer">
             <div className="dc-zoom">
               <button
                 aria-label="Zoom out"
@@ -1233,7 +1237,31 @@ export function DesignConfiguratorEditor() {
         <aside
           className={`dc-properties ${mobileTab === "properties" ? "dc-mobile-visible" : ""}`}
         >
-          {panelTitle("Properties")}
+          <div className="dc-panel-title dc-properties-heading">
+            <h2>Properties</h2>
+            {hasSelection && <button className="dc-reset" onClick={() => setResetTarget({ side, layer: element })}>
+              <RotateCcw size={13} />Reset this element
+            </button>}
+          </div>
+          {resetTarget && <ConfirmationDialog title="Reset this element?"
+            description={`Are you sure you want to reset “${resetTarget.layer.name}”? You can undo this change.`}
+            onCancel={() => setResetTarget(null)}
+            onConfirm={() => {
+              const { side: targetSide, layer } = resetTarget;
+              const defaults = initialDesign[targetSide].find((item) => item.id === layer.id)
+                ?? makeLayer(layer.kind, layer.id);
+              end();
+              patchLayer(targetSide, layer.id, {
+                ...defaults,
+                fontId: defaults.fontId,
+                variantId: defaults.variantId,
+                inkBleed: defaults.inkBleed ?? 0,
+                image: layer.kind === "image" ? layer.image : undefined,
+                imageRatio: layer.kind === "image" ? layer.imageRatio : undefined,
+              });
+              end();
+              setResetTarget(null);
+            }} />}
           {!hasSelection ? <p className="dc-font-explanation">Select a layer to edit its properties.</p> : <>
           <div className="dc-selected-heading">
             <div>
@@ -1364,7 +1392,7 @@ export function DesignConfiguratorEditor() {
               </section>
             </>
           )}
-          <section className="dc-property-section">
+          <section className="dc-property-section dc-position-section">
             <div className="dc-section-caption">
               {element.kind === "circular"
                 ? "Circular path"
@@ -1407,25 +1435,6 @@ export function DesignConfiguratorEditor() {
               </>
             )}
           </section>
-          <button
-            className="dc-reset"
-            onClick={() => {
-              const defaults =
-                initialDesign[side].find((l) => l.id === element.id) ??
-                makeLayer(element.kind, element.id);
-              update({
-                ...defaults,
-                fontId: defaults.fontId,
-                variantId: defaults.variantId,
-                image: element.kind === "image" ? element.image : undefined,
-                imageRatio:
-                  element.kind === "image" ? element.imageRatio : undefined,
-              });
-            }}
-          >
-            <RotateCcw size={13} />
-            Reset this element
-          </button>
           </>}
         </aside>
       </div>
