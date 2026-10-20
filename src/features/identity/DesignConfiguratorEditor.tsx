@@ -1265,7 +1265,8 @@ export function DesignConfiguratorEditor() {
                 {selectedTextLayers.length > 0 && (
                   <div className="dc-ink dc-ink-priority">
                     <span>Ink color{selectedTextLayers.length > 1 ? ` · ${selectedTextLayers.length} text layers` : ""}</span>
-                    <label>
+                    <div className="dc-preview-stock dc-layer-ink-controls">
+                    <label className="dc-custom-paper">
                       <input aria-label="Selected text ink color" type="color"
                         value={selectedTextLayers[0].color}
                         onChange={(event) => {
@@ -1273,8 +1274,15 @@ export function DesignConfiguratorEditor() {
                           const ids = new Set(selectedTextLayers.map((layer) => layer.id));
                           change((current) => changeLayerTextColors(current, side, ids, color), `ink-${[...ids].join("-")}`);
                         }} onBlur={end} />
-                      <span>{selectedTextLayers.some((layer) => layer.color !== selectedTextLayers[0].color) ? "Mixed" : selectedTextLayers[0].color.toUpperCase()}</span>
                     </label>
+                    <ColorSwatches colors={DESIGN_COLOR_PRESETS} label="Ink color"
+                      value={selectedTextLayers.some((layer) => layer.color !== selectedTextLayers[0].color) ? undefined : selectedTextLayers[0].color}
+                      onChoose={(color) => {
+                        end();
+                        const ids = new Set(selectedTextLayers.map((layer) => layer.id));
+                        change((current) => changeLayerTextColors(current, side, ids, color));
+                      }} />
+                    </div>
                   </div>
                 )}
                 <label className="dc-field">

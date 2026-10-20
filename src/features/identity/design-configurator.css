@@ -152,14 +152,6 @@
 .dc-sleeve-zoom { display:flex; align-items:center; gap:7px; font-size:10px; letter-spacing:0; }
 .dc-sleeve-zoom input { width:85px; height:22px; margin:0; accent-color:#657248; }
 .dc-sleeve-zoom output { min-width:30px; font-variant-numeric:tabular-nums; }
-.design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:16px; }
-.design-configurator .dc-properties { padding-right:10.5px; }
-@media(min-width:1600px) { .design-configurator .dc-properties { padding-right:14px; } }
-@media(min-width:801px) and (max-width:1100px) { .design-configurator .dc-properties { padding-right:8px; } }
-@media(max-width:800px) {
-  .design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:9px; }
-  .design-configurator .dc-properties { padding-right:12px; }
-}
 .dc-category-chips { display:flex; flex-shrink:0; gap:6px; overflow-x:auto; overflow-y:hidden; max-width:100%; min-width:0; padding:10px 2px; overscroll-behavior-x:contain; scrollbar-width:thin; }
 .design-configurator .dc-category-chips button { flex-shrink:0; white-space:nowrap; padding:6px 9px; border:1px solid #b9c1ad; border-radius:3px; font-size:11px; }
 .design-configurator .dc-category-chips button[aria-pressed=true] { background:#29331f; color:#ffffff; border-color:#29331f; }
@@ -172,3 +164,13 @@
 .dc-confirm-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
 .design-configurator .dc-confirm-actions button { border:1px solid #b9c1ad; padding:8px 12px; min-height:36px; font-size:12px; }
 .design-configurator .dc-confirm-actions .dc-confirm-apply { background:#29331f; border-color:#29331f; color:#fff; }
+.dc-ink .dc-layer-ink-controls { gap:7px; }
+.dc-ink .dc-color-popover { left:auto; right:0; }
+.design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:20px; }
+.design-configurator .dc-properties { padding-right:14.5px; }
+@media(min-width:1600px) { .design-configurator .dc-properties { padding-right:18px; } }
+@media(min-width:801px) and (max-width:1100px) { .design-configurator .dc-properties { padding-right:12px; } }
+@media(max-width:800px) {
+  .design-configurator .dc-header, .design-configurator .dc-project-bar { padding-right:13px; }
+  .design-configurator .dc-properties { padding-right:16px; }
+}
