@@ -36,7 +36,7 @@ export function SleeveToolbar({ children }: { children: ReactNode }) {
     }
   }}>
     <button className="dc-sleeve-overflow-trigger" ref={trigger} aria-label="Sleeve options" title="Sleeve options"
-      aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}><ChevronsRight size={18} /></button>
+      aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}><ChevronsRight size={14} /></button>
     <div className="dc-sleeve-overflow-panel" ref={panel} id={id} role="group" aria-label="Sleeve options">{children}</div>
   </div>;
 }

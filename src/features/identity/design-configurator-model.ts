@@ -7,6 +7,7 @@ export type LabelLayer = {
   size: number;
   spacing: number;
   lineHeight: number;
+  inkBleed?: number;
   radius: number;
   angle: number;
   x: number;
@@ -270,9 +271,10 @@ export function parseDesign(input: unknown): LabelDesign {
           typeof item.name === "string" ? item.name.slice(0, 80) : base.name,
         text: typeof item.text === "string" ? item.text.slice(0, 3000) : "",
         visible: item.visible !== false,
-        size: numeric(item.size, base.size, 3, 125),
+        size: numeric(item.size, base.size, 3, 500),
         spacing: numeric(item.spacing, 0, -10, 30),
-        lineHeight: numeric(item.lineHeight, 1.1, 0.5, 3),
+        lineHeight: numeric(item.lineHeight, 1.1, 0, 3),
+        inkBleed: numeric(item.inkBleed, 0, 0, 4),
         radius: numeric(item.radius, 254, 30, 295),
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),

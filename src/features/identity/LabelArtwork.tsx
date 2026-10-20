@@ -1,5 +1,6 @@
 import type { PointerEventHandler } from "react";
 import { TextSelectionGuide } from "./TextSelectionGuide";
+import { InkBleedFilter } from "./InkBleedFilter";
 import {
   circularPath,
   type LabelDesign,
@@ -50,6 +51,9 @@ export function LabelArtwork({
       aria-label={`${design.title}, side ${side}`}
     >
       <defs>
+        {design[side].map((layer, index) => layer.kind !== "image" && !!layer.inkBleed && (
+          <InkBleedFilter key={layer.id} id={`${prefix}-ink-bleed-${index}`} amount={layer.inkBleed} />
+        ))}
         <mask
           id={`${prefix}-hole`}
           x={-extra}
@@ -167,6 +171,7 @@ export function LabelArtwork({
                 )
               ) : (
                 <text
+                  filter={layer.inkBleed ? `url(#${prefix}-ink-bleed-${index})` : undefined}
                   fill={layer.color}
                   fontSize={layer.size}
                   letterSpacing={layer.spacing}

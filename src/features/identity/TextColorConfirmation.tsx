@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 
-export function TextColorConfirmation({ color, onConfirm, onCancel }: {
-  color: string; onConfirm: () => void; onCancel: () => void;
+export function TextColorConfirmation({ onConfirm, onCancel }: {
+  onConfirm: () => void; onCancel: () => void;
 }) {
   const root = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -22,10 +22,9 @@ export function TextColorConfirmation({ color, onConfirm, onCancel }: {
     onKeyDown={(event) => event.stopPropagation()}>
     <h2 id={`${id}-title`}>Replace custom text colors?</h2>
     <p id={`${id}-description`}>Some text layers have individually assigned colors. Applying this color will replace them on both sides A and B.</p>
-    <div className="dc-confirm-color"><span style={{ backgroundColor: color }} aria-hidden="true" />{color.toUpperCase()}</div>
     <div className="dc-confirm-actions">
       <button ref={cancel} onClick={onCancel}>Cancel</button>
-      <button className="dc-confirm-apply" onClick={onConfirm}>Apply to all text</button>
+      <button className="dc-confirm-apply" onClick={onConfirm}>Ok</button>
     </div>
   </dialog>;
 }

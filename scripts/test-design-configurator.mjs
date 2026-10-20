@@ -65,13 +65,25 @@ const jsxModule = (source) => ts.transpileModule(source, { compilerOptions: { mo
   .replaceAll('"react/jsx-runtime"', JSON.stringify(import.meta.resolve("react/jsx-runtime")));
 const asModule = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
 const guideModule = asModule(jsxModule(await readFile(new URL("../src/features/identity/TextSelectionGuide.tsx", import.meta.url), "utf8")));
+const inkModule = asModule(jsxModule(await readFile(new URL("../src/features/identity/InkBleedFilter.tsx", import.meta.url), "utf8")));
 const artworkCode = jsxModule(await readFile(new URL("../src/features/identity/LabelArtwork.tsx", import.meta.url), "utf8"))
   .replace('"./design-configurator-model"', JSON.stringify(asModule(compiled)))
-  .replace('"./TextSelectionGuide"', JSON.stringify(guideModule));
+  .replace('"./TextSelectionGuide"', JSON.stringify(guideModule))
+  .replace('"./InkBleedFilter"', JSON.stringify(inkModule));
 const { LabelArtwork } = await import(asModule(artworkCode));
 const { renderToStaticMarkup } = await import("react-dom/server");
 const artworkProps = { design: lineHeightDesign, side: "A", prefix: "test", fontFamily: () => "Arial" };
 const exportedSvg = renderToStaticMarkup(LabelArtwork(artworkProps));
+assert.equal(parseDesign(original).A[0].inkBleed, 0);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, inkBleed: 99 })) }).A[0].inkBleed, 4);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, lineHeight: 0 })) }).A[0].lineHeight, 0);
+const inkDesign = { ...lineHeightDesign, A: lineHeightDesign.A.map((layer, index) => index === 0 ? { ...layer, inkBleed: 0.75 } : layer) };
+assert.equal(parseDesign(JSON.parse(JSON.stringify(inkDesign))).A[0].inkBleed, 0.75);
+assert.equal(parseDesign(inkDesign).A[1].inkBleed, 0);
+const inkSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, design: inkDesign }));
+assert.ok(inkSvg.includes('stdDeviation="0.75"'));
+assert.equal((inkSvg.match(/filter="url\(#test-ink-bleed-/g) ?? []).length, 1, "Ink bleed must affect only its own layer");
+assert.ok(!exportedSvg.includes('test-ink-bleed'), "Disabled ink bleed must not render a filter");
 assert.ok(exportedSvg.includes('dy="1.75em"'), "Exported SVG must use the selected line height");
 assert.ok(!exportedSvg.includes("dc-label-shadow"), "Preview shadows must not export");
 assert.ok(!/<circle[^>]+fill="#ffffff"/.test(exportedSvg), "Print hole must remain transparent");

@@ -55,7 +55,6 @@ export function GlobalInkControl({ colors, hasCustomColors, onApply, labelColor,
       >
         {pendingColor && (
           <TextColorConfirmation
-            color={pendingColor.color}
             onCancel={() => {
               setPendingColor(null);
               setDraft(current);

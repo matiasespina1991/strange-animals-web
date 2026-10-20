@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { RetroScrollbar } from "@/components/RetroScrollbar";
+import { InkBleedFilter } from "./InkBleedFilter";
 import { TypewriterText } from "@/components/TypewriterText";
 import { smoothWindowScrollTo } from "@/lib/smooth-scroll";
 import {
@@ -2198,6 +2199,7 @@ export function IdentityFontsPage() {
   const [fontWeight, setFontWeight] = useState<FontWeight>("normal");
   const [lineHeight, setLineHeight] = useState(DEFAULT_LINE_HEIGHT);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
+  const [inkBleed, setInkBleed] = useState(0);
   const [textAlignment, setTextAlignment] = useState<TextAlignment>("left");
   const [textCasing, setTextCasing] = useState<TextCasing>("mixed");
   const [textShadow, setTextShadow] =
@@ -3747,6 +3749,7 @@ export function IdentityFontsPage() {
                   setTextCasing("mixed");
                   setFontWeight("normal");
                   setTextShadow(DEFAULT_TEXT_SHADOW);
+                  setInkBleed(0);
                 }}
               >
                 Reset
@@ -3835,6 +3838,12 @@ export function IdentityFontsPage() {
             </div>
 
             <FontWeightControl value={fontWeight} onChange={setFontWeight} />
+
+            <label className="mb-6 block text-[0.625rem] tracking-[0.08em] text-white/65">
+              <span className="mb-2 flex justify-between"><span>Ink bleed</span><span>{inkBleed === 0 ? "Off" : `${inkBleed.toFixed(2)} px`}</span></span>
+              <input type="range" aria-label="Ink bleed" className="w-full cursor-pointer" min={0} max={2} step={0.05}
+                value={inkBleed} onChange={(event) => setInkBleed(Number(event.target.value))} />
+            </label>
 
             <div className="mb-6">
               <div className="flex items-center justify-between gap-4">
@@ -4046,12 +4055,17 @@ export function IdentityFontsPage() {
   return (
     <main
       data-native-cursor-surface
+      data-ink-bleed={inkBleed > 0 ? "true" : undefined}
       className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-clip bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
       style={{
         fontFamily: "'Berlin Type Office', Futura, sans-serif",
         fontWeight: 700,
       }}
     >
+      <svg width="0" height="0" aria-hidden="true" className="absolute pointer-events-none">
+        <defs><InkBleedFilter id="collection-ink-bleed" amount={inkBleed} /></defs>
+      </svg>
+      {inkBleed > 0 && <style>{`.identity-fonts-page[data-ink-bleed=true] .identity-font-committed-preview { filter:url(#collection-ink-bleed); }`}</style>}
       <ActiveCategoryRail
         categories={categoryRailItems}
         label={activeCategoryLabel}

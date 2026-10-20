@@ -107,30 +107,32 @@ function Modal({
   children,
   close,
   wide = false,
+  allowBackgroundScroll = false,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   wide?: boolean;
+  allowBackgroundScroll?: boolean;
 }) {
   const reference = useRef<HTMLElement>(null),
     titleId = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null,
       overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (!allowBackgroundScroll) document.body.style.overflow = "hidden";
     const root = reference.current;
     (
       root?.querySelector<HTMLElement>('input[type="search"]') ??
       root?.querySelector<HTMLElement>("button,input,select")
-    )?.focus();
+    )?.focus({ preventScroll: true });
     const trap = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         close();
         return;
       }
-      if (e.key !== "Tab") return;
+      if (e.key !== "Tab" || allowBackgroundScroll) return;
       const nodes = Array.from(
         root?.querySelectorAll<HTMLElement>(
           "button:not(:disabled),input:not(:disabled),select:not(:disabled),a[href],textarea",
@@ -146,18 +148,18 @@ function Modal({
     };
     document.addEventListener("keydown", trap);
     return () => {
-      document.body.style.overflow = overflow;
+      if (!allowBackgroundScroll) document.body.style.overflow = overflow;
       document.removeEventListener("keydown", trap);
-      previous?.focus();
+      previous?.focus({ preventScroll: true });
     };
   }, []);
   return (
-    <div className={`dc-picker-overlay${wide ? " dc-template-overlay" : ""}`} onClick={close}>
+    <div className={`dc-picker-overlay${wide ? " dc-template-overlay" : ""}${allowBackgroundScroll ? " dc-picker-nonmodal" : ""}`} onClick={close}>
       <section
         className={`dc-font-picker${wide ? " dc-template-dialog" : ""}`}
         ref={reference}
         role="dialog"
-        aria-modal="true"
+        aria-modal={allowBackgroundScroll ? undefined : true}
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1327,24 +1329,18 @@ export function DesignConfiguratorEditor() {
                     {fontErrors[fontKey(element)]}
                   </p>
                 )}
-                {element.fontId && (
-                  <button
-                    className="dc-reset"
-                    onClick={() =>
-                      update({ fontId: undefined, variantId: undefined })
-                    }
-                  >
-                    Use {defaultFontName}
-                  </button>
-                )}
                 <div className="dc-field-pair">
-                  <TypographyValueControl label="Size" unit="PX" value={element.size} min={3} max={125} step={0.5}
+                  <TypographyValueControl label="Size" unit="PX" value={element.size} min={3} max={500} sliderMax={200} step={0.5}
                     onChange={(size) => update({ size }, `size-${element.id}`)} onCommit={end} />
                   <TypographyValueControl label="Tracking" unit="PX" value={element.spacing} min={-10} max={30} step={0.1}
                     onChange={(spacing) => update({ spacing }, `spacing-${element.id}`)} onCommit={end} />
                 </div>
-                {element.kind === "text" && <TypographyValueControl label="Line height" value={element.lineHeight ?? 1.1} min={0.5} max={3} step={0.05}
-                  onChange={(lineHeight) => update({ lineHeight }, `line-height-${element.id}`)} onCommit={end} />}
+                <div className="dc-field-pair">
+                  {element.kind === "text" ? <TypographyValueControl label="Line height" value={element.lineHeight ?? 1.1} min={0} max={3} step={0.05}
+                    onChange={(lineHeight) => update({ lineHeight }, `line-height-${element.id}`)} onCommit={end} /> : <div />}
+                  <TypographyValueControl label="Ink bleed" unit="PX" value={element.inkBleed ?? 0} min={0} max={4} step={0.05}
+                    onChange={(inkBleed) => update({ inkBleed }, `ink-bleed-${element.id}`)} onCommit={end} />
+                </div>
                 <div className="dc-alignment">
                   <span>Anchor</span>
                   <div>
@@ -1376,17 +1372,6 @@ export function DesignConfiguratorEditor() {
             </div>
             {element.kind === "circular" ? (
               <>
-                <div className="dc-segments">
-                  {(["top", "bottom"] as const).map((arc) => (
-                    <button
-                      key={arc}
-                      aria-pressed={element.arc === arc}
-                      onClick={() => update({ arc })}
-                    >
-                      {arc === "top" ? "Upper arc" : "Lower arc"}
-                    </button>
-                  ))}
-                </div>
                 {slider("Radius", "radius", 30, 295, "PX")}
                 {slider("Rotation", "angle", -180, 180, "°")}
                 <p className="dc-anchor-note">
@@ -1501,7 +1486,7 @@ export function DesignConfiguratorEditor() {
         }}
       />
       {dialog === "fonts" && (
-        <Modal title="Fonts" close={() => setDialog(null)}>
+        <Modal title="Fonts" allowBackgroundScroll close={() => setDialog(null)}>
           <label className="dc-font-search">
             <Search size={17} />
             <span className="sr-only">Search all fonts</span>
