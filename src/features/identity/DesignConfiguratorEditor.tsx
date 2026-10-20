@@ -1710,7 +1710,7 @@ export function DesignConfiguratorEditor() {
       {dialog === "new" && (
         <Modal title="New project" wide close={() => setDialog(null)}>
           <p className="dc-font-explanation">
-            Choose a template. Both sides are editable. You can undo this change.
+            Choose a template to start.
           </p>
           <LabelTemplatePicker onChoose={(next) => {
             end();
