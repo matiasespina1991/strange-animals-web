@@ -116,7 +116,11 @@
 .dc-multi-controls .dc-layer-actions { margin:0; padding:0; border-top:0; }
 .dc-multi-controls .dc-layer-actions button { padding:0!important; text-decoration:none; }
 .dc-picker-overlay.dc-template-overlay { justify-content:center; align-items:center; padding:20px; }
-.dc-font-picker.dc-template-dialog { width:1000px; height:auto; max-height:calc(100dvh - 40px); border:1px solid #cdd2c2; }
+.dc-font-picker.dc-template-dialog { width:920px; height:auto; max-height:calc(100dvh - 40px); padding-block:14px; border:1px solid #cdd2c2; }
+.dc-template-dialog .dc-picker-heading h2 { font-size:24px; margin:0; }
+.dc-template-dialog .dc-picker-heading button { padding:4px; align-self:center; }
+.dc-template-dialog .dc-font-explanation { margin:8px 0 12px; }
+.dc-template-dialog .dc-picker-footer { padding-top:12px; justify-content:flex-end; }
 .dc-template-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .design-configurator .dc-template-card { padding:14px; border:1px solid #cdd2c2; text-align:left; min-width:0; }
 .dc-template-preview { padding:10px; background:#eceee7; margin-bottom:12px; pointer-events:none; }
@@ -231,5 +235,9 @@
 .dc-typography-value > input[type=range] { display:block; width:100%; height:20px; margin:3px 0 0; padding:0; accent-color:#657248; }
 .dc-properties .dc-field input[type=number] { padding:5px 8px; }
 .dc-properties .dc-field > input:not([type]), .dc-properties .dc-field textarea { padding-block:5px; }
+.design-configurator input:not([type=color]):not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),
+.design-configurator textarea,
+.design-configurator select,
+.design-configurator .dc-font-search { background-color:#fff; }
 .design-configurator .dc-load { padding-block:12px!important; }
 .design-configurator .dc-swap-colors { display:grid; place-items:center; flex-shrink:0; width:24px; height:22px; border:1px solid #b9c1ad; }

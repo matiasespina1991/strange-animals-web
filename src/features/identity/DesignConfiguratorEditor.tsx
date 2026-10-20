@@ -93,15 +93,23 @@ import {
 } from "./design-configurator-export";
 import "./design-configurator.css";
 
+const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
+
 function seed() {
   try {
     const value = localStorage.getItem(RECOVERY_KEY);
     if (value)
-      return { design: parseDesign(JSON.parse(value)), recovered: true };
+      return { design: parseDesign(JSON.parse(value)), recovered: true, showTemplateWelcome: false };
   } catch {
     /* Invalid recovery must not block the editor. */
   }
-  return { design: initialDesign, recovered: false };
+  let showTemplateWelcome = true;
+  try {
+    showTemplateWelcome = !localStorage.getItem(TEMPLATE_WELCOME_KEY) && !localStorage.getItem(DRAFT_KEY);
+  } catch {
+    // The welcome can still open when browser storage is unavailable.
+  }
+  return { design: initialDesign, recovered: false, showTemplateWelcome };
 }
 function Modal({
   title,
@@ -297,7 +305,15 @@ export function DesignConfiguratorEditor() {
     [mobileTab, setMobileTab] = useState("properties");
   const [dialog, setDialog] = useState<
     "fonts" | "file" | "settings" | "export" | "new" | null
-  >(null);
+  >(initial.showTemplateWelcome ? "new" : null);
+  useEffect(() => {
+    if (!initial.showTemplateWelcome) return;
+    try {
+      localStorage.setItem(TEMPLATE_WELCOME_KEY, "1");
+    } catch {
+      // Storage failure must not prevent editing or template selection.
+    }
+  }, [initial.showTemplateWelcome]);
   const [hoverFamily, setHoverFamily] = useState<string | null>(null);
   const hoverRequest = useRef(0);
   useEffect(() => {
@@ -1705,7 +1721,6 @@ export function DesignConfiguratorEditor() {
             setDialog(null);
           }} />
           <div className="dc-picker-footer">
-            <button onClick={exportProject}>Download current project (JSON)</button>
             <button onClick={() => setDialog(null)}>Cancel</button>
           </div>
         </Modal>
