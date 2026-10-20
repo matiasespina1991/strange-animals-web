@@ -1048,7 +1048,6 @@ export function DesignConfiguratorEditor() {
                 }}
               >
                 Side {s}
-                <span>{design[s].length} elements</span>
               </button>
             ))}
           </div>

@@ -128,6 +128,7 @@
 .dc-artboard .dc-measure, .dc-artboard .dc-measure span { color:inherit; }
 .dc-artboard .dc-measure-top::before, .dc-artboard .dc-measure-top::after { background:currentColor; opacity:.5; }
 .dc-layers .dc-side-switch { margin-bottom:0; }
+.dc-layers .dc-side-switch button { padding-block:11px; }
 .dc-layers .dc-add-controls { display:grid; grid-template-columns:.75fr 1fr 1.85fr; width:100%; margin:12px 0; }
 .dc-layers .dc-add-controls + .dc-multi-controls { margin-top:0; }
 .dc-layers .dc-add-controls button { justify-content:center; min-width:0; white-space:nowrap; padding:8px 5px; }
