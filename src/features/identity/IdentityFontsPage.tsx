@@ -75,8 +75,12 @@ import {
 } from "./identity-font-preferences";
 
 import {
-  FONT_PARENT_CATEGORIES, UNCATEGORIZED_LABEL, getFontCategoryDisplayName,
-  compareCategoryNames, compareFontFilterCategoryLabels, compareFontSectionCategoryLabels,
+  FONT_PARENT_CATEGORIES,
+  UNCATEGORIZED_LABEL,
+  getFontCategoryDisplayName,
+  compareCategoryNames,
+  compareFontFilterCategoryLabels,
+  compareFontSectionCategoryLabels,
 } from "./font-categories";
 import { getFontPreviewText } from "./font-preview-text";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
@@ -110,7 +114,6 @@ function getSupportedPreviewText(
     })
     .join("");
 }
-
 
 function SupportedPreviewText({
   fallbackValue,
@@ -1170,14 +1173,26 @@ function FontSpecimen({
   const variantElements = useRef(new Map<string, HTMLDivElement>());
   const releaseLoadReservation = useRef<(() => void) | undefined>();
   const getLoadPriority = useCallback((variantId?: string) => {
-    const element = (variantId ? variantElements.current.get(variantId) : undefined) ?? cardReference.current;
-    return element ? fontVisualPriority(element.getBoundingClientRect(), window.innerHeight, window.innerWidth) : Infinity;
+    const element =
+      (variantId ? variantElements.current.get(variantId) : undefined) ??
+      cardReference.current;
+    return element
+      ? fontVisualPriority(
+          element.getBoundingClientRect(),
+          window.innerHeight,
+          window.innerWidth,
+        )
+      : Infinity;
   }, []);
   const [variants, setVariants] = useState<FontVariant[]>([]);
   const [variantsLoaded, setVariantsLoaded] = useState(false);
   const [variantsError, setVariantsError] = useState(false);
-  const [variantProgress, setVariantProgress] = useState<Record<string, FontDownloadProgress>>({});
-  const [failedVariantIds, setFailedVariantIds] = useState<Set<string>>(new Set());
+  const [variantProgress, setVariantProgress] = useState<
+    Record<string, FontDownloadProgress>
+  >({});
+  const [failedVariantIds, setFailedVariantIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [loadedVariants, setLoadedVariants] = useState<
     Record<string, LoadedFontVariant>
@@ -1312,7 +1327,11 @@ function FontSpecimen({
           setVariantsError(true);
           releaseLoadReservation.current?.();
           releaseLoadReservation.current = undefined;
-          console.error("[Typography] Could not load font variants", { fontId: font.id }, error);
+          console.error(
+            "[Typography] Could not load font variants",
+            { fontId: font.id },
+            error,
+          );
         });
     };
 
@@ -1370,7 +1389,7 @@ function FontSpecimen({
 
     let active = true;
     const controller = new AbortController();
-    setFailedVariantIds(current => {
+    setFailedVariantIds((current) => {
       const next = new Set(current);
       for (const variant of visibleVariants) next.delete(variant.id);
       return next.size === current.size ? current : next;
@@ -1378,10 +1397,19 @@ function FontSpecimen({
 
     void Promise.all(
       visibleVariants.map(async (variant) =>
-        loadFontVariant(font, variant, controller.signal, progress => {
-          if (!active) return;
-          setVariantProgress(current => ({ ...current, [variant.id]: progress }));
-        }, () => getLoadPriority(variant.id))
+        loadFontVariant(
+          font,
+          variant,
+          controller.signal,
+          (progress) => {
+            if (!active) return;
+            setVariantProgress((current) => ({
+              ...current,
+              [variant.id]: progress,
+            }));
+          },
+          () => getLoadPriority(variant.id),
+        )
           .then((loadedVariant) => {
             if (!active) return;
             setLoadedVariants((current) => ({
@@ -1391,8 +1419,12 @@ function FontSpecimen({
           })
           .catch((error) => {
             if (!active || controller.signal.aborted) return;
-            setFailedVariantIds(current => new Set(current).add(variant.id));
-            console.error("[Typography] Could not load font preview", { fontId: font.id, variantId: variant.id }, error);
+            setFailedVariantIds((current) => new Set(current).add(variant.id));
+            console.error(
+              "[Typography] Could not load font preview",
+              { fontId: font.id, variantId: variant.id },
+              error,
+            );
           }),
       ),
     );
@@ -1747,7 +1779,8 @@ function FontSpecimen({
         {previewVariants.map((variant) => {
           const loadedVariant = loadedVariants[variant.id];
           const familyName = loadedVariant?.familyName;
-          const previewError = variantsError || failedVariantIds.has(variant.id);
+          const previewError =
+            variantsError || failedVariantIds.has(variant.id);
           const previewText = applyTextCasing(
             getFontPreviewText(font, specimen),
             textCasing,
@@ -1760,15 +1793,38 @@ function FontSpecimen({
           const isStoredVariant = "relativePath" in variant;
 
           return (
-            <div key={variant.id} className="relative" ref={element => {
-              if (element) variantElements.current.set(variant.id, element);
-              else variantElements.current.delete(variant.id);
-            }}>
-              {!familyName && (variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS) && (
-                <span role="status" aria-label={previewError ? `Could not load ${font.name}` : `Loading ${font.name}`} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                  {previewError ? <span className="text-xs text-white/65">Preview unavailable</span> : <FontLoadingProgress progress={variantProgress[variant.id]} name={font.name} color={fontColor} />}
-                </span>
-              )}
+            <div
+              key={variant.id}
+              className="relative"
+              ref={(element) => {
+                if (element) variantElements.current.set(variant.id, element);
+                else variantElements.current.delete(variant.id);
+              }}
+            >
+              {!familyName &&
+                (variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS) && (
+                  <span
+                    role="status"
+                    aria-label={
+                      previewError
+                        ? `Could not load ${font.name}`
+                        : `Loading ${font.name}`
+                    }
+                    className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+                  >
+                    {previewError ? (
+                      <span className="text-xs text-white/65">
+                        Preview unavailable
+                      </span>
+                    ) : (
+                      <FontLoadingProgress
+                        progress={variantProgress[variant.id]}
+                        name={font.name}
+                        color={fontColor}
+                      />
+                    )}
+                  </span>
+                )}
               {variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS ? (
                 backgroundImageUrl ? (
                   <div
@@ -1868,7 +1924,10 @@ function FontSpecimen({
                       onPointerUp={stopPreviewTextDrag}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
+                        fallbackValue={applyTextCasing(
+                          getFontPreviewText(font),
+                          textCasing,
+                        )}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1897,7 +1956,10 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
+                        fallbackValue={applyTextCasing(
+                          getFontPreviewText(font),
+                          textCasing,
+                        )}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1950,7 +2012,10 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
+                        fallbackValue={applyTextCasing(
+                          getFontPreviewText(font),
+                          textCasing,
+                        )}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1976,7 +2041,10 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
+                        fallbackValue={applyTextCasing(
+                          getFontPreviewText(font),
+                          textCasing,
+                        )}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -2471,7 +2539,9 @@ export function IdentityFontsPage() {
   }, []);
 
   useEffect(() => {
-    window.addEventListener("scroll", refreshFontLoadPriorities, { passive: true });
+    window.addEventListener("scroll", refreshFontLoadPriorities, {
+      passive: true,
+    });
     window.addEventListener("resize", refreshFontLoadPriorities);
     return () => {
       window.removeEventListener("scroll", refreshFontLoadPriorities);
@@ -2732,7 +2802,11 @@ export function IdentityFontsPage() {
 
   const fontSections = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
-    const matchesSearch = (font: FontCatalogItem) => !term || `${font.name} ${font.formats.join(" ")}`.toLocaleLowerCase().includes(term);
+    const matchesSearch = (font: FontCatalogItem) =>
+      !term ||
+      `${font.name} ${font.formats.join(" ")}`
+        .toLocaleLowerCase()
+        .includes(term);
     const favoriteFontIds = new Set(fontPreferences.favoriteFontIds);
     const pinnedFontIds = new Set(fontPreferences.pinnedFontIds);
     const fontsById = new Map(fonts.map((font) => [font.id, font]));
@@ -3352,7 +3426,7 @@ export function IdentityFontsPage() {
             ref={
               floating === toolbarFloating ? specimenInputReference : undefined
             }
-            className="identity-font-text-input block h-10 w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black py-[7px] pl-3 pr-10 text-xs leading-normal text-white outline-none placeholder:text-white/35 md:py-[0.7rem]"
+            className="identity-font-text-input overflow-y-clip block h-10 w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black py-[7px] pl-3 pr-10 text-xs leading-normal text-white outline-none placeholder:text-white/35 md:py-[0.7rem]"
             rows={1}
             value={specimen}
             onChange={(event) => {
@@ -3387,7 +3461,8 @@ export function IdentityFontsPage() {
         <span className="relative block">
           <input
             id={`font-search-${floating ? "floating" : "main"}`}
-            className="identity-font-text-input h-10 w-full rounded-none border border-white/35 bg-black pl-3 pr-10 text-xs text-white outline-none placeholder:text-white/35 [&::-webkit-search-cancel-button]:appearance-none"
+            className="identity-font-text-input 
+            overflow-y-clip h-10 w-full rounded-none border border-white/35 bg-black pl-3 pr-10 text-xs text-white outline-none placeholder:text-white/35 [&::-webkit-search-cancel-button]:appearance-none"
             type="search"
             value={search}
             onChange={(event) => {
