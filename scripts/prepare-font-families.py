@@ -60,7 +60,9 @@ def prepare(source, output):
                 for companion in package.rglob("*"):
                     if not companion.is_file() or companion.suffix.lower() in EXTENSIONS:
                         continue
-                    if companion.name == ".DS_Store" or companion.name.startswith("._"):
+                    if (companion.name == ".DS_Store"
+                            or companion.name.startswith("._")
+                            or any(ord(char) < 32 for char in companion.name)):
                         continue
                     destination = output / family / companion.relative_to(source)
                     destination.parent.mkdir(parents=True, exist_ok=True)

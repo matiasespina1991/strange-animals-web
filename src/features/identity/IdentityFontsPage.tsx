@@ -3757,7 +3757,7 @@ export function IdentityFontsPage() {
             </div>
 
             <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
-              <div className="min-w-0 [&>div:last-child]:mb-0">
+              <div className="min-w-0 md:order-2 [&>div:last-child]:mb-0">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                     Casing
@@ -3959,7 +3959,7 @@ export function IdentityFontsPage() {
                   ) : null}
                 </div>
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 md:order-1">
                 {isSmallViewport ? (
                   <div className="mt-4 grid grid-cols-2 gap-3 pt-4">
                     <div className="flex flex-col gap-2">

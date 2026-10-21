@@ -1,7 +1,7 @@
 export const FONT_PARENT_CATEGORIES = [
   "Abstract", "Semi-Abstract", "Cyber", "Dotted", "LCD Display", "Goth", "Grunge",
-  "Handwritten", "Outlined", "Paragraph / Standard", "Serif", "Rounded", "Squared / Tech",
-  "Condensed / Narrow", "Cursive", "Title / Bold", "3D", "Pixel", "Playful", "Ornamental",
+  "Handwritten", "Cursive", "Outlined", "Paragraph / Standard", "Serif", "Rounded", "Squared / Tech",
+  "Condensed / Narrow", "Title / Bold", "3D", "Pixel", "Playful", "Ornamental",
   "Vintage", "Wide", "Symbols & Others", "Non-Latin Script",
 ] as const;
 export const UNCATEGORIZED_LABEL = "Uncategorized";
