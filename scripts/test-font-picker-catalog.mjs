@@ -29,6 +29,7 @@ assert.equal(getFontCategoryDisplayName("LCD Display"), "LCD/LED Display");
 assert.equal(getFontCategoryDisplayName("Non-Latin Script"), "Non-Latin / 日本語");
 assert.deepEqual(pickerCategories([], "Goth"), ["Goth"], "An active empty filter must remain removable");
 assert.deepEqual([...FONT_PARENT_CATEGORIES].reverse().sort(compareFontSectionCategoryLabels), [...FONT_PARENT_CATEGORIES]);
+assert.equal(FONT_PARENT_CATEGORIES.indexOf("Cursive"), FONT_PARENT_CATEGORIES.indexOf("Handwritten") + 1);
 const withTitle = [...fonts, { id: "title", name: "Display", parentCategory: "Title / Bold" }];
 assert.deepEqual(standardCategoriesFor("circular"), ["Condensed / Narrow", "Paragraph / Standard"]);
 assert.deepEqual(standardCategoriesFor("text"), ["Paragraph / Standard", "Title / Bold", "Condensed / Narrow"]);

@@ -15,7 +15,8 @@ import {
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { firebaseDb, firebaseStorage } from "@/lib/firebase";
 
-const MAX_PREVIEW_SIZE_BYTES = 20 * 1024 * 1024;
+// Large Japanese/color fonts exceed 20 MiB even after a valid OTF reexport.
+const MAX_PREVIEW_SIZE_BYTES = 64 * 1024 * 1024;
 const DELETE_CONCURRENCY = 8;
 const FIRESTORE_BATCH_SIZE = 450;
 

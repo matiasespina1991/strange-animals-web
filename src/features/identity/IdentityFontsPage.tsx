@@ -2618,6 +2618,12 @@ export function IdentityFontsPage() {
 
     if (!specimenInput) return;
 
+    if (isSmallViewport) {
+      specimenInput.style.height = "40px";
+      specimenInput.style.overflowY = "auto";
+      return;
+    }
+
     specimenInput.style.height = "auto";
 
     const styles = window.getComputedStyle(specimenInput);
@@ -2635,7 +2641,7 @@ export function IdentityFontsPage() {
     specimenInput.style.height = `${nextHeight}px`;
     specimenInput.style.overflowY =
       specimenInput.scrollHeight > maximumHeight ? "auto" : "hidden";
-  }, [specimen]);
+  }, [specimen, isSmallViewport, toolbarFloating]);
 
   const categoriesInUse = useMemo(() => {
     const labels = new Set<string>();
@@ -3285,36 +3291,78 @@ export function IdentityFontsPage() {
         <Minus aria-hidden="true" className="size-4" />
       </button>
 
-      <label className="col-span-2 block md:col-span-1">
-        <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
+      <div className="col-span-2 block md:col-span-1">
+        <label
+          htmlFor={`font-demo-text-${floating ? "floating" : "main"}`}
+          className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
+        >
           Demo text
+        </label>
+        <span className="relative block">
+          <textarea
+            id={`font-demo-text-${floating ? "floating" : "main"}`}
+            ref={
+              floating === toolbarFloating ? specimenInputReference : undefined
+            }
+            className="identity-font-text-input block h-10 w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black py-[7px] pl-3 pr-10 text-xs leading-normal text-white outline-none placeholder:text-white/35 md:py-[0.7rem]"
+            rows={1}
+            value={specimen}
+            onChange={(event) => {
+              setSpecimen(event.target.value);
+            }}
+          />
+          {specimen !== "" && (
+            <button
+              aria-label="Clear demo text"
+              className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center text-white/65 hover:text-white"
+              type="button"
+              onClick={(event) => {
+                setSpecimen("");
+                event.currentTarget.parentElement
+                  ?.querySelector("textarea")
+                  ?.focus();
+              }}
+            >
+              <X aria-hidden="true" className="size-4" />
+            </button>
+          )}
         </span>
-        <textarea
-          ref={
-            floating === toolbarFloating ? specimenInputReference : undefined
-          }
-          className="identity-font-text-input block w-full resize-none overflow-y-auto rounded-none border border-white/35 bg-black px-3 py-[0.7rem] text-xs leading-normal text-white outline-none placeholder:text-white/35"
-          rows={1}
-          value={specimen}
-          onChange={(event) => {
-            setSpecimen(event.target.value);
-          }}
-        />
-      </label>
+      </div>
 
-      <label className="col-span-2 block md:col-span-1">
-        <span className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85">
+      <div className="col-span-2 block md:col-span-1">
+        <label
+          htmlFor={`font-search-${floating ? "floating" : "main"}`}
+          className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
+        >
           Search fonts
+        </label>
+        <span className="relative block">
+          <input
+            id={`font-search-${floating ? "floating" : "main"}`}
+            className="identity-font-text-input h-10 w-full rounded-none border border-white/35 bg-black pl-3 pr-10 text-xs text-white outline-none placeholder:text-white/35 [&::-webkit-search-cancel-button]:appearance-none"
+            type="search"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+            }}
+          />
+          {search !== "" && (
+            <button
+              aria-label="Clear search fonts"
+              className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center text-white/65 hover:text-white"
+              type="button"
+              onClick={(event) => {
+                setSearch("");
+                event.currentTarget.parentElement
+                  ?.querySelector("input")
+                  ?.focus();
+              }}
+            >
+              <X aria-hidden="true" className="size-4" />
+            </button>
+          )}
         </span>
-        <input
-          className="identity-font-text-input h-10 w-full rounded-none border border-white/35 bg-black px-3 text-xs text-white outline-none placeholder:text-white/35"
-          type="search"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-          }}
-        />
-      </label>
+      </div>
 
       <div className="col-span-1 flex min-w-0 flex-nowrap items-start justify-center gap-1.5 sm:gap-3">
         <div
