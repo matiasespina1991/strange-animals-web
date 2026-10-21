@@ -96,7 +96,8 @@ const roundedSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, design: 
 assert.ok(roundedSvg.includes('rx="12"'));
 assert.ok(roundedSvg.includes('clip-path="url(#test-image-corners-0)"'));
 assert.equal(parseDesign(original).A[0].inkBleed, 0);
-assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, inkBleed: 99 })) }).A[0].inkBleed, 4);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, inkBleed: 99 })) }).A[0].inkBleed, 8);
+assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, inkBleed: 6 })) }).A[0].inkBleed, 6);
 assert.equal(parseDesign({ ...original, A: original.A.map((layer) => ({ ...layer, lineHeight: 0 })) }).A[0].lineHeight, 0);
 const inkDesign = { ...lineHeightDesign, A: lineHeightDesign.A.map((layer, index) => index === 0 ? { ...layer, inkBleed: 0.75 } : layer) };
 assert.equal(parseDesign(JSON.parse(JSON.stringify(inkDesign))).A[0].inkBleed, 0.75);
@@ -104,6 +105,8 @@ assert.equal(parseDesign(inkDesign).A[1].inkBleed, 0);
 const inkSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, design: inkDesign }));
 assert.ok(inkSvg.includes('stdDeviation="0.75"'));
 assert.equal((inkSvg.match(/filter="url\(#test-ink-bleed-/g) ?? []).length, 1, "Ink bleed must affect only its own layer");
+assert.ok(inkSvg.includes('type="linear" slope="12" intercept="-2.5"'), "Ink bleed must have a subtly softened alpha transition");
+assert.ok(!inkSvg.includes('type="discrete"'), "Ink bleed must not clip the edge with a hard alpha threshold");
 assert.ok(!exportedSvg.includes('test-ink-bleed'), "Disabled ink bleed must not render a filter");
 assert.ok(exportedSvg.includes('dy="1.75em"'), "Exported SVG must use the selected line height");
 assert.ok(!exportedSvg.includes("dc-label-shadow"), "Preview shadows must not export");

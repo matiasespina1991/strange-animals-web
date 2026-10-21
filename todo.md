@@ -1,5 +1,12 @@
 # TODO
 
+## Pendientes — esperar elección del usuario antes de implementar
+
+- [ ] Probar MySpace Music Player Extended en una página con URL independiente, con uno de los releases existentes y la estética de la captura. Repositorio: https://github.com/DeadSuperHero/myspace-music-player-extended. Revisar licencia, compatibilidad e integración al comenzar. No reemplazar todavía el reproductor de Listen. Si la prueba no gusta, eliminar únicamente la página experimental y sus archivos exclusivos.
+- [x] Mostrar progreso real de descarga de fuentes mediante un círculo que se completa y porcentaje. Usar bytes descargados/total cuando el servidor informe el tamaño; mantener indicador indeterminado cuando no lo informe y mostrar “Preparing font…” durante la decodificación. Respetar filtros, cancelación y caché actuales.
+
+## Tareas existentes
+
 - [x] add swap button if two colors are set (Text color ↔ Label).
 - [x] Si no hay mas de 1 familia no hagas que se abra los subtiles!!!
 - [x] Si se abre los subtiles y el usuario clickea en el master tile de nuevo entonces que se elija la fuente que esta en el master tile y ya.

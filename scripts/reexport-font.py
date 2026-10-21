@@ -42,6 +42,26 @@ def reexport(source, output, uppercase=False, fill_empty=False):
     with TTFont(source) as font:
         if "fvar" in font or "CFF2" in font:
             raise ValueError("Variable/CFF2 fonts require separate inspection")
+        if "glyf" in font:
+            repaired = []
+            for name in font.getGlyphOrder():
+                glyph = font["glyf"][name]
+                if glyph.numberOfContours <= 0:
+                    continue
+                ends = []
+                previous = -1
+                for endpoint in glyph.endPtsOfContours:
+                    if endpoint < previous:
+                        raise ValueError(f"Invalid contour point order: {name}")
+                    if endpoint != previous:
+                        ends.append(endpoint)
+                    previous = endpoint
+                if len(ends) != glyph.numberOfContours:
+                    glyph.endPtsOfContours = ends
+                    glyph.numberOfContours = len(ends)
+                    repaired.append(name)
+            if repaired:
+                print(f"Removed zero-point contours (no visible geometry) in {len(repaired)} glyphs: {repaired}", flush=True)
         color_tables = {tag: font.getTableData(tag) for tag in ("SVG ", "COLR", "CPAL") if tag in font}
         if uppercase:
             cmap = font.getBestCmap()

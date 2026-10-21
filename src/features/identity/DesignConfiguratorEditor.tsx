@@ -1828,7 +1828,7 @@ export function DesignConfiguratorEditor() {
                         unit="PX"
                         value={element.inkBleed ?? 0}
                         min={0}
-                        max={4}
+                        max={8}
                         step={0.05}
                         onChange={(inkBleed) =>
                           update({ inkBleed }, `ink-bleed-${element.id}`)

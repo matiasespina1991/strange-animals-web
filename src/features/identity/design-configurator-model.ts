@@ -278,7 +278,7 @@ export function parseDesign(input: unknown): LabelDesign {
         size: numeric(item.size, base.size, 3, 500),
         spacing: numeric(item.spacing, 0, -10, 30),
         lineHeight: numeric(item.lineHeight, 1.1, 0, 3),
-        inkBleed: numeric(item.inkBleed, 0, 0, 4),
+        inkBleed: numeric(item.inkBleed, 0, 0, 8),
         radius: numeric(item.radius, 254, 30, 295),
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),

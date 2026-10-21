@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Check, ChevronDown, ChevronRight, Moon, Search, SlidersHorizontal, Star, Sun, X } from "lucide-react";
 import { listFontCatalog, listFontVariants, loadFontVariant, type FontCatalogItem } from "./font-catalog-repository";
 import "./typefaces-lab.css";
+import { getFontPreviewText } from "./font-preview-text";
 
 const proposals = [
   { name: "Editorial", detail: "Filtros compactos y jerarquía clara. El catálogo ocupa el centro de la experiencia.", benefit: "La evolución más cercana a la página actual." },
@@ -38,7 +39,7 @@ function LabSpecimen({ font, text, size }: { font: FontCatalogItem; text: string
   }, [font]);
   return <article ref={element} className="tl-specimen">
     <div className="tl-specimen-meta"><span title={font.name}>{font.name}</span><button aria-label={`${favorite ? "Unfavorite" : "Favorite"} ${font.name}`} aria-pressed={favorite} onClick={() => setFavorite(!favorite)}><Star size={15} fill={favorite ? "currentColor" : "none"} /></button></div>
-    <p className={`tl-sample ${!family ? "tl-sample-pending" : ""}`} style={{ fontFamily: family ?? "Futura, sans-serif", fontSize: size, fontWeight: 400, letterSpacing: `${font.previewLetterSpacingExtraEm ?? 0}em`, lineHeight: font.previewLineHeightExtraRem ? `calc(${size * (1.25 + (font.previewLineHeightExtra ?? 0))}px + ${font.previewLineHeightExtraRem}rem)` : 1.25 + (font.previewLineHeightExtra ?? 0) }}>{text || font.name}</p>
+    <p className={`tl-sample ${!family ? "tl-sample-pending" : ""}`} style={{ fontFamily: family ?? "Futura, sans-serif", fontSize: size, fontWeight: 400, letterSpacing: `${font.previewLetterSpacingExtraEm ?? 0}em`, lineHeight: font.previewLineHeightExtraRem ? `calc(${size * (1.25 + (font.previewLineHeightExtra ?? 0))}px + ${font.previewLineHeightExtraRem}rem)` : 1.25 + (font.previewLineHeightExtra ?? 0) }}>{getFontPreviewText(font, text)}</p>
     <div className="tl-specimen-footer"><span>{failed ? "Preview unavailable" : !family ? "Loading preview…" : `${font.variantCount} ${font.variantCount === 1 ? "variant" : "variants"}`}</span><span>{font.formats.join(" / ").toUpperCase()}</span></div>
   </article>;
 }

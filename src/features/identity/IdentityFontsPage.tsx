@@ -1,5 +1,6 @@
 import {
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -9,6 +10,9 @@ import {
 } from "react";
 import { RetroScrollbar } from "@/components/RetroScrollbar";
 import { InkBleedFilter } from "./InkBleedFilter";
+import { FontLoadingProgress } from "./FontLoadingProgress";
+import type { FontDownloadProgress } from "./font-download-progress";
+import { fontVisualPriority } from "./font-visual-priority";
 import { TypewriterText } from "@/components/TypewriterText";
 import { smoothWindowScrollTo } from "@/lib/smooth-scroll";
 import {
@@ -45,6 +49,8 @@ import {
   listFontCatalog,
   listFontVariants,
   loadFontVariant,
+  reserveFontLoad,
+  refreshFontLoadPriorities,
   updateFontEnabled,
   updateFontParentCategory,
   updateFontVariantPreviewEnabled,
@@ -72,6 +78,7 @@ import {
   FONT_PARENT_CATEGORIES, UNCATEGORIZED_LABEL, getFontCategoryDisplayName,
   compareCategoryNames, compareFontFilterCategoryLabels, compareFontSectionCategoryLabels,
 } from "./font-categories";
+import { getFontPreviewText } from "./font-preview-text";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 
 function getSupportedPreviewText(
@@ -104,25 +111,6 @@ function getSupportedPreviewText(
     .join("");
 }
 
-const NON_LATIN_SPECIMENS: Record<string, string> = {
-  delamarugothic: "あいうえお　カタカナ",
-  dokidokifantasia: "あいうえお　カタカナ",
-  enkadotmincho24: "あいうえお　カタカナ",
-  genei: "あいうえお　カタカナ",
-  gennukigothic: "あいうえお　カタカナ",
-  hanyishuiditifan: "中文字体　你好世界",
-  hanyixuefengtifan: "中文字体　你好世界",
-  hanyiyuandietifan: "中文字体　你好世界",
-  mojiwmochizuki: "한글 글꼴 미리보기",
-  rampartone: "あいうえお　カタカナ",
-  shimbashigothic: "あいうえお　カタカナ",
-  youshebiaotihei: "中文字体　你好世界",
-  zaramegothic: "あいうえお　カタカナ",
-};
-
-function getDefaultSpecimen(font: FontCatalogItem) {
-  return NON_LATIN_SPECIMENS[font.id] ?? font.name;
-}
 
 function SupportedPreviewText({
   fallbackValue,
@@ -1179,8 +1167,17 @@ function FontSpecimen({
   const letterSpacing =
     baseLetterSpacing + (font.previewLetterSpacingExtraEm ?? 0);
   const cardReference = useRef<HTMLElement>(null);
+  const variantElements = useRef(new Map<string, HTMLDivElement>());
+  const releaseLoadReservation = useRef<(() => void) | undefined>();
+  const getLoadPriority = useCallback((variantId?: string) => {
+    const element = (variantId ? variantElements.current.get(variantId) : undefined) ?? cardReference.current;
+    return element ? fontVisualPriority(element.getBoundingClientRect(), window.innerHeight, window.innerWidth) : Infinity;
+  }, []);
   const [variants, setVariants] = useState<FontVariant[]>([]);
   const [variantsLoaded, setVariantsLoaded] = useState(false);
+  const [variantsError, setVariantsError] = useState(false);
+  const [variantProgress, setVariantProgress] = useState<Record<string, FontDownloadProgress>>({});
+  const [failedVariantIds, setFailedVariantIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
   const [loadedVariants, setLoadedVariants] = useState<
     Record<string, LoadedFontVariant>
@@ -1294,7 +1291,9 @@ function FontSpecimen({
     const load = () => {
       if (started) return;
       started = true;
+      releaseLoadReservation.current = reserveFontLoad(() => getLoadPriority());
       setVariantsLoaded(false);
+      setVariantsError(false);
 
       listFontVariants(font)
         .then((nextVariants) => {
@@ -1303,14 +1302,26 @@ function FontSpecimen({
           setVariants(nextVariants);
           setCurrentPage(0);
           setVariantsLoaded(true);
+          if (!nextVariants.length) {
+            releaseLoadReservation.current?.();
+            releaseLoadReservation.current = undefined;
+          }
         })
-        .catch(() => undefined);
+        .catch((error) => {
+          if (!active) return;
+          setVariantsError(true);
+          releaseLoadReservation.current?.();
+          releaseLoadReservation.current = undefined;
+          console.error("[Typography] Could not load font variants", { fontId: font.id }, error);
+        });
     };
 
     if (!("IntersectionObserver" in window)) {
       load();
       return () => {
         active = false;
+        releaseLoadReservation.current?.();
+        releaseLoadReservation.current = undefined;
       };
     }
 
@@ -1329,8 +1340,10 @@ function FontSpecimen({
     return () => {
       active = false;
       observer.disconnect();
+      releaseLoadReservation.current?.();
+      releaseLoadReservation.current = undefined;
     };
-  }, [font]);
+  }, [font, getLoadPriority]);
 
   const variantTotal = variantsLoaded ? variants.length : font.variantCount;
   const pageTotal = Math.ceil(variantTotal / VARIANTS_PER_PAGE);
@@ -1356,10 +1369,19 @@ function FontSpecimen({
     if (visibleVariants.length === 0) return;
 
     let active = true;
+    const controller = new AbortController();
+    setFailedVariantIds(current => {
+      const next = new Set(current);
+      for (const variant of visibleVariants) next.delete(variant.id);
+      return next.size === current.size ? current : next;
+    });
 
     void Promise.all(
       visibleVariants.map(async (variant) =>
-        loadFontVariant(font, variant)
+        loadFontVariant(font, variant, controller.signal, progress => {
+          if (!active) return;
+          setVariantProgress(current => ({ ...current, [variant.id]: progress }));
+        }, () => getLoadPriority(variant.id))
           .then((loadedVariant) => {
             if (!active) return;
             setLoadedVariants((current) => ({
@@ -1367,14 +1389,23 @@ function FontSpecimen({
               [variant.id]: loadedVariant,
             }));
           })
-          .catch(() => undefined),
+          .catch((error) => {
+            if (!active || controller.signal.aborted) return;
+            setFailedVariantIds(current => new Set(current).add(variant.id));
+            console.error("[Typography] Could not load font preview", { fontId: font.id, variantId: variant.id }, error);
+          }),
       ),
     );
+    // Keep earlier families reserved until their actual variants are enqueued.
+    // A faster metadata response from a lower card must not jump the queue.
+    releaseLoadReservation.current?.();
+    releaseLoadReservation.current = undefined;
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [font, visibleVariants]);
+  }, [font, visibleVariants, getLoadPriority]);
 
   const downloadFamily = () => {
     setDownloading(true);
@@ -1716,8 +1747,9 @@ function FontSpecimen({
         {previewVariants.map((variant) => {
           const loadedVariant = loadedVariants[variant.id];
           const familyName = loadedVariant?.familyName;
+          const previewError = variantsError || failedVariantIds.has(variant.id);
           const previewText = applyTextCasing(
-            specimen || getDefaultSpecimen(font),
+            getFontPreviewText(font, specimen),
             textCasing,
           );
           const variantName = variant.fileName
@@ -1728,11 +1760,19 @@ function FontSpecimen({
           const isStoredVariant = "relativePath" in variant;
 
           return (
-            <div key={variant.id}>
+            <div key={variant.id} className="relative" ref={element => {
+              if (element) variantElements.current.set(variant.id, element);
+              else variantElements.current.delete(variant.id);
+            }}>
+              {!familyName && (variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS) && (
+                <span role="status" aria-label={previewError ? `Could not load ${font.name}` : `Loading ${font.name}`} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                  {previewError ? <span className="text-xs text-white/65">Preview unavailable</span> : <FontLoadingProgress progress={variantProgress[variant.id]} name={font.name} color={fontColor} />}
+                </span>
+              )}
               {variant.previewEnabled || SHOW_FONT_DELETE_CONTROLS ? (
                 backgroundImageUrl ? (
                   <div
-                    aria-busy={!familyName}
+                    aria-busy={!familyName && !previewError}
                     aria-label="Background image preview. Drag the demo text to position it."
                     className="relative mx-auto min-w-0 max-w-full overflow-hidden bg-black outline-none focus-visible:ring-1 focus-visible:ring-white/80"
                     role="group"
@@ -1828,7 +1868,7 @@ function FontSpecimen({
                       onPointerUp={stopPreviewTextDrag}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1857,7 +1897,7 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1865,7 +1905,7 @@ function FontSpecimen({
                   </div>
                 ) : (
                   <div
-                    aria-busy={!familyName}
+                    aria-busy={!familyName && !previewError}
                     className="relative min-w-0 overflow-hidden"
                     style={{ backgroundColor }}
                   >
@@ -1910,7 +1950,7 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -1936,7 +1976,7 @@ function FontSpecimen({
                       }}
                     >
                       <SupportedPreviewText
-                        fallbackValue={applyTextCasing(font.name, textCasing)}
+                        fallbackValue={applyTextCasing(getFontPreviewText(font), textCasing)}
                         supportedCodePoints={loadedVariant?.supportedCodePoints}
                         value={previewText}
                       />
@@ -2431,6 +2471,15 @@ export function IdentityFontsPage() {
   }, []);
 
   useEffect(() => {
+    window.addEventListener("scroll", refreshFontLoadPriorities, { passive: true });
+    window.addEventListener("resize", refreshFontLoadPriorities);
+    return () => {
+      window.removeEventListener("scroll", refreshFontLoadPriorities);
+      window.removeEventListener("resize", refreshFontLoadPriorities);
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
     loadIdentityFontPreferences()
@@ -2682,7 +2731,8 @@ export function IdentityFontsPage() {
     useCasesInUse.length > 0 && hiddenUseCaseLabels.size === 0;
 
   const fontSections = useMemo(() => {
-    const term = deferredSearch.trim().toLocaleLowerCase();
+    const term = search.trim().toLocaleLowerCase();
+    const matchesSearch = (font: FontCatalogItem) => !term || `${font.name} ${font.formats.join(" ")}`.toLocaleLowerCase().includes(term);
     const favoriteFontIds = new Set(fontPreferences.favoriteFontIds);
     const pinnedFontIds = new Set(fontPreferences.pinnedFontIds);
     const fontsById = new Map(fonts.map((font) => [font.id, font]));
@@ -2705,7 +2755,8 @@ export function IdentityFontsPage() {
           font !== undefined &&
           isEligible(font) &&
           isVisibleCategory(font) &&
-          isVisibleUseCase(font),
+          isVisibleUseCase(font) &&
+          matchesSearch(font),
       );
     const visibleFonts = fonts.filter(
       (font) =>
@@ -2713,10 +2764,7 @@ export function IdentityFontsPage() {
         isEligible(font) &&
         isVisibleCategory(font) &&
         isVisibleUseCase(font) &&
-        (!term ||
-          `${font.name} ${font.formats.join(" ")}`
-            .toLocaleLowerCase()
-            .includes(term)),
+        matchesSearch(font),
     );
     const categorizedFonts = new Map<string, FontCatalogItem[]>();
     const uncategorizedFonts: FontCatalogItem[] = [];
@@ -2763,7 +2811,7 @@ export function IdentityFontsPage() {
 
     return sections;
   }, [
-    deferredSearch,
+    search,
     fontPreferences,
     fonts,
     hiddenCategoryLabels,
@@ -4046,7 +4094,7 @@ export function IdentityFontsPage() {
                       </span>
                       <NumericStepper
                         ariaLabel="Ink bleed"
-                        max={4}
+                        max={8}
                         min={0}
                         precision={2}
                         step={0.05}
@@ -4118,7 +4166,7 @@ export function IdentityFontsPage() {
                         aria-label="Ink bleed"
                         className="identity-font-size-slider block w-full"
                         min={0}
-                        max={4}
+                        max={8}
                         step={0.05}
                         type="range"
                         value={inkBleed}

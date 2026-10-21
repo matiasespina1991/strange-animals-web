@@ -13,7 +13,9 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
-import { firebaseDb, firebaseStorage } from "@/lib/firebase";
+import { FontLoadQueue } from "./font-load-queue";
+import { readFontBytes, type FontDownloadProgress } from "./font-download-progress";
+import { firebaseAuth, firebaseDb, firebaseStorage } from "@/lib/firebase";
 
 // Large Japanese/color fonts exceed 20 MiB even after a valid OTF reexport.
 const MAX_PREVIEW_SIZE_BYTES = 64 * 1024 * 1024;
@@ -90,6 +92,7 @@ type FontPreviewDocument = {
 };
 
 type FontCatalogDocument = {
+  previewString?: unknown;
   displayName?: unknown;
   enabled?: unknown;
   fileCount?: unknown;
@@ -119,6 +122,7 @@ type FontFileDocument = {
 };
 
 export type FontCatalogItem = {
+  previewString?: string;
   enabled: boolean;
   id: string;
   name: string;
@@ -154,7 +158,9 @@ export type LoadedFontVariant = {
   supportedCodePoints: ReadonlySet<number> | null;
 };
 
-const fontLoads = new Map<string, Promise<LoadedFontVariant>>();
+const fontLoads = new FontLoadQueue<LoadedFontVariant>(3);
+export const reserveFontLoad = (priority: () => number) => fontLoads.reserve(priority);
+export const refreshFontLoadPriorities = () => fontLoads.refresh();
 const FONT_FORMAT_PRIORITY: Record<string, number> = {
   otf: 4,
   woff2: 3,
@@ -401,6 +407,7 @@ function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | nul
     enabled,
     id,
     name: displayName,
+    previewString: typeof value.previewString === "string" ? value.previewString : "",
     parentCategory,
     previewLetterSpacingExtraEm:
       typeof value.previewLetterSpacingExtraEm === "number" &&
@@ -593,35 +600,39 @@ export async function listFontVariants(font: FontCatalogItem) {
 export async function loadFontVariant(
   font: FontCatalogItem,
   variant: FontVariant,
+  signal?: AbortSignal,
+  onProgress?: (progress: FontDownloadProgress) => void,
+  priority?: () => number,
 ) {
   const loadKey = `${font.id}:${variant.id}`;
-  const existingLoad = fontLoads.get(loadKey);
-
-  if (existingLoad !== undefined) return existingLoad;
-
-  const load = (async () => {
+  return fontLoads.load(loadKey, async (downloadSignal, reportProgress) => {
+    reportProgress({ phase: "downloading", loaded: 0, total: null });
     const familyName = `strange-animals-font-${font.id}-${variant.id}`;
-    const bytes = await getBytes(
-      ref(firebaseStorage, variant.storagePath),
-      MAX_PREVIEW_SIZE_BYTES,
-    );
+    const location = ref(firebaseStorage, variant.storagePath);
+    const token = await firebaseAuth.currentUser?.getIdToken();
+    downloadSignal.throwIfAborted();
+    // Same authenticated media endpoint as the Storage SDK, with native cancellation.
+    // Do not create public download tokens for private font objects.
+    const url = `https://firebasestorage.googleapis.com/v0/b/${location.bucket}/o/${encodeURIComponent(location.fullPath)}?alt=media`;
+    const response = await fetch(url, {
+      signal: downloadSignal,
+      headers: token ? { Authorization: `Firebase ${token}` } : {},
+    });
+    if (!response.ok) throw new Error(`Font download failed (${response.status})`);
+    const bytes = await readFontBytes(response, downloadSignal, MAX_PREVIEW_SIZE_BYTES, reportProgress);
+    downloadSignal.throwIfAborted();
+    reportProgress({ phase: "decoding", loaded: bytes.byteLength, total: bytes.byteLength });
     const fontFace = new FontFace(familyName, bytes, { display: "swap" });
 
     await fontFace.load();
+    downloadSignal.throwIfAborted();
     document.fonts.add(fontFace);
 
     return {
       familyName,
       supportedCodePoints: getSupportedCodePoints(bytes),
     };
-  })();
-
-  fontLoads.set(loadKey, load);
-  load.catch(() => {
-    fontLoads.delete(loadKey);
-  });
-
-  return load;
+  }, signal, onProgress, priority);
 }
 
 export async function downloadFontFamily(font: FontCatalogItem) {
