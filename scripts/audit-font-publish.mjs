@@ -5,7 +5,14 @@ import path from "node:path";
 
 const PROJECT_ID = "strange-animals-web";
 const STORAGE_ROOT = "media/private/fonts";
-const LOCAL_ROOT = path.resolve("fonts to upload");
+const sourceRootIndex = process.argv.indexOf("--source-root");
+const sourceRoot = sourceRootIndex === -1
+  ? "fonts to upload"
+  : process.argv[sourceRootIndex + 1];
+if (!sourceRoot || sourceRoot.startsWith("--")) {
+  throw new Error("--source-root requires a path value");
+}
+const LOCAL_ROOT = path.resolve(sourceRoot);
 const GCLOUD = "/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud";
 const FONT_EXTENSIONS = new Set([".otf", ".ttf", ".woff", ".woff2"]);
 

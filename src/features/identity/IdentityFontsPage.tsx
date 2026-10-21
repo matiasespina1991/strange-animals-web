@@ -3730,7 +3730,7 @@ export function IdentityFontsPage() {
 
         {typographySettingsOpen && floating === toolbarFloating ? (
           <div
-            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-64 md:max-w-none md:p-4`}
+            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-[34rem] md:max-w-[calc(100vw-3rem)] md:p-4`}
             id={
               floating ? "typography-settings-floating" : "typography-settings"
             }
@@ -3756,308 +3756,339 @@ export function IdentityFontsPage() {
               </button>
             </div>
 
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                Casing
-              </span>
-              <div
-                aria-label="Text casing"
-                className="grid shrink-0 grid-cols-3 border border-white/35"
-                role="group"
-              >
-                {(
-                  [
-                    ["lower", "aa", "Lowercase"],
-                    ["mixed", "Aa", "Original casing"],
-                    ["upper", "AA", "Uppercase"],
-                  ] as const
-                ).map(([value, label, title], index) => (
-                  <button
-                    key={value}
-                    aria-label={title}
-                    aria-pressed={textCasing === value}
-                    className={`flex size-8 cursor-pointer items-center justify-center text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${index < 2 ? "border-r border-white/35" : ""} ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                    title={title}
-                    type="button"
-                    onClick={() => {
-                      setTextCasing(value);
-                    }}
+            <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
+              <div className="min-w-0 [&>div:last-child]:mb-0">
+                <div className="mb-6 flex items-center justify-between gap-4">
+                  <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                    Casing
+                  </span>
+                  <div
+                    aria-label="Text casing"
+                    className="grid shrink-0 grid-cols-3 border border-white/35"
+                    role="group"
                   >
-                    <span aria-hidden="true">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                Alignment
-              </span>
-              <div
-                aria-label="Text alignment"
-                className="grid shrink-0 grid-cols-3 border border-white/35"
-                role="group"
-              >
-                <button
-                  aria-label="Align text left"
-                  aria-pressed={textAlignment === "left"}
-                  className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                  title="Align left"
-                  type="button"
-                  onClick={() => {
-                    setTextAlignment("left");
-                  }}
-                >
-                  <AlignLeft aria-hidden="true" className="size-4" />
-                </button>
-                <button
-                  aria-label="Align text center"
-                  aria-pressed={textAlignment === "center"}
-                  className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                  title="Align center"
-                  type="button"
-                  onClick={() => {
-                    setTextAlignment("center");
-                  }}
-                >
-                  <AlignCenter aria-hidden="true" className="size-4" />
-                </button>
-                <button
-                  aria-label="Align text right"
-                  aria-pressed={textAlignment === "right"}
-                  className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                  title="Align right"
-                  type="button"
-                  onClick={() => {
-                    setTextAlignment("right");
-                  }}
-                >
-                  <AlignRight aria-hidden="true" className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            <FontWeightControl value={fontWeight} onChange={setFontWeight} />
-
-            <div className="mb-6">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                  Text shadow
-                </span>
-                <button
-                  aria-checked={textShadow.enabled}
-                  aria-label="Toggle text shadow"
-                  className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  role="switch"
-                  type="button"
-                  onClick={() => {
-                    setTextShadow((current) => ({
-                      ...current,
-                      enabled: !current.enabled,
-                    }));
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="identity-settings-switch-track absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${textShadow.enabled ? "translate-x-[1.375rem]" : "translate-x-0"}`}
-                  />
-                </button>
-              </div>
-
-              {textShadow.enabled ? (
-                <div className="mt-4 space-y-4 border-t border-white/15 pt-4">
-                  <label className="block">
-                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                      <span>X offset</span>
-                      <span>{textShadow.offsetX}px</span>
-                    </span>
-                    <input
-                      className="identity-font-size-slider block w-full"
-                      max="20"
-                      min="-20"
-                      step="1"
-                      type="range"
-                      value={textShadow.offsetX}
-                      onChange={(event) => {
-                        setTextShadow((current) => ({
-                          ...current,
-                          offsetX: Number(event.target.value),
-                        }));
-                      }}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                      <span>Y offset</span>
-                      <span>{textShadow.offsetY}px</span>
-                    </span>
-                    <input
-                      className="identity-font-size-slider block w-full"
-                      max="20"
-                      min="-20"
-                      step="1"
-                      type="range"
-                      value={textShadow.offsetY}
-                      onChange={(event) => {
-                        setTextShadow((current) => ({
-                          ...current,
-                          offsetY: Number(event.target.value),
-                        }));
-                      }}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                      <span>Blur</span>
-                      <span>{textShadow.blur}px</span>
-                    </span>
-                    <input
-                      className="identity-font-size-slider block w-full"
-                      max="20"
-                      min="0"
-                      step="1"
-                      type="range"
-                      value={textShadow.blur}
-                      onChange={(event) => {
-                        setTextShadow((current) => ({
-                          ...current,
-                          blur: Number(event.target.value),
-                        }));
-                      }}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                      <span>Opacity</span>
-                      <span>{Math.round(textShadow.opacity * 100)}%</span>
-                    </span>
-                    <input
-                      className="identity-font-size-slider block w-full"
-                      max="1"
-                      min="0"
-                      step="0.05"
-                      type="range"
-                      value={textShadow.opacity}
-                      onChange={(event) => {
-                        setTextShadow((current) => ({
-                          ...current,
-                          opacity: Number(event.target.value),
-                        }));
-                      }}
-                    />
-                  </label>
+                    {(
+                      [
+                        ["lower", "aa", "Lowercase"],
+                        ["mixed", "Aa", "Original casing"],
+                        ["upper", "AA", "Uppercase"],
+                      ] as const
+                    ).map(([value, label, title], index) => (
+                      <button
+                        key={value}
+                        aria-label={title}
+                        aria-pressed={textCasing === value}
+                        className={`flex size-8 cursor-pointer items-center justify-center text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${index < 2 ? "border-r border-white/35" : ""} ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                        title={title}
+                        type="button"
+                        onClick={() => {
+                          setTextCasing(value);
+                        }}
+                      >
+                        <span aria-hidden="true">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ) : null}
-            </div>
 
-            {isSmallViewport ? (
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
-                <div className="flex flex-col gap-2">
+                <div className="mb-6 flex items-center justify-between gap-4">
                   <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                    Line height
+                    Alignment
                   </span>
-                  <NumericStepper
-                    ariaLabel="Line height"
-                    max={2.5}
-                    min={0.8}
-                    precision={2}
-                    step={0.05}
-                    value={lineHeight}
-                    onChange={setLineHeight}
-                  />
+                  <div
+                    aria-label="Text alignment"
+                    className="grid shrink-0 grid-cols-3 border border-white/35"
+                    role="group"
+                  >
+                    <button
+                      aria-label="Align text left"
+                      aria-pressed={textAlignment === "left"}
+                      className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      title="Align left"
+                      type="button"
+                      onClick={() => {
+                        setTextAlignment("left");
+                      }}
+                    >
+                      <AlignLeft aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      aria-label="Align text center"
+                      aria-pressed={textAlignment === "center"}
+                      className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      title="Align center"
+                      type="button"
+                      onClick={() => {
+                        setTextAlignment("center");
+                      }}
+                    >
+                      <AlignCenter aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      aria-label="Align text right"
+                      aria-pressed={textAlignment === "right"}
+                      className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      title="Align right"
+                      type="button"
+                      onClick={() => {
+                        setTextAlignment("right");
+                      }}
+                    >
+                      <AlignRight aria-hidden="true" className="size-4" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                    Letter spacing
-                  </span>
-                  <NumericStepper
-                    ariaLabel="Letter spacing"
-                    max={0.5}
-                    min={-0.5}
-                    precision={2}
-                    step={0.01}
-                    unit=" em"
-                    value={letterSpacing}
-                    onChange={setLetterSpacing}
-                  />
+                <FontWeightControl
+                  value={fontWeight}
+                  onChange={setFontWeight}
+                />
+
+                <div className="mb-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                      Text shadow
+                    </span>
+                    <button
+                      aria-checked={textShadow.enabled}
+                      aria-label="Toggle text shadow"
+                      className="relative h-5 w-10 shrink-0 cursor-pointer bg-transparent outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      role="switch"
+                      type="button"
+                      onClick={() => {
+                        setTextShadow((current) => ({
+                          ...current,
+                          enabled: !current.enabled,
+                        }));
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="identity-settings-switch-track absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-white/35"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className={`absolute top-1/2 left-1 size-2.5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${textShadow.enabled ? "translate-x-[1.375rem]" : "translate-x-0"}`}
+                      />
+                    </button>
+                  </div>
+
+                  {textShadow.enabled ? (
+                    <div className="mt-4 space-y-4 border-t border-white/15 pt-4">
+                      <label className="block">
+                        <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                          <span>X offset</span>
+                          <span>{textShadow.offsetX}px</span>
+                        </span>
+                        <input
+                          className="identity-font-size-slider block w-full"
+                          max="20"
+                          min="-20"
+                          step="1"
+                          type="range"
+                          value={textShadow.offsetX}
+                          onChange={(event) => {
+                            setTextShadow((current) => ({
+                              ...current,
+                              offsetX: Number(event.target.value),
+                            }));
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                          <span>Y offset</span>
+                          <span>{textShadow.offsetY}px</span>
+                        </span>
+                        <input
+                          className="identity-font-size-slider block w-full"
+                          max="20"
+                          min="-20"
+                          step="1"
+                          type="range"
+                          value={textShadow.offsetY}
+                          onChange={(event) => {
+                            setTextShadow((current) => ({
+                              ...current,
+                              offsetY: Number(event.target.value),
+                            }));
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                          <span>Blur</span>
+                          <span>{textShadow.blur}px</span>
+                        </span>
+                        <input
+                          className="identity-font-size-slider block w-full"
+                          max="20"
+                          min="0"
+                          step="1"
+                          type="range"
+                          value={textShadow.blur}
+                          onChange={(event) => {
+                            setTextShadow((current) => ({
+                              ...current,
+                              blur: Number(event.target.value),
+                            }));
+                          }}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-2 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                          <span>Opacity</span>
+                          <span>{Math.round(textShadow.opacity * 100)}%</span>
+                        </span>
+                        <input
+                          className="identity-font-size-slider block w-full"
+                          max="1"
+                          min="0"
+                          step="0.05"
+                          type="range"
+                          value={textShadow.opacity}
+                          onChange={(event) => {
+                            setTextShadow((current) => ({
+                              ...current,
+                              opacity: Number(event.target.value),
+                            }));
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                 </div>
               </div>
-            ) : (
-              <>
-                <label className="mt-4 block border-t border-white/15 pt-4">
-                  <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                    <span>Line height</span>
-                    <span>{lineHeight.toFixed(2)}</span>
-                  </span>
-                  <input
-                    aria-label="Line height"
-                    className="identity-font-size-slider block w-full"
-                    max="2.5"
-                    min="0.8"
-                    step="0.05"
-                    type="range"
-                    value={lineHeight}
-                    onPointerDown={(event) =>
-                      jumpRangeToPointer(event, setLineHeight)
-                    }
-                    onPointerMove={(event) =>
-                      jumpRangeToPointer(event, setLineHeight)
-                    }
-                    onChange={(event) => {
-                      setLineHeight(Number(event.target.value));
-                    }}
-                  />
-                </label>
+              <div className="min-w-0">
+                {isSmallViewport ? (
+                  <div className="mt-4 grid grid-cols-2 gap-3 pt-4">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                        Line height
+                      </span>
+                      <NumericStepper
+                        ariaLabel="Line height"
+                        max={2.5}
+                        min={0.8}
+                        precision={2}
+                        step={0.05}
+                        value={lineHeight}
+                        onChange={setLineHeight}
+                      />
+                    </div>
 
-                <label className="mt-6 block">
-                  <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                    <span>Letter spacing</span>
-                    <span>{letterSpacing.toFixed(2)} em</span>
-                  </span>
-                  <input
-                    aria-label="Letter spacing"
-                    className="identity-font-size-slider block w-full"
-                    max="0.5"
-                    min="-0.5"
-                    step="0.01"
-                    type="range"
-                    value={letterSpacing}
-                    onPointerDown={(event) =>
-                      jumpRangeToPointer(event, setLetterSpacing)
-                    }
-                    onPointerMove={(event) =>
-                      jumpRangeToPointer(event, setLetterSpacing)
-                    }
-                    onChange={(event) => {
-                      setLetterSpacing(Number(event.target.value));
-                    }}
-                  />
-                </label>
-              </>
-            )}
-            <label className="mt-6 block">
-              <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
-                <span>Ink bleed</span>
-                <span>{inkBleed === 0 ? "Off" : `${inkBleed.toFixed(2)} px`}</span>
-              </span>
-              <input
-                aria-label="Ink bleed"
-                className="identity-font-size-slider block w-full"
-                min={0}
-                max={4}
-                step={0.05}
-                type="range"
-                value={inkBleed}
-                onPointerDown={(event) => jumpRangeToPointer(event, setInkBleed)}
-                onPointerMove={(event) => jumpRangeToPointer(event, setInkBleed)}
-                onChange={(event) => setInkBleed(Number(event.target.value))}
-              />
-            </label>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                        Letter spacing
+                      </span>
+                      <NumericStepper
+                        ariaLabel="Letter spacing"
+                        max={0.5}
+                        min={-0.5}
+                        precision={2}
+                        step={0.01}
+                        unit=" em"
+                        value={letterSpacing}
+                        onChange={setLetterSpacing}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
+                        Ink bleed
+                      </span>
+                      <NumericStepper
+                        ariaLabel="Ink bleed"
+                        max={4}
+                        min={0}
+                        precision={2}
+                        step={0.05}
+                        unit=" px"
+                        value={inkBleed}
+                        onChange={setInkBleed}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <label className="block">
+                      <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                        <span>Line height</span>
+                        <span>{lineHeight.toFixed(2)}</span>
+                      </span>
+                      <input
+                        aria-label="Line height"
+                        className="identity-font-size-slider block w-full"
+                        max="2.5"
+                        min="0.8"
+                        step="0.05"
+                        type="range"
+                        value={lineHeight}
+                        onPointerDown={(event) =>
+                          jumpRangeToPointer(event, setLineHeight)
+                        }
+                        onPointerMove={(event) =>
+                          jumpRangeToPointer(event, setLineHeight)
+                        }
+                        onChange={(event) => {
+                          setLineHeight(Number(event.target.value));
+                        }}
+                      />
+                    </label>
+
+                    <label className="mt-6 block">
+                      <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                        <span>Letter spacing</span>
+                        <span>{letterSpacing.toFixed(2)} em</span>
+                      </span>
+                      <input
+                        aria-label="Letter spacing"
+                        className="identity-font-size-slider block w-full"
+                        max="0.5"
+                        min="-0.5"
+                        step="0.01"
+                        type="range"
+                        value={letterSpacing}
+                        onPointerDown={(event) =>
+                          jumpRangeToPointer(event, setLetterSpacing)
+                        }
+                        onPointerMove={(event) =>
+                          jumpRangeToPointer(event, setLetterSpacing)
+                        }
+                        onChange={(event) => {
+                          setLetterSpacing(Number(event.target.value));
+                        }}
+                      />
+                    </label>
+                    <label className="mt-6 block">
+                      <span className="mb-3 flex items-center justify-between gap-4 text-[0.625rem] tracking-[0.08em] text-white/65">
+                        <span>Ink bleed</span>
+                        <span>
+                          {inkBleed === 0 ? "Off" : `${inkBleed.toFixed(2)} px`}
+                        </span>
+                      </span>
+                      <input
+                        aria-label="Ink bleed"
+                        className="identity-font-size-slider block w-full"
+                        min={0}
+                        max={4}
+                        step={0.05}
+                        type="range"
+                        value={inkBleed}
+                        onPointerDown={(event) =>
+                          jumpRangeToPointer(event, setInkBleed)
+                        }
+                        onPointerMove={(event) =>
+                          jumpRangeToPointer(event, setInkBleed)
+                        }
+                        onChange={(event) =>
+                          setInkBleed(Number(event.target.value))
+                        }
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         ) : null}
       </div>
@@ -4074,10 +4105,19 @@ export function IdentityFontsPage() {
         fontWeight: 700,
       }}
     >
-      <svg width="0" height="0" aria-hidden="true" className="absolute pointer-events-none">
-        <defs><InkBleedFilter id="collection-ink-bleed" amount={inkBleed} /></defs>
+      <svg
+        width="0"
+        height="0"
+        aria-hidden="true"
+        className="absolute pointer-events-none"
+      >
+        <defs>
+          <InkBleedFilter id="collection-ink-bleed" amount={inkBleed} />
+        </defs>
       </svg>
-      {inkBleed > 0 && <style>{`.identity-fonts-page[data-ink-bleed=true] .identity-font-committed-preview { filter:url(#collection-ink-bleed); }`}</style>}
+      {inkBleed > 0 && (
+        <style>{`.identity-fonts-page[data-ink-bleed=true] .identity-font-committed-preview { filter:url(#collection-ink-bleed); }`}</style>
+      )}
       <ActiveCategoryRail
         categories={categoryRailItems}
         label={activeCategoryLabel}
