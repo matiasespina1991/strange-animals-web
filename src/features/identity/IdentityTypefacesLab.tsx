@@ -12,7 +12,7 @@ const proposals = [
   { name: "Foco", detail: "Una categoría por vez, con un selector compacto y muestras más grandes.", benefit: "Menos ruido para evaluar el carácter de cada familia." },
 ];
 const categoryOrder = ["Abstract", "Semi-Abstract", "Cyber", "Dotted", "LCD Display", "Goth", "Grunge", "Handwritten", "Cursive", "Outlined", "Paragraph / Standard", "Serif", "Rounded", "Squared / Tech", "Condensed / Narrow", "Title / Bold", "3D", "Pixel", "Playful", "Ornamental", "Vintage", "Wide", "Symbols & Others", "Non-Latin Script", "Uncategorized"];
-const categoryLabels: Record<string, string> = { "LCD Display": "LCD/LED Display", "Non-Latin Script": "Non-Latin / 日本語" };
+const categoryLabels: Record<string, string> = { "Cursive": "Cursive / Script", "Vintage": "Vintage / Retro", "LCD Display": "LCD/LED Display", "Non-Latin Script": "Non-Latin / 日本語" };
 const categoryName = (name: string) => categoryLabels[name] ?? name;
 const getCategory = (font: FontCatalogItem) => font.parentCategory ?? "Uncategorized";
 

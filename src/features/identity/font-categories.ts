@@ -6,6 +6,8 @@ export const FONT_PARENT_CATEGORIES = [
 ] as const;
 export const UNCATEGORIZED_LABEL = "Uncategorized";
 const DISPLAY_NAMES: Record<string, string> = {
+  "Cursive": "Cursive / Script",
+  "Vintage": "Vintage / Retro",
   "LCD Display": "LCD/LED Display",
   "Non-Latin Script": "Non-Latin / 日本語",
 };

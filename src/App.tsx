@@ -12,9 +12,16 @@ import { ReleaseIdVerifierPage } from "@/features/release-id-verifier/ReleaseIdV
 import { WinampSkinsStuffPicksPage } from "@/features/webamp-skins/WinampSkinsStuffPicksPage";
 import { WebampSkinUploaderPage } from "@/features/webamp-skins/WebampSkinUploaderPage";
 import { usePathRoute } from "@/hooks/usePathRoute";
+import { lazy, Suspense } from "react";
+
+const MyspacePlayerTestPage = lazy(() => import("@/features/listen/MyspacePlayerTestPage"));
 
 export function App() {
   const route = usePathRoute();
+
+  if (route === "/listen/myspace-test") {
+    return <Suspense fallback={<p>Loading player…</p>}><MyspacePlayerTestPage /></Suspense>;
+  }
 
   if (route === "/identity" || route.startsWith("/identity/")) {
     return (

@@ -83,55 +83,10 @@ import {
   compareFontSectionCategoryLabels,
 } from "./font-categories";
 import { getFontPreviewText } from "./font-preview-text";
+import { canUseLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 
-function getSupportedPreviewText(
-  value: string,
-  supportedCodePoints: ReadonlySet<number> | null | undefined,
-) {
-  if (!supportedCodePoints) return value;
-
-  return Array.from(value)
-    .map((character) => {
-      const codePoint = character.codePointAt(0);
-
-      if (codePoint === undefined || /\s/u.test(character)) return character;
-      if (supportedCodePoints.has(codePoint)) return character;
-
-      const upperCharacter = character.toLocaleUpperCase();
-      if (Array.from(upperCharacter).length !== 1) return "";
-
-      const upperCodePoint = upperCharacter.codePointAt(0);
-
-      if (
-        upperCodePoint !== undefined &&
-        supportedCodePoints.has(upperCodePoint)
-      ) {
-        return upperCharacter;
-      }
-
-      return "";
-    })
-    .join("");
-}
-
-function SupportedPreviewText({
-  fallbackValue,
-  supportedCodePoints,
-  value,
-}: {
-  fallbackValue?: string;
-  supportedCodePoints: ReadonlySet<number> | null | undefined;
-  value: string;
-}) {
-  const previewText = useMemo(
-    () => getSupportedPreviewText(value, supportedCodePoints),
-    [supportedCodePoints, value],
-  );
-
-  return previewText.trim() ? previewText : (fallbackValue ?? value);
-}
-const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print"] as const;
+const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print", ...(canUseLocalFontUseCase() ? [LOCAL_FONT_USE_CASE] : [])] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
 const LOADING_CATEGORY_PLACEHOLDER_COUNT = 14;
@@ -1923,14 +1878,7 @@ function FontSpecimen({
                       onPointerMove={movePreviewText}
                       onPointerUp={stopPreviewTextDrag}
                     >
-                      <SupportedPreviewText
-                        fallbackValue={applyTextCasing(
-                          getFontPreviewText(font),
-                          textCasing,
-                        )}
-                        supportedCodePoints={loadedVariant?.supportedCodePoints}
-                        value={previewText}
-                      />
+                      {previewText}
                     </p>
                     <p
                       aria-hidden="true"
@@ -1955,14 +1903,7 @@ function FontSpecimen({
                           : undefined,
                       }}
                     >
-                      <SupportedPreviewText
-                        fallbackValue={applyTextCasing(
-                          getFontPreviewText(font),
-                          textCasing,
-                        )}
-                        supportedCodePoints={loadedVariant?.supportedCodePoints}
-                        value={previewText}
-                      />
+                      {previewText}
                     </p>
                   </div>
                 ) : (
@@ -2011,14 +1952,7 @@ function FontSpecimen({
                           : undefined,
                       }}
                     >
-                      <SupportedPreviewText
-                        fallbackValue={applyTextCasing(
-                          getFontPreviewText(font),
-                          textCasing,
-                        )}
-                        supportedCodePoints={loadedVariant?.supportedCodePoints}
-                        value={previewText}
-                      />
+                      {previewText}
                     </p>
                     <p
                       aria-hidden="true"
@@ -2040,14 +1974,7 @@ function FontSpecimen({
                           : undefined,
                       }}
                     >
-                      <SupportedPreviewText
-                        fallbackValue={applyTextCasing(
-                          getFontPreviewText(font),
-                          textCasing,
-                        )}
-                        supportedCodePoints={loadedVariant?.supportedCodePoints}
-                        value={previewText}
-                      />
+                      {previewText}
                     </p>
                   </div>
                 )
@@ -3901,12 +3828,12 @@ export function IdentityFontsPage() {
 
         {typographySettingsOpen && floating === toolbarFloating ? (
           <div
-            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-[34rem] md:max-w-[calc(100vw-3rem)] md:p-4`}
+            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-[24rem] md:max-w-[calc(100vw-3rem)] md:p-3`}
             id={
               floating ? "typography-settings-floating" : "typography-settings"
             }
           >
-            <div className="mb-5 flex items-center justify-between gap-4">
+            <div className="mb-3 flex items-center justify-between gap-4">
               <span className="text-[0.625rem] tracking-[0.12em] text-white/55">
                 Typography
               </span>
@@ -3927,8 +3854,8 @@ export function IdentityFontsPage() {
               </button>
             </div>
 
-            <div className="md:grid md:grid-cols-2 md:items-start md:gap-6">
-              <div className="min-w-0 md:order-2 [&>div:last-child]:mb-0">
+            <div className="md:grid md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-4">
+              <div className="min-w-0 md:order-2 [&>div]:!mb-3 [&>div:last-child]:!mb-0 [&_[role=group]_button]:!size-7">
                 <div className="mb-6 flex items-center justify-between gap-4">
                   <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                     Casing
@@ -4130,7 +4057,7 @@ export function IdentityFontsPage() {
                   ) : null}
                 </div>
               </div>
-              <div className="min-w-0 md:order-1">
+              <div className="min-w-0 md:order-1 [&>label]:!mt-3 [&>label:first-child]:!mt-0 [&>label>span]:!mb-2">
                 {isSmallViewport ? (
                   <div className="mt-4 grid grid-cols-2 gap-3 pt-4">
                     <div className="flex flex-col gap-2">

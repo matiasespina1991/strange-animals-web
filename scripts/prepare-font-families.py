@@ -9,10 +9,21 @@ from fontTools.ttLib import TTFont
 
 EXTENSIONS = {".ttf", ".otf", ".woff", ".woff2"}
 ALIASES = {
+    "Dilpomat": "Diplomat",
     "Fung FooRegular": "Fung Foo",
     "Fung FooItalic": "Fung Foo",
     "Fung FooFufanu": "Fung Foo",
     "Fung FooFufanu Italic": "Fung Foo",
+}
+EPSON_NAMES = {
+    "epgyosho.ttf": "EPSON Gyōshotai M",
+    "epkyouka.ttf": "EPSON Kyōkashotai M",
+    "epkaisho.ttf": "EPSON Seikaishotai M",
+    "epmarugo.ttf": "EPSON Maru Gothic M",
+    "epkgobld.ttf": "EPSON Futo Kaku Gothic B",
+    "epminbld.ttf": "EPSON Futo Minchō B",
+    "epgyobld.ttf": "EPSON Futo Gyōshotai B",
+    "epmgobld.ttf": "EPSON Futo Maru Gothic B",
 }
 
 
@@ -36,7 +47,8 @@ def prepare(source, output):
         if not file.is_file() or file.suffix.lower() not in EXTENSIONS:
             continue
         with TTFont(file, lazy=True) as font:
-            family = family_name(font)
+            family = (EPSON_NAMES.get(file.name.lower())
+                      if "Epson fonts" in relative.parts else None) or family_name(font)
         if family in {".", ".."} or any(char in family for char in "/\\"):
             raise ValueError(f"Unsafe family name: {family}")
         families[family].append(file)
@@ -48,7 +60,10 @@ def prepare(source, output):
     for family, files in sorted(families.items()):
         for file in files:
             # Retain the original relative path: byte-identical copies remain separate.
-            target = output / family / file.relative_to(source)
+            staged_relative = (Path(f"{family}{file.suffix.lower()}")
+                               if "Epson fonts" in file.relative_to(source).parts
+                               else file.relative_to(source))
+            target = output / family / staged_relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(file, target)
             if sha256(file.read_bytes()).digest() != sha256(target.read_bytes()).digest():

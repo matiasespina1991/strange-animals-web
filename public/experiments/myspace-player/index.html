@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MySpace player experiment</title>
+<link rel="stylesheet" href="vendor/css/app.css">
+<style>
+*{box-sizing:border-box}body{margin:0;padding:6px;font-family:Arial,sans-serif;background:#0d1117;color:#ddd}button{cursor:pointer}button:focus-visible{outline:3px solid #218aff;outline-offset:2px}#song-player.multi{max-width:none}.control-container{align-items:center}.control-group{top:0;padding:5px}.song-text{width:auto;min-width:0;flex:1}.song-text>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#song-meta{align-items:center;min-width:0}.meta-container{min-width:0}.mmp-eq-container{margin:0;width:90px;flex-shrink:0}.mmp-eq-container img{max-width:100%}#tracks{padding:12px 0;margin:0;list-style:none}#tracks button{width:100%;text-align:left;background:transparent;color:inherit;border:0;border-bottom:1px solid #333;padding:10px;font:inherit}#tracks button[aria-current=true]{color:white;background:#252b32}#tracks button:hover{background:#252b32}#status{font-size:13px;min-height:18px}#seek{width:100%;accent-color:#aaa}label{font-size:12px;color:#ccc}@media(max-width:640px){div.control-container{grid-template-columns:1fr}.control-group{justify-content:center}div.control-container div.meta-container{width:auto;margin:4px 8px 8px;padding:8px}.mmp-eq-container{width:65px}img.album{flex-shrink:0}}
+</style>
+<div id="song-player" class="multi">
+ <div class="control-container">
+  <div class="control-group">
+   <button aria-label="Stop" class="amplitude-stop player multi"><i aria-hidden="true" class="icon-stop multi"></i></button>
+   <button aria-label="Previous track" class="amplitude-prev player multi"><i aria-hidden="true" class="icon-prev multi"></i></button>
+   <button aria-label="Pause" class="amplitude-pause player multi"><i aria-hidden="true" class="icon-pause multi"></i></button>
+   <button aria-label="Play" class="amplitude-play player multi"><i aria-hidden="true" class="icon-play multi"></i></button>
+   <button aria-label="Next track" class="amplitude-next player multi"><i aria-hidden="true" class="icon-next multi"></i></button>
+  </div>
+  <div class="meta-container"><div id="song-meta">
+   <img alt="Jazz Licks Vol. I cover" data-amplitude-song-info="cover_art_url" class="album">
+   <div class="song-text"><span data-amplitude-song-info="name"></span><span data-amplitude-song-info="artist"></span><div class="time-container"><span class="amplitude-current-minutes">00</span>:<span class="amplitude-current-seconds">00</span> / <span class="amplitude-duration-minutes">00</span>:<span class="amplitude-duration-seconds">00</span></div></div>
+   <div class="mmp-eq-container"><img src="vendor/img/eq_pause.png" alt="Decorative equalizer"></div>
+  </div></div>
+ </div>
+ <label>Seek <input id="seek" aria-label="Track position" class="amplitude-song-slider" type="range" min="0" max="100" value="0" step="0.1"></label>
+</div>
+<p id="status" role="status">Loading release…</p><ol id="tracks"></ol>
+<script src="vendor/js/amplitude.js"></script>
+<script src="player.js"></script>
+</html>

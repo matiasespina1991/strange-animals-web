@@ -5,7 +5,10 @@ import ts from "typescript";
 
 const APPLY = process.argv.includes("--apply");
 const CLASSIFY = process.argv.includes("--classify-uncategorized");
-const reportPath = `temp/japanese-previews/${CLASSIFY ? "uncategorized-report" : "report"}.json`;
+const prefixIndex = process.argv.indexOf("--id-prefix");
+const idPrefix = prefixIndex < 0 ? "" : process.argv[prefixIndex + 1];
+if (prefixIndex >= 0 && (!idPrefix || idPrefix.startsWith("--") || !/^[a-z0-9-]+$/.test(idPrefix))) throw new Error("--id-prefix requires a safe document ID prefix");
+const reportPath = `temp/japanese-previews/${idPrefix ? `${idPrefix}-` : ""}${CLASSIFY ? "uncategorized-report" : "report"}.json`;
 const base = "https://firestore.googleapis.com/v1/projects/strange-animals-web/databases/(default)/documents";
 const bucket = "strange-animals-web.firebasestorage.app";
 const token = execFileSync("/Users/matiasespina/Downloads/google-cloud-sdk/bin/gcloud", ["auth", "print-access-token"], { encoding: "utf8" }).trim();
@@ -95,6 +98,7 @@ function sample(points) {
 }
 const useReport = process.argv.includes("--use-report");
 const documents = useReport ? [] : (await list("fonts")).filter(document => {
+  if (idPrefix && !document.name.split("/").at(-1).startsWith(idPrefix)) return false;
   if (!CLASSIFY) return true;
   const category = document.fields.parentCategory?.stringValue?.trim();
   return !category || category === "Uncategorized";

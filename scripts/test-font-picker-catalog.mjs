@@ -26,6 +26,7 @@ const available = pickerCatalog(fonts, "all", [], "");
 assert.deepEqual(available.filter((font) => pickerCategory(font) === "Abstract").map((font) => font.id), ["a1", "a2"]);
 assert.equal(pickerCategory(fonts.at(-1)), "Uncategorized");
 assert.equal(getFontCategoryDisplayName("LCD Display"), "LCD/LED Display");
+assert.equal(getFontCategoryDisplayName("Cursive"), "Cursive / Script");
 assert.equal(getFontCategoryDisplayName("Non-Latin Script"), "Non-Latin / 日本語");
 assert.deepEqual(pickerCategories([], "Goth"), ["Goth"], "An active empty filter must remain removable");
 assert.deepEqual([...FONT_PARENT_CATEGORIES].reverse().sort(compareFontSectionCategoryLabels), [...FONT_PARENT_CATEGORIES]);

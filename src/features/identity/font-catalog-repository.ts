@@ -16,6 +16,7 @@ import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { FontLoadQueue } from "./font-load-queue";
 import { readFontBytes, type FontDownloadProgress } from "./font-download-progress";
 import { firebaseAuth, firebaseDb, firebaseStorage } from "@/lib/firebase";
+import { canUseLocalFontUseCase, hasLocalFontUseCase, setLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
 
 // Large Japanese/color fonts exceed 20 MiB even after a valid OTF reexport.
 const MAX_PREVIEW_SIZE_BYTES = 64 * 1024 * 1024;
@@ -48,6 +49,12 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
       if (typeof data.storagePath !== "string" || !data.storagePath.startsWith("media/private/fonts/")) throw new Error("Invalid font path");
       const destination = `${prefix}/${file.id}/${data.fileName}`;
       const bytes = await getBytes(ref(firebaseStorage, data.storagePath));
+      if (bytes.byteLength === 0) {
+        console.warn("[FontCatalog/duplicate] Skipping empty file", {
+          fontId: font.id, fileId: file.id, storagePath: data.storagePath,
+        });
+        continue;
+      }
       await uploadBytes(ref(firebaseStorage, destination), bytes, { contentType: data.contentType ?? "application/octet-stream" });
       uploaded.push(destination);
       paths.set(data.storagePath, destination);
@@ -55,6 +62,7 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
         ...data, id: file.id, fontId: target.id, storagePath: destination, sizeBytes: bytes.byteLength, updatedAt: serverTimestamp(),
       } });
     }
+    if (copies.length === 0) throw new Error("This family has no non-empty files to duplicate.");
     const original = source.data();
     const name = `${font.name.slice(0, 195)} copy`;
     const previewFiles = copies.filter(file => file.data.kind === "font" || ["otf", "ttf", "woff", "woff2"].includes(String(file.data.extension)));
@@ -424,6 +432,7 @@ function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | nul
         ? value.previewLineHeightExtraRem
         : 0,
     useCases: [
+      ...(hasLocalFontUseCase(id) ? [LOCAL_FONT_USE_CASE] : []),
       ...new Set(
         storedUseCases.length > 0
           ? storedUseCases
@@ -523,14 +532,18 @@ export async function updateFontUseCases(
   const normalizedUseCases = [
     ...new Set(useCases.map((useCase) => useCase.trim())),
   ]
-    .filter(Boolean)
+    .filter(useCase => Boolean(useCase) && useCase !== LOCAL_FONT_USE_CASE)
     .slice(0, 3);
 
-  await updateDoc(doc(firebaseDb, "fonts", font.id), {
-    useCase: deleteField(),
-    useCases: normalizedUseCases,
-    updatedAt: serverTimestamp(),
-  });
+  const publicUseCases = font.useCases.filter(useCase => useCase !== LOCAL_FONT_USE_CASE);
+  if (JSON.stringify(normalizedUseCases) !== JSON.stringify(publicUseCases)) {
+    await updateDoc(doc(firebaseDb, "fonts", font.id), {
+      useCase: deleteField(),
+      useCases: normalizedUseCases,
+      updatedAt: serverTimestamp(),
+    });
+  }
+  if (canUseLocalFontUseCase()) setLocalFontUseCase(font.id, useCases.includes(LOCAL_FONT_USE_CASE));
 }
 
 export async function listFontVariants(font: FontCatalogItem) {
