@@ -2226,7 +2226,7 @@ export function IdentityFontsPage() {
   const [lightMode, setLightMode] = useState(() => {
     if (typeof window === "undefined") return false;
 
-    return window.localStorage.getItem(IDENTITY_THEME_STORAGE_KEY) === "light";
+    return window.localStorage.getItem(IDENTITY_THEME_STORAGE_KEY) !== "dark";
   });
   const [fonts, setFonts] = useState<FontCatalogItem[]>([]);
   const [search, setSearch] = useState("");

@@ -7,8 +7,8 @@
       (() => {
         if (
           window.location.pathname.startsWith("/identity/typography") &&
-          window.localStorage.getItem("strange-animals.identity-theme.v1") ===
-            "light"
+          window.localStorage.getItem("strange-animals.identity-theme.v1") !==
+            "dark"
         ) {
           const initialThemeStyle = document.createElement("style");
           initialThemeStyle.id = "identity-bright-initial-theme";
