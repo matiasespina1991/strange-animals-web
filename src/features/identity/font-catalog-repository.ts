@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { FontLoadQueue } from "./font-load-queue";
+import { logFontLoad, traceFontLoad } from "./font-load-diagnostics";
 import { readFontBytes, type FontDownloadProgress } from "./font-download-progress";
 import { firebaseAuth, firebaseDb, firebaseStorage } from "@/lib/firebase";
 import { canUseLocalFontUseCase, hasLocalFontUseCase, setLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
@@ -166,7 +167,7 @@ export type LoadedFontVariant = {
   supportedCodePoints: ReadonlySet<number> | null;
 };
 
-const fontLoads = new FontLoadQueue<LoadedFontVariant>(3);
+const fontLoads = new FontLoadQueue<LoadedFontVariant>(3, logFontLoad);
 export const reserveFontLoad = (priority: () => number) => fontLoads.reserve(priority);
 export const refreshFontLoadPriorities = () => fontLoads.refresh();
 const FONT_FORMAT_PRIORITY: Record<string, number> = {
@@ -618,11 +619,16 @@ export async function loadFontVariant(
   priority?: () => number,
 ) {
   const loadKey = `${font.id}:${variant.id}`;
+  const trace = traceFontLoad({ fontId: font.id, fontName: font.name, variantId: variant.id, storagePath: variant.storagePath });
+  trace.event("queued");
+  let lastProgressBucket = -1;
   return fontLoads.load(loadKey, async (downloadSignal, reportProgress) => {
     reportProgress({ phase: "downloading", loaded: 0, total: null });
     const familyName = `strange-animals-font-${font.id}-${variant.id}`;
     const location = ref(firebaseStorage, variant.storagePath);
+    trace.event("auth:waiting");
     const token = await firebaseAuth.currentUser?.getIdToken();
+    trace.event("download:request", { authenticated: Boolean(token) });
     downloadSignal.throwIfAborted();
     // Same authenticated media endpoint as the Storage SDK, with native cancellation.
     // Do not create public download tokens for private font objects.
@@ -631,8 +637,19 @@ export async function loadFontVariant(
       signal: downloadSignal,
       headers: token ? { Authorization: `Firebase ${token}` } : {},
     });
+    trace.event("download:headers", { status: response.status, contentType: response.headers.get("content-type"), contentLength: response.headers.get("content-length") });
     if (!response.ok) throw new Error(`Font download failed (${response.status})`);
-    const bytes = await readFontBytes(response, downloadSignal, MAX_PREVIEW_SIZE_BYTES, reportProgress);
+    trace.event("download:body");
+    const bytes = await readFontBytes(response, downloadSignal, MAX_PREVIEW_SIZE_BYTES, (progress) => {
+      reportProgress(progress);
+      const bucket = progress.total ? Math.floor(progress.loaded / progress.total * 4) : -1;
+      if (bucket !== lastProgressBucket) {
+        lastProgressBucket = bucket;
+        // Keep the body-stage watchdog running; progress logs must not reset it.
+        trace.event("download:body", { loadedBytes: progress.loaded, totalBytes: progress.total });
+      }
+    });
+    trace.event("decode:fontface", { bytes: bytes.byteLength });
     downloadSignal.throwIfAborted();
     reportProgress({ phase: "decoding", loaded: bytes.byteLength, total: bytes.byteLength });
     const fontFace = new FontFace(familyName, bytes, { display: "swap" });
@@ -640,12 +657,19 @@ export async function loadFontVariant(
     await fontFace.load();
     downloadSignal.throwIfAborted();
     document.fonts.add(fontFace);
+    trace.event("decode:registered", { status: fontFace.status });
 
     return {
       familyName,
       supportedCodePoints: getSupportedCodePoints(bytes),
     };
-  }, signal, onProgress, priority);
+  }, signal, onProgress, priority).then(value => {
+    trace.finish("ready");
+    return value;
+  }, error => {
+    trace.finish(signal?.aborted || (error instanceof DOMException && error.name === "AbortError") ? "cancelled" : "failed", error);
+    throw error;
+  });
 }
 
 export async function downloadFontFamily(font: FontCatalogItem) {

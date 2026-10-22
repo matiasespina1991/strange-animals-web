@@ -26,12 +26,17 @@ export class FontLoadQueue<T> {
   private running = 0;
   private reservations = new Set<() => number>();
   private scheduled = false;
-  constructor(private concurrency = 3) {}
+  constructor(
+    private concurrency = 3,
+    private diagnostics?: (stage: string, details: Record<string, unknown>) => void,
+  ) {}
 
   reserve(priority: () => number) {
     this.reservations.add(priority);
+    this.diagnostics?.("queue:reserved", { reservations: this.reservations.size });
     return () => {
       this.reservations.delete(priority);
+      this.diagnostics?.("queue:reservation-released", { reservations: this.reservations.size });
       this.refresh();
     };
   }
@@ -69,7 +74,10 @@ export class FontLoadQueue<T> {
   ): Promise<T> {
     if (signal?.aborted) return Promise.reject(aborted());
     let entry = this.entries.get(key);
-    if (entry?.state === "ready") return Promise.resolve(entry.value as T);
+    if (entry?.state === "ready") {
+      this.diagnostics?.("queue:cache-hit", { key });
+      return Promise.resolve(entry.value as T);
+    }
     if (!entry) {
       entry = {
         key,
@@ -81,6 +89,9 @@ export class FontLoadQueue<T> {
       };
       this.entries.set(key, entry);
       this.queue.push(entry);
+      this.diagnostics?.("queue:enqueued", { key, running: this.running, queued: this.queue.length });
+    } else {
+      this.diagnostics?.("queue:shared", { key, state: entry.state });
     }
     const current = entry;
     return new Promise<T>((resolve, reject) => {
@@ -98,6 +109,7 @@ export class FontLoadQueue<T> {
         },
       };
       const cancel = () => {
+        this.diagnostics?.("queue:consumer-cancelled", { key, state: current.state, remainingConsumers: current.subscribers.size - 1 });
         current.subscribers.delete(subscriber);
         subscriber.reject(aborted());
         if (!current.subscribers.size && current.state !== "ready") {
@@ -126,10 +138,14 @@ export class FontLoadQueue<T> {
         Infinity,
         ...[...this.reservations].map((getPriority) => getPriority()),
       );
-      if (barrier < priority(entry)) return;
+      if (barrier < priority(entry)) {
+        this.diagnostics?.("queue:waiting-for-metadata", { key: entry.key, barrier, priority: priority(entry), reservations: this.reservations.size, running: this.running, queued: this.queue.length });
+        return;
+      }
       this.queue.shift();
       entry.state = "running";
       this.running++;
+      this.diagnostics?.("queue:started", { key: entry.key, running: this.running, queued: this.queue.length, priority: priority(entry) });
       void Promise.resolve()
         .then(() => {
           entry.controller.signal.throwIfAborted();

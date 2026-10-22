@@ -83,6 +83,7 @@ import {
   compareFontSectionCategoryLabels,
 } from "./font-categories";
 import { getFontPreviewText } from "./font-preview-text";
+import { traceFontLoad } from "./font-load-diagnostics";
 import { canUseLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 
@@ -1257,10 +1258,13 @@ function FontSpecimen({
 
     let active = true;
     let started = false;
+    let metadataTrace: ReturnType<typeof traceFontLoad> | undefined;
 
     const load = () => {
       if (started) return;
       started = true;
+      metadataTrace = traceFontLoad({ fontId: font.id, fontName: font.name, kind: "metadata" });
+      metadataTrace.event("metadata:request");
       releaseLoadReservation.current = reserveFontLoad(() => getLoadPriority());
       setVariantsLoaded(false);
       setVariantsError(false);
@@ -1268,7 +1272,8 @@ function FontSpecimen({
       listFontVariants(font)
         .then((nextVariants) => {
           if (!active) return;
-
+          metadataTrace?.event("metadata:received", { variants: nextVariants.length });
+          metadataTrace?.finish("ready");
           setVariants(nextVariants);
           setCurrentPage(0);
           setVariantsLoaded(true);
@@ -1279,6 +1284,7 @@ function FontSpecimen({
         })
         .catch((error) => {
           if (!active) return;
+          metadataTrace?.finish("failed", error);
           setVariantsError(true);
           releaseLoadReservation.current?.();
           releaseLoadReservation.current = undefined;
@@ -1294,6 +1300,7 @@ function FontSpecimen({
       load();
       return () => {
         active = false;
+        metadataTrace?.finish("cancelled");
         releaseLoadReservation.current?.();
         releaseLoadReservation.current = undefined;
       };
@@ -1313,6 +1320,7 @@ function FontSpecimen({
 
     return () => {
       active = false;
+      metadataTrace?.finish("cancelled");
       observer.disconnect();
       releaseLoadReservation.current?.();
       releaseLoadReservation.current = undefined;

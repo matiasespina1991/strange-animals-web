@@ -78,7 +78,7 @@ const page = await readFile(
   new URL("../src/features/identity/IdentityFontsPage.tsx", import.meta.url),
   "utf8",
 );
-assert.ok(page.includes("loadFontVariant(font, variant, controller.signal,"));
+assert.match(page, /loadFontVariant\(\s*font,\s*variant,\s*controller\.signal,/);
 assert.ok(page.includes("controller.abort()"));
 assert.ok(page.includes("FontLoadingProgress"));
 assert.ok(
