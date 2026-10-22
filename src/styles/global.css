@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+#typography-settings .text-\[0\.625rem\],
+#typography-settings-floating .text-\[0\.625rem\] {
+  font-size: calc(0.625rem + 1px);
+}
+
 html:not([data-font-toolbar-floating]) .identity-scroll-top {
   display: none !important;
 }

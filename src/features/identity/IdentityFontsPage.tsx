@@ -107,7 +107,7 @@ const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
 
 const DESKTOP_FONT_SIZE_MAX = 125;
 const FONT_TOOLBAR_GRID_CLASS =
-  "grid grid-cols-2 gap-x-3 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] md:gap-x-4 md:gap-y-3";
+  "grid grid-cols-2 gap-x-2 gap-y-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]";
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -229,7 +229,7 @@ function getEmptyCatalogMessage(fontCount: number, showOnlyFavorites: boolean) {
 
 function getToolbarPlacementClass(floating: boolean) {
   return floating
-    ? "fixed right-3 bottom-[0.7rem] left-[1.05rem] z-[10000] border border-white/45 bg-black p-3 pb-[0.95rem] md:top-4 md:right-4 md:bottom-auto md:left-[18rem] md:p-4 2xl:left-[max(18rem,calc((100vw-92rem)/4+16rem))]"
+    ? "fixed right-3 bottom-[0.7rem] left-[1.05rem] z-[10000] border border-white/45 bg-black p-3 pb-[0.95rem] md:top-4 md:right-4 md:bottom-auto md:left-auto md:w-[calc(100vw-19rem)] md:max-w-[68rem]"
     : "xl:mt-[1.8rem]";
 }
 
@@ -426,7 +426,7 @@ function DesktopFontSizeControl({
   };
 
   return (
-    <div className="flex w-40 flex-col gap-2 text-white/70">
+    <div className="relative -left-px flex w-32 flex-col gap-2 text-white/70">
       <span className="text-[0.625rem] tracking-[0.02em] sm:text-[0.75rem]">
         Font size
       </span>
@@ -2079,40 +2079,40 @@ function FontWeightControl({
   onChange: (fontWeight: FontWeight) => void;
 }) {
   return (
-    <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="mb-6 flex items-center justify-between gap-2">
       <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
         Font weight
       </span>
       <div
         aria-label="Font weight"
-        className="grid shrink-0 grid-cols-2 border border-white/35"
+        className="flex shrink-0 -space-x-px"
         role="group"
       >
         <button
           aria-label="Normal font weight"
           aria-pressed={value === "normal"}
-          className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === "normal" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontWeight: 100 }}
+          className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === "normal" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+          style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 100 }}
           title="Normal"
           type="button"
           onClick={() => {
             onChange("normal");
           }}
         >
-          <span aria-hidden="true">B</span>
+          <span aria-hidden="true">T</span>
         </button>
         <button
           aria-label="Bold font weight"
           aria-pressed={value === 800}
-          className={`flex size-8 cursor-pointer items-center justify-center text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 800 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontWeight: 900 }}
+          className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 800 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+          style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 900, WebkitTextStroke: "0.35px currentColor" }}
           title="Bold"
           type="button"
           onClick={() => {
             onChange(800);
           }}
         >
-          <span aria-hidden="true">B</span>
+          <span aria-hidden="true">T</span>
         </button>
       </div>
     </div>
@@ -3348,7 +3348,7 @@ export function IdentityFontsPage() {
         <Minus aria-hidden="true" className="size-4" />
       </button>
 
-      <div className="col-span-2 block md:col-span-1">
+      <div className="col-span-2 block w-[calc(100%_-_1rem)] min-w-0 md:col-span-1">
         <label
           htmlFor={`font-demo-text-${floating ? "floating" : "main"}`}
           className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
@@ -3386,7 +3386,7 @@ export function IdentityFontsPage() {
         </span>
       </div>
 
-      <div className="col-span-2 block md:col-span-1">
+      <div className="col-span-2 block w-[calc(100%_-_1rem)] min-w-0 md:col-span-1 xl:justify-self-end xl:-translate-x-6">
         <label
           htmlFor={`font-search-${floating ? "floating" : "main"}`}
           className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
@@ -3422,14 +3422,14 @@ export function IdentityFontsPage() {
         </span>
       </div>
 
-      <div className="col-span-1 flex min-w-0 flex-nowrap items-start justify-center gap-1.5 sm:gap-3">
+      <div className="col-span-2 flex min-w-0 flex-nowrap items-start justify-center gap-1 xl:col-span-1 xl:-translate-x-2">
         <div
           ref={
             floating === toolbarFloating
               ? fontColorSettingsReference
               : undefined
           }
-          className="relative block w-[3.75rem] shrink-0 sm:w-[5.25rem]"
+          className="relative block w-[3.75rem] shrink-0 sm:w-[4rem]"
         >
           <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem]">
             <span className="sm:hidden">Font</span>
@@ -3449,7 +3449,7 @@ export function IdentityFontsPage() {
               }
               aria-expanded={fontColorSettingsOpen}
               aria-label="Font color settings"
-              className="size-6 cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
+              className="size-[27px] cursor-pointer border border-white/35 outline-none focus:outline-none focus-visible:outline-none"
               style={{ backgroundColor: fontColor }}
               type="button"
               onClick={() => {
@@ -3549,7 +3549,7 @@ export function IdentityFontsPage() {
               ? backgroundSettingsReference
               : undefined
           }
-          className="relative w-[3.75rem] shrink-0 self-start sm:w-[5.25rem]"
+          className="relative w-[3.75rem] shrink-0 self-start sm:w-[4rem]"
         >
           <span className="mb-1 block whitespace-nowrap text-center text-[0.625rem] tracking-[0.02em] text-white/85 sm:mb-2 sm:text-[0.75rem]">
             <span>Background</span>
@@ -3568,7 +3568,7 @@ export function IdentityFontsPage() {
               }
               aria-expanded={backgroundSettingsOpen}
               aria-label="Background settings"
-              className={`size-6 cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
+              className={`size-[27px] cursor-pointer border border-white/35 bg-transparent bg-cover bg-center outline-none focus:outline-none focus-visible:outline-none ${backgroundMode === "color" && getColorOpacity(backgroundColor) === 0 ? "identity-transparent-color-swatch" : ""}`}
               style={{
                 backgroundColor:
                   backgroundMode === "color" ? backgroundColor : "#000000",
@@ -3776,7 +3776,7 @@ export function IdentityFontsPage() {
         ref={
           floating === toolbarFloating ? typographySettingsReference : undefined
         }
-        className="relative col-span-1 flex min-w-0 items-start self-start justify-self-end md:justify-self-auto"
+        className="relative col-span-2 flex min-w-0 items-start gap-2 self-start justify-self-end xl:col-span-1"
       >
         {isSmallViewport ? (
           <div className="flex flex-col gap-2 text-white/70">
@@ -3812,6 +3812,25 @@ export function IdentityFontsPage() {
           />
         )}
 
+        <div className="ml-px flex min-w-0 shrink-0 flex-col items-start gap-1 md:gap-2">
+          <span className="text-[0.625rem] tracking-[0.02em] text-white/85 sm:text-[0.75rem]">Casing</span>
+          <div className="flex h-9 items-center sm:h-10">
+            <div aria-label="Text casing" className="flex shrink-0 -space-x-px" role="group">
+              {([
+                ["lower", "aa", "Lowercase"],
+                ["mixed", "Aa", "Original casing"],
+                ["upper", "AA", "Uppercase"],
+              ] as const).map(([value, label, title]) => (
+                <button key={value} aria-label={title} aria-pressed={textCasing === value}
+                  className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                  title={title} type="button" onClick={() => setTextCasing(value)}>
+                  <span aria-hidden="true">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <button
           ref={
             floating === toolbarFloating
@@ -3823,7 +3842,7 @@ export function IdentityFontsPage() {
           }
           aria-expanded={typographySettingsOpen}
           aria-label="Typography settings"
-          className="ml-2 flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
+          className="flex size-9 shrink-0 self-end cursor-pointer items-center justify-center bg-transparent text-white/75 shadow-none outline-none hover:text-white focus:outline-none focus-visible:outline-none md:-translate-y-1"
           type="button"
           onClick={() => {
             setTypographySettingsOpen((open) => !open);
@@ -3836,7 +3855,7 @@ export function IdentityFontsPage() {
 
         {typographySettingsOpen && floating === toolbarFloating ? (
           <div
-            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:right-0 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-[24rem] md:max-w-[calc(100vw-3rem)] md:p-3`}
+            className={`${floating ? "fixed right-6 bottom-[4.5rem] md:absolute md:-right-3 md:top-full md:bottom-auto md:mt-2" : "absolute right-0 top-full mt-2"} z-[10001] max-h-[35dvh] w-[calc(100vw-3rem)] max-w-[20rem] overflow-y-auto overscroll-contain border border-white/45 bg-black p-3 [&_*]:!tracking-normal md:max-h-[calc(100dvh-3rem)] md:w-[21rem] md:max-w-[calc(100vw-3rem)] md:p-3`}
             id={
               floating ? "typography-settings-floating" : "typography-settings"
             }
@@ -3862,54 +3881,21 @@ export function IdentityFontsPage() {
               </button>
             </div>
 
-            <div className="md:grid md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-4">
-              <div className="min-w-0 md:order-2 [&>div]:!mb-3 [&>div:last-child]:!mb-0 [&_[role=group]_button]:!size-7">
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
-                    Casing
-                  </span>
-                  <div
-                    aria-label="Text casing"
-                    className="grid shrink-0 grid-cols-3 border border-white/35"
-                    role="group"
-                  >
-                    {(
-                      [
-                        ["lower", "aa", "Lowercase"],
-                        ["mixed", "Aa", "Original casing"],
-                        ["upper", "AA", "Uppercase"],
-                      ] as const
-                    ).map(([value, label, title], index) => (
-                      <button
-                        key={value}
-                        aria-label={title}
-                        aria-pressed={textCasing === value}
-                        className={`flex size-8 cursor-pointer items-center justify-center text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${index < 2 ? "border-r border-white/35" : ""} ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                        title={title}
-                        type="button"
-                        onClick={() => {
-                          setTextCasing(value);
-                        }}
-                      >
-                        <span aria-hidden="true">{label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="md:grid md:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)] md:items-start md:gap-4">
+              <div className="min-w-0 md:order-2 [&>div]:!mb-3 [&>div:last-child]:!mb-0">
+                <div className="mb-6 flex items-center justify-between gap-2">
                   <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                     Alignment
                   </span>
                   <div
                     aria-label="Text alignment"
-                    className="grid shrink-0 grid-cols-3 border border-white/35"
+                    className="flex shrink-0 -space-x-px"
                     role="group"
                   >
                     <button
                       aria-label="Align text left"
                       aria-pressed={textAlignment === "left"}
-                      className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "left" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                       title="Align left"
                       type="button"
                       onClick={() => {
@@ -3921,7 +3907,7 @@ export function IdentityFontsPage() {
                     <button
                       aria-label="Align text center"
                       aria-pressed={textAlignment === "center"}
-                      className={`flex size-8 cursor-pointer items-center justify-center border-r border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "center" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                       title="Align center"
                       type="button"
                       onClick={() => {
@@ -3933,7 +3919,7 @@ export function IdentityFontsPage() {
                     <button
                       aria-label="Align text right"
                       aria-pressed={textAlignment === "right"}
-                      className={`flex size-8 cursor-pointer items-center justify-center outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
+                      className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textAlignment === "right" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
                       title="Align right"
                       type="button"
                       onClick={() => {
@@ -3951,7 +3937,7 @@ export function IdentityFontsPage() {
                 />
 
                 <div className="mb-6">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                       Text shadow
                     </span>
@@ -4065,7 +4051,7 @@ export function IdentityFontsPage() {
                   ) : null}
                 </div>
               </div>
-              <div className="min-w-0 md:order-1 [&>label]:!mt-3 [&>label:first-child]:!mt-0 [&>label>span]:!mb-2">
+              <div className="min-w-0 md:order-1 [&>label]:!mt-2 [&>label:first-child]:!mt-0 [&>label>span]:!mb-1.5">
                 {isSmallViewport ? (
                   <div className="mt-4 grid grid-cols-2 gap-3 pt-4">
                     <div className="flex flex-col gap-2">
@@ -4198,6 +4184,7 @@ export function IdentityFontsPage() {
           </div>
         ) : null}
       </div>
+
     </div>
   );
 
@@ -4207,8 +4194,8 @@ export function IdentityFontsPage() {
       data-ink-bleed={inkBleed > 0 ? "true" : undefined}
       className={`identity-fonts-page min-h-[100dvh] touch-manipulation overflow-x-clip bg-black px-5 py-5 text-white sm:px-8 sm:py-7 lg:px-10 ${lightMode ? "identity-fonts-page--light" : ""}`}
       style={{
-        fontFamily: "'Berlin Type Office', Futura, sans-serif",
-        fontWeight: 700,
+        fontFamily: "'Alte DIN Input', Arial, sans-serif",
+        fontWeight: 400,
       }}
     >
       <svg
@@ -4381,7 +4368,7 @@ export function IdentityFontsPage() {
                       );
                     }}
                   />
-                  <span className="font-bold normal-case">Show All</span>
+                  <span className="font-normal normal-case">Show All</span>
                 </label>
               )}
             </div>
@@ -4405,7 +4392,7 @@ export function IdentityFontsPage() {
                     return (
                       <label
                         key={categoryLabel}
-                        className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-white uppercase hover:text-white"
+                        className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] font-normal tracking-[0.02em] text-white uppercase hover:text-white"
                       >
                         <input
                           aria-checked={
@@ -4624,12 +4611,12 @@ export function IdentityFontsPage() {
                       <span>
                         {section.label.startsWith("category: ") ? (
                           <>
-                            <strong className="font-medium">Category:</strong>{" "}
-                            <strong className="font-bold uppercase">
+                            <span className="font-normal">Category:</span>{" "}
+                            <span className="font-normal uppercase">
                               {getFontCategoryDisplayName(
                                 section.label.slice("category: ".length),
                               )}
-                            </strong>
+                            </span>
                           </>
                         ) : (
                           <span className="uppercase">{section.label}</span>
