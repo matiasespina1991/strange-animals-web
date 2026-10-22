@@ -207,11 +207,15 @@ body
 }
 
 .identity-fonts-page button,
+.identity-fonts-page button *,
 .identity-fonts-page a,
+.identity-fonts-page a *,
 .identity-fonts-page input,
 .identity-fonts-page label,
 .identity-fonts-page select,
-.identity-fonts-page summary {
+.identity-fonts-page summary,
+.identity-fonts-page [role="button"],
+.identity-fonts-page [role="button"] * {
   cursor: pointer !important;
 }
 
