@@ -4,14 +4,14 @@
 
 El usuario me asignó analizar `todo_circular_3d_text.md`, `todo_3d_text.md` y la web/código del Designer Configurator, y preparar una síntesis para que otro agente pueda continuar el trabajo sin depender de esta conversación. Esta nota es esa síntesis. La revisión fue de solo lectura: no se implementó ninguno de los dos efectos.
 
-La intención es estudiar e integrar en el Designer Configurator los dos conceptos de texto 3D descritos abajo. No son dos versiones del mismo efecto: uno construye texto alrededor de un cilindro segmentado; el otro crea profundidad apilando copias del texto. Conservá las funciones existentes y decidí la mejor forma de exponer ambos efectos en la interfaz.
+La intención es integrar en el Designer Configurator dos efectos de texto 3D **fijos y estáticos**. No son dos versiones del mismo efecto: uno construye texto alrededor de un cilindro segmentado; el otro crea profundidad apilando copias del texto. No agregar animación de ningún tipo: ni rotación continua, flotación, wobble, retrasos entre capas, movimiento individual ni controles de reproducción/velocidad. Una orientación o ángulo fijo que el usuario pueda editar sí forma parte del efecto estático. Conservá las funciones existentes y decidí la mejor forma de exponer ambos efectos en la interfaz.
 
 El agente que implemente esto debe inspeccionar el estado actual del código antes de actuar. Si descubre que otra arquitectura encaja mejor, que una parte de esta nota está desactualizada o que una decisión literal causaría problemas de edición/exportación, puede cambiarla por una solución mejor. La nota explica intención y contexto, no impone nombres de tipos, componentes ni una técnica de render específica.
 
 ## Material leído
 
 - `todo_circular_3d_text.md`: prototipo HTML/SCSS y transcripción de una demostración CSS. El efecto principal divide una frase en paneles estrechos, los distribuye alrededor del eje Y y los hace rotar como un anillo/cilindro.
-- `todo_3d_text.md`: referencia sobre texto 3D por capas, movimiento y variaciones. Describe el apilado de duplicados a lo largo de Z, flotación, contrarrotación para mantener legibilidad, retrasos entre capas, decoraciones y patrones.
+- `todo_3d_text.md`: referencia sobre texto 3D por capas y variaciones. Describe el apilado de duplicados a lo largo de Z, además de ejemplos animados, decoraciones y patrones. Los ejemplos de movimiento son material de referencia, no alcance de implementación.
 - `docs/design-configurator.md`: documentación funcional y de exportación del configurador actual.
 - Ruta revisada en el navegador: `/identity/design-configurator`. Está dentro de Identity y protegida por `IdentityAccessGate`. La página muestra inicialmente el proyecto “Other frequencies”, con dos caras A/B, panel de elementos, preview SVG y panel de propiedades.
 
@@ -31,9 +31,9 @@ El agente que implemente esto debe inspeccionar el estado actual del código ant
 
 ### Intención visual
 
-Implementar el efecto del prototipo de `todo_circular_3d_text.md`: una frase larga parece envolverse alrededor de un cilindro/anillo y puede rotar en el espacio. En la referencia, la ilusión se consigue sin extruir letras individualmente: se corta una línea de texto en paneles verticales estrechos y se coloca cada panel en un ángulo diferente alrededor de un eje.
+Implementar el efecto del prototipo de `todo_circular_3d_text.md`: una frase parece envolver la cara visible de un cilindro/anillo mediante paneles verticales proyectados. La pose queda fija; no hay rotación continua ni animación.
 
-El prototipo parte de 24 paneles de ancho aproximado 50 px y radio aproximado 190 px. Para el panel de índice `i`, calcula su ángulo como `360° * i / N`, desplaza el texto compartido hacia atrás aproximadamente `ancho * i`, recorta el panel con `overflow: hidden` y lo coloca con `rotateY(ángulo) translateZ(radio)`. Un contenedor con `perspective` y `transform-style: preserve-3d` permite percibir el volumen. La rotación continua de todo el grupo es una opción visual del ejemplo, no necesariamente una obligación para todos los proyectos.
+El prototipo parte de 24 paneles de ancho aproximado 50 px y radio aproximado 190 px. Para el panel de índice `i`, calcula su ángulo como `360° * i / N`, desplaza el texto compartido hacia atrás aproximadamente `ancho * i`, recorta el panel con `overflow: hidden` y lo coloca con `rotateY(ángulo) translateZ(radio)`. Un contenedor con `perspective` y `transform-style: preserve-3d` permite percibir el volumen. La referencia también rota el grupo continuamente; eso es solo una demostración del tutorial y queda expresamente fuera de alcance. El resultado del configurador debe permanecer inmóvil en una pose 3D fija.
 
 ### Distinción importante
 
@@ -45,11 +45,11 @@ El agente puede decidir si conviene modelarlo como un estilo del texto, un tipo 
 
 - Convertir el prototipo en una implementación propia de React/CSS/SVG compatible con el editor. El SCSS del documento es una referencia conceptual, no un archivo listo para importar.
 - Corregir las expresiones que aparecen con `_` donde deberían existir operaciones aritméticas. No copiar esas expresiones literalmente: Vite no compila SCSS dentro de un `.css` normal.
-- Definir y limitar los parámetros útiles para edición, por ejemplo número de segmentos, radio/profundidad, ancho de panel, rotación y velocidad/estado de animación. Elegí rangos que no desborden ni bloqueen la interfaz.
+- Definir y limitar los parámetros útiles para edición, por ejemplo número de segmentos, radio/profundidad, ancho de panel y orientación fija. Elegí rangos que no desborden ni bloqueen la interfaz.
 - Mantener el texto, fuente, tamaño, tracking, color y alineación coherentes con los controles de texto que ya existen, o justificar explícitamente cualquier diferencia necesaria para el efecto.
 - Evitar huecos visibles entre paneles, saltos al cerrar el círculo, texto cortado en costuras y cambios de alineación al cambiar la longitud de la frase o la fuente.
 - Hacer que el objeto se pueda seleccionar y editar con los patrones existentes de capas. Evaluá con cuidado el arrastre: una transformación 3D cambia la relación entre coordenadas de pantalla y coordenadas del diseño.
-- Si se anima la rotación, ofrecer una forma de pausarla o fijar un ángulo para editar y exportar. Respetar `prefers-reduced-motion` y no depender de una animación en curso para producir un archivo reproducible.
+- No animar la rotación ni ninguna otra propiedad. El ángulo actual debe ser un valor estático del diseño, visible y editable; el preview y cada export deben representar esa misma pose.
 
 ### Exportación
 
@@ -64,18 +64,18 @@ El agente puede elegir otra estrategia si las APIs actuales lo permiten mejor. D
 
 ### Intención visual
 
-Implementar el concepto de `todo_3d_text.md`: varias copias del mismo texto, apiladas en pequeños incrementos de Z, producen grosor/extrusión. La referencia usa una capa superior legible y capas adicionales desplazadas hacia atrás; un contenedor 3D controla perspectiva y `preserve-3d`. Se pueden sumar, como variaciones, flotación, oscilación, contrarrotación para conservar la orientación de la lectura, retrasos por capa, movimiento individual, decoraciones o patrones en el relleno.
+Implementar el concepto de `todo_3d_text.md`: varias copias del mismo texto, apiladas en pequeños incrementos de Z, producen grosor/extrusión. La referencia usa una capa superior legible y capas adicionales desplazadas hacia atrás; un contenedor 3D controla perspectiva y `preserve-3d`. Los ejemplos de flotación, oscilación, contrarrotación animada, retrasos por capa y movimiento individual quedan fuera de alcance. El objeto y su extrusión deben permanecer estáticos. Decoraciones o patrones en el relleno no son necesarios para esta tarea.
 
-La prioridad es que el editor tenga una extrusión ajustable, predecible y útil para una etiqueta; no es necesario implementar todas las demostraciones del artículo en la primera pasada. Elegí un conjunto de controles moderado, por ejemplo profundidad y cantidad/espaciado de capas, con animación opcional si sirve a la experiencia.
+La prioridad es que el editor tenga una extrusión ajustable, predecible y útil para una etiqueta. Elegí un conjunto de controles moderado, por ejemplo profundidad y cantidad/espaciado de capas. El preview no debe moverse por sí solo ni incluir controles de animación.
 
 ### Qué resolver
 
 - Mantener un único contenido editable como fuente de verdad. Las copias de render no deben convertirse en capas independientes que el usuario tenga que corregir manualmente.
 - Decidir el sentido de profundidad y el orden de pintado para que la cara superior quede limpia y el espesor sea visible sin tapar el glifo frontal.
 - Asegurar que tamaño, tracking, line-height, fuente, color y alineación se apliquen de forma consistente a todas las copias.
-- Limitar la cantidad de nodos/capas y medir el efecto en varios elementos simultáneos. El artículo advierte que animar muchos glifos y capas puede resultar costoso; empieza con un número acotado y evita crear un elemento por carácter salvo que sea imprescindible.
+- Limitar la cantidad de nodos/capas y medir el efecto en varios elementos simultáneos. Una extrusión puede generar muchos nodos aun sin animación; empieza con un número acotado y evita crear un elemento por carácter salvo que sea imprescindible.
 - Mantener la selección, el drag, el foco de teclado, el zoom y el preview estables cuando el texto se extruye.
-- Si incluyes variaciones animadas, respeta `prefers-reduced-motion`, ofrece un estado estático editable y congela un estado determinista al exportar.
+- Mantener siempre un estado estático, determinista y directamente editable. No agregar animación ni variantes de movimiento; no hace falta un modo reducido de movimiento porque no debe existir movimiento.
 - Los patrones, adornos y ejes de fuentes variables son posibilidades futuras, no requisitos para el primer alcance. No agregues controles que el modelo o la exportación no puedan sostener.
 
 ### Exportación
@@ -86,13 +86,14 @@ Al igual que para el cilindro, la extrusión debe tener una salida definida en S
 
 Esta sección propone preguntas, no una API obligatoria:
 
-- ¿Son dos estilos aplicados a una capa `text`, o requieren tipos de capa distintos? Mantén distinto el texto de arco 2D actual.
-- ¿Qué parámetros deben guardarse por capa para que al reabrir JSON/recuperación se vea el mismo resultado? Guarda solo los parámetros de diseño, no estado transitorio de hover/drag/animación.
+- Implementación actual: los dos modos son una propiedad `textEffect` opcional en capas `text` existentes, no tipos de capa nuevos. El selector ofrece ninguno, extrusión o cilindro; el arco 2D sigue separado y las imágenes/capas circulares no conservan `textEffect` al importarse.
+- ¿Qué parámetros deben guardarse por capa para que al reabrir JSON/recuperación se vea el mismo resultado? Guarda solo los parámetros de diseño estáticos, no estado transitorio de hover o drag.
 - Si se extiende `LabelLayer` o se agregan tipos, actualiza `makeLayer`, `initialDesign`, `parseDesign`, validación y migración de los drafts existentes. `parseDesign` hoy normaliza explícitamente los tipos conocidos; un valor nuevo podría degradarse a texto normal si no se adapta.
 - Mantén compatibilidad con proyectos existentes de versión 2 y agrega defaults seguros para campos opcionales. No subas la versión ni descartes propiedades sin una razón concreta.
 - Integra los controles en el panel Properties y conserva los patrones de `TypographyValueControl`, undo/redo y agrupación de cambios.
 - Conserva la experiencia A/B independiente, la recuperación local, el guardado/importación JSON y la selección múltiple donde tenga sentido.
 - El editor y los exportadores comparten `LabelArtwork`, pero no asumas que un ajuste visual de preview se refleja automáticamente en exportación. Puede hacer falta un renderer compartido con un modo determinista o una implementación de export específica.
+- El editor y los exportadores comparten `LabelArtwork`; la geometría SVG estática se reutiliza para SVG/PNG/PDF. En PSD, el texto plano conserva contornos vectoriales y las capas con 3D se rasterizan por elemento porque el pipeline actual de contornos no representa bien segmentos/profundidad.
 
 ## Verificación sugerida
 
@@ -105,7 +106,7 @@ Después, prueba en navegador al menos:
 - guardar, recargar, recuperar automáticamente, exportar JSON y volver a importarlo;
 - exportar SVG, PNG y PDF; abrir el PSD y confirmar el aspecto, la agrupación y los contornos de las capas;
 - escritorio y móvil, incluyendo el picker de fuentes, zoom y pestañas de panel;
-- animación activada/desactivada, movimiento reducido y exportación repetida con resultados estables.
+- orientación/ángulo fijo, preview inmóvil y exportaciones repetidas con resultados estables.
 
 ## Criterios de aceptación
 
@@ -118,4 +119,4 @@ Después, prueba en navegador al menos:
 
 ## Libertad de implementación
 
-Antes de escribir código, el agente debe comprobar el estado actual de los archivos y tests: esta nota refleja la revisión realizada el 22 de octubre de 2026. Si encuentra una representación SVG, de canvas o de capas ya existente que resuelva mejor la perspectiva y los exports, úsala. Puede cambiar el plan, dividir una tarea o posponer una variación animada si eso protege edición, rendimiento, compatibilidad o fidelidad de impresión. Mantén los dos objetivos visuales y la diferencia entre ellos como guía central.
+Antes de escribir código, el agente debe comprobar el estado actual de los archivos y tests: esta nota refleja la revisión realizada el 22 de octubre de 2026. Si encuentra una representación SVG, de canvas o de capas ya existente que resuelva mejor la perspectiva y los exports, úsala. Puede cambiar el plan o dividir una tarea si eso protege edición, rendimiento, compatibilidad o fidelidad de impresión, pero el resultado debe seguir siendo completamente estático y sin animación. Mantén los dos objetivos visuales y la diferencia entre ellos como guía central.

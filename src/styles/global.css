@@ -28,7 +28,8 @@ html:not([data-font-toolbar-floating]) .identity-scroll-top {
 
 @font-face {
   font-family: "Alte DIN Input";
-  src: url("/media/fonts/Alte%20DIN%201451%20Mittelschrift%20gepraegt%20Regular.ttf") format("truetype");
+  src: url("/media/fonts/Alte%20DIN%201451%20Mittelschrift%20gepraegt%20Regular.ttf")
+    format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -328,7 +329,8 @@ body
   border-color: rgb(23 23 23 / 0.42) !important;
 }
 
-.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-runnable-track {
+.identity-fonts-page--light
+  .identity-font-size-slider::-webkit-slider-runnable-track {
   background: rgb(23 23 23 / 0.42);
 }
 
@@ -588,7 +590,8 @@ input {
 }
 
 /* Keep native range tracks visible after the light theme changes the page. */
-.identity-fonts-page--light .identity-font-size-slider::-webkit-slider-runnable-track {
+.identity-fonts-page--light
+  .identity-font-size-slider::-webkit-slider-runnable-track {
   background: rgb(23 23 23 / 58%) !important;
 }
 

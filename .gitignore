@@ -8,3 +8,4 @@ dist/
 .npm-cache/
 firebase-debug.log
 firebase-debug.*.log
+input/

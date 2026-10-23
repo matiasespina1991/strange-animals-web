@@ -15,9 +15,16 @@ import { usePathRoute } from "@/hooks/usePathRoute";
 import { lazy, Suspense } from "react";
 
 const MyspacePlayerTestPage = lazy(() => import("@/features/listen/MyspacePlayerTestPage"));
+const FontFilterLabPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/identity/FontFilterLabPage"))
+  : null;
 
 export function App() {
   const route = usePathRoute();
+
+  if (import.meta.env.DEV && route === "/dev/font-filter-lab" && FontFilterLabPage) {
+    return <Suspense fallback={<p>Loading design lab…</p>}><FontFilterLabPage /></Suspense>;
+  }
 
   if (route === "/listen/myspace-test") {
     return <Suspense fallback={<p>Loading player…</p>}><MyspacePlayerTestPage /></Suspense>;

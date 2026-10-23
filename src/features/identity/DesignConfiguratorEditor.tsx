@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  Compass,
   Copy,
   Grid2X2,
   Eye,
@@ -54,6 +55,13 @@ import {
 } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
+import { ContentTextControl } from "./ContentTextControl";
+import { ImageAppearanceControls } from "./ImageAppearanceControls";
+import { readBarcodeSourcePalette } from "./barcode-source-palette";
+import {
+  TextBlendModeControl,
+  TextEffectControls,
+} from "./TextEffectControls";
 import { SleeveImageControl } from "./SleeveImageControl";
 import { SleeveToolbar } from "./SleeveToolbar";
 import { ColorSwatches } from "./ColorSwatches";
@@ -62,6 +70,7 @@ import { LabelTemplatePicker } from "./LabelTemplatePicker";
 import { FontStyleTiles } from "./FontStyleTiles";
 import { FontSpecimen } from "./FontSpecimen";
 import { FontCategoryChips } from "./FontCategoryChips";
+import { FontCollectionTabs } from "./FontCollectionTabs";
 import { getFontCategoryDisplayName } from "./font-categories";
 import {
   pickerCatalog,
@@ -80,6 +89,7 @@ import { GlobalInkControl } from "./GlobalInkControl";
 import { AssetLibrary } from "./AssetLibrary";
 import { AccountControl } from "./AccountControl";
 import { createExportDiagnostics } from "./export-diagnostics";
+import { createUsedFontDownload } from "./design-configurator-font-download";
 import { hasUnsavedProject } from "./project-dirty-state";
 import { removeLayers } from "./layer-operations";
 import type { InsertableAsset } from "./asset-library";
@@ -99,6 +109,7 @@ import {
   parseDesign,
   RECOVERY_KEY,
   safeFilename,
+  imageRole,
   type LabelDesign,
   type LabelLayer,
   type LabelSide,
@@ -452,6 +463,7 @@ export function DesignConfiguratorEditor() {
   const [families, setFamilies] = useState<Record<string, string>>({}),
     [fontErrors, setFontErrors] = useState<Record<string, string>>({});
   const [fontBusy, setFontBusy] = useState(false),
+    [usedFontsBusy, setUsedFontsBusy] = useState(false),
     [exportBusy, setExportBusy] = useState(false),
     [notice, setNotice] = useState(
       initial.recovered
@@ -569,6 +581,29 @@ export function DesignConfiguratorEditor() {
   const update = (patch: Partial<LabelLayer>, group?: string) =>
     patchLayer(side, element.id, patch, group);
   const end = () => dispatch({ type: "end" });
+  useEffect(() => {
+    let active = true;
+    const pending = [...design.A, ...design.B].filter(layer => layer.kind === "image" && imageRole(layer) === "barcode" && layer.image && !layer.imageBarSource);
+    if (!pending.length) return;
+    void Promise.all(pending.map(async layer => {
+      try { return { id: layer.id, image: layer.image, palette: await readBarcodeSourcePalette(layer.image!) }; }
+      catch (error) { console.warn("[Configurator/barcode] Could not detect source palette", layer.id, error); return undefined; }
+    })).then(results => {
+      if (!active) return;
+      const resolved = results.filter(result => result !== undefined);
+      if (!resolved.length) { setNotice("No se pudieron detectar los colores originales del barcode."); return; }
+      dispatch({ type: "normalize", change: current => {
+        const migrate = (layer: LabelLayer) => {
+          const result = resolved.find(item => item.id === layer.id && item.image === layer.image);
+          return result && !layer.imageBarSource ? { ...layer, imageRole: "barcode" as const, imageBarSource: result.palette,
+            imageBarColor: layer.imageBarColor ?? "#000000", imageBarBackground: layer.imageBarBackground ?? "#ffffff",
+            imageInverted: false, imageFill: undefined } : layer;
+        };
+        return { ...current, A: current.A.map(migrate), B: current.B.map(migrate) };
+      } });
+    });
+    return () => { active = false; };
+  }, [design.A, design.B]);
   const familyFor = (layer: LabelLayer) =>
     families[fontKey(layer)] ?? defaultLabelFont(layer);
   useEffect(() => {
@@ -780,6 +815,25 @@ export function DesignConfiguratorEditor() {
       new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }),
       `${safeFilename(design.title)}.json`,
     );
+  const downloadUsedFonts = async () => {
+    if (usedFontsBusy) return;
+    setUsedFontsBusy(true);
+    try {
+      const result = await createUsedFontDownload(design, fonts);
+      downloadDesignFile(result.blob, result.fileName);
+      setNotice(
+        `Downloaded ${result.fontCount} font file${result.fontCount === 1 ? "" : "s"} used in this project.`,
+      );
+    } catch (cause) {
+      setNotice(
+        cause instanceof Error
+          ? cause.message
+          : "Could not download the fonts used in this project.",
+      );
+    } finally {
+      setUsedFontsBusy(false);
+    }
+  };
   const importProject = async (file?: File) => {
     if (!file) return;
     try {
@@ -967,6 +1021,11 @@ export function DesignConfiguratorEditor() {
       pickerCatalog(fonts, scope, favoriteFonts, deferredQuery, fontContext),
     [fonts, scope, favoriteFonts, deferredQuery, fontContext],
   );
+  const collectionCounts = useMemo(() => ({
+    standard: pickerCatalog(fonts, "standard", favoriteFonts, deferredQuery, fontContext).length,
+    all: pickerCatalog(fonts, "all", favoriteFonts, deferredQuery, fontContext).length,
+    favorites: pickerCatalog(fonts, "favorites", favoriteFonts, deferredQuery, fontContext).length,
+  }), [fonts, favoriteFonts, deferredQuery, fontContext]);
   const categories = useMemo(
     () =>
       pickerCategories(
@@ -1635,6 +1694,8 @@ export function DesignConfiguratorEditor() {
                   fontId: defaults.fontId,
                   variantId: defaults.variantId,
                   inkBleed: defaults.inkBleed ?? 0,
+                  textEffect: defaults.textEffect,
+                  textEffectSettings: defaults.textEffectSettings,
                   image: layer.kind === "image" ? layer.image : undefined,
                   imageRatio:
                     layer.kind === "image" ? layer.imageRatio : undefined,
@@ -1675,22 +1736,19 @@ export function DesignConfiguratorEditor() {
               </label>
               {element.kind !== "image" && (
                 <>
-                  <label className="dc-field dc-text-field">
-                    <span>
-                      Content<span>{element.text.length} characters</span>
-                    </span>
-                    <textarea
-                      maxLength={3000}
-                      rows={4}
-                      value={element.text}
-                      onChange={(e) =>
-                        update({ text: e.target.value }, `text-${element.id}`)
-                      }
-                      onBlur={end}
-                    />
-                  </label>
+                  <ContentTextControl text={element.text}
+                    onChange={text => update({ text }, `text-${element.id}`)}
+                    onTransform={text => { end(); update({ text }); end(); }}
+                    onCommit={end} />
                   <section className="dc-property-section dc-typography-section">
                     <div className="dc-section-caption">Typography</div>
+                    <TextBlendModeControl
+                      value={element.blendMode}
+                      onChange={(blendMode) => {
+                        end();
+                        update({ blendMode });
+                      }}
+                    />
                     <label className="dc-field">
                       <span>Font family</span>
                       <button
@@ -1786,8 +1844,8 @@ export function DesignConfiguratorEditor() {
                         unit="PX"
                         value={element.size}
                         min={3}
-                        max={500}
-                        sliderMax={200}
+                        max={3000}
+                        sliderMax={3000}
                         step={0.5}
                         onChange={(size) =>
                           update({ size }, `size-${element.id}`)
@@ -1864,6 +1922,28 @@ export function DesignConfiguratorEditor() {
                         )}
                       </div>
                     </div>
+                    <TypographyValueControl
+                      label="Opacity"
+                      unit="%"
+                      value={Math.round((element.opacity ?? 1) * 100)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      onChange={opacity => update({ opacity: opacity / 100 }, `opacity-${element.id}`)}
+                      onCommit={end}
+                    />
+                    <TextEffectControls
+                      effect={element.textEffect}
+                      settings={element.textEffectSettings}
+                      onChange={(textEffect, group, textEffectSettings) => {
+                        if (!group) end();
+                        update(
+                          { textEffect, textEffectSettings },
+                          group ? `${group}-${element.id}` : undefined,
+                        );
+                      }}
+                      onCommit={end}
+                    />
                   </section>
                 </>
               )}
@@ -1892,6 +1972,9 @@ export function DesignConfiguratorEditor() {
                   <>
                     {element.kind === "image" &&
                       slider("Width", "width", 10, 600, "PX")}
+                    {element.kind === "image" && (
+                      <ImageAppearanceControls layer={element} onChange={update} onCommit={end} />
+                    )}
                     {element.kind === "image" && (
                       <TypographyValueControl
                         label="Border radius"
@@ -1943,6 +2026,12 @@ export function DesignConfiguratorEditor() {
                     {slider("Rotation", "angle", -180, 180, "°")}
                   </>
                 )}
+              </section>
+              <section className="dc-property-section dc-focus-section">
+                <div className="dc-section-caption">Focus</div>
+                <TypographyValueControl label="Blur" unit="PX" value={element.blur ?? 0} min={0} max={40} step={0.1}
+                  onChange={blur => update({ blur }, `blur-${element.id}`)} onCommit={end} />
+                <p className="dc-blur-hint">0 keeps edges sharp. Increase to soften this element.</p>
               </section>
             </>
           )}
@@ -2022,20 +2111,17 @@ export function DesignConfiguratorEditor() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <div className="dc-font-scopes">
-            {[
-              ["standard", "Standard"],
-              ["all", "All"],
-              ["favorites", "Favorites"],
-            ].map(([key, title]) => (
-              <button
-                key={key}
-                aria-pressed={scope === key}
-                onClick={() => setScope(key as FontPickerScope)}
-              >
-                {title}
-              </button>
-            ))}
+          <FontCollectionTabs scope={scope} counts={collectionCounts} loading={fontsLoading} onSelect={setScope} />
+          <p className="dc-font-discovery-note"><Compass size={15} aria-hidden="true" /> Explore every style, from essentials to experimental.</p>
+          <div className="dc-font-category-label"><SlidersHorizontal size={14} aria-hidden="true" /><span>Filter by category</span><small>Optional</small></div>
+          <FontCategoryChips
+            categories={categories}
+            selected={selectedCategory}
+            labelFor={(category) => pickerCategoryLabel(category, scope, fontContext)}
+            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [categoryScopeKey]: category }))}
+          />
+          <div className="dc-font-result-options">
+            <span role="status">{fontsLoading ? "Loading families…" : `${sortedFonts.length.toLocaleString("en-US")} families`}</span>
             <label className="dc-all-styles">
               <input
                 type="checkbox"
@@ -2048,21 +2134,7 @@ export function DesignConfiguratorEditor() {
               />
               See all substyles
             </label>
-            <span>{sortedFonts.length} families</span>
           </div>
-          <FontCategoryChips
-            categories={categories}
-            selected={selectedCategory}
-            labelFor={(category) =>
-              pickerCategoryLabel(category, scope, fontContext)
-            }
-            onSelect={(category) =>
-              setCategoryByScope((current) => ({
-                ...current,
-                [categoryScopeKey]: category,
-              }))
-            }
-          />
           <div
             className="dc-font-results"
             ref={fontResults}
@@ -2216,6 +2288,17 @@ export function DesignConfiguratorEditor() {
                 Import project (JSON)
               </button>
             </div>
+            <hr className="dc-project-files-divider" />
+            <button
+              className="dc-download-used-fonts"
+              disabled={usedFontsBusy || fontsLoading}
+              onClick={() => void downloadUsedFonts()}
+            >
+              <ArrowDownToLine size={16} />
+              {usedFontsBusy
+                ? "Preparing fonts…"
+                : "Download fonts in use"}
+            </button>
           </div>
         </Modal>
       )}
@@ -2342,10 +2425,11 @@ export function DesignConfiguratorEditor() {
             </label>
             {exportFormat === "psd" && (
               <p className="dc-font-explanation">
-                Text is converted to editable vector shapes, not live type. OTF,
-                TTF and WOFF sources supported; contextual scripts are not
-                supported yet. Ink bleed keeps a separate appearance layer and
-                hidden vector source.
+                Text without 3D effects or blur is converted to editable vector shapes,
+                not live type. 3D and blurred layers are rasterized to preserve their
+                appearance. OTF, TTF and WOFF sources supported; contextual
+                scripts are not supported yet. Ink bleed keeps a separate
+                appearance layer and hidden vector source.
               </p>
             )}
             <label className="dc-field">

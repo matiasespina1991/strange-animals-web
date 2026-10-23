@@ -27,12 +27,14 @@ assert.ok(outlines.length > 5, "Export glyph contours, not a flattened text bitm
 const pixel = { width: 1, height: 1, data: new Uint8ClampedArray([0, 0, 0, 255]) };
 const bytes = writePsd({ width: 32, height: 32, imageData: { width: 32, height: 32, data: new Uint8ClampedArray(32 * 32 * 4) },
   children: [{ name: "Text outlines", imageData: pixel, vectorFill: { type: "color", color: { r: 0, g: 0, b: 0 } }, vectorMask: { paths: outlines } },
+    { name: "Difference text", blendMode: "difference", imageData: pixel },
     { name: "Hidden image", hidden: true, imageData: pixel }],
 });
 const result = readPsd(bytes, { skipLayerImageData: true, skipCompositeImageData: true, skipThumbnail: true });
-assert.equal(result.children.length, 2);
+assert.equal(result.children.length, 3);
 assert.equal(result.children[0].vectorMask.paths.length, outlines.length);
-assert.equal(result.children[1].hidden, true);
+assert.equal(result.children[1].blendMode, "difference");
+assert.equal(result.children[2].hidden, true);
 assert.equal(result.children[0].text, undefined, "Outlined text must not depend on installed Photoshop fonts");
 const fallbackCode = ts.transpileModule(await readFile(new URL("../src/features/identity/psd-glyph-fallback.ts", import.meta.url), "utf8"), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const fallbackModule = `data:text/javascript;base64,${Buffer.from(fallbackCode).toString("base64")}`;

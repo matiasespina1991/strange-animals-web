@@ -15,8 +15,8 @@ export function FontCategoryChips({ categories, selected, onSelect, labelFor = g
     else if (item.right > container.right) list.scrollLeft += item.right - container.right;
   }, [selected]);
   return <div className="dc-category-chips" ref={root} role="group" aria-label="Font categories">
-    <button aria-pressed={selected === null} onClick={() => onSelect(null)}>All</button>
-    {categories.map((category) => <button key={category} aria-pressed={selected === category}
+    <button type="button" aria-pressed={selected === null} onClick={() => onSelect(null)}>All categories</button>
+    {categories.map((category) => <button type="button" key={category} aria-pressed={selected === category}
       onClick={() => onSelect(selected === category ? null : category)}>{labelFor(category)}</button>)}
   </div>;
 }

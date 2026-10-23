@@ -33,6 +33,8 @@ export function generateBarcode(value: string, format: BarcodeFormat, options: B
   drawBarcode(canvas, value, format, options);
   return {
     name: `Barcode ${format} · ${value}`,
+    imageRole: "barcode",
+    imageBarSource: { bars: options.lineColor ?? "#000000", background: options.background ?? "#ffffff" },
     image: canvas.toDataURL("image/png"),
     imageRatio: canvas.width / canvas.height,
     width: 180,

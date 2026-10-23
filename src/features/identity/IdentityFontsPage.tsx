@@ -84,10 +84,18 @@ import {
 } from "./font-categories";
 import { getFontPreviewText } from "./font-preview-text";
 import { traceFontLoad } from "./font-load-diagnostics";
-import { canUseLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
+import {
+  canUseLocalFontUseCase,
+  LOCAL_FONT_USE_CASE,
+} from "./local-font-use-case";
 const SHOW_FONT_DELETE_CONTROLS = import.meta.env.DEV;
 
-const FONT_USE_CASES = ["CD Print", "Clothing", "Vinyl print", ...(canUseLocalFontUseCase() ? [LOCAL_FONT_USE_CASE] : [])] as const;
+const FONT_USE_CASES = [
+  "CD Print",
+  "Clothing",
+  "Vinyl print",
+  ...(canUseLocalFontUseCase() ? [LOCAL_FONT_USE_CASE] : []),
+] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
 const LOADING_CATEGORY_PLACEHOLDER_COUNT = 14;
@@ -1263,7 +1271,11 @@ function FontSpecimen({
     const load = () => {
       if (started) return;
       started = true;
-      metadataTrace = traceFontLoad({ fontId: font.id, fontName: font.name, kind: "metadata" });
+      metadataTrace = traceFontLoad({
+        fontId: font.id,
+        fontName: font.name,
+        kind: "metadata",
+      });
       metadataTrace.event("metadata:request");
       releaseLoadReservation.current = reserveFontLoad(() => getLoadPriority());
       setVariantsLoaded(false);
@@ -1272,7 +1284,9 @@ function FontSpecimen({
       listFontVariants(font)
         .then((nextVariants) => {
           if (!active) return;
-          metadataTrace?.event("metadata:received", { variants: nextVariants.length });
+          metadataTrace?.event("metadata:received", {
+            variants: nextVariants.length,
+          });
           metadataTrace?.finish("ready");
           setVariants(nextVariants);
           setCurrentPage(0);
@@ -2092,7 +2106,10 @@ function FontWeightControl({
           aria-label="Normal font weight"
           aria-pressed={value === "normal"}
           className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === "normal" ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontFamily: '"Times New Roman", Times, serif', fontWeight: 100 }}
+          style={{
+            fontFamily: '"Times New Roman", Times, serif',
+            fontWeight: 100,
+          }}
           title="Normal"
           type="button"
           onClick={() => {
@@ -2105,7 +2122,11 @@ function FontWeightControl({
           aria-label="Bold font weight"
           aria-pressed={value === 800}
           className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-sm outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${value === 800 ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-          style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 900, WebkitTextStroke: "0.35px currentColor" }}
+          style={{
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontWeight: 900,
+            WebkitTextStroke: "0.35px currentColor",
+          }}
           title="Bold"
           type="button"
           onClick={() => {
@@ -3813,17 +3834,31 @@ export function IdentityFontsPage() {
         )}
 
         <div className="ml-px flex min-w-0 shrink-0 flex-col items-start gap-1 md:gap-2">
-          <span className="text-[0.625rem] tracking-[0.02em] text-white/85 sm:text-[0.75rem]">Casing</span>
+          <span className="text-[0.625rem] tracking-[0.02em] text-white/85 sm:text-[0.75rem]">
+            Casing
+          </span>
           <div className="flex h-9 items-center sm:h-10">
-            <div aria-label="Text casing" className="flex shrink-0 -space-x-px" role="group">
-              {([
-                ["lower", "aa", "Lowercase"],
-                ["mixed", "Aa", "Original casing"],
-                ["upper", "AA", "Uppercase"],
-              ] as const).map(([value, label, title]) => (
-                <button key={value} aria-label={title} aria-pressed={textCasing === value}
+            <div
+              aria-label="Text casing"
+              className="flex shrink-0 -space-x-px"
+              role="group"
+            >
+              {(
+                [
+                  ["lower", "aa", "Lowercase"],
+                  ["mixed", "Aa", "Original casing"],
+                  ["upper", "AA", "Uppercase"],
+                ] as const
+              ).map(([value, label, title]) => (
+                <button
+                  key={value}
+                  aria-label={title}
+                  aria-pressed={textCasing === value}
                   className={`flex size-[29px] cursor-pointer items-center justify-center border border-white/35 text-[0.6875rem] outline-none hover:text-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-[-3px] focus-visible:outline-white ${textCasing === value ? "bg-white text-black hover:text-black" : "bg-black text-white/55"}`}
-                  title={title} type="button" onClick={() => setTextCasing(value)}>
+                  title={title}
+                  type="button"
+                  onClick={() => setTextCasing(value)}
+                >
                   <span aria-hidden="true">{label}</span>
                 </button>
               ))}
@@ -4184,7 +4219,6 @@ export function IdentityFontsPage() {
           </div>
         ) : null}
       </div>
-
     </div>
   );
 
