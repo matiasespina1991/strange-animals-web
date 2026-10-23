@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { getFontCategoryDisplayName } from "./font-categories";
+import type { FontPickerScope } from "./font-picker-catalog";
 
-export function FontCategoryChips({ categories, selected, onSelect, labelFor = getFontCategoryDisplayName }: {
-  categories: string[]; selected: string | null; onSelect: (category: string | null) => void;
+export function FontCategoryChips({ categories, selected, scope, onSelect, labelFor = getFontCategoryDisplayName }: {
+  categories: string[]; selected: string | null; scope: FontPickerScope; onSelect: (category: string | null) => void;
   labelFor?: (category: string) => string;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -14,7 +15,8 @@ export function FontCategoryChips({ categories, selected, onSelect, labelFor = g
     if (item.left < container.left) list.scrollLeft += item.left - container.left;
     else if (item.right > container.right) list.scrollLeft += item.right - container.right;
   }, [selected]);
-  return <div className="dc-category-chips" ref={root} role="group" aria-label="Font categories">
+  const layoutScope = scope === "standard" ? "classic" : scope;
+  return <div className={`dc-category-chips dc-category-chips--${layoutScope}`} data-count={categories.length + 1} ref={root} role="group" aria-label="Font categories">
     <button type="button" aria-pressed={selected === null} onClick={() => onSelect(null)}>All categories</button>
     {categories.map((category) => <button type="button" key={category} aria-pressed={selected === category}
       onClick={() => onSelect(selected === category ? null : category)}>{labelFor(category)}</button>)}

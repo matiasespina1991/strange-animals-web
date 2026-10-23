@@ -1,21 +1,45 @@
 export type LabelSide = "A" | "B";
 export type TextBlendMode = "normal" | "difference";
-export type TextExtrusion = { depth: number; angle: number; steps: number; fade?: number; depthBlur?: number };
+export type TextExtrusion = {
+  depth: number;
+  angle: number;
+  steps: number;
+  fade?: number;
+  depthBlur?: number;
+};
 export type StaticTextEffect =
   | ({ type: "extrusion" } & TextExtrusion)
-  | { type: "cylinder"; radius: number; span: number; segments: number; tilt?: number; rotation?: number; closed?: boolean; backBlur?: number; backShading?: number; backFade?: number; extrusion?: TextExtrusion };
+  | {
+      type: "cylinder";
+      radius: number;
+      span: number;
+      segments: number;
+      tilt?: number;
+      rotation?: number;
+      closed?: boolean;
+      backBlur?: number;
+      backShading?: number;
+      backFade?: number;
+      extrusion?: TextExtrusion;
+    };
 export type TextEffectSettings = {
   cylinder?: Omit<Extract<StaticTextEffect, { type: "cylinder" }>, "extrusion">;
   extrusion?: TextExtrusion;
 };
-export function textExtrusion(effect?: StaticTextEffect): TextExtrusion | undefined {
+export function textExtrusion(
+  effect?: StaticTextEffect,
+): TextExtrusion | undefined {
   if (!effect) return undefined;
   if (effect.type === "cylinder") return effect.extrusion;
   const { type: _type, ...settings } = effect;
   return settings;
 }
 export function extrusionOpacity(step: number, steps: number, fade = 0) {
-  return clamp(1 - clamp(fade, 0, 300) / 100 * clamp(step / Math.max(1, steps), 0, 1), 0, 1);
+  return clamp(
+    1 - (clamp(fade, 0, 300) / 100) * clamp(step / Math.max(1, steps), 0, 1),
+    0,
+    1,
+  );
 }
 /** Far-to-near batches share at most six blur passes, not one per depth copy. */
 export function extrusionBlurBands(steps: number, depthBlur = 0) {
@@ -23,7 +47,7 @@ export function extrusionBlurBands(steps: number, depthBlur = 0) {
   const maximum = clamp(depthBlur, 0, 40);
   const bands: { blur: number; steps: number[] }[] = [];
   for (let step = count; step >= 1; step--) {
-    const blur = maximum ? maximum * Math.round(step / count * 5) / 5 : 0;
+    const blur = maximum ? (maximum * Math.round((step / count) * 5)) / 5 : 0;
     const previous = bands[bands.length - 1];
     if (previous?.blur === blur) previous.steps.push(step);
     else bands.push({ blur, steps: [step] });
@@ -32,7 +56,10 @@ export function extrusionBlurBands(steps: number, depthBlur = 0) {
 }
 // Every depth step repeats all cylinder segments; bound their total node count.
 export function cylinderExtrusionSteps(segments: number) {
-  return Math.min(200, Math.max(1, Math.floor(1536 / clamp(segments, 6, 64)) - 1));
+  return Math.min(
+    200,
+    Math.max(1, Math.floor(1536 / clamp(segments, 6, 64)) - 1),
+  );
 }
 export type LabelLayer = {
   id: string;
@@ -58,6 +85,9 @@ export type LabelLayer = {
   opacity?: number;
   blur?: number;
   image?: string;
+  textTexture?: string;
+  textTextureOpacity?: number;
+  textTextureScale?: number;
   imageFill?: string;
   imageInverted?: boolean;
   imageBarColor?: string;
@@ -88,23 +118,44 @@ export type LabelDesign = {
   mark: boolean;
 };
 export function imageRole(layer: Pick<LabelLayer, "name" | "imageRole">) {
-  return layer.imageRole ?? (/^Barcode\b/.test(layer.name) ? "barcode" :
-    /^Strange Animals (logo|outlined)( copy)?$/.test(layer.name) ? "brand-logo" : undefined);
+  return (
+    layer.imageRole ??
+    (/^Barcode\b/.test(layer.name)
+      ? "barcode"
+      : /^Strange Animals (logo|outlined)( copy)?$/.test(layer.name)
+        ? "brand-logo"
+        : undefined)
+  );
 }
 export function imageCropBounds(layer: LabelLayer) {
   const crop = layer.imageCrop ?? { top: 0, right: 0, bottom: 0, left: 0 };
   const height = layer.width / (layer.imageRatio ?? 1);
   const width = layer.width * (1 - (crop.left + crop.right) / 100);
   const croppedHeight = height * (1 - (crop.top + crop.bottom) / 100);
-  return { x: layer.x - layer.width / 2 + layer.width * crop.left / 100,
-    y: layer.y - height / 2 + height * crop.top / 100, width, height: croppedHeight,
-    rx: Math.min(layer.borderRadius ?? 0, width / 2, croppedHeight / 2) };
+  return {
+    x: layer.x - layer.width / 2 + (layer.width * crop.left) / 100,
+    y: layer.y - height / 2 + (height * crop.top) / 100,
+    width,
+    height: croppedHeight,
+    rx: Math.min(layer.borderRadius ?? 0, width / 2, croppedHeight / 2),
+  };
 }
 // Normalize the source barcode palette before applying independently editable colors.
-export function barcodeSourceMatrix(source = { bars: "#000000", background: "#ffffff" }) {
-  const channels = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
-  const bars = channels(source.bars), background = channels(source.background);
-  const channel = [0, 1, 2].reduce((best, i) => Math.abs(background[i] - bars[i]) > Math.abs(background[best] - bars[best]) ? i : best, 0);
+export function barcodeSourceMatrix(
+  source = { bars: "#000000", background: "#ffffff" },
+) {
+  const channels = (hex: string) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const bars = channels(source.bars),
+    background = channels(source.background);
+  const channel = [0, 1, 2].reduce(
+    (best, i) =>
+      Math.abs(background[i] - bars[i]) >
+      Math.abs(background[best] - bars[best])
+        ? i
+        : best,
+    0,
+  );
   const delta = background[channel] - bars[channel];
   if (Math.abs(delta) < 1e-6) return "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0";
   const row = [0, 0, 0, 0, -bars[channel] / delta];
@@ -244,12 +295,20 @@ export const clamp = (value: number, min: number, max: number) =>
 export function capitalizeWords(text: string) {
   const lower = text.toLowerCase();
   if (typeof Intl.Segmenter === "function") {
-    return Array.from(new Intl.Segmenter(undefined, { granularity: "word" }).segment(lower), part =>
-      part.isWordLike ? part.segment.replace(/\p{L}/u, letter => letter.toUpperCase()) : part.segment,
+    return Array.from(
+      new Intl.Segmenter(undefined, { granularity: "word" }).segment(lower),
+      (part) =>
+        part.isWordLike
+          ? part.segment.replace(/\p{L}/u, (letter) => letter.toUpperCase())
+          : part.segment,
     ).join("");
   }
-  return lower.replace(/(^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}]+)/gu, (_, separator, word) =>
-    separator + word.replace(/\p{L}/u, (letter: string) => letter.toUpperCase()));
+  return lower.replace(
+    /(^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}]+)/gu,
+    (_, separator, word) =>
+      separator +
+      word.replace(/\p{L}/u, (letter: string) => letter.toUpperCase()),
+  );
 }
 export function circularPath(layer: Pick<LabelLayer, "radius" | "arc">) {
   // Two semicircles form a complete path; its midpoint remains the text anchor.
@@ -276,7 +335,10 @@ export function cylinderTextSegments(
   const project = (angle: number) => {
     const depth = safeRadius * (1 - Math.cos(angle));
     const perspective = (safeRadius * 3) / (safeRadius * 3 + depth * cosine);
-    return { x: safeRadius * Math.sin(angle) * perspective, y: depth * sine * perspective };
+    return {
+      x: safeRadius * Math.sin(angle) * perspective,
+      y: depth * sine * perspective,
+    };
   };
   return Array.from({ length: safeCount }, (_, index) => {
     const start = (index / safeCount - 0.5) * safeSpan + rotationRadians;
@@ -286,7 +348,8 @@ export function cylinderTextSegments(
     const perspective = (safeRadius * 3) / (safeRadius * 3 + depth * cosine);
     const left = project(start);
     const right = project(end);
-    const signedWidth = safeRadius * (Math.sin(end) - Math.sin(start)) * perspective;
+    const signedWidth =
+      safeRadius * (Math.sin(end) - Math.sin(start)) * perspective;
     const width = Math.max(0.001, Math.abs(signedWidth));
     return {
       x: safeRadius * Math.sin(middle) * perspective,
@@ -313,33 +376,87 @@ export function closedCylinderText(layer: LabelLayer) {
   if (!base || layer.textEffect?.type !== "cylinder") return base;
   const unit = `${base} · `;
   const unitLength = splitTextGraphemes(unit).length;
-  const span = cylinderTextSpan(unit, layer.size, layer.spacing, layer.textEffect.radius, 360);
-  const repeats = Math.round(clamp(Math.max(Math.ceil(360 / span), Math.ceil(layer.textEffect.segments / unitLength)), 1, 64));
+  const span = cylinderTextSpan(
+    unit,
+    layer.size,
+    layer.spacing,
+    layer.textEffect.radius,
+    360,
+  );
+  const repeats = Math.round(
+    clamp(
+      Math.max(
+        Math.ceil(360 / span),
+        Math.ceil(layer.textEffect.segments / unitLength),
+      ),
+      1,
+      64,
+    ),
+  );
   return unit.repeat(repeats);
 }
 export function cylinderTextLayout(layer: LabelLayer) {
   const effect = layer.textEffect;
-  if (effect?.type !== "cylinder") return { graphemes: [] as string[], segments: [] as ReturnType<typeof cylinderTextSegments>, anchorOffset: 0 };
-  const text = effect.closed ? closedCylinderText(layer) : layer.text.replace(/\n/g, " ");
+  if (effect?.type !== "cylinder")
+    return {
+      graphemes: [] as string[],
+      segments: [] as ReturnType<typeof cylinderTextSegments>,
+      anchorOffset: 0,
+    };
+  const text = effect.closed
+    ? closedCylinderText(layer)
+    : layer.text.replace(/\n/g, " ");
   const graphemes = splitTextGraphemes(text);
-  if (!graphemes.length) return { graphemes, segments: [] as ReturnType<typeof cylinderTextSegments>, anchorOffset: 0 };
+  if (!graphemes.length)
+    return {
+      graphemes,
+      segments: [] as ReturnType<typeof cylinderTextSegments>,
+      anchorOffset: 0,
+    };
   const count = Math.min(effect.segments, graphemes.length);
-  const span = effect.closed ? 360 : cylinderTextSpan(text, layer.size, layer.spacing, effect.radius, effect.span);
-  const segments = cylinderTextSegments(effect.radius, span, count, effect.tilt ?? 0, effect.rotation ?? 0);
+  const span = effect.closed
+    ? 360
+    : cylinderTextSpan(
+        text,
+        layer.size,
+        layer.spacing,
+        effect.radius,
+        effect.span,
+      );
+  const segments = cylinderTextSegments(
+    effect.radius,
+    span,
+    count,
+    effect.tilt ?? 0,
+    effect.rotation ?? 0,
+  );
   const projectedWidth = effect.closed
-    ? Math.max(...segments.map(segment => segment.x + segment.width / 2)) - Math.min(...segments.map(segment => segment.x - segment.width / 2))
+    ? Math.max(...segments.map((segment) => segment.x + segment.width / 2)) -
+      Math.min(...segments.map((segment) => segment.x - segment.width / 2))
     : segments.reduce((total, segment) => total + segment.width, 0);
-  return { graphemes, segments, anchorOffset: effect.closed ? 0 : layer.align === "start" ? projectedWidth / 2 : layer.align === "end" ? -projectedWidth / 2 : 0 };
+  return {
+    graphemes,
+    segments,
+    anchorOffset: effect.closed
+      ? 0
+      : layer.align === "start"
+        ? projectedWidth / 2
+        : layer.align === "end"
+          ? -projectedWidth / 2
+          : 0,
+  };
 }
 /** Six shared focus levels, painted from the farthest panels toward the front. */
 export function cylinderBackBlurBands(angles: number[], backBlur = 0) {
   const maximum = clamp(backBlur, 0, 40);
-  const depths = angles.map(angle => 1 - Math.cos(angle * Math.PI / 180));
+  const depths = angles.map((angle) => 1 - Math.cos((angle * Math.PI) / 180));
   const maxDepth = Math.max(0.0001, ...depths);
   const indices = angles.map((_, i) => i).sort((a, b) => depths[b] - depths[a]);
   const bands: { blur: number; indices: number[] }[] = [];
   for (const index of indices) {
-    const blur = maximum ? maximum * Math.round(depths[index] / maxDepth * 5) / 5 : 0;
+    const blur = maximum
+      ? (maximum * Math.round((depths[index] / maxDepth) * 5)) / 5
+      : 0;
     const previous = bands[bands.length - 1];
     if (previous?.blur === blur) previous.indices.push(index);
     else bands.push({ blur, indices: [index] });
@@ -347,25 +464,49 @@ export function cylinderBackBlurBands(angles: number[], backBlur = 0) {
   return bands;
 }
 export function cylinderShading(angle: number, backShading = 70) {
-  return clamp(clamp(backShading, 0, 250) / 100 * (1 - Math.cos(angle * Math.PI / 180)) / 2, 0, 1);
+  return clamp(
+    ((clamp(backShading, 0, 250) / 100) *
+      (1 - Math.cos((angle * Math.PI) / 180))) /
+      2,
+    0,
+    1,
+  );
 }
 export function cylinderOpacity(angle: number, backFade = 0) {
-  return clamp(1 - clamp(backFade, 0, 400) / 100 * (1 - Math.cos(angle * Math.PI / 180)) / 2, 0, 1);
+  return clamp(
+    1 -
+      ((clamp(backFade, 0, 400) / 100) *
+        (1 - Math.cos((angle * Math.PI) / 180))) /
+        2,
+    0,
+    1,
+  );
 }
 /** Project complete curved text in clipped slices, preserving its textPath layout. */
 export function circularCylinderSlices(layer: LabelLayer) {
-  if (layer.kind !== "circular" || layer.textEffect?.type !== "cylinder") return [];
+  if (layer.kind !== "circular" || layer.textEffect?.type !== "cylinder")
+    return [];
   const effect = layer.textEffect;
   const halfWidth = layer.radius + layer.size * 1.5;
   const count = Math.round(clamp(effect.segments, 6, 64));
-  const sourceWidth = halfWidth * 2 / count;
-  return cylinderTextSegments(effect.radius, effect.closed ? 360 : effect.span, count, effect.tilt ?? 0, effect.rotation ?? 0).map((segment, i) => {
+  const sourceWidth = (halfWidth * 2) / count;
+  return cylinderTextSegments(
+    effect.radius,
+    effect.closed ? 360 : effect.span,
+    count,
+    effect.tilt ?? 0,
+    effect.rotation ?? 0,
+  ).map((segment, i) => {
     const x = 300 - halfWidth + i * sourceWidth;
     const center = x + sourceWidth / 2;
-    const scaleX = segment.width * segment.horizontalScale / sourceWidth;
-    const shear = segment.shear * segment.width / sourceWidth;
-    return { x, width: sourceWidth, angle: segment.angle,
-      transform: `matrix(${scaleX} ${shear} 0 ${segment.verticalScale} ${300 + segment.x - scaleX * center} ${300 + segment.y - shear * center - segment.verticalScale * 300})` };
+    const scaleX = (segment.width * segment.horizontalScale) / sourceWidth;
+    const shear = (segment.shear * segment.width) / sourceWidth;
+    return {
+      x,
+      width: sourceWidth,
+      angle: segment.angle,
+      transform: `matrix(${scaleX} ${shear} 0 ${segment.verticalScale} ${300 + segment.x - scaleX * center} ${300 + segment.y - shear * center - segment.verticalScale * 300})`,
+    };
   });
 }
 export function cylinderTextSpan(
@@ -410,12 +551,13 @@ export type HistoryAction =
     }
   | { type: "undo" | "redo" | "end" };
 export function designReducer(state: History, action: HistoryAction): History {
-  if (action.type === "normalize") return {
-    ...state,
-    present: action.change(state.present),
-    past: state.past.map(action.change),
-    future: state.future.map(action.change),
-  };
+  if (action.type === "normalize")
+    return {
+      ...state,
+      present: action.change(state.present),
+      past: state.past.map(action.change),
+      future: state.future.map(action.change),
+    };
   if (action.type === "end") return { ...state, group: undefined };
   if (action.type === "undo") {
     if (!state.past.length) return state;
@@ -488,7 +630,9 @@ function parseExtrusion(value: unknown): TextExtrusion | undefined {
     angle: numeric(value.angle, 45, 0, 360),
     steps: Math.round(numeric(value.steps, 12, 1, 200)),
     fade: numeric(value.fade, 0, 0, 300),
-    ...(typeof value.depthBlur === "number" ? { depthBlur: numeric(value.depthBlur, 0, 0, 40) } : {}),
+    ...(typeof value.depthBlur === "number"
+      ? { depthBlur: numeric(value.depthBlur, 0, 0, 40) }
+      : {}),
   };
 }
 function parseTextEffect(value: unknown): StaticTextEffect | undefined {
@@ -505,19 +649,36 @@ function parseTextEffect(value: unknown): StaticTextEffect | undefined {
       span: numeric(value.span, 150, 1, 180),
       segments: Math.round(numeric(value.segments, 24, 6, 64)),
       tilt: numeric(value.tilt, 0, -75, 75),
-      ...(typeof value.rotation === "number" ? { rotation: numeric(value.rotation, 0, 0, 360) } : {}),
+      ...(typeof value.rotation === "number"
+        ? { rotation: numeric(value.rotation, 0, 0, 360) }
+        : {}),
       ...(typeof value.closed === "boolean" ? { closed: value.closed } : {}),
-      ...(typeof value.backBlur === "number" ? { backBlur: numeric(value.backBlur, 0, 0, 40) } : {}),
-      ...(typeof value.backShading === "number" ? { backShading: numeric(value.backShading, 70, 0, 250) } : {}),
-      ...(typeof value.backFade === "number" ? { backFade: numeric(value.backFade, 0, 0, 400) } : {}),
-      ...(record(value.extrusion) ? { extrusion: {
-        ...parseExtrusion(value.extrusion)!,
-        steps: Math.min(parseExtrusion(value.extrusion)!.steps, cylinderExtrusionSteps(numeric(value.segments, 24, 6, 64))),
-      } } : {}),
+      ...(typeof value.backBlur === "number"
+        ? { backBlur: numeric(value.backBlur, 0, 0, 40) }
+        : {}),
+      ...(typeof value.backShading === "number"
+        ? { backShading: numeric(value.backShading, 70, 0, 250) }
+        : {}),
+      ...(typeof value.backFade === "number"
+        ? { backFade: numeric(value.backFade, 0, 0, 400) }
+        : {}),
+      ...(record(value.extrusion)
+        ? {
+            extrusion: {
+              ...parseExtrusion(value.extrusion)!,
+              steps: Math.min(
+                parseExtrusion(value.extrusion)!.steps,
+                cylinderExtrusionSteps(numeric(value.segments, 24, 6, 64)),
+              ),
+            },
+          }
+        : {}),
     };
   return undefined;
 }
-function parseTextEffectSettings(value: unknown): TextEffectSettings | undefined {
+function parseTextEffectSettings(
+  value: unknown,
+): TextEffectSettings | undefined {
   if (!record(value)) return undefined;
   const cylinder = parseTextEffect(value.cylinder);
   const extrusion = parseExtrusion(value.extrusion);
@@ -554,13 +715,25 @@ export function parseDesign(input: unknown): LabelDesign {
             : "text";
       const base = makeLayer(kind, item.id);
       const image = typeof item.image === "string" ? item.image : undefined;
+      const textTexture =
+        kind !== "image" && typeof item.textTexture === "string"
+          ? item.textTexture
+          : undefined;
       if (
         image &&
-        (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z\d+/=]+$/.test(image) &&
-          !isSafeEmbeddedSvg(image) ||
+        ((!/^data:image\/(png|jpeg|webp);base64,[A-Za-z\d+/=]+$/.test(image) &&
+          !isSafeEmbeddedSvg(image)) ||
           image.length > 7_000_000)
       )
         throw Error("Imagen inválida o demasiado grande.");
+      if (
+        textTexture &&
+        (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z\d+/=]+$/.test(
+          textTexture,
+        ) ||
+          textTexture.length > 7_000_000)
+      )
+        throw Error("Textura inválida o demasiado grande.");
       return {
         ...base,
         name:
@@ -588,18 +761,47 @@ export function parseDesign(input: unknown): LabelDesign {
             : "middle",
         arc: item.arc === "top" ? "top" : "bottom",
         image,
-        imageFill: kind === "image" && typeof item.imageFill === "string" ? hex(item.imageFill, "#000000") : undefined,
+        ...(textTexture
+          ? {
+              textTexture,
+              textTextureOpacity: numeric(item.textTextureOpacity, 1, 0, 1),
+              textTextureScale: numeric(item.textTextureScale, 100, 25, 400),
+            }
+          : {}),
+        imageFill:
+          kind === "image" && typeof item.imageFill === "string"
+            ? hex(item.imageFill, "#000000")
+            : undefined,
         imageInverted: kind === "image" && item.imageInverted === true,
-        imageBarColor: kind === "image" && typeof item.imageBarColor === "string" ? hex(item.imageBarColor, "#000000") : undefined,
-        imageBarBackground: kind === "image" && typeof item.imageBarBackground === "string" ? hex(item.imageBarBackground, "#ffffff") : undefined,
-        imageBarSource: kind === "image" && record(item.imageBarSource) ? { bars: hex(item.imageBarSource.bars, "#000000"), background: hex(item.imageBarSource.background, "#ffffff") } : undefined,
-        imageRole: kind === "image" && (item.imageRole === "barcode" || item.imageRole === "brand-logo") ? item.imageRole : undefined,
-        imageCrop: kind === "image" && record(item.imageCrop) ? {
-          top: numeric(item.imageCrop.top, 0, 0, 45),
-          right: numeric(item.imageCrop.right, 0, 0, 45),
-          bottom: numeric(item.imageCrop.bottom, 0, 0, 45),
-          left: numeric(item.imageCrop.left, 0, 0, 45),
-        } : undefined,
+        imageBarColor:
+          kind === "image" && typeof item.imageBarColor === "string"
+            ? hex(item.imageBarColor, "#000000")
+            : undefined,
+        imageBarBackground:
+          kind === "image" && typeof item.imageBarBackground === "string"
+            ? hex(item.imageBarBackground, "#ffffff")
+            : undefined,
+        imageBarSource:
+          kind === "image" && record(item.imageBarSource)
+            ? {
+                bars: hex(item.imageBarSource.bars, "#000000"),
+                background: hex(item.imageBarSource.background, "#ffffff"),
+              }
+            : undefined,
+        imageRole:
+          kind === "image" &&
+          (item.imageRole === "barcode" || item.imageRole === "brand-logo")
+            ? item.imageRole
+            : undefined,
+        imageCrop:
+          kind === "image" && record(item.imageCrop)
+            ? {
+                top: numeric(item.imageCrop.top, 0, 0, 45),
+                right: numeric(item.imageCrop.right, 0, 0, 45),
+                bottom: numeric(item.imageCrop.bottom, 0, 0, 45),
+                left: numeric(item.imageCrop.left, 0, 0, 45),
+              }
+            : undefined,
         imageRatio: numeric(item.imageRatio, 1, 0.05, 20),
         borderRadius: numeric(item.borderRadius, 0, 0, 100),
         opacity: numeric(item.opacity, 1, 0, 1),
@@ -609,7 +811,10 @@ export function parseDesign(input: unknown): LabelDesign {
           typeof item.variantId === "string" ? item.variantId : undefined,
         textEffect:
           kind !== "image" ? parseTextEffect(item.textEffect) : undefined,
-        textEffectSettings: kind !== "image" ? parseTextEffectSettings(item.textEffectSettings) : undefined,
+        textEffectSettings:
+          kind !== "image"
+            ? parseTextEffectSettings(item.textEffectSettings)
+            : undefined,
         blendMode:
           kind !== "image" && item.blendMode === "difference"
             ? "difference"
@@ -637,7 +842,7 @@ export function parseDesign(input: unknown): LabelDesign {
     paper: hex(input.paper, "#e5e8d9"),
     sleeveColor: hex(input.sleeveColor, "#000000"),
     sleeveImage,
-    sleeveZoom: numeric(input.sleeveZoom, 1, 1, 3),
+    sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 3),
     diameterMm,
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),

@@ -2,8 +2,8 @@ import { Library, Star, Type } from "lucide-react";
 import type { FontPickerScope } from "./font-picker-catalog";
 
 const collections = [
-  { key: "standard", label: "Standard", Icon: Type },
-  { key: "all", label: "All fonts", Icon: Library },
+  { key: "all", label: "All Categories", Icon: Library },
+  { key: "standard", label: "Classic", Icon: Type },
   { key: "favorites", label: "Favorites", Icon: Star },
 ] as const;
 

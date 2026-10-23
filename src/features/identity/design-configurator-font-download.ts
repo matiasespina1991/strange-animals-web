@@ -72,8 +72,7 @@ async function getFontBytes(source: FontDownloadSource) {
   if (!source.url)
     throw new Error(`No hay archivo descargable para ${source.family}.`);
   const response = await fetch(source.url);
-  if (!response.ok)
-    throw new Error(`No se pudo descargar ${source.fileName}.`);
+  if (!response.ok) throw new Error(`No se pudo descargar ${source.fileName}.`);
   return new Uint8Array(await response.arrayBuffer());
 }
 

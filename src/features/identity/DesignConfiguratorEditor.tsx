@@ -22,7 +22,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Circle,
   Compass,
   Copy,
   Grid2X2,
@@ -34,6 +33,7 @@ import {
   Minimize,
   ImagePlus,
   Layers,
+  Spline,
   Minus,
   Plus,
   Redo2,
@@ -57,13 +57,10 @@ import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
 import { ContentTextControl } from "./ContentTextControl";
 import { ImageAppearanceControls } from "./ImageAppearanceControls";
+import { TextSurfaceControl } from "./TextSurfaceControl";
 import { readBarcodeSourcePalette } from "./barcode-source-palette";
-import {
-  TextBlendModeControl,
-  TextEffectControls,
-} from "./TextEffectControls";
+import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
 import { SleeveImageControl } from "./SleeveImageControl";
-import { SleeveToolbar } from "./SleeveToolbar";
 import { ColorSwatches } from "./ColorSwatches";
 import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
@@ -156,12 +153,14 @@ function Modal({
   close,
   wide = false,
   allowBackgroundScroll = false,
+  className,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   wide?: boolean;
   allowBackgroundScroll?: boolean;
+  className?: string;
 }) {
   const reference = useRef<HTMLElement>(null),
     titleId = useId();
@@ -207,9 +206,8 @@ function Modal({
       onClick={close}
     >
       <section
-        className={`dc-font-picker${wide ? " dc-template-dialog" : ""}`}
-        ref={reference}
         role="dialog"
+        className={className}
         aria-modal={allowBackgroundScroll ? undefined : true}
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
@@ -314,6 +312,38 @@ export function DesignConfiguratorEditor() {
   });
   const design = history.present;
   const editorRoot = useRef<HTMLElement>(null);
+  const projectBarRef = useRef<HTMLDivElement>(null);
+  const globalSettingsRef = useRef<HTMLElement>(null);
+  const [projectBarStuck, setProjectBarStuck] = useState(false);
+  useLayoutEffect(() => {
+    const root = editorRoot.current;
+    const projectBar = projectBarRef.current;
+    const globalSettings = globalSettingsRef.current;
+    if (!root || !projectBar || !globalSettings) return;
+    const updateStickyOffsets = () => {
+      const projectBarBounds = projectBar.getBoundingClientRect();
+      setProjectBarStuck(projectBarBounds.top <= 0);
+      root.style.setProperty(
+        "--dc-project-bar-height",
+        `${projectBarBounds.height}px`,
+      );
+      root.style.setProperty(
+        "--dc-global-settings-height",
+        `${globalSettings.getBoundingClientRect().height}px`,
+      );
+    };
+    updateStickyOffsets();
+    const observer = new ResizeObserver(updateStickyOffsets);
+    observer.observe(projectBar);
+    observer.observe(globalSettings);
+    window.addEventListener("scroll", updateStickyOffsets, { passive: true });
+    window.addEventListener("resize", updateStickyOffsets);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", updateStickyOffsets);
+      window.removeEventListener("resize", updateStickyOffsets);
+    };
+  }, []);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenFallback, setFullscreenFallback] = useState(false);
   useEffect(() => {
@@ -361,6 +391,8 @@ export function DesignConfiguratorEditor() {
   } | null>(null);
   const layerList = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [panning, setPanning] = useState(false);
+  const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
   const [side, setSide] = useState<LabelSide>("A"),
     [selected, setSelected] = useState<string | null>("legal"),
     [guides, setGuides] = useState(true),
@@ -423,7 +455,7 @@ export function DesignConfiguratorEditor() {
     [fontsLoading, setFontsLoading] = useState(true),
     [catalogError, setCatalogError] = useState(""),
     [catalogAttempt, setCatalogAttempt] = useState(0);
-  const [scope, setScope] = useState<FontPickerScope>("standard");
+  const [scope, setScope] = useState<FontPickerScope>("all");
   const fontContext =
     design[side].find((layer) => layer.id === selected)?.kind ?? "text";
   const categoryScopeKey = `${scope}:${fontContext}`;
@@ -433,6 +465,12 @@ export function DesignConfiguratorEditor() {
   const selectedCategory = categoryByScope[categoryScopeKey] ?? null;
   const [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
+  const openFontPicker = () => {
+    setScope("all");
+    setQuery("");
+    setCategoryByScope((current) => ({ ...current, [`all:${fontContext}`]: null }));
+    setDialog("fonts");
+  };
   const deferredQuery = useDeferredValue(query);
   const fontScrollKey = JSON.stringify([
     categoryScopeKey,
@@ -495,6 +533,13 @@ export function DesignConfiguratorEditor() {
     layer: LabelLayer;
     changed: boolean;
   }>();
+  const canvasPan = useRef<{
+    pointerId: number;
+    clientX: number;
+    clientY: number;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
   const prefix = useId().replaceAll(":", "");
   const layers = design[side],
     element =
@@ -583,26 +628,70 @@ export function DesignConfiguratorEditor() {
   const end = () => dispatch({ type: "end" });
   useEffect(() => {
     let active = true;
-    const pending = [...design.A, ...design.B].filter(layer => layer.kind === "image" && imageRole(layer) === "barcode" && layer.image && !layer.imageBarSource);
+    const pending = [...design.A, ...design.B].filter(
+      (layer) =>
+        layer.kind === "image" &&
+        imageRole(layer) === "barcode" &&
+        layer.image &&
+        !layer.imageBarSource,
+    );
     if (!pending.length) return;
-    void Promise.all(pending.map(async layer => {
-      try { return { id: layer.id, image: layer.image, palette: await readBarcodeSourcePalette(layer.image!) }; }
-      catch (error) { console.warn("[Configurator/barcode] Could not detect source palette", layer.id, error); return undefined; }
-    })).then(results => {
+    void Promise.all(
+      pending.map(async (layer) => {
+        try {
+          return {
+            id: layer.id,
+            image: layer.image,
+            palette: await readBarcodeSourcePalette(layer.image!),
+          };
+        } catch (error) {
+          console.warn(
+            "[Configurator/barcode] Could not detect source palette",
+            layer.id,
+            error,
+          );
+          return undefined;
+        }
+      }),
+    ).then((results) => {
       if (!active) return;
-      const resolved = results.filter(result => result !== undefined);
-      if (!resolved.length) { setNotice("No se pudieron detectar los colores originales del barcode."); return; }
-      dispatch({ type: "normalize", change: current => {
-        const migrate = (layer: LabelLayer) => {
-          const result = resolved.find(item => item.id === layer.id && item.image === layer.image);
-          return result && !layer.imageBarSource ? { ...layer, imageRole: "barcode" as const, imageBarSource: result.palette,
-            imageBarColor: layer.imageBarColor ?? "#000000", imageBarBackground: layer.imageBarBackground ?? "#ffffff",
-            imageInverted: false, imageFill: undefined } : layer;
-        };
-        return { ...current, A: current.A.map(migrate), B: current.B.map(migrate) };
-      } });
+      const resolved = results.filter((result) => result !== undefined);
+      if (!resolved.length) {
+        setNotice(
+          "No se pudieron detectar los colores originales del barcode.",
+        );
+        return;
+      }
+      dispatch({
+        type: "normalize",
+        change: (current) => {
+          const migrate = (layer: LabelLayer) => {
+            const result = resolved.find(
+              (item) => item.id === layer.id && item.image === layer.image,
+            );
+            return result && !layer.imageBarSource
+              ? {
+                  ...layer,
+                  imageRole: "barcode" as const,
+                  imageBarSource: result.palette,
+                  imageBarColor: layer.imageBarColor ?? "#000000",
+                  imageBarBackground: layer.imageBarBackground ?? "#ffffff",
+                  imageInverted: false,
+                  imageFill: undefined,
+                }
+              : layer;
+          };
+          return {
+            ...current,
+            A: current.A.map(migrate),
+            B: current.B.map(migrate),
+          };
+        },
+      });
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [design.A, design.B]);
   const familyFor = (layer: LabelLayer) =>
     families[fontKey(layer)] ?? defaultLabelFont(layer);
@@ -957,6 +1046,47 @@ export function DesignConfiguratorEditor() {
     setDragging(false);
     end();
   };
+  const startCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (
+      e.button !== 0 ||
+      (e.target instanceof Element && e.target.closest("[data-layer-id]"))
+    )
+      return;
+    end();
+    setSelected(null);
+    setSelectedLayers([]);
+    canvasPan.current = {
+      pointerId: e.pointerId,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      offsetX: viewOffset.x,
+      offsetY: viewOffset.y,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setPanning(true);
+    e.preventDefault();
+  };
+  const moveCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const start = canvasPan.current;
+    if (
+      !start ||
+      start.pointerId !== e.pointerId ||
+      !e.currentTarget.hasPointerCapture(e.pointerId)
+    )
+      return;
+    setViewOffset({
+      x: start.offsetX + e.clientX - start.clientX,
+      y: start.offsetY + e.clientY - start.clientY,
+    });
+  };
+  const endCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const start = canvasPan.current;
+    if (!start || start.pointerId !== e.pointerId) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    canvasPan.current = null;
+    setPanning(false);
+  };
   const doExport = async () => {
     if (exportBusy) return;
     const diagnostics = createExportDiagnostics({
@@ -1021,11 +1151,32 @@ export function DesignConfiguratorEditor() {
       pickerCatalog(fonts, scope, favoriteFonts, deferredQuery, fontContext),
     [fonts, scope, favoriteFonts, deferredQuery, fontContext],
   );
-  const collectionCounts = useMemo(() => ({
-    standard: pickerCatalog(fonts, "standard", favoriteFonts, deferredQuery, fontContext).length,
-    all: pickerCatalog(fonts, "all", favoriteFonts, deferredQuery, fontContext).length,
-    favorites: pickerCatalog(fonts, "favorites", favoriteFonts, deferredQuery, fontContext).length,
-  }), [fonts, favoriteFonts, deferredQuery, fontContext]);
+  const collectionCounts = useMemo(
+    () => ({
+      standard: pickerCatalog(
+        fonts,
+        "standard",
+        favoriteFonts,
+        deferredQuery,
+        fontContext,
+      ).length,
+      all: pickerCatalog(
+        fonts,
+        "all",
+        favoriteFonts,
+        deferredQuery,
+        fontContext,
+      ).length,
+      favorites: pickerCatalog(
+        fonts,
+        "favorites",
+        favoriteFonts,
+        deferredQuery,
+        fontContext,
+      ).length,
+    }),
+    [fonts, favoriteFonts, deferredQuery, fontContext],
+  );
   const categories = useMemo(
     () =>
       pickerCategories(
@@ -1117,7 +1268,7 @@ export function DesignConfiguratorEditor() {
   return (
     <main
       ref={editorRoot}
-      className={`design-configurator${dragging ? " dc-is-dragging" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
+      className={`design-configurator${dragging ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
       data-native-cursor-surface
       onKeyDown={(e) => {
         const editable =
@@ -1191,7 +1342,11 @@ export function DesignConfiguratorEditor() {
           </a>
         </div>
       </header>
-      <div className="dc-project-bar">
+      <div
+        className="dc-project-bar"
+        data-stuck={projectBarStuck}
+        ref={projectBarRef}
+      >
         <div>
           <span className="dc-eyebrow">
             VINYL LABEL /{" "}
@@ -1214,93 +1369,6 @@ export function DesignConfiguratorEditor() {
             />
           </label>
         </div>
-        <GlobalInkControl
-          onPreview={(color) => previewColor("text", color)}
-          key={side}
-          side={side}
-          labelColor={design.paper}
-          onSwap={() => {
-            end();
-            change((current) => swapTextAndLabelColors(current, side));
-          }}
-          hasCustomColors={hasCustomTextColors(design, side)}
-          colors={design[side]
-            .filter((layer) => layer.kind !== "image")
-            .map((layer) => layer.color)}
-          onApply={(color) => {
-            end();
-            change((current) => changeGlobalTextColor(current, color, side));
-          }}
-        />
-        <div className="dc-preview-stock">
-          <span>Label</span>
-          <label className="dc-custom-paper">
-            <span className="sr-only">Custom label color</span>
-            <input
-              type="color"
-              value={design.paper}
-              onChange={(event) =>
-                change(
-                  (current) => ({ ...current, paper: event.target.value }),
-                  "paper",
-                )
-              }
-              onBlur={end}
-            />
-          </label>
-          <ColorSwatches
-            colors={DESIGN_COLOR_PRESETS}
-            onPreview={(color) => previewColor("paper", color)}
-            value={design.paper}
-            label="Label"
-            onChoose={(color) =>
-              change((current) => ({ ...current, paper: color }))
-            }
-          />
-        </div>
-        <SleeveToolbar>
-          <div className="dc-preview-stock">
-            <span>Sleeve</span>
-            <label className="dc-custom-paper">
-              <span className="sr-only">Custom sleeve color</span>
-              <input
-                type="color"
-                value={design.sleeveColor}
-                onChange={(event) =>
-                  change(
-                    (current) => ({
-                      ...current,
-                      sleeveColor: event.target.value,
-                    }),
-                    "sleeve-color",
-                  )
-                }
-                onBlur={end}
-              />
-            </label>
-            <SleeveImageControl
-              image={design.sleeveImage}
-              onError={setNotice}
-              onChange={(sleeveImage) => {
-                end();
-                change((current) => ({
-                  ...current,
-                  sleeveImage,
-                  sleeveZoom: 1,
-                }));
-              }}
-            />
-            <ColorSwatches
-              colors={DESIGN_COLOR_PRESETS}
-              onPreview={(color) => previewColor("sleeve", color)}
-              value={design.sleeveColor}
-              label="Sleeve color"
-              onChoose={(color) =>
-                change((current) => ({ ...current, sleeveColor: color }))
-              }
-            />
-          </div>
-        </SleeveToolbar>
         <div className="dc-project-actions">
           <div className="dc-history">
             <button
@@ -1345,6 +1413,96 @@ export function DesignConfiguratorEditor() {
         </div>
       )}
       <div className="dc-workspace">
+        <section className="dc-global-settings" ref={globalSettingsRef} aria-labelledby="dc-global-settings-title">
+          <h2 className="dc-global-settings-title" id="dc-global-settings-title">Global settings</h2>
+          <div className="dc-global-settings-controls">
+            <GlobalInkControl
+              onPreview={(color) => previewColor("text", color)}
+              key={side}
+              side={side}
+              labelColor={design.paper}
+              onSwap={() => {
+                end();
+                change((current) => swapTextAndLabelColors(current, side));
+              }}
+              hasCustomColors={hasCustomTextColors(design, side)}
+              colors={design[side]
+                .filter((layer) => layer.kind !== "image")
+                .map((layer) => layer.color)}
+              onApply={(color) => {
+                end();
+                change((current) => changeGlobalTextColor(current, color, side));
+              }}
+            />
+            <div className="dc-preview-stock">
+              <span>Label</span>
+              <label className="dc-custom-paper">
+                <span className="sr-only">Custom label color</span>
+                <input
+                  type="color"
+                  value={design.paper}
+                  onChange={(event) =>
+                    change(
+                      (current) => ({ ...current, paper: event.target.value }),
+                      "paper",
+                    )
+                  }
+                  onBlur={end}
+                />
+              </label>
+              <ColorSwatches
+                colors={DESIGN_COLOR_PRESETS}
+                onPreview={(color) => previewColor("paper", color)}
+                value={design.paper}
+                label="Label"
+                onChoose={(color) =>
+                  change((current) => ({ ...current, paper: color }))
+                }
+              />
+            </div>
+            <div className="dc-preview-stock">
+                <span>Sleeve</span>
+                <label className="dc-custom-paper">
+                  <span className="sr-only">Custom sleeve color</span>
+                  <input
+                    type="color"
+                    value={design.sleeveColor}
+                    onChange={(event) =>
+                      change(
+                        (current) => ({
+                          ...current,
+                          sleeveColor: event.target.value,
+                        }),
+                        "sleeve-color",
+                      )
+                    }
+                    onBlur={end}
+                  />
+                </label>
+                <SleeveImageControl
+                  image={design.sleeveImage}
+                  onError={setNotice}
+                  onChange={(sleeveImage) => {
+                    end();
+                    change((current) => ({
+                      ...current,
+                      sleeveImage,
+                      sleeveZoom: 1,
+                    }));
+                  }}
+                />
+                <ColorSwatches
+                  colors={DESIGN_COLOR_PRESETS}
+                  onPreview={(color) => previewColor("sleeve", color)}
+                  value={design.sleeveColor}
+                  label="Sleeve color"
+                  onChoose={(color) =>
+                    change((current) => ({ ...current, sleeveColor: color }))
+                  }
+                />
+            </div>
+          </div>
+        </section>
         <aside
           className={`dc-layers ${mobileTab === "layers" ? "dc-mobile-visible" : ""}`}
         >
@@ -1373,7 +1531,7 @@ export function DesignConfiguratorEditor() {
               Image
             </button>
             <button onClick={() => add("circular")}>
-              <Circle size={14} />
+              <Spline size={14} />
               Arc text
             </button>
             <button onClick={() => setDialog("assets")}>
@@ -1452,7 +1610,7 @@ export function DesignConfiguratorEditor() {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   {layer.kind === "circular" ? (
-                    <Circle size={15} />
+                    <Spline size={15} />
                   ) : layer.kind === "image" ? (
                     <ImagePlus size={15} />
                   ) : (
@@ -1509,10 +1667,10 @@ export function DesignConfiguratorEditor() {
             <div className="dc-preview-controls">
               {design.sleeveImage && (
                 <label className="dc-sleeve-zoom">
-                  <span>Sleeve zoom</span>
+                  <span>Image in sleeve</span>
                   <input
                     type="range"
-                    min={100}
+                    min={10}
                     max={300}
                     step={1}
                     value={Math.round(design.sleeveZoom * 100)}
@@ -1559,17 +1717,11 @@ export function DesignConfiguratorEditor() {
           </div>
           <div
             className="dc-artboard"
-            onPointerDown={(event) => {
-              if (
-                event.button !== 0 ||
-                (event.target instanceof Element &&
-                  event.target.closest("[data-layer-id]"))
-              )
-                return;
-              end();
-              setSelected(null);
-              setSelectedLayers([]);
-            }}
+            onPointerDown={startCanvasPan}
+            onPointerMove={moveCanvasPan}
+            onPointerUp={endCanvasPan}
+            onPointerCancel={endCanvasPan}
+            onLostPointerCapture={endCanvasPan}
             style={{
               backgroundColor: previewDesign.sleeveColor,
               color:
@@ -1581,44 +1733,49 @@ export function DesignConfiguratorEditor() {
                   : "#4c5740",
             }}
           >
-            {design.sleeveImage && (
-              <div
-                className="dc-sleeve-background"
-                aria-hidden="true"
-                style={{
-                  backgroundImage: `url("${design.sleeveImage}")`,
-                  transform: `scale(${design.sleeveZoom})`,
-                }}
-              />
-            )}
             <div
-              className="dc-disc-wrap"
-              style={{ transform: `scale(${zoom / 100})` }}
+              className="dc-artboard-content"
+              style={{
+                transform: `translate(${viewOffset.x}px, ${viewOffset.y}px) scale(${zoom / 100})`,
+              }}
             >
-              <LabelArtwork
-                design={previewDesign}
-                hiddenTextId={
-                  dialog === "fonts" && hoverFontLoading
-                    ? element.id
-                    : undefined
-                }
-                side={side}
-                prefix={prefix}
-                fontFamily={(layer) =>
-                  dialog === "fonts" && layer.id === element.id && hoverFamily
-                    ? hoverFamily
-                    : familyFor(layer)
-                }
-                selected={hasSelection ? element.id : undefined}
-                selectedIds={selection}
-                guides={guides}
-                whiteCenter
-                previewShadow
-                onSelect={selectLayer}
-                onPointerDown={startDrag}
-                onPointerMove={moveDrag}
-                onPointerUp={endDrag}
-              />
+              <div className="dc-disc-wrap">
+                {design.sleeveImage && (
+                  <div className="dc-sleeve-image-frame" aria-hidden="true">
+                    <div
+                      className="dc-sleeve-background"
+                      style={{
+                        backgroundImage: `url("${design.sleeveImage}")`,
+                        transform: `scale(${design.sleeveZoom})`,
+                      }}
+                    />
+                  </div>
+                )}
+                <LabelArtwork
+                  design={previewDesign}
+                  hiddenTextId={
+                    dialog === "fonts" && hoverFontLoading
+                      ? element.id
+                      : undefined
+                  }
+                  side={side}
+                  prefix={prefix}
+                  fontFamily={(layer) =>
+                    dialog === "fonts" && layer.id === element.id && hoverFamily
+                      ? hoverFamily
+                      : familyFor(layer)
+                  }
+                  selected={hasSelection ? element.id : undefined}
+                  selectedIds={selection}
+                  guides={guides}
+                  whiteCenter
+                  previewShadow
+                  onSelect={selectLayer}
+                  onPointerDown={startDrag}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                />
+              </div>
             </div>
           </div>
           <div className="dc-canvas-footer">
@@ -1628,8 +1785,8 @@ export function DesignConfiguratorEditor() {
             <div className="dc-zoom">
               <button
                 aria-label="Zoom out"
-                disabled={zoom <= 50}
-                onClick={() => setZoom(Math.max(50, zoom - 10))}
+                disabled={zoom <= 10}
+                onClick={() => setZoom(Math.max(10, zoom - 10))}
               >
                 <Minus size={14} />
               </button>
@@ -1641,7 +1798,13 @@ export function DesignConfiguratorEditor() {
               >
                 <Plus size={14} />
               </button>
-              <button aria-label="Fit to canvas" onClick={() => setZoom(100)}>
+              <button
+                aria-label="Fit to canvas"
+                onClick={() => {
+                  setZoom(100);
+                  setViewOffset({ x: 0, y: 0 });
+                }}
+              >
                 <Focus size={16} />
               </button>
               <button
@@ -1714,7 +1877,7 @@ export function DesignConfiguratorEditor() {
               <div className="dc-selected-heading">
                 <div>
                   {element.kind === "circular" ? (
-                    <Circle size={17} />
+                    <Spline size={17} />
                   ) : element.kind === "image" ? (
                     <ImagePlus size={17} />
                   ) : (
@@ -1736,10 +1899,16 @@ export function DesignConfiguratorEditor() {
               </label>
               {element.kind !== "image" && (
                 <>
-                  <ContentTextControl text={element.text}
-                    onChange={text => update({ text }, `text-${element.id}`)}
-                    onTransform={text => { end(); update({ text }); end(); }}
-                    onCommit={end} />
+                  <ContentTextControl
+                    text={element.text}
+                    onChange={(text) => update({ text }, `text-${element.id}`)}
+                    onTransform={(text) => {
+                      end();
+                      update({ text });
+                      end();
+                    }}
+                    onCommit={end}
+                  />
                   <section className="dc-property-section dc-typography-section">
                     <div className="dc-section-caption">Typography</div>
                     <TextBlendModeControl
@@ -1754,7 +1923,7 @@ export function DesignConfiguratorEditor() {
                       <button
                         className="dc-font-trigger"
                         disabled={fontBusy}
-                        onClick={() => setDialog("fonts")}
+                        onClick={openFontPicker}
                       >
                         <span>
                           {currentFont?.name ??
@@ -1810,6 +1979,7 @@ export function DesignConfiguratorEditor() {
                           </label>
                           <ColorSwatches
                             colors={DESIGN_COLOR_PRESETS}
+                            visibleCount={5}
                             label="Ink color"
                             onPreview={(color) => previewColor("ink", color)}
                             value={
@@ -1838,6 +2008,21 @@ export function DesignConfiguratorEditor() {
                         </div>
                       </div>
                     )}
+                    <TextSurfaceControl
+                      layerId={element.id}
+                      image={element.textTexture}
+                      opacity={element.textTextureOpacity}
+                      scale={element.textTextureScale}
+                      onChange={(patch, group) => {
+                        if (!group) end();
+                        update(
+                          patch,
+                          group ? `${group}-${element.id}` : undefined,
+                        );
+                      }}
+                      onCommit={end}
+                      onError={setNotice}
+                    />
                     <div className="dc-field-pair">
                       <TypographyValueControl
                         label="Size"
@@ -1929,7 +2114,12 @@ export function DesignConfiguratorEditor() {
                       min={0}
                       max={100}
                       step={1}
-                      onChange={opacity => update({ opacity: opacity / 100 }, `opacity-${element.id}`)}
+                      onChange={(opacity) =>
+                        update(
+                          { opacity: opacity / 100 },
+                          `opacity-${element.id}`,
+                        )
+                      }
                       onCommit={end}
                     />
                     <TextEffectControls
@@ -1957,10 +2147,6 @@ export function DesignConfiguratorEditor() {
                   <>
                     {slider("Radius", "radius", 30, 295, "PX")}
                     {slider("Rotation", "angle", -180, 180, "°")}
-                    <p className="dc-anchor-note">
-                      <Circle size={13} />
-                      Type size changes. The circle stays put.
-                    </p>
                     {overflow && (
                       <p className="dc-warning" role="status">
                         El texto supera la circunferencia. Aumentá el radio o
@@ -1973,7 +2159,11 @@ export function DesignConfiguratorEditor() {
                     {element.kind === "image" &&
                       slider("Width", "width", 10, 600, "PX")}
                     {element.kind === "image" && (
-                      <ImageAppearanceControls layer={element} onChange={update} onCommit={end} />
+                      <ImageAppearanceControls
+                        layer={element}
+                        onChange={update}
+                        onCommit={end}
+                      />
                     )}
                     {element.kind === "image" && (
                       <TypographyValueControl
@@ -2029,26 +2219,24 @@ export function DesignConfiguratorEditor() {
               </section>
               <section className="dc-property-section dc-focus-section">
                 <div className="dc-section-caption">Focus</div>
-                <TypographyValueControl label="Blur" unit="PX" value={element.blur ?? 0} min={0} max={40} step={0.1}
-                  onChange={blur => update({ blur }, `blur-${element.id}`)} onCommit={end} />
-                <p className="dc-blur-hint">0 keeps edges sharp. Increase to soften this element.</p>
+                <TypographyValueControl
+                  label="Blur"
+                  unit="PX"
+                  value={element.blur ?? 0}
+                  min={0}
+                  max={40}
+                  step={0.1}
+                  onChange={(blur) => update({ blur }, `blur-${element.id}`)}
+                  onCommit={end}
+                />
+                <p className="dc-blur-hint">
+                  0 keeps edges sharp. Increase to soften this element.
+                </p>
               </section>
             </>
           )}
         </aside>
       </div>
-      <footer className="dc-statusbar">
-        <span>
-          <span className="dc-live-dot" />
-          LOCAL PROJECT / AUTORECOVERY
-        </span>
-        <span>
-          VINYL LABEL / SIDE {side} / {layers.length} ELEMENTS
-        </span>
-        <span>
-          © {new Date().getFullYear()} STRANGE ANIMALS. ALL RIGHTS RESERVED.
-        </span>
-      </footer>
       <nav className="dc-mobile-tabs" aria-label="Editor panels">
         <button
           aria-pressed={mobileTab === "layers"}
@@ -2066,10 +2254,7 @@ export function DesignConfiguratorEditor() {
         </button>
         <button
           disabled={!hasSelection}
-          onClick={() => {
-            setDialog("fonts");
-            setQuery("");
-          }}
+          onClick={openFontPicker}
         >
           <Type size={16} />
           Fonts
@@ -2098,6 +2283,7 @@ export function DesignConfiguratorEditor() {
       {dialog === "fonts" && (
         <Modal
           title="Fonts"
+          className="dc-font-picker"
           allowBackgroundScroll
           close={() => setDialog(null)}
         >
@@ -2111,17 +2297,36 @@ export function DesignConfiguratorEditor() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <FontCollectionTabs scope={scope} counts={collectionCounts} loading={fontsLoading} onSelect={setScope} />
-          <p className="dc-font-discovery-note"><Compass size={15} aria-hidden="true" /> Explore every style, from essentials to experimental.</p>
-          <div className="dc-font-category-label"><SlidersHorizontal size={14} aria-hidden="true" /><span>Filter by category</span><small>Optional</small></div>
+          <FontCollectionTabs
+            scope={scope}
+            counts={collectionCounts}
+            loading={fontsLoading}
+            onSelect={setScope}
+          />
+          <div className="dc-font-category-label">
+            <SlidersHorizontal size={14} aria-hidden="true" />
+            <span>Filter by category</span>
+          </div>
           <FontCategoryChips
             categories={categories}
             selected={selectedCategory}
-            labelFor={(category) => pickerCategoryLabel(category, scope, fontContext)}
-            onSelect={(category) => setCategoryByScope((current) => ({ ...current, [categoryScopeKey]: category }))}
+            scope={scope}
+            labelFor={(category) =>
+              pickerCategoryLabel(category, scope, fontContext)
+            }
+            onSelect={(category) =>
+              setCategoryByScope((current) => ({
+                ...current,
+                [categoryScopeKey]: category,
+              }))
+            }
           />
           <div className="dc-font-result-options">
-            <span role="status">{fontsLoading ? "Loading families…" : `${sortedFonts.length.toLocaleString("en-US")} families`}</span>
+            <span role="status">
+              {fontsLoading
+                ? "Loading families…"
+                : `${sortedFonts.length.toLocaleString("en-US")} families`}
+            </span>
             <label className="dc-all-styles">
               <input
                 type="checkbox"
@@ -2295,9 +2500,7 @@ export function DesignConfiguratorEditor() {
               onClick={() => void downloadUsedFonts()}
             >
               <ArrowDownToLine size={16} />
-              {usedFontsBusy
-                ? "Preparing fonts…"
-                : "Download fonts in use"}
+              {usedFontsBusy ? "Preparing fonts…" : "Download fonts in use"}
             </button>
           </div>
         </Modal>
@@ -2425,11 +2628,11 @@ export function DesignConfiguratorEditor() {
             </label>
             {exportFormat === "psd" && (
               <p className="dc-font-explanation">
-                Text without 3D effects or blur is converted to editable vector shapes,
-                not live type. 3D and blurred layers are rasterized to preserve their
-                appearance. OTF, TTF and WOFF sources supported; contextual
-                scripts are not supported yet. Ink bleed keeps a separate
-                appearance layer and hidden vector source.
+                Text without 3D effects or blur is converted to editable vector
+                shapes, not live type. 3D and blurred layers are rasterized to
+                preserve their appearance. OTF, TTF and WOFF sources supported;
+                contextual scripts are not supported yet. Ink bleed keeps a
+                separate appearance layer and hidden vector source.
               </p>
             )}
             <label className="dc-field">

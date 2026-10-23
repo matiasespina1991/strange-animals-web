@@ -1,9 +1,4 @@
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { firebaseDb } from "@/lib/firebase";
 import type { DesignConfiguratorAsset } from "./asset-library";
 
@@ -42,7 +37,9 @@ export async function listDesignConfiguratorAssets() {
       typeof data.imageRatio !== "number" ||
       typeof data.sourceFileName !== "string" ||
       typeof data.storagePath !== "string" ||
-      !data.storagePath.startsWith("media/public/design-configurator-assets/") ||
+      !data.storagePath.startsWith(
+        "media/public/design-configurator-assets/",
+      ) ||
       typeof data.title !== "string"
     ) {
       return [];

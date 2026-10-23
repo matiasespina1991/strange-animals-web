@@ -86,10 +86,11 @@ export async function createLabelPsd(
     );
     const vectorPaths = new Map<string, ReturnType<typeof outlineText>>();
     for (const text of Array.from(svg.querySelectorAll("text"))) {
-      const layerId = text.closest("[data-layer-id]")?.getAttribute("data-layer-id");
+      const layerId = text
+        .closest("[data-layer-id]")
+        ?.getAttribute("data-layer-id");
       const layer = design[side].find((layer) => layer.id === layerId);
-      if (layer?.textEffect || layer?.blur)
-        continue;
+      if (layer?.textEffect || layer?.blur || layer?.textTexture) continue;
       onProgress?.("psd:outline-text", {
         layerId: layerId ?? undefined,
         fontFamily: text.getAttribute("font-family") ?? undefined,
@@ -143,14 +144,17 @@ export async function createLabelPsd(
       if (!node) continue;
       node.style.display = "";
       // Export opacity as an editable layer setting, without baking it twice.
-      const appearance = node.querySelector<SVGGElement>("[data-layer-appearance]");
+      const appearance = node.querySelector<SVGGElement>(
+        "[data-layer-appearance]",
+      );
       const savedOpacity = appearance?.getAttribute("opacity");
       appearance?.setAttribute("opacity", "1");
       let canvas: HTMLCanvasElement;
       try {
         canvas = await raster(svg, pixels);
       } finally {
-        if (savedOpacity != null) appearance?.setAttribute("opacity", savedOpacity);
+        if (savedOpacity != null)
+          appearance?.setAttribute("opacity", savedOpacity);
         else appearance?.removeAttribute("opacity");
       }
       node.style.display = "none";

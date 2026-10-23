@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Plus } from "lucide-react";
 
-type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void; onPreview?: (color: string | null) => void; children?: ReactNode };
+type Props = { colors: readonly string[]; value?: string; label: string; onChoose: (color: string) => void; onPreview?: (color: string | null) => void; visibleCount?: number; children?: ReactNode };
 
-export function ColorSwatches({ colors, value, label, onChoose, onPreview, children }: Props) {
+export function ColorSwatches({ colors, value, label, onChoose, onPreview, visibleCount = 3, children }: Props) {
   const preview = useRef(onPreview);
   preview.current = onPreview;
   useEffect(() => () => preview.current?.(null), []);
@@ -60,12 +60,12 @@ export function ColorSwatches({ colors, value, label, onChoose, onPreview, child
     </button>;
   };
   return <div className="dc-color-swatches" ref={root}>
-    <div className="dc-paper-options">{colors.slice(0, 3).map((color) => swatch(color))}</div>
-    {colors.length > 3 && <button ref={toggle} className="dc-color-more" aria-label={`More ${label.toLowerCase()} options`}
+    <div className="dc-paper-options">{colors.slice(0, visibleCount).map((color) => swatch(color))}</div>
+    {colors.length > visibleCount && <button ref={toggle} className="dc-color-more" aria-label={`More ${label.toLowerCase()} options`}
       aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}><Plus size={18} strokeWidth={3} aria-hidden="true" /></button>}
-    {open && colors.length > 3 && <div id={id} className="dc-color-popover" role="group" aria-label={label}
+    {open && colors.length > visibleCount && <div id={id} className="dc-color-popover" role="group" aria-label={label}
       onScroll={(event) => { lastScroll.current = event.currentTarget.scrollTop; }}>
-      {colors.slice(3).map((color) => swatch(color))}
+      {colors.slice(visibleCount).map((color) => swatch(color))}
     </div>}
     {children}
   </div>;

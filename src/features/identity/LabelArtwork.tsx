@@ -38,6 +38,7 @@ function SvgLayerText({
   transform,
   filter,
   blendMode,
+  textureShade = 0,
 }: {
   layer: LabelLayer;
   index: number;
@@ -54,24 +55,44 @@ function SvgLayerText({
   transform?: string;
   filter?: string;
   blendMode?: TextBlendMode;
+  textureShade?: number;
 }) {
   const activeBlendMode = blendMode ?? layer.blendMode;
-  const closedArc = layer.kind === "circular" && layer.textEffect?.type === "cylinder" && layer.textEffect.closed;
+  const textFill = layer.textTexture
+    ? `url(#${prefix}-text-surface-${index})`
+    : fill;
+  const textureFilter =
+    layer.textTexture && textureShade > 0
+      ? `${filter ? `${filter} ` : ""}brightness(${Math.max(0, 1 - textureShade)})`
+      : undefined;
+  const closedArc =
+    layer.kind === "circular" &&
+    layer.textEffect?.type === "cylinder" &&
+    layer.textEffect.closed;
   return (
     <text
       transform={transform}
-      filter={filter}
-      fill={activeBlendMode === "difference" ? "#ffffff" : fill}
+      filter={textureFilter ? undefined : filter}
+      fill={
+        activeBlendMode === "difference" && !layer.textTexture
+          ? "#ffffff"
+          : textFill
+      }
       fillOpacity={opacity}
       fontSize={fontSize}
       letterSpacing={layer.spacing}
       fontFamily={fontFamily(layer)}
       textAnchor={closedArc ? "start" : textAnchor}
-      textLength={closedArc ? 2 * Math.PI * layer.radius : textLength}
-      lengthAdjust={closedArc || textLength ? "spacingAndGlyphs" : undefined}
+      textLength={closedArc ? undefined : textLength}
+      lengthAdjust={!closedArc && textLength ? "spacingAndGlyphs" : undefined}
       style={
-        activeBlendMode === "difference"
-          ? { mixBlendMode: "difference" }
+        activeBlendMode === "difference" || textureFilter
+          ? {
+              ...(activeBlendMode === "difference"
+                ? { mixBlendMode: "difference" }
+                : {}),
+              ...(textureFilter ? { filter: textureFilter } : {}),
+            }
           : undefined
       }
       xmlSpace="preserve"
@@ -81,11 +102,13 @@ function SvgLayerText({
         <textPath
           href={`#${prefix}-arc-${index}`}
           startOffset={
-            closedArc ? "0%" : layer.align === "middle"
-              ? "50%"
-              : layer.align === "end"
-                ? "100%"
-                : "0%"
+            closedArc
+              ? "0%"
+              : layer.align === "middle"
+                ? "50%"
+                : layer.align === "end"
+                  ? "100%"
+                  : "0%"
           }
         >
           {closedArc ? closedCylinderText(layer) : text.replace(/\n/g, " ")}
@@ -119,9 +142,17 @@ function shadeText(color: string, amount: number) {
 
 function cylinderGeometry(layer: LabelLayer) {
   const slices = layer.kind === "circular" ? circularCylinderSlices(layer) : [];
-  const layout = layer.kind === "circular" ? undefined : cylinderTextLayout(layer);
-  const angles = (layout?.segments ?? slices).map(segment => segment.angle);
-  return { slices, layout, bands: cylinderBackBlurBands(angles, layer.textEffect?.type === "cylinder" ? layer.textEffect.backBlur : 0) };
+  const layout =
+    layer.kind === "circular" ? undefined : cylinderTextLayout(layer);
+  const angles = (layout?.segments ?? slices).map((segment) => segment.angle);
+  return {
+    slices,
+    layout,
+    bands: cylinderBackBlurBands(
+      angles,
+      layer.textEffect?.type === "cylinder" ? layer.textEffect.backBlur : 0,
+    ),
+  };
 }
 
 function CylinderText({
@@ -132,6 +163,7 @@ function CylinderText({
   hidden,
   color = layer.color,
   blendMode,
+  textureShade = 0,
   bandIndex,
   geometry,
 }: {
@@ -142,6 +174,7 @@ function CylinderText({
   hidden: boolean;
   color?: string;
   blendMode?: TextBlendMode;
+  textureShade?: number;
   bandIndex?: number;
   geometry?: ReturnType<typeof cylinderGeometry>;
 }) {
@@ -150,21 +183,58 @@ function CylinderText({
   const data = geometry ?? cylinderGeometry(layer);
   if (layer.kind === "circular") {
     const { slices, bands } = data;
-    return <g aria-hidden="true" opacity={hidden ? 0 : undefined}>
-      {bands.map((band, i) => bandIndex !== undefined && bandIndex !== i ? null :
-        <g key={i} data-cylinder-blur={bandIndex === undefined && band.blur || undefined}
-          style={bandIndex === undefined && band.blur ? { filter: `blur(${band.blur}px)` } : undefined}>
-          {band.indices.map(sliceIndex => {
-            const slice = slices[sliceIndex];
-            return <g key={sliceIndex} transform={slice.transform} opacity={effect.backFade ? cylinderOpacity(slice.angle, effect.backFade) : undefined}>
-              <g clipPath={`url(#${prefix}-arc-cylinder-${index}-${sliceIndex})`}>
-                <SvgLayerText layer={layer} index={index} prefix={prefix} fontFamily={fontFamily}
-                  fill={shadeText(color, cylinderShading(slice.angle, effect.backShading))} blendMode={blendMode} />
-              </g>
-            </g>;
-          })}
-        </g>)}
-    </g>;
+    return (
+      <g aria-hidden="true" opacity={hidden ? 0 : undefined}>
+        {bands.map((band, i) =>
+          bandIndex !== undefined && bandIndex !== i ? null : (
+            <g
+              key={i}
+              data-cylinder-blur={
+                (bandIndex === undefined && band.blur) || undefined
+              }
+              style={
+                bandIndex === undefined && band.blur
+                  ? { filter: `blur(${band.blur}px)` }
+                  : undefined
+              }
+            >
+              {band.indices.map((sliceIndex) => {
+                const slice = slices[sliceIndex];
+                const shading = cylinderShading(
+                  slice.angle,
+                  effect.backShading,
+                );
+                return (
+                  <g
+                    key={sliceIndex}
+                    transform={slice.transform}
+                    opacity={
+                      effect.backFade
+                        ? cylinderOpacity(slice.angle, effect.backFade)
+                        : undefined
+                    }
+                  >
+                    <g
+                      clipPath={`url(#${prefix}-arc-cylinder-${index}-${sliceIndex})`}
+                    >
+                      <SvgLayerText
+                        layer={layer}
+                        index={index}
+                        prefix={prefix}
+                        fontFamily={fontFamily}
+                        fill={shadeText(color, shading)}
+                        blendMode={blendMode}
+                        textureShade={1 - (1 - textureShade) * (1 - shading)}
+                      />
+                    </g>
+                  </g>
+                );
+              })}
+            </g>
+          ),
+        )}
+      </g>
+    );
   }
   const { graphemes, segments, anchorOffset } = data.layout!;
   if (!graphemes.length) return null;
@@ -173,70 +243,149 @@ function CylinderText({
 
   return (
     <g aria-hidden="true" opacity={hidden ? 0 : undefined}>
-      {bands.map((band, i) => bandIndex !== undefined && bandIndex !== i ? null : <g key={i}
-        data-cylinder-blur={bandIndex === undefined && band.blur || undefined}
-        style={bandIndex === undefined && band.blur ? { filter: `blur(${band.blur}px)` } : undefined}>
-      {band.indices.map(segmentIndex => {
-        const segment = segments[segmentIndex];
-        const start = Math.floor((segmentIndex * graphemes.length) / count);
-        const end = Math.floor(((segmentIndex + 1) * graphemes.length) / count);
-        const portion = graphemes.slice(start, end).join("");
-        const shading = cylinderShading(segment.angle, effect.backShading);
-        return (
-          <SvgLayerText
-            key={segmentIndex}
-            layer={layer}
-            index={index}
-            prefix={prefix}
-            fontFamily={fontFamily}
-            text={portion}
-            x={0}
-            y={0}
-            transform={`translate(${layer.x + anchorOffset + segment.x} ${layer.y + segment.y}) matrix(${segment.horizontalScale} ${segment.shear} 0 ${segment.verticalScale} 0 0)`}
-            fontSize={layer.size * segment.scale}
-            fill={shadeText(color, shading)}
-            opacity={effect.backFade ? cylinderOpacity(segment.angle, effect.backFade) : undefined}
-            textAnchor="middle"
-            textLength={segment.width}
-            blendMode={blendMode}
-          />
-        );
-      })}</g>)}
+      {bands.map((band, i) =>
+        bandIndex !== undefined && bandIndex !== i ? null : (
+          <g
+            key={i}
+            data-cylinder-blur={
+              (bandIndex === undefined && band.blur) || undefined
+            }
+            style={
+              bandIndex === undefined && band.blur
+                ? { filter: `blur(${band.blur}px)` }
+                : undefined
+            }
+          >
+            {band.indices.map((segmentIndex) => {
+              const segment = segments[segmentIndex];
+              const start = Math.floor(
+                (segmentIndex * graphemes.length) / count,
+              );
+              const end = Math.floor(
+                ((segmentIndex + 1) * graphemes.length) / count,
+              );
+              const portion = graphemes.slice(start, end).join("");
+              const shading = cylinderShading(
+                segment.angle,
+                effect.backShading,
+              );
+              const combinedShade = 1 - (1 - textureShade) * (1 - shading);
+              return (
+                <SvgLayerText
+                  key={segmentIndex}
+                  layer={layer}
+                  index={index}
+                  prefix={prefix}
+                  fontFamily={fontFamily}
+                  text={portion}
+                  x={0}
+                  y={0}
+                  transform={`translate(${layer.x + anchorOffset + segment.x} ${layer.y + segment.y}) matrix(${segment.horizontalScale} ${segment.shear} 0 ${segment.verticalScale} 0 0)`}
+                  fontSize={layer.size * segment.scale}
+                  fill={shadeText(color, shading)}
+                  opacity={
+                    effect.backFade
+                      ? cylinderOpacity(segment.angle, effect.backFade)
+                      : undefined
+                  }
+                  textAnchor="middle"
+                  blendMode={blendMode}
+                  textureShade={combinedShade}
+                />
+              );
+            })}
+          </g>
+        ),
+      )}
     </g>
   );
 }
 
-function ExtrudedText({ layer, index, prefix, fontFamily, hidden }: {
-  layer: LabelLayer; index: number; prefix: string;
-  fontFamily: (layer: LabelLayer) => string; hidden: boolean;
+function ExtrudedText({
+  layer,
+  index,
+  prefix,
+  fontFamily,
+  hidden,
+}: {
+  layer: LabelLayer;
+  index: number;
+  prefix: string;
+  fontFamily: (layer: LabelLayer) => string;
+  hidden: boolean;
 }) {
   const extrusion = textExtrusion(layer.textEffect);
   if (!extrusion) return null;
-  const steps = layer.textEffect?.type === "cylinder"
-    ? Math.min(extrusion.steps, cylinderExtrusionSteps(layer.textEffect.segments))
-    : extrusion.steps;
-  const angle = extrusion.angle * Math.PI / 180;
-  const geometry = layer.textEffect?.type === "cylinder" ? cylinderGeometry(layer) : undefined;
+  const steps =
+    layer.textEffect?.type === "cylinder"
+      ? Math.min(
+          extrusion.steps,
+          cylinderExtrusionSteps(layer.textEffect.segments),
+        )
+      : extrusion.steps;
+  const angle = (extrusion.angle * Math.PI) / 180;
+  const geometry =
+    layer.textEffect?.type === "cylinder" ? cylinderGeometry(layer) : undefined;
   const backBands = geometry?.bands ?? [{ blur: 0, indices: [] }];
-  return <g aria-hidden="true" opacity={hidden ? 0 : undefined}>
-    {extrusionBlurBands(steps, extrusion.depthBlur).map((band, bandIndex) => (
-      <g key={bandIndex} data-extrusion-blur={band.blur || undefined}>
-        {backBands.map((backBand, backIndex) => <g key={backIndex} data-cylinder-blur={backBand.blur || undefined}
-          style={band.blur || backBand.blur ? { filter: `blur(${Math.hypot(band.blur, backBand.blur)}px)` } : undefined}>
-        {band.steps.map(step => {
-          const distance = extrusion.depth * step / steps;
-          const color = shadeText(layer.color, 0.55 * step / steps);
-          return <g key={step} opacity={extrusionOpacity(step, steps, extrusion.fade)}
-            transform={`translate(${Math.cos(angle) * distance} ${-Math.sin(angle) * distance})`}>
-            {layer.textEffect?.type === "cylinder"
-              ? <CylinderText layer={layer} index={index} prefix={prefix} fontFamily={fontFamily} hidden={false} color={color} blendMode="normal" bandIndex={backIndex} geometry={geometry} />
-              : <SvgLayerText layer={layer} index={index} prefix={prefix} fontFamily={fontFamily} fill={color} blendMode="normal" />}
-          </g>;
-        })}
-        </g>)}
-      </g>
-    ))}
-  </g>;
+  return (
+    <g aria-hidden="true" opacity={hidden ? 0 : undefined}>
+      {extrusionBlurBands(steps, extrusion.depthBlur).map((band, bandIndex) => (
+        <g key={bandIndex} data-extrusion-blur={band.blur || undefined}>
+          {backBands.map((backBand, backIndex) => (
+            <g
+              key={backIndex}
+              data-cylinder-blur={backBand.blur || undefined}
+              style={
+                band.blur || backBand.blur
+                  ? {
+                      filter: `blur(${Math.hypot(band.blur, backBand.blur)}px)`,
+                    }
+                  : undefined
+              }
+            >
+              {band.steps.map((step) => {
+                const distance = (extrusion.depth * step) / steps;
+                const depthShading = (0.55 * step) / steps;
+                const color = shadeText(layer.color, depthShading);
+                return (
+                  <g
+                    key={step}
+                    opacity={extrusionOpacity(step, steps, extrusion.fade)}
+                    transform={`translate(${Math.cos(angle) * distance} ${-Math.sin(angle) * distance})`}
+                  >
+                    {layer.textEffect?.type === "cylinder" ? (
+                      <CylinderText
+                        layer={layer}
+                        index={index}
+                        prefix={prefix}
+                        fontFamily={fontFamily}
+                        hidden={false}
+                        color={color}
+                        blendMode="normal"
+                        textureShade={depthShading}
+                        bandIndex={backIndex}
+                        geometry={geometry}
+                      />
+                    ) : (
+                      <SvgLayerText
+                        layer={layer}
+                        index={index}
+                        prefix={prefix}
+                        fontFamily={fontFamily}
+                        fill={color}
+                        blendMode="normal"
+                        textureShade={depthShading}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          ))}
+        </g>
+      ))}
+    </g>
+  );
 }
 
 export function LabelArtwork({
@@ -286,27 +435,105 @@ export function LabelArtwork({
       aria-label={`${design.title}, side ${side}`}
     >
       <defs>
-        {design[side].flatMap((layer, index) => circularCylinderSlices(layer).map((slice, sliceIndex) =>
-          <clipPath key={`${layer.id}-cylinder-${sliceIndex}`} id={`${prefix}-arc-cylinder-${index}-${sliceIndex}`} clipPathUnits="userSpaceOnUse">
-            <rect x={slice.x} y={-6000} width={slice.width} height={12000} />
-          </clipPath>))}
-        {design[side].filter(layer => layer.kind === "image" && (layer.imageFill || (imageRole(layer) === "brand-logo" && layer.imageInverted) || imageRole(layer) === "barcode")).map(layer => (
-          <filter key={`image-color-${layer.id}`} id={`${prefix}-image-color-${layer.id}`} colorInterpolationFilters="sRGB">
-            {layer.imageFill ? <><feFlood floodColor={layer.imageFill} /><feComposite in2="SourceAlpha" operator="in" /></> : imageRole(layer) === "barcode" ? <>
-              <feColorMatrix in="SourceGraphic" result="barcode-source" type="matrix" values={barcodeSourceMatrix(layer.imageBarSource)} />
-              <feComponentTransfer in="barcode-source">
-                <feFuncR type="table" tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(1, 3), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(1, 3), 16) / 255}`} />
-                <feFuncG type="table" tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(3, 5), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(3, 5), 16) / 255}`} />
-                <feFuncB type="table" tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(5, 7), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(5, 7), 16) / 255}`} />
-              </feComponentTransfer>
-            </> : <feComponentTransfer><feFuncR type="table" tableValues="1 0" /><feFuncG type="table" tableValues="1 0" /><feFuncB type="table" tableValues="1 0" /></feComponentTransfer>}
-          </filter>
-        ))}
-        {design[side].filter(layer => layer.kind === "image" && (layer.imageCrop || layer.borderRadius)).map(layer => {
-          return <clipPath key={`crop-${layer.id}`} id={`${prefix}-image-crop-${layer.id}`} clipPathUnits="userSpaceOnUse">
-            <rect {...imageCropBounds(layer)} />
-          </clipPath>;
-        })}
+        {design[side].map((layer, index) =>
+          layer.kind !== "image" && layer.textTexture ? (
+            <pattern
+              key={`${layer.id}-text-surface`}
+              id={`${prefix}-text-surface-${index}`}
+              patternUnits="userSpaceOnUse"
+              width={(600 * (layer.textTextureScale ?? 100)) / 100}
+              height={(600 * (layer.textTextureScale ?? 100)) / 100}
+            >
+              <image
+                href={layer.textTexture}
+                x="0"
+                y="0"
+                width={(600 * (layer.textTextureScale ?? 100)) / 100}
+                height={(600 * (layer.textTextureScale ?? 100)) / 100}
+                preserveAspectRatio="xMidYMid slice"
+                opacity={layer.textTextureOpacity ?? 1}
+              />
+            </pattern>
+          ) : null,
+        )}
+        {design[side].flatMap((layer, index) =>
+          circularCylinderSlices(layer).map((slice, sliceIndex) => (
+            <clipPath
+              key={`${layer.id}-cylinder-${sliceIndex}`}
+              id={`${prefix}-arc-cylinder-${index}-${sliceIndex}`}
+              clipPathUnits="userSpaceOnUse"
+            >
+              <rect x={slice.x} y={-6000} width={slice.width} height={12000} />
+            </clipPath>
+          )),
+        )}
+        {design[side]
+          .filter(
+            (layer) =>
+              layer.kind === "image" &&
+              (layer.imageFill ||
+                (imageRole(layer) === "brand-logo" && layer.imageInverted) ||
+                imageRole(layer) === "barcode"),
+          )
+          .map((layer) => (
+            <filter
+              key={`image-color-${layer.id}`}
+              id={`${prefix}-image-color-${layer.id}`}
+              colorInterpolationFilters="sRGB"
+            >
+              {layer.imageFill ? (
+                <>
+                  <feFlood floodColor={layer.imageFill} />
+                  <feComposite in2="SourceAlpha" operator="in" />
+                </>
+              ) : imageRole(layer) === "barcode" ? (
+                <>
+                  <feColorMatrix
+                    in="SourceGraphic"
+                    result="barcode-source"
+                    type="matrix"
+                    values={barcodeSourceMatrix(layer.imageBarSource)}
+                  />
+                  <feComponentTransfer in="barcode-source">
+                    <feFuncR
+                      type="table"
+                      tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(1, 3), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(1, 3), 16) / 255}`}
+                    />
+                    <feFuncG
+                      type="table"
+                      tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(3, 5), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(3, 5), 16) / 255}`}
+                    />
+                    <feFuncB
+                      type="table"
+                      tableValues={`${parseInt((layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000").slice(5, 7), 16) / 255} ${parseInt((layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff").slice(5, 7), 16) / 255}`}
+                    />
+                  </feComponentTransfer>
+                </>
+              ) : (
+                <feComponentTransfer>
+                  <feFuncR type="table" tableValues="1 0" />
+                  <feFuncG type="table" tableValues="1 0" />
+                  <feFuncB type="table" tableValues="1 0" />
+                </feComponentTransfer>
+              )}
+            </filter>
+          ))}
+        {design[side]
+          .filter(
+            (layer) =>
+              layer.kind === "image" && (layer.imageCrop || layer.borderRadius),
+          )
+          .map((layer) => {
+            return (
+              <clipPath
+                key={`crop-${layer.id}`}
+                id={`${prefix}-image-crop-${layer.id}`}
+                clipPathUnits="userSpaceOnUse"
+              >
+                <rect {...imageCropBounds(layer)} />
+              </clipPath>
+            );
+          })}
         {design[side].map(
           (layer, index) =>
             layer.kind !== "image" &&
@@ -433,40 +660,81 @@ export function LabelArtwork({
                     revision={JSON.stringify([layer, fontFamily(layer)])}
                   />
                 ))}
-              <g data-layer-appearance="true" opacity={layer.opacity ?? 1} style={layer.blur ? { filter: `blur(${layer.blur}px)`, mixBlendMode: layer.blendMode === "difference" ? "difference" : undefined } : undefined}>
-              {layer.kind === "image" ? (
-                layer.image && (
-                  <g clipPath={layer.imageCrop || layer.borderRadius ? `url(#${prefix}-image-crop-${layer.id})` : undefined}>
-                  <image
-                    filter={layer.imageFill || (imageRole(layer) === "brand-logo" && layer.imageInverted) || imageRole(layer) === "barcode" ? `url(#${prefix}-image-color-${layer.id})` : undefined}
-                    href={layer.image}
-                    x={layer.x - layer.width / 2}
-                    y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
-                    width={layer.width}
-                    height={layer.width / (layer.imageRatio ?? 1)}
-                    preserveAspectRatio="xMidYMid meet"
-                  />
-                  </g>
-                )
-              ) : (
-                <>
-                  <ExtrudedText layer={layer} index={index} prefix={prefix} fontFamily={fontFamily} hidden={layer.id === hiddenTextId} />
-                  {layer.textEffect?.type === "cylinder" ? (
-                    <CylinderText layer={layer} index={index} prefix={prefix} fontFamily={fontFamily} hidden={layer.id === hiddenTextId} />
-                  ) : <SvgLayerText
-                    layer={layer}
-                    index={index}
-                    prefix={prefix}
-                    fontFamily={fontFamily}
-                    opacity={layer.id === hiddenTextId ? 0 : undefined}
-                    filter={
-                      layer.inkBleed
-                        ? `url(#${prefix}-ink-bleed-${index})`
-                        : undefined
-                    }
-                  />}
-                </>
-              )}
+              <g
+                data-layer-appearance="true"
+                opacity={layer.opacity ?? 1}
+                style={
+                  layer.blur
+                    ? {
+                        filter: `blur(${layer.blur}px)`,
+                        mixBlendMode:
+                          layer.blendMode === "difference"
+                            ? "difference"
+                            : undefined,
+                      }
+                    : undefined
+                }
+              >
+                {layer.kind === "image" ? (
+                  layer.image && (
+                    <g
+                      clipPath={
+                        layer.imageCrop || layer.borderRadius
+                          ? `url(#${prefix}-image-crop-${layer.id})`
+                          : undefined
+                      }
+                    >
+                      <image
+                        filter={
+                          layer.imageFill ||
+                          (imageRole(layer) === "brand-logo" &&
+                            layer.imageInverted) ||
+                          imageRole(layer) === "barcode"
+                            ? `url(#${prefix}-image-color-${layer.id})`
+                            : undefined
+                        }
+                        href={layer.image}
+                        x={layer.x - layer.width / 2}
+                        y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
+                        width={layer.width}
+                        height={layer.width / (layer.imageRatio ?? 1)}
+                        preserveAspectRatio="xMidYMid meet"
+                      />
+                    </g>
+                  )
+                ) : (
+                  <>
+                    <ExtrudedText
+                      layer={layer}
+                      index={index}
+                      prefix={prefix}
+                      fontFamily={fontFamily}
+                      hidden={layer.id === hiddenTextId}
+                    />
+                    {layer.textEffect?.type === "cylinder" ? (
+                      <CylinderText
+                        layer={layer}
+                        index={index}
+                        prefix={prefix}
+                        fontFamily={fontFamily}
+                        hidden={layer.id === hiddenTextId}
+                      />
+                    ) : (
+                      <SvgLayerText
+                        layer={layer}
+                        index={index}
+                        prefix={prefix}
+                        fontFamily={fontFamily}
+                        opacity={layer.id === hiddenTextId ? 0 : undefined}
+                        filter={
+                          layer.inkBleed
+                            ? `url(#${prefix}-ink-bleed-${index})`
+                            : undefined
+                        }
+                      />
+                    )}
+                  </>
+                )}
               </g>
             </g>
           ),

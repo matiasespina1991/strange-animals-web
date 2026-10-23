@@ -27,6 +27,15 @@ assert.deepEqual(choices, ["#000000"]);
 assert.equal(previews.at(-1), null);
 cleanups.forEach((cleanup) => cleanup());
 
+const expandedColors = ColorSwatches({
+  colors: ["#000000", "#111111", "#222222", "#333333", "#444444", "#555555", "#666666"],
+  visibleCount: 5,
+  label: "Ink color",
+  onChoose: () => {},
+});
+assert.equal(expandedColors.props.children[0].props.children.length, 5, "Ink can show two more swatches inline");
+assert.equal(expandedColors.props.children[1].props["aria-label"], "More ink color options");
+
 const appMock = url(`export const getApps=()=>[];export const initializeApp=(options,name)=>({name,options});`);
 const authMock = url(`export const getAuth=(app)=>({app});`);
 const baseMock = url(`export const firebaseApp={name:"[DEFAULT]",options:{projectId:"test"}};`);

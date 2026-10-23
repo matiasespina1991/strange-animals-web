@@ -54,7 +54,10 @@ async function walkSvgFiles(directory) {
   for (const entry of entries) {
     const filePath = path.join(directory, entry.name);
     if (entry.isDirectory()) result.push(...(await walkSvgFiles(filePath)));
-    else if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".svg")
+    else if (
+      entry.isFile() &&
+      path.extname(entry.name).toLowerCase() === ".svg"
+    )
       result.push(filePath);
   }
 
@@ -89,7 +92,9 @@ function prepareSvg(source, sourcePath) {
       source,
     )
   ) {
-    throw new Error(`External SVG URL references are not allowed: ${sourcePath}`);
+    throw new Error(
+      `External SVG URL references are not allowed: ${sourcePath}`,
+    );
   }
 
   const cleaned = source
@@ -105,7 +110,10 @@ function getAspectRatio(svg) {
   const root = svg.match(/<svg\b([^>]*)>/i)?.[1] ?? "";
   const viewBox = root.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1];
   if (viewBox) {
-    const [, , width, height] = viewBox.trim().split(/[\s,]+/).map(Number);
+    const [, , width, height] = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
     if (width > 0 && height > 0) return width / height;
   }
 
@@ -202,7 +210,9 @@ async function fetchJson(url, token, options = {}) {
     },
   });
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
+    throw new Error(
+      `${response.status} ${response.statusText}: ${await response.text()}`,
+    );
   }
   return response.status === 204 ? {} : response.json();
 }
@@ -316,16 +326,23 @@ async function writeFirestoreBatch(assets, token) {
     }
   } catch (error) {
     if (committed.length) {
-      await deleteFirestoreDocuments(committed, token).catch((rollbackError) => {
-        console.error("Could not fully roll back Firestore asset documents.", rollbackError);
-      });
+      await deleteFirestoreDocuments(committed, token).catch(
+        (rollbackError) => {
+          console.error(
+            "Could not fully roll back Firestore asset documents.",
+            rollbackError,
+          );
+        },
+      );
     }
     throw error;
   }
 }
 
 async function deleteUploadedObject(asset, token) {
-  const url = new URL(`${STORAGE_API_ROOT}/o/${encodeURIComponent(asset.storagePath)}`);
+  const url = new URL(
+    `${STORAGE_API_ROOT}/o/${encodeURIComponent(asset.storagePath)}`,
+  );
   await fetchJson(url, token, { method: "DELETE" });
 }
 
@@ -337,7 +354,9 @@ async function deleteFirestoreDocuments(assets, token) {
     const result = await fetchJson(`${FIRESTORE_API_ROOT}:batchWrite`, token, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ writes: writes.slice(index, index + FIRESTORE_BATCH_SIZE) }),
+      body: JSON.stringify({
+        writes: writes.slice(index, index + FIRESTORE_BATCH_SIZE),
+      }),
     });
     const failure = result.status?.find((status) => status.code);
     if (failure)
@@ -369,10 +388,9 @@ const groupCounts = Object.fromEntries(
   ]),
 );
 console.log(`Prepared ${assets.length} sanitized SVG assets:`, groupCounts);
-console.log(
-  "Folders:",
-  [...new Set(assets.map((asset) => `${asset.assetGroup}/${asset.folderPath}`))],
-);
+console.log("Folders:", [
+  ...new Set(assets.map((asset) => `${asset.assetGroup}/${asset.folderPath}`)),
+]);
 
 if (MODE === "dry-run") {
   console.log("Dry run only; no Firebase objects or documents were written.");
@@ -402,7 +420,9 @@ if (MODE === "dry-run") {
       }
     });
     if (cleanupFailures.length)
-      console.error(`Could not remove ${cleanupFailures.length} uploaded SVG objects.`);
+      console.error(
+        `Could not remove ${cleanupFailures.length} uploaded SVG objects.`,
+      );
     throw error;
   }
 }

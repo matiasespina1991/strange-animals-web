@@ -22,8 +22,16 @@ export type DesignConfiguratorAsset = {
 };
 
 export const BRAND_ASSETS = [
-  { id: "logo", name: "Strange Animals logo", url: "/media/images/logos/sa-logo.png" },
-  { id: "logo-outlined", name: "Strange Animals outlined", url: "/media/images/logos/sa-logo-outlined.png" },
+  {
+    id: "logo",
+    name: "Strange Animals logo",
+    url: "/media/images/logos/sa-logo.png",
+  },
+  {
+    id: "logo-outlined",
+    name: "Strange Animals outlined",
+    url: "/media/images/logos/sa-logo-outlined.png",
+  },
 ] as const;
 
 async function makeInsertableAsset(name: string, blob: Blob) {
@@ -49,15 +57,19 @@ async function makeInsertableAsset(name: string, blob: Blob) {
 
 /** Embed local assets so saved projects and exports remain portable. */
 export async function loadBrandAsset(
-  asset: typeof BRAND_ASSETS[number],
+  asset: (typeof BRAND_ASSETS)[number],
 ): Promise<InsertableAsset> {
   const response = await fetch(asset.url);
   if (!response.ok) throw new Error("Could not load this asset. Please retry.");
-  return { ...await makeInsertableAsset(asset.name, await response.blob()), imageRole: "brand-logo" };
+  return {
+    ...(await makeInsertableAsset(asset.name, await response.blob())),
+    imageRole: "brand-logo",
+  };
 }
 
 function sanitizeSvg(source: string) {
-  const unsafeCssUrl = /url\(\s*["']?(?!#|data:image\/(?:png|jpeg|webp);base64,)/i;
+  const unsafeCssUrl =
+    /url\(\s*["']?(?!#|data:image\/(?:png|jpeg|webp);base64,)/i;
   const cleanedSource = source
     .replace(/<\?xml[\s\S]*?\?>\s*/i, "")
     .replace(/<!DOCTYPE[\s\S]*?>\s*/i, "");
@@ -76,7 +88,10 @@ function sanitizeSvg(source: string) {
     .querySelectorAll("script, foreignObject, iframe, object, embed")
     .forEach((element) => element.remove());
   parsed.querySelectorAll("style").forEach((style) => {
-    if (/@import\b/i.test(style.textContent ?? "") || unsafeCssUrl.test(style.textContent ?? ""))
+    if (
+      /@import\b/i.test(style.textContent ?? "") ||
+      unsafeCssUrl.test(style.textContent ?? "")
+    )
       style.remove();
   });
 
@@ -93,10 +108,7 @@ function sanitizeSvg(source: string) {
         !/^data:image\/(?:png|jpeg|webp);base64,/i.test(value)
       ) {
         element.removeAttribute(attribute.name);
-      } else if (
-        attributeName === "style" &&
-        unsafeCssUrl.test(value)
-      ) {
+      } else if (attributeName === "style" && unsafeCssUrl.test(value)) {
         element.removeAttribute(attribute.name);
       }
     }
@@ -109,7 +121,8 @@ export async function loadDesignConfiguratorAsset(
   asset: DesignConfiguratorAsset,
 ): Promise<InsertableAsset> {
   const response = await fetch(asset.downloadUrl);
-  if (!response.ok) throw new Error("Could not load this SVG asset. Please retry.");
+  if (!response.ok)
+    throw new Error("Could not load this SVG asset. Please retry.");
   const svg = sanitizeSvg(await response.text());
   return makeInsertableAsset(
     asset.name,
