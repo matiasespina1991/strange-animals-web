@@ -74,14 +74,15 @@
 .dc-effect-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
 }
 .dc-effect-tab {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-width: 0;
   min-height: 32px;
-  padding: 2px 7px;
+  padding: 4px 9px;
   border: 1px solid #cdd0c2;
   background: #fafaf7;
 }
@@ -97,11 +98,15 @@
   font-size: 11px;
   line-height: 1.2;
 }
+.dc-effect-tab button:disabled {
+  color: #777d70;
+  cursor: not-allowed;
+}
 .dc-effect-enable {
   flex: 0 0 14px;
   width: 14px;
   height: 14px;
-  margin: 0 1px 0 6px;
+  margin: 0;
   accent-color: #64734b;
 }
 .dc-text-effects [role="tabpanel"] {
@@ -533,11 +538,12 @@
   flex-direction: column;
 }
 .dc-stage-top {
-  padding: 20px 25px;
+  min-height: 56px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   font-size: 9px;
   letter-spacing: 1.1px;
   color: #616953;
@@ -565,6 +571,37 @@
   font-size: 8px;
   color: #7b856d;
 }
+.dc-stage-top .dc-preview-3d-button {
+  width: 30px;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #c4cab9;
+  background: transparent;
+  color: #59664a;
+}
+.dc-preview-3d-icon {
+  position: relative;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+}
+.dc-stage-top .dc-preview-3d-icon > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 0 1px;
+  transform: translate(-50%, -50%);
+  background: #eceee7;
+  color: #394332;
+  font-size: 5px;
+  font-weight: 700;
+  line-height: 1;
+}
+.dc-stage-top .dc-preview-3d-button:hover {
+  background: #e2e7d9;
+}
 .dc-artboard {
   flex: 1;
   min-height: 570px;
@@ -574,11 +611,11 @@
   position: relative;
   padding: 60px 42px;
   overflow: hidden;
-  background-color: #5d615e;
+  background-color: #f1f2ee;
   background-image:
-    linear-gradient(rgba(235, 239, 230, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(235, 239, 230, 0.09) 1px, transparent 1px);
-  background-size: 24px 24px;
+    linear-gradient(rgba(86, 94, 79, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(86, 94, 79, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
   touch-action: none;
 }
 .dc-artboard-content {
@@ -676,7 +713,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 18px 23px;
+  padding: 14px 23px;
   border-top: 1px solid #d7dccb;
 }
 .dc-canvas-footer > span {
@@ -1108,7 +1145,7 @@
     max-width: 560px;
   }
   .dc-canvas-footer {
-    padding: 12px 18px;
+    padding: 9px 18px;
     flex-wrap: nowrap;
   }
   .dc-canvas-footer > span {
@@ -1770,6 +1807,85 @@
   align-items: center;
   padding: 20px;
 }
+.dc-3d-preview-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1080px, calc(100vw - 40px));
+  max-width: 100%;
+  max-height: calc(100dvh - 40px);
+  padding: 18px;
+  border: 1px solid #cdd2c2;
+  background: #fafaf7;
+  box-shadow: 0 24px 80px #10140f55;
+}
+.dc-3d-preview-dialog .dc-picker-heading {
+  flex: 0 0 auto;
+  padding-bottom: 12px;
+}
+.dc-3d-preview-dialog .dc-picker-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.dc-3d-preview-dialog .dc-picker-heading button {
+  align-self: center;
+  padding: 5px;
+}
+.dc-3d-preview {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.dc-3d-scene {
+  position: relative;
+  width: 100%;
+  height: min(68dvh, 740px);
+  min-height: 320px;
+  overflow: hidden;
+  background: #e5e7e1;
+}
+.dc-3d-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.dc-3d-error {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 12px 16px;
+  transform: translate(-50%, -50%);
+  background: #fafaf7;
+  color: #252620;
+}
+.dc-3d-controls {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #626e56;
+}
+.dc-3d-controls > span {
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.dc-3d-controls > div {
+  display: flex;
+  gap: 4px;
+}
+.dc-3d-controls button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #cdd2c2;
+  color: #4e5d3d;
+}
+.dc-3d-controls button:hover {
+  background: #e6e9dc;
+}
 .dc-font-picker.dc-template-dialog {
   width: 920px;
   height: auto;
@@ -1846,6 +1962,15 @@
   }
   .dc-font-picker.dc-template-dialog {
     max-height: calc(100dvh - 20px);
+  }
+  .dc-3d-preview-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 20px);
+    padding: 10px;
+  }
+  .dc-3d-scene {
+    height: 65dvh;
+    min-height: 280px;
   }
 }
 .dc-artboard .dc-measure,
@@ -1940,9 +2065,7 @@
   }
   .design-configurator .dc-stage-top {
     position: sticky;
-    top: calc(
-      var(--dc-project-bar-height) + var(--dc-global-settings-height)
-    );
+    top: calc(var(--dc-project-bar-height) + var(--dc-global-settings-height));
     z-index: 24;
     background: #eceee7;
     border-bottom: 1px solid #d9dbd1;
@@ -1955,9 +2078,7 @@
   }
   .design-configurator .dc-layers {
     position: sticky;
-    top: calc(
-      var(--dc-project-bar-height) + var(--dc-global-settings-height)
-    );
+    top: calc(var(--dc-project-bar-height) + var(--dc-global-settings-height));
     align-self: start;
     height: calc(
       100dvh - var(--dc-project-bar-height) - var(--dc-global-settings-height)
@@ -1977,9 +2098,7 @@
   }
   .design-configurator .dc-properties {
     position: sticky;
-    top: calc(
-      var(--dc-project-bar-height) + var(--dc-global-settings-height)
-    );
+    top: calc(var(--dc-project-bar-height) + var(--dc-global-settings-height));
     align-self: start;
     height: calc(
       100dvh - var(--dc-project-bar-height) - var(--dc-global-settings-height)

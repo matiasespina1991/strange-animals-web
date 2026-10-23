@@ -613,7 +613,7 @@ for (const tilt of [-75, 0, 75]) {
   }
 }
 assert.equal(parseDesign({ ...original, sleeveZoom: undefined }).sleeveZoom, 1);
-assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 3);
+assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 5);
 assert.equal(
   parseDesign({ ...original, sleeveImage: "data:image/png;base64,aGVsbG8=" })
     .sleeveImage,

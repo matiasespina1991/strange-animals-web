@@ -140,12 +140,13 @@ export function TextEffectControls({
       <div className="dc-effect-tabs" role="group" aria-label="Effect settings">
         <div
           className="dc-effect-tab"
-          data-active={activeEffect === "cylinder"}
+          data-active={activeEffect === "cylinder" && Boolean(cylinder)}
         >
           <button
             type="button"
             aria-label="Show Cylinder controls"
             aria-pressed={activeEffect === "cylinder"}
+            disabled={!cylinder}
             data-effect-tab="cylinder"
             onClick={() => setActiveEffect("cylinder")}
           >
@@ -164,12 +165,13 @@ export function TextEffectControls({
         </div>
         <div
           className="dc-effect-tab"
-          data-active={activeEffect === "extrusion"}
+          data-active={activeEffect === "extrusion" && Boolean(extrusion)}
         >
           <button
             type="button"
             aria-label="Show Extrusion controls"
             aria-pressed={activeEffect === "extrusion"}
+            disabled={!extrusion}
             data-effect-tab="extrusion"
             onClick={() => setActiveEffect("extrusion")}
           >

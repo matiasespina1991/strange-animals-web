@@ -1,5 +1,5 @@
 import { writePsd, type Layer } from "ag-psd";
-import { createLabelSvg } from "./design-configurator-export";
+import { createLabelSvg, exportLabelPng } from "./design-configurator-export";
 import type { FontCatalogItem } from "./font-catalog-repository";
 import type { LabelDesign, LabelSide } from "./design-configurator-model";
 import { embeddedOutlineFonts, outlineText } from "./psd-text-outlines";
@@ -256,5 +256,116 @@ export async function createLabelPsd(
     );
   } finally {
     host.remove();
+  }
+}
+
+export async function createSleeveLabelPsd(
+  design: LabelDesign,
+  side: LabelSide,
+  fonts: FontCatalogItem[],
+  { bleed, onProgress }: PsdOptions,
+): Promise<Blob> {
+  const ppi = 300;
+  const sleeveSizeMm = 315;
+  const labelSizeMm = design.diameterMm + (bleed ? design.bleedMm * 2 : 0);
+  const pixels = printPixelSize(sleeveSizeMm, ppi);
+  const labelPixels = printPixelSize(labelSizeMm, ppi);
+  onProgress?.("psd:sleeve-composite", { side, ppi, width: pixels });
+
+  const labelSvg = await createLabelSvg(design, side, fonts, bleed);
+  const labelPng = await exportLabelPng(labelSvg, labelSizeMm, ppi);
+  const labelUrl = URL.createObjectURL(labelPng);
+  const labelImage = new Image();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      labelImage.onload = () => resolve();
+      labelImage.onerror = () =>
+        reject(new Error("Could not render label layer."));
+      labelImage.src = labelUrl;
+    });
+
+    const sleeveCanvas = document.createElement("canvas");
+    sleeveCanvas.width = pixels;
+    sleeveCanvas.height = pixels;
+    const sleeveContext = sleeveCanvas.getContext("2d");
+    if (!sleeveContext) throw new Error("Canvas unavailable.");
+    sleeveContext.fillStyle = design.sleeveColor;
+    sleeveContext.fillRect(0, 0, pixels, pixels);
+    if (design.sleeveImage) {
+      const sleeveImage = new Image();
+      await new Promise<void>((resolve, reject) => {
+        sleeveImage.onload = () => resolve();
+        sleeveImage.onerror = () =>
+          reject(new Error("Could not load sleeve artwork."));
+        sleeveImage.src = design.sleeveImage!;
+      });
+      const coverScale =
+        Math.max(
+          pixels / sleeveImage.naturalWidth,
+          pixels / sleeveImage.naturalHeight,
+        ) * design.sleeveZoom;
+      const imageWidth = sleeveImage.naturalWidth * coverScale;
+      const imageHeight = sleeveImage.naturalHeight * coverScale;
+      sleeveContext.save();
+      sleeveContext.beginPath();
+      sleeveContext.rect(0, 0, pixels, pixels);
+      sleeveContext.clip();
+      sleeveContext.drawImage(
+        sleeveImage,
+        (pixels - imageWidth) / 2,
+        (pixels - imageHeight) / 2,
+        imageWidth,
+        imageHeight,
+      );
+      sleeveContext.restore();
+    }
+
+    const labelCanvas = document.createElement("canvas");
+    labelCanvas.width = pixels;
+    labelCanvas.height = pixels;
+    const labelContext = labelCanvas.getContext("2d");
+    if (!labelContext) throw new Error("Canvas unavailable.");
+    const labelOffset = (pixels - labelPixels) / 2;
+    labelContext.drawImage(
+      labelImage,
+      labelOffset,
+      labelOffset,
+      labelPixels,
+      labelPixels,
+    );
+
+    const compositeCanvas = document.createElement("canvas");
+    compositeCanvas.width = pixels;
+    compositeCanvas.height = pixels;
+    const compositeContext = compositeCanvas.getContext("2d");
+    if (!compositeContext) throw new Error("Canvas unavailable.");
+    compositeContext.drawImage(sleeveCanvas, 0, 0);
+    compositeContext.drawImage(labelCanvas, 0, 0);
+    return new Blob(
+      [
+        writePsd({
+          width: pixels,
+          height: pixels,
+          canvas: compositeCanvas,
+          children: [
+            { name: "Sleeve", canvas: sleeveCanvas },
+            { name: `Record label · ${side}`, canvas: labelCanvas },
+          ],
+          imageResources: {
+            resolutionInfo: {
+              horizontalResolution: ppi,
+              verticalResolution: ppi,
+              horizontalResolutionUnit: "PPI",
+              verticalResolutionUnit: "PPI",
+              widthUnit: "Centimeters",
+              heightUnit: "Centimeters",
+            },
+          },
+        }),
+      ],
+      { type: "image/vnd.adobe.photoshop" },
+    );
+  } finally {
+    URL.revokeObjectURL(labelUrl);
   }
 }

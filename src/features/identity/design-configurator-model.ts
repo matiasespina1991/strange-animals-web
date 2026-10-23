@@ -752,7 +752,7 @@ export function parseDesign(input: unknown): LabelDesign {
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),
         y: numeric(item.y, 190, 0, 600),
-        width: numeric(item.width, 150, 10, 600),
+        width: numeric(item.width, 150, 10, 500),
         color: hex(item.color, base.color),
         customTextColor: kind !== "image" && item.customTextColor === true,
         align:
@@ -842,7 +842,7 @@ export function parseDesign(input: unknown): LabelDesign {
     paper: hex(input.paper, "#e5e8d9"),
     sleeveColor: hex(input.sleeveColor, "#000000"),
     sleeveImage,
-    sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 3),
+    sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
     diameterMm,
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),

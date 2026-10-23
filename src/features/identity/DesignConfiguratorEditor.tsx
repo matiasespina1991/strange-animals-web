@@ -19,6 +19,7 @@ import {
   ArrowDownToLine,
   ArrowUp,
   ArrowUpRight,
+  Box,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -62,6 +63,7 @@ import { TextSurfaceControl } from "./TextSurfaceControl";
 import { readBarcodeSourcePalette } from "./barcode-source-palette";
 import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
 import { SleeveImageControl } from "./SleeveImageControl";
+import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
 import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
@@ -113,6 +115,8 @@ import {
   type LabelSide,
 } from "./design-configurator-model";
 import {
+  captureLabelPreview,
+  createSleeveLabelSvg,
   createLabelSvg,
   defaultLabelFont,
   downloadDesignFile,
@@ -392,9 +396,39 @@ export function DesignConfiguratorEditor() {
     [guides, setGuides] = useState(true),
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties");
+  useEffect(() => {
+    const handleZoomShortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const zoomDirection =
+        event.key === "+" || event.key === "=" || event.code === "NumpadAdd"
+          ? 1
+          : event.key === "-" || event.code === "NumpadSubtract"
+            ? -1
+            : 0;
+      if (!zoomDirection) return;
+      event.preventDefault();
+      setZoom((current) =>
+        Math.min(500, Math.max(10, current + zoomDirection * 30)),
+      );
+    };
+    document.addEventListener("keydown", handleZoomShortcut);
+    return () => document.removeEventListener("keydown", handleZoomShortcut);
+  }, []);
   const [dialog, setDialog] = useState<
-    "fonts" | "file" | "settings" | "export" | "new" | "assets" | null
+    | "fonts"
+    | "file"
+    | "settings"
+    | "export"
+    | "new"
+    | "assets"
+    | "sleeve-preview"
+    | null
   >(initial.showTemplateWelcome ? "new" : null);
+  const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
+    A: "",
+    B: "",
+  });
+  const [sleevePreviewBusy, setSleevePreviewBusy] = useState(false);
   useEffect(() => {
     if (!initial.showTemplateWelcome) return;
     try {
@@ -462,7 +496,10 @@ export function DesignConfiguratorEditor() {
   const openFontPicker = () => {
     setScope("all");
     setQuery("");
-    setCategoryByScope((current) => ({ ...current, [`all:${fontContext}`]: null }));
+    setCategoryByScope((current) => ({
+      ...current,
+      [`all:${fontContext}`]: null,
+    }));
     setDialog("fonts");
   };
   const deferredQuery = useDeferredValue(query);
@@ -516,6 +553,7 @@ export function DesignConfiguratorEditor() {
     [exportFormat, setExportFormat] = useState("svg"),
     [exportSides, setExportSides] = useState("current"),
     [includeBleed, setIncludeBleed] = useState(false),
+    [includeSleeve, setIncludeSleeve] = useState(false),
     [textLength, setTextLength] = useState(0);
   const imageInput = useRef<HTMLInputElement>(null),
     projectInput = useRef<HTMLInputElement>(null);
@@ -1060,6 +1098,29 @@ export function DesignConfiguratorEditor() {
     setPanning(true);
     e.preventDefault();
   };
+  const openSleevePreview = async () => {
+    setSleevePreviewBusy(true);
+    try {
+      const [markupA, markupB] = await Promise.all([
+        createLabelSvg(previewDesign, "A", fonts, false),
+        createLabelSvg(previewDesign, "B", fonts, false),
+      ]);
+      const [captureA, captureB] = await Promise.all([
+        captureLabelPreview(markupA),
+        captureLabelPreview(markupB),
+      ]);
+      setSleevePreviewLabels({ A: captureA, B: captureB });
+      setDialog("sleeve-preview");
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Could not capture the sleeve preview.",
+      );
+    } finally {
+      setSleevePreviewBusy(false);
+    }
+  };
   const moveCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
     const start = canvasPan.current;
     if (
@@ -1099,32 +1160,59 @@ export function DesignConfiguratorEditor() {
     setExportBusy(true);
     try {
       const sides: LabelSide[] = exportSides === "both" ? ["A", "B"] : [side],
-        mm = design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0);
+        labelMm = design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0),
+        outputMm = includeSleeve ? 315 : labelMm;
       for (const s of sides) {
         if (exportFormat === "psd") {
           diagnostics.stage("load-psd-module", { side: s });
-          const { createLabelPsd } = await import("./design-configurator-psd");
-          const blob = await createLabelPsd(design, s, fonts, {
+          const psdModule = await import("./design-configurator-psd");
+          const createPsd = includeSleeve
+            ? psdModule.createSleeveLabelPsd
+            : psdModule.createLabelPsd;
+          const blob = await createPsd(design, s, fonts, {
             bleed: includeBleed,
             onProgress: diagnostics.stage,
           });
           diagnostics.stage("download", { side: s, bytes: blob.size });
-          downloadDesignFile(blob, labelExportName(design, s, "psd"));
+          downloadDesignFile(
+            blob,
+            labelExportName(
+              design,
+              s,
+              "psd",
+              includeSleeve ? "with-sleeve" : undefined,
+            ),
+          );
           continue;
         }
         diagnostics.stage("create-svg", { side: s });
-        const svg = await createLabelSvg(design, s, fonts, includeBleed);
+        const labelSvg = await createLabelSvg(design, s, fonts, includeBleed);
+        const svg = includeSleeve
+          ? await createSleeveLabelSvg(labelSvg, design, includeBleed)
+          : labelSvg;
         if (exportFormat === "pdf" && printWindow) {
-          printLabel(printWindow, svg, mm);
+          printLabel(printWindow, svg, outputMm);
           break;
         }
         diagnostics.stage("encode-file", { side: s });
         const blob =
           exportFormat === "png"
-            ? await exportLabelPng(svg, mm)
+            ? await exportLabelPng(
+                svg,
+                outputMm,
+                includeSleeve ? 300 : undefined,
+              )
             : new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
         diagnostics.stage("download", { side: s, bytes: blob.size });
-        downloadDesignFile(blob, labelExportName(design, s, exportFormat));
+        downloadDesignFile(
+          blob,
+          labelExportName(
+            design,
+            s,
+            exportFormat,
+            includeSleeve ? "with-sleeve" : undefined,
+          ),
+        );
       }
       diagnostics.complete();
       setNotice(
@@ -1336,10 +1424,7 @@ export function DesignConfiguratorEditor() {
           </a>
         </div>
       </header>
-      <div
-        className="dc-project-bar"
-        ref={projectBarRef}
-      >
+      <div className="dc-project-bar" ref={projectBarRef}>
         <div>
           <span className="dc-eyebrow">
             VINYL LABEL /{" "}
@@ -1406,8 +1491,17 @@ export function DesignConfiguratorEditor() {
         </div>
       )}
       <div className="dc-workspace">
-        <section className="dc-global-settings" ref={globalSettingsRef} aria-labelledby="dc-global-settings-title">
-          <h2 className="dc-global-settings-title" id="dc-global-settings-title">Global settings</h2>
+        <section
+          className="dc-global-settings"
+          ref={globalSettingsRef}
+          aria-labelledby="dc-global-settings-title"
+        >
+          <h2
+            className="dc-global-settings-title"
+            id="dc-global-settings-title"
+          >
+            Global settings
+          </h2>
           <div className="dc-global-settings-controls">
             <GlobalInkControl
               onPreview={(color) => previewColor("text", color)}
@@ -1424,7 +1518,9 @@ export function DesignConfiguratorEditor() {
                 .map((layer) => layer.color)}
               onApply={(color) => {
                 end();
-                change((current) => changeGlobalTextColor(current, color, side));
+                change((current) =>
+                  changeGlobalTextColor(current, color, side),
+                );
               }}
             />
             <div className="dc-preview-stock">
@@ -1454,45 +1550,45 @@ export function DesignConfiguratorEditor() {
               />
             </div>
             <div className="dc-preview-stock">
-                <span>Sleeve</span>
-                <label className="dc-custom-paper">
-                  <span className="sr-only">Custom sleeve color</span>
-                  <input
-                    type="color"
-                    value={design.sleeveColor}
-                    onChange={(event) =>
-                      change(
-                        (current) => ({
-                          ...current,
-                          sleeveColor: event.target.value,
-                        }),
-                        "sleeve-color",
-                      )
-                    }
-                    onBlur={end}
-                  />
-                </label>
-                <SleeveImageControl
-                  image={design.sleeveImage}
-                  onError={setNotice}
-                  onChange={(sleeveImage) => {
-                    end();
-                    change((current) => ({
-                      ...current,
-                      sleeveImage,
-                      sleeveZoom: 1,
-                    }));
-                  }}
-                />
-                <ColorSwatches
-                  colors={DESIGN_COLOR_PRESETS}
-                  onPreview={(color) => previewColor("sleeve", color)}
+              <span>Sleeve</span>
+              <label className="dc-custom-paper">
+                <span className="sr-only">Custom sleeve color</span>
+                <input
+                  type="color"
                   value={design.sleeveColor}
-                  label="Sleeve color"
-                  onChoose={(color) =>
-                    change((current) => ({ ...current, sleeveColor: color }))
+                  onChange={(event) =>
+                    change(
+                      (current) => ({
+                        ...current,
+                        sleeveColor: event.target.value,
+                      }),
+                      "sleeve-color",
+                    )
                   }
+                  onBlur={end}
                 />
+              </label>
+              <SleeveImageControl
+                image={design.sleeveImage}
+                onError={setNotice}
+                onChange={(sleeveImage) => {
+                  end();
+                  change((current) => ({
+                    ...current,
+                    sleeveImage,
+                    sleeveZoom: 1,
+                  }));
+                }}
+              />
+              <ColorSwatches
+                colors={DESIGN_COLOR_PRESETS}
+                onPreview={(color) => previewColor("sleeve", color)}
+                value={design.sleeveColor}
+                label="Sleeve color"
+                onChoose={(color) =>
+                  change((current) => ({ ...current, sleeveColor: color }))
+                }
+              />
             </div>
           </div>
         </section>
@@ -1657,6 +1753,18 @@ export function DesignConfiguratorEditor() {
               />
               Decorative border
             </label>
+            <button
+              className="dc-preview-3d-button"
+              aria-label="Open 3D sleeve preview"
+              title="3D sleeve preview"
+              disabled={sleevePreviewBusy}
+              onClick={() => void openSleevePreview()}
+            >
+              <span className="dc-preview-3d-icon" aria-hidden="true">
+                <Box size={17} />
+                <span>3D</span>
+              </span>
+            </button>
             <div className="dc-preview-controls">
               {design.sleeveImage && (
                 <label className="dc-sleeve-zoom">
@@ -1664,7 +1772,7 @@ export function DesignConfiguratorEditor() {
                   <input
                     type="range"
                     min={10}
-                    max={300}
+                    max={500}
                     step={1}
                     value={Math.round(design.sleeveZoom * 100)}
                     onChange={(event) =>
@@ -1786,15 +1894,15 @@ export function DesignConfiguratorEditor() {
               <button
                 aria-label="Zoom out"
                 disabled={zoom <= 10}
-                onClick={() => setZoom(Math.max(10, zoom - 10))}
+                onClick={() => setZoom(Math.max(10, zoom - 30))}
               >
                 <Minus size={14} />
               </button>
               <output>{zoom}%</output>
               <button
                 aria-label="Zoom in"
-                disabled={zoom >= 180}
-                onClick={() => setZoom(Math.min(180, zoom + 10))}
+                disabled={zoom >= 500}
+                onClick={() => setZoom(Math.min(500, zoom + 30))}
               >
                 <Plus size={14} />
               </button>
@@ -1911,13 +2019,6 @@ export function DesignConfiguratorEditor() {
                   />
                   <section className="dc-property-section dc-typography-section">
                     <div className="dc-section-caption">Typography</div>
-                    <TextBlendModeControl
-                      value={element.blendMode}
-                      onChange={(blendMode) => {
-                        end();
-                        update({ blendMode });
-                      }}
-                    />
                     <label className="dc-field">
                       <span>Font family</span>
                       <button
@@ -2008,6 +2109,13 @@ export function DesignConfiguratorEditor() {
                         </div>
                       </div>
                     )}
+                    <TextBlendModeControl
+                      value={element.blendMode}
+                      onChange={(blendMode) => {
+                        end();
+                        update({ blendMode });
+                      }}
+                    />
                     <TextSurfaceControl
                       layerId={element.id}
                       image={element.textTexture}
@@ -2157,7 +2265,7 @@ export function DesignConfiguratorEditor() {
                 ) : (
                   <>
                     {element.kind === "image" &&
-                      slider("Width", "width", 10, 600, "PX")}
+                      slider("Width", "width", 10, 500, "PX")}
                     {element.kind === "image" && (
                       <ImageAppearanceControls
                         layer={element}
@@ -2252,10 +2360,7 @@ export function DesignConfiguratorEditor() {
           <SlidersHorizontal size={16} />
           Properties
         </button>
-        <button
-          disabled={!hasSelection}
-          onClick={openFontPicker}
-        >
+        <button disabled={!hasSelection} onClick={openFontPicker}>
           <Type size={16} />
           Fonts
         </button>
@@ -2468,6 +2573,24 @@ export function DesignConfiguratorEditor() {
           </div>
         </Modal>
       )}
+      {dialog === "sleeve-preview" && (
+        <Modal
+          title="3D sleeve + label preview"
+          wide
+          className="dc-3d-preview-dialog"
+          close={() => setDialog(null)}
+        >
+          <Sleeve3DPreview
+            labelCapture={sleevePreviewLabels.A}
+            labelCaptureBack={sleevePreviewLabels.B}
+            side={side}
+            sleeveColor={design.sleeveColor}
+            sleeveImage={design.sleeveImage}
+            sleeveZoom={design.sleeveZoom}
+            labelDiameterMm={design.diameterMm}
+          />
+        </Modal>
+      )}
       {dialog === "file" && (
         <Modal title="File" close={() => setDialog(null)}>
           <div className="dc-dialog-scroll">
@@ -2571,7 +2694,12 @@ export function DesignConfiguratorEditor() {
         </Modal>
       )}
       {dialog === "new" && (
-        <Modal title="New project" wide close={() => setDialog(null)}>
+        <Modal
+          title="New project"
+          wide
+          className="dc-font-picker dc-template-dialog"
+          close={() => setDialog(null)}
+        >
           <p className="dc-font-explanation">Choose a template to start.</p>
           <LabelTemplatePicker
             onChoose={(next) => {
@@ -2646,6 +2774,19 @@ export function DesignConfiguratorEditor() {
                 <option value="both">Both sides — separate files</option>
               </select>
             </label>
+            <label className="dc-field">
+              <span>Artwork</span>
+              <select
+                value={includeSleeve ? "sleeve" : "label"}
+                disabled={exportBusy}
+                onChange={(event) =>
+                  setIncludeSleeve(event.target.value === "sleeve")
+                }
+              >
+                <option value="label">Record label only</option>
+                <option value="sleeve">Record label + sleeve</option>
+              </select>
+            </label>
             <label className="dc-check">
               <input
                 type="checkbox"
@@ -2658,10 +2799,20 @@ export function DesignConfiguratorEditor() {
             <div className="dc-export-summary">
               <span>Output dimensions</span>
               <strong>
-                {design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0)} ×{" "}
-                {design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0)} mm
+                {includeSleeve
+                  ? 315
+                  : design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0)}
+                {" × "}
+                {includeSleeve
+                  ? 315
+                  : design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0)}{" "}
+                mm
               </strong>
-              <span>RGB · transparent center hole</span>
+              <span>
+                {includeSleeve
+                  ? "RGB · centered label over sleeve · 300 ppi"
+                  : "RGB · transparent center hole · 600 ppi"}
+              </span>
             </div>
             <button
               className="dc-export-confirm"

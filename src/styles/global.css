@@ -188,7 +188,7 @@ body {
   }
 }
 
-body
+body:has([data-home-cursor])
   *:not(#webamp):not(#webamp *):not(#webamp-context-menu):not(
     #webamp-context-menu *
   ):not([data-native-resize-cursor]):not([data-native-resize-cursor] *):not(

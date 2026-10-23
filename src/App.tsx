@@ -23,6 +23,9 @@ const FontFilterLabPage = import.meta.env.DEV
 const TextEffectsLabPage = import.meta.env.DEV
   ? lazy(() => import("@/features/identity/TextEffectsLabPage"))
   : null;
+const LayerPanelLayoutsLabPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/identity/LayerPanelLayoutsLabPage"))
+  : null;
 
 export function App() {
   const route = usePathRoute();
@@ -49,6 +52,17 @@ export function App() {
       </Suspense>
     );
   }
+  if (
+    import.meta.env.DEV &&
+    route === "/dev/layer-panel-layouts" &&
+    LayerPanelLayoutsLabPage
+  ) {
+    return (
+      <Suspense fallback={<p>Loading panel layouts…</p>}>
+        <LayerPanelLayoutsLabPage />
+      </Suspense>
+    );
+  }
 
   if (route === "/listen/myspace-test") {
     return (
@@ -59,12 +73,7 @@ export function App() {
   }
 
   if (route === "/identity" || route.startsWith("/identity/")) {
-    return (
-      <>
-        <CustomCursor />
-        <IdentityRoute route={route} />
-      </>
-    );
+    return <IdentityRoute route={route} />;
   }
 
   let page = <HomePage />;
@@ -107,7 +116,7 @@ export function App() {
 
   return (
     <>
-      <CustomCursor />
+      {route === "/" ? <CustomCursor /> : null}
       {page}
       <div
         aria-hidden="true"

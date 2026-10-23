@@ -143,7 +143,109 @@ export async function createLabelSvg(
   svg.removeAttribute("class");
   return new XMLSerializer().serializeToString(svg);
 }
-export async function exportLabelPng(svg: string, millimeters: number) {
+export async function createSleeveLabelSvg(
+  labelMarkup: string,
+  design: LabelDesign,
+  includeBleed: boolean,
+) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const sleeveSizeMm = 315;
+  const labelSizeMm =
+    design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0);
+  const labelDocument = new DOMParser().parseFromString(
+    labelMarkup,
+    "image/svg+xml",
+  );
+  if (labelDocument.querySelector("parsererror"))
+    throw new Error("Could not compose the sleeve artwork.");
+  const root = document.createElementNS(svgNamespace, "svg");
+  root.setAttribute("xmlns", svgNamespace);
+  root.setAttribute("width", `${sleeveSizeMm}mm`);
+  root.setAttribute("height", `${sleeveSizeMm}mm`);
+  root.setAttribute("viewBox", `0 0 ${sleeveSizeMm} ${sleeveSizeMm}`);
+  const defs = document.createElementNS(svgNamespace, "defs");
+  const clipPath = document.createElementNS(svgNamespace, "clipPath");
+  clipPath.setAttribute("id", "sleeve-art-clip");
+  const clipRect = document.createElementNS(svgNamespace, "rect");
+  clipRect.setAttribute("width", String(sleeveSizeMm));
+  clipRect.setAttribute("height", String(sleeveSizeMm));
+  clipPath.append(clipRect);
+  defs.append(clipPath);
+  root.append(defs);
+
+  const background = document.createElementNS(svgNamespace, "rect");
+  background.setAttribute("width", String(sleeveSizeMm));
+  background.setAttribute("height", String(sleeveSizeMm));
+  background.setAttribute("fill", design.sleeveColor);
+  root.append(background);
+
+  if (design.sleeveImage) {
+    const sleeveImage = new Image();
+    await new Promise<void>((resolve, reject) => {
+      sleeveImage.onload = () => resolve();
+      sleeveImage.onerror = () =>
+        reject(new Error("Could not load sleeve artwork."));
+      sleeveImage.src = design.sleeveImage!;
+    });
+    const coverScale =
+      Math.max(
+        sleeveSizeMm / sleeveImage.naturalWidth,
+        sleeveSizeMm / sleeveImage.naturalHeight,
+      ) * design.sleeveZoom;
+    const imageWidth = sleeveImage.naturalWidth * coverScale;
+    const imageHeight = sleeveImage.naturalHeight * coverScale;
+    const image = document.createElementNS(svgNamespace, "image");
+    image.setAttribute("href", design.sleeveImage);
+    image.setAttribute("x", String((sleeveSizeMm - imageWidth) / 2));
+    image.setAttribute("y", String((sleeveSizeMm - imageHeight) / 2));
+    image.setAttribute("width", String(imageWidth));
+    image.setAttribute("height", String(imageHeight));
+    image.setAttribute("clip-path", "url(#sleeve-art-clip)");
+    root.append(image);
+  }
+
+  const label = document.importNode(
+    labelDocument.documentElement,
+    true,
+  ) as SVGSVGElement;
+  label.setAttribute("x", String((sleeveSizeMm - labelSizeMm) / 2));
+  label.setAttribute("y", String((sleeveSizeMm - labelSizeMm) / 2));
+  label.setAttribute("width", String(labelSizeMm));
+  label.setAttribute("height", String(labelSizeMm));
+  label.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  root.append(label);
+  return new XMLSerializer().serializeToString(root);
+}
+
+export async function captureLabelPreview(svg: string, pixels = 1024) {
+  const source = URL.createObjectURL(
+    new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+  );
+  try {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(Error("Could not capture label preview."));
+      image.src = source;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = pixels;
+    canvas.height = pixels;
+    const context = canvas.getContext("2d");
+    if (!context) throw Error("Could not create label preview capture.");
+    context.drawImage(image, 0, 0, pixels, pixels);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
+export async function exportLabelPng(
+  svg: string,
+  millimeters: number,
+  ppi = PRINT_PPI,
+) {
   const source = URL.createObjectURL(
     new Blob([svg], { type: "image/svg+xml" }),
   );
@@ -154,7 +256,7 @@ export async function exportLabelPng(svg: string, millimeters: number) {
       image.onerror = () => reject(Error("No se pudo renderizar el PNG."));
       image.src = source;
     });
-    const pixels = printPixelSize(millimeters),
+    const pixels = printPixelSize(millimeters, ppi),
       canvas = document.createElement("canvas");
     canvas.width = pixels;
     canvas.height = pixels;
@@ -168,7 +270,10 @@ export async function exportLabelPng(svg: string, millimeters: number) {
         "image/png",
       ),
     );
-    return new Blob([setPngResolution(new Uint8Array(await png.arrayBuffer()), PRINT_PPI)], { type: "image/png" });
+    return new Blob(
+      [setPngResolution(new Uint8Array(await png.arrayBuffer()), ppi)],
+      { type: "image/png" },
+    );
   } finally {
     URL.revokeObjectURL(source);
   }
@@ -194,6 +299,7 @@ export function labelExportName(
   design: LabelDesign,
   side: LabelSide,
   extension: string,
+  suffix?: string,
 ) {
-  return `${safeFilename(design.title)}-side-${side.toLowerCase()}.${extension}`;
+  return `${safeFilename(design.title)}-side-${side.toLowerCase()}${suffix ? `-${suffix}` : ""}.${extension}`;
 }

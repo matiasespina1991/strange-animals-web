@@ -149,7 +149,10 @@ export function HomePage() {
   }, [openWinamp]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-black text-white">
+    <main
+      data-home-cursor
+      className="min-h-screen overflow-hidden bg-black text-white"
+    >
       <TadeGame />
       <BrandLogoExperience
         easterEggActive={easterEggActive}
