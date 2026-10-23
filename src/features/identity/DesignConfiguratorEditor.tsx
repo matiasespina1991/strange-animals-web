@@ -7,6 +7,7 @@ import {
   useReducer,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
@@ -153,7 +154,7 @@ function Modal({
   close,
   wide = false,
   allowBackgroundScroll = false,
-  className,
+  className = "dc-font-picker",
 }: {
   title: string;
   children: ReactNode;
@@ -304,6 +305,7 @@ function FontRow({
 }
 
 export function DesignConfiguratorEditor() {
+  const sleeveCanvasSizeMm = 315;
   const [initial] = useState(seed);
   const [history, dispatch] = useReducer(designReducer, {
     past: [],
@@ -314,7 +316,6 @@ export function DesignConfiguratorEditor() {
   const editorRoot = useRef<HTMLElement>(null);
   const projectBarRef = useRef<HTMLDivElement>(null);
   const globalSettingsRef = useRef<HTMLElement>(null);
-  const [projectBarStuck, setProjectBarStuck] = useState(false);
   useLayoutEffect(() => {
     const root = editorRoot.current;
     const projectBar = projectBarRef.current;
@@ -322,7 +323,6 @@ export function DesignConfiguratorEditor() {
     if (!root || !projectBar || !globalSettings) return;
     const updateStickyOffsets = () => {
       const projectBarBounds = projectBar.getBoundingClientRect();
-      setProjectBarStuck(projectBarBounds.top <= 0);
       root.style.setProperty(
         "--dc-project-bar-height",
         `${projectBarBounds.height}px`,
@@ -336,13 +336,7 @@ export function DesignConfiguratorEditor() {
     const observer = new ResizeObserver(updateStickyOffsets);
     observer.observe(projectBar);
     observer.observe(globalSettings);
-    window.addEventListener("scroll", updateStickyOffsets, { passive: true });
-    window.addEventListener("resize", updateStickyOffsets);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", updateStickyOffsets);
-      window.removeEventListener("resize", updateStickyOffsets);
-    };
+    return () => observer.disconnect();
   }, []);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenFallback, setFullscreenFallback] = useState(false);
@@ -1344,7 +1338,6 @@ export function DesignConfiguratorEditor() {
       </header>
       <div
         className="dc-project-bar"
-        data-stuck={projectBarStuck}
         ref={projectBarRef}
       >
         <div>
@@ -1723,7 +1716,6 @@ export function DesignConfiguratorEditor() {
             onPointerCancel={endCanvasPan}
             onLostPointerCapture={endCanvasPan}
             style={{
-              backgroundColor: previewDesign.sleeveColor,
               color:
                 parseInt(design.sleeveColor.slice(1, 3), 16) * 0.299 +
                   parseInt(design.sleeveColor.slice(3, 5), 16) * 0.587 +
@@ -1739,7 +1731,15 @@ export function DesignConfiguratorEditor() {
                 transform: `translate(${viewOffset.x}px, ${viewOffset.y}px) scale(${zoom / 100})`,
               }}
             >
-              <div className="dc-disc-wrap">
+              <div
+                className="dc-sleeve-canvas"
+                style={
+                  {
+                    backgroundColor: previewDesign.sleeveColor,
+                    "--dc-label-diameter": `${(design.diameterMm / sleeveCanvasSizeMm) * 100}%`,
+                  } as CSSProperties
+                }
+              >
                 {design.sleeveImage && (
                   <div className="dc-sleeve-image-frame" aria-hidden="true">
                     <div

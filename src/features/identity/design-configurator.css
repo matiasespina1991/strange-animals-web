@@ -574,6 +574,11 @@
   position: relative;
   padding: 60px 42px;
   overflow: hidden;
+  background-color: #5d615e;
+  background-image:
+    linear-gradient(rgba(235, 239, 230, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235, 239, 230, 0.09) 1px, transparent 1px);
+  background-size: 24px 24px;
   touch-action: none;
 }
 .dc-artboard-content {
@@ -599,6 +604,13 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
+}
+.dc-sleeve-canvas {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100%, 610px, calc(100dvh - 360px));
+  aspect-ratio: 1;
   overflow: hidden;
 }
 .dc-disc {
@@ -1893,7 +1905,7 @@
     padding-block: calc(60px - 1rem);
     min-height: calc(570px - 2rem);
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] {
+  .design-configurator .dc-project-bar {
     height: var(--dc-global-settings-height);
     min-height: var(--dc-global-settings-height);
     padding: 6px 20px;
@@ -1901,27 +1913,27 @@
     align-items: center;
     gap: 12px;
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] > div:first-child {
+  .design-configurator .dc-project-bar > div:first-child {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: 10px;
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] .dc-eyebrow {
+  .design-configurator .dc-project-bar .dc-eyebrow {
     flex-shrink: 0;
     font-size: 8px;
     letter-spacing: 1px;
     white-space: nowrap;
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] .dc-project-name {
+  .design-configurator .dc-project-bar .dc-project-name {
     min-width: 0;
     margin: 0;
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] .dc-project-name input {
+  .design-configurator .dc-project-bar .dc-project-name input {
     width: min(180px, 100%);
     font-size: 16px !important;
   }
-  .design-configurator .dc-project-bar[data-stuck="true"] .dc-project-actions {
+  .design-configurator .dc-project-bar .dc-project-actions {
     align-self: center;
     align-items: center;
     flex-wrap: nowrap;
@@ -2157,8 +2169,12 @@
   transform-origin: center;
 }
 .dc-artboard .dc-disc {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 1;
+  width: var(--dc-label-diameter);
+  transform: translate(-50%, -50%);
 }
 .dc-preview-stock .dc-sleeve-image {
   display: grid;
