@@ -2025,6 +2025,7 @@
 }
 .dc-3d-controls > div {
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 .dc-3d-controls button {
@@ -2039,9 +2040,15 @@
   background: #e6e9dc;
 }
 .dc-3d-controls .dc-3d-zoom-level {
+  display: grid;
+  height: 32px;
   min-width: 56px;
+  place-items: center;
+  border: 1px solid #cdd2c2;
+  background: #f7f8f3;
   color: #252620;
   font-size: 11px;
+  line-height: 1;
   text-align: center;
 }
 .dc-3d-controls .dc-3d-share-button {

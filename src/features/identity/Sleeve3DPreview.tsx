@@ -107,17 +107,17 @@ export function Sleeve3DPreview({
     controls.addEventListener("change", updateZoomPercent);
     controlsReference.current = controls;
 
-    scene.add(new THREE.HemisphereLight(0xff_ff_ff, 0x34_33_2f, 2.2));
-    const keyLight = new THREE.DirectionalLight(0xff_ff_ff, 3.4);
+    scene.add(new THREE.HemisphereLight(0xff_ff_ff, 0x34_33_2f, 1.1));
+    const keyLight = new THREE.DirectionalLight(0xff_ff_ff, 1.7);
     keyLight.position.set(-3, 5, 6);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 1.1);
+    const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 0.55);
     fillLight.position.set(4, 1, 3);
     scene.add(fillLight);
-    const sleeveHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.55);
+    const sleeveHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.28);
     sleeveHighlight.position.set(-3.7, -2.8, 6);
     scene.add(sleeveHighlight);
-    const sleeveBackHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.55);
+    const sleeveBackHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.28);
     sleeveBackHighlight.position.set(-3.7, -2.8, -6);
     scene.add(sleeveBackHighlight);
 
@@ -223,10 +223,12 @@ export function Sleeve3DPreview({
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         const label = new THREE.Mesh(
           new THREE.CircleGeometry(labelRadius, 128),
-          new THREE.MeshStandardMaterial({
+          new THREE.MeshPhysicalMaterial({
             map: labelTexture,
-            roughness: 0.82,
+            roughness: 0.32,
             metalness: 0,
+            clearcoat: 0.19,
+            clearcoatRoughness: 0.22,
             transparent: true,
             side: THREE.DoubleSide,
           }),
@@ -450,6 +452,9 @@ export function Sleeve3DPreview({
               {copied ? <Check size={15} /> : <Copy size={15} />}
             </button>
           )}
+          <output className="dc-3d-zoom-level" aria-label="3D zoom level">
+            {zoomPercent}%
+          </output>
           <button
             aria-label="Zoom out 3D preview"
             title="Zoom out"
@@ -459,9 +464,6 @@ export function Sleeve3DPreview({
           >
             <Minus size={16} />
           </button>
-          <output className="dc-3d-zoom-level" aria-label="3D zoom level">
-            {zoomPercent}%
-          </output>
           <button
             aria-label="Zoom in 3D preview"
             title="Zoom in"
