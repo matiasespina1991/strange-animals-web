@@ -1818,6 +1818,22 @@
 .dc-properties .dc-selected-heading h3 {
   font-size: 14px;
 }
+.dc-properties .dc-selected-name-input {
+  box-sizing: border-box;
+  width: min(170px, 100%);
+  min-width: 0;
+  height: 28px;
+  border: 1px solid #aeb5a2;
+  padding: 3px 5px;
+  background: #fafaf7;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+.dc-properties .dc-selected-name-input:focus {
+  outline: 2px solid #657248;
+  outline-offset: 1px;
+}
 .dc-properties .dc-field {
   margin-top: 11px;
 }

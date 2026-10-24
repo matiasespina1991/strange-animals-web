@@ -385,6 +385,9 @@ export function DesignConfiguratorEditor() {
   };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
   const [renamingLayerId, setRenamingLayerId] = useState<string | null>(null);
+  const [renameLocation, setRenameLocation] = useState<"tile" | "heading">(
+    "tile",
+  );
   const [renameDraft, setRenameDraft] = useState("");
   const [layerPanelWidth, setLayerPanelWidth] = useState(184);
   const [reorderingLayer, setReorderingLayer] = useState<string | null>(null);
@@ -665,10 +668,14 @@ export function DesignConfiguratorEditor() {
       }),
       group,
     );
-  const beginLayerRename = (layer: LabelLayer) => {
+  const beginLayerRename = (
+    layer: LabelLayer,
+    location: "tile" | "heading" = "tile",
+  ) => {
     selectLayer(layer);
     setRenameDraft(layer.name);
     setRenamingLayerId(layer.id);
+    setRenameLocation(location);
   };
   const finishLayerRename = (layer: LabelLayer) => {
     if (cancelRenameOnBlur.current) {
@@ -681,6 +688,7 @@ export function DesignConfiguratorEditor() {
       dispatch({ type: "end" });
     }
     setRenamingLayerId(null);
+    setRenameLocation("tile");
   };
   const update = (patch: Partial<LabelLayer>, group?: string) =>
     patchLayer(side, element.id, patch, group);
@@ -1805,7 +1813,7 @@ export function DesignConfiguratorEditor() {
                 }}
                 onDragEnd={finishLayerDrag}
               >
-                {renamingLayerId === layer.id ? (
+                {renamingLayerId === layer.id && renameLocation === "tile" ? (
                   <div className="dc-layer-select dc-layer-rename">
                     <span className="dc-layer-number">
                       {String(i + 1).padStart(2, "0")}
@@ -2231,7 +2239,45 @@ export function DesignConfiguratorEditor() {
                   ) : (
                     <Type size={17} />
                   )}
-                  <h3>{element.name}</h3>
+                  {renamingLayerId === element.id &&
+                  renameLocation === "heading" ? (
+                    <input
+                      className="dc-selected-name-input"
+                      autoFocus
+                      maxLength={80}
+                      aria-label={`Element name for ${element.name}`}
+                      value={renameDraft}
+                      onChange={(event) => setRenameDraft(event.target.value)}
+                      onBlur={() => finishLayerRename(element)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          event.currentTarget.blur();
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelRenameOnBlur.current = true;
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                  ) : (
+                    <h3
+                      tabIndex={0}
+                      title="Double-click to rename layer"
+                      onDoubleClick={() =>
+                        beginLayerRename(element, "heading")
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          beginLayerRename(element, "heading");
+                        }
+                      }}
+                    >
+                      {element.name}
+                    </h3>
+                  )}
                 </div>
               </div>
               {element.kind !== "image" && (
