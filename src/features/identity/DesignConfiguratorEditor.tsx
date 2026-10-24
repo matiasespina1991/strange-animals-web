@@ -384,6 +384,8 @@ export function DesignConfiguratorEditor() {
     }
   };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
+  const [renamingLayerId, setRenamingLayerId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const [layerPanelWidth, setLayerPanelWidth] = useState(184);
   const [reorderingLayer, setReorderingLayer] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
@@ -398,6 +400,7 @@ export function DesignConfiguratorEditor() {
   const layerList = useRef<HTMLDivElement>(null);
   const artboardReference = useRef<HTMLDivElement>(null);
   const draggedLayerId = useRef<string | null>(null);
+  const cancelRenameOnBlur = useRef(false);
   const layerResizePointer = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [panning, setPanning] = useState(false);
@@ -662,6 +665,23 @@ export function DesignConfiguratorEditor() {
       }),
       group,
     );
+  const beginLayerRename = (layer: LabelLayer) => {
+    selectLayer(layer);
+    setRenameDraft(layer.name);
+    setRenamingLayerId(layer.id);
+  };
+  const finishLayerRename = (layer: LabelLayer) => {
+    if (cancelRenameOnBlur.current) {
+      cancelRenameOnBlur.current = false;
+    } else {
+      const name = renameDraft.trim();
+      if (name && name !== layer.name) {
+        patchLayer(side, layer.id, { name }, `name-${layer.id}`);
+      }
+      dispatch({ type: "end" });
+    }
+    setRenamingLayerId(null);
+  };
   const update = (patch: Partial<LabelLayer>, group?: string) =>
     patchLayer(side, element.id, patch, group);
   const end = () => dispatch({ type: "end" });
@@ -1753,7 +1773,9 @@ export function DesignConfiguratorEditor() {
                 onDragStart={(event) => {
                   const target = event.target as Element;
                   if (
-                    target.closest(".dc-layer-inline-actions, .dc-visibility")
+                    target.closest(
+                      ".dc-layer-inline-actions, .dc-visibility, .dc-layer-rename-input",
+                    )
                   ) {
                     event.preventDefault();
                     return;
@@ -1783,54 +1805,95 @@ export function DesignConfiguratorEditor() {
                 }}
                 onDragEnd={finishLayerDrag}
               >
-                <button
-                  className="dc-layer-select"
-                  aria-pressed={selection.has(layer.id)}
-                  onClick={(event) => {
-                    if (event.shiftKey) {
-                      const anchor = layers.findIndex(
-                        (item) => item.id === element.id,
-                      );
-                      const range = layers
-                        .slice(Math.min(anchor, i), Math.max(anchor, i) + 1)
-                        .map((item) => item.id);
-                      setSelectedLayers(
-                        event.metaKey || event.ctrlKey
-                          ? [...new Set([...selection, ...range])]
-                          : range,
-                      );
-                      setSelected(layer.id);
-                    } else if (event.metaKey || event.ctrlKey) {
-                      const next = new Set(selection);
-                      if (next.has(layer.id)) next.delete(layer.id);
-                      else next.add(layer.id);
-                      if (!next.size) return;
-                      setSelectedLayers([...next]);
-                      setSelected(next.has(layer.id) ? layer.id : [...next][0]);
-                    } else selectLayer(layer);
-                  }}
-                >
-                  <span className="dc-layer-number">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  {layer.kind === "circular" ? (
-                    <Spline size={15} />
-                  ) : layer.kind === "image" ? (
-                    <ImagePlus size={15} />
-                  ) : (
-                    <Type size={15} />
-                  )}
-                  <span className="dc-layer-copy">
-                    <span className="dc-layer-name">{layer.name}</span>
-                    <small>
-                      {layer.kind === "circular"
-                        ? "Text arc"
-                        : layer.kind === "image"
-                          ? "Image / logo"
-                          : "Text layer"}
-                    </small>
-                  </span>
-                </button>
+                {renamingLayerId === layer.id ? (
+                  <div className="dc-layer-select dc-layer-rename">
+                    <span className="dc-layer-number">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {layer.kind === "circular" ? (
+                      <Spline size={15} />
+                    ) : layer.kind === "image" ? (
+                      <ImagePlus size={15} />
+                    ) : (
+                      <Type size={15} />
+                    )}
+                    <input
+                      className="dc-layer-rename-input"
+                      autoFocus
+                      maxLength={80}
+                      aria-label={`Element name for ${layer.name}`}
+                      value={renameDraft}
+                      onChange={(event) => setRenameDraft(event.target.value)}
+                      onBlur={() => finishLayerRename(layer)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          event.currentTarget.blur();
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelRenameOnBlur.current = true;
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className="dc-layer-select"
+                    aria-pressed={selection.has(layer.id)}
+                    onClick={(event) => {
+                      if (event.shiftKey) {
+                        const anchor = layers.findIndex(
+                          (item) => item.id === element.id,
+                        );
+                        const range = layers
+                          .slice(Math.min(anchor, i), Math.max(anchor, i) + 1)
+                          .map((item) => item.id);
+                        setSelectedLayers(
+                          event.metaKey || event.ctrlKey
+                            ? [...new Set([...selection, ...range])]
+                            : range,
+                        );
+                        setSelected(layer.id);
+                      } else if (event.metaKey || event.ctrlKey) {
+                        const next = new Set(selection);
+                        if (next.has(layer.id)) next.delete(layer.id);
+                        else next.add(layer.id);
+                        if (!next.size) return;
+                        setSelectedLayers([...next]);
+                        setSelected(
+                          next.has(layer.id) ? layer.id : [...next][0],
+                        );
+                      } else selectLayer(layer);
+                    }}
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      beginLayerRename(layer);
+                    }}
+                  >
+                    <span className="dc-layer-number">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {layer.kind === "circular" ? (
+                      <Spline size={15} />
+                    ) : layer.kind === "image" ? (
+                      <ImagePlus size={15} />
+                    ) : (
+                      <Type size={15} />
+                    )}
+                    <span className="dc-layer-copy">
+                      <span className="dc-layer-name">{layer.name}</span>
+                      <small>
+                        {layer.kind === "circular"
+                          ? "Text arc"
+                          : layer.kind === "image"
+                            ? "Image / logo"
+                            : "Text layer"}
+                      </small>
+                    </span>
+                  </button>
+                )}
                 <div className="dc-layer-inline-actions">
                   <button
                     aria-label={`Duplicate ${layer.name}`}
@@ -2171,17 +2234,6 @@ export function DesignConfiguratorEditor() {
                   <h3>{element.name}</h3>
                 </div>
               </div>
-              <label className="dc-field">
-                <span>Element name</span>
-                <input
-                  maxLength={80}
-                  value={element.name}
-                  onChange={(e) =>
-                    update({ name: e.target.value }, `name-${element.id}`)
-                  }
-                  onBlur={end}
-                />
-              </label>
               {element.kind !== "image" && (
                 <>
                   <ContentTextControl
@@ -2286,84 +2338,86 @@ export function DesignConfiguratorEditor() {
                         </div>
                       </div>
                     )}
-                    <TextBlendModeControl
-                      value={element.blendMode}
-                      onChange={(blendMode) => {
-                        end();
-                        update({ blendMode });
-                      }}
-                    />
-                    <TextSurfaceControl
-                      layerId={element.id}
-                      image={element.textTexture}
-                      opacity={element.textTextureOpacity}
-                      scale={element.textTextureScale}
-                      onChange={(patch, group) => {
-                        if (!group) end();
-                        update(
-                          patch,
-                          group ? `${group}-${element.id}` : undefined,
-                        );
-                      }}
-                      onCommit={end}
-                      onError={setNotice}
-                    />
-                    <div className="dc-field-pair">
-                      <TypographyValueControl
-                        label="Size"
-                        unit="PX"
-                        value={element.size}
-                        min={3}
-                        max={3000}
-                        sliderMax={250}
-                        expandSlider
-                        step={0.5}
-                        onChange={(size) =>
-                          update({ size }, `size-${element.id}`)
-                        }
-                        onCommit={end}
+                    <div className="dc-compact-text-controls">
+                      <TextBlendModeControl
+                        value={element.blendMode}
+                        onChange={(blendMode) => {
+                          end();
+                          update({ blendMode });
+                        }}
                       />
-                      {element.kind === "text" ? (
+                      <TextSurfaceControl
+                        layerId={element.id}
+                        image={element.textTexture}
+                        opacity={element.textTextureOpacity}
+                        scale={element.textTextureScale}
+                        onChange={(patch, group) => {
+                          if (!group) end();
+                          update(
+                            patch,
+                            group ? `${group}-${element.id}` : undefined,
+                          );
+                        }}
+                        onCommit={end}
+                        onError={setNotice}
+                      />
+                      <div className="dc-field-pair dc-compact-text-fields">
                         <TypographyValueControl
-                          label="Line height"
-                          value={element.lineHeight ?? 1.1}
-                          min={0}
-                          max={3}
-                          step={0.05}
-                          onChange={(lineHeight) =>
-                            update({ lineHeight }, `line-height-${element.id}`)
+                          label="Size"
+                          unit="PX"
+                          value={element.size}
+                          min={3}
+                          max={3000}
+                          sliderMax={250}
+                          expandSlider
+                          step={0.5}
+                          onChange={(size) =>
+                            update({ size }, `size-${element.id}`)
                           }
                           onCommit={end}
                         />
-                      ) : (
-                        <div />
-                      )}
-                    </div>
-                    <div className="dc-field-pair">
-                      <TypographyValueControl
-                        label="Tracking"
-                        unit="PX"
-                        value={element.spacing}
-                        min={-10}
-                        max={90}
-                        step={0.1}
-                        onChange={(spacing) =>
-                          update({ spacing }, `spacing-${element.id}`)
-                        }
-                        onCommit={end}
-                      />
-                      <TypographyValueControl
-                        label="Ink bleed"
-                        unit="PX"
-                        value={element.inkBleed ?? 0}
-                        min={0}
-                        max={30}
-                        step={0.05}
-                        onChange={(inkBleed) =>
-                          update({ inkBleed }, `ink-bleed-${element.id}`)
-                        }
-                        onCommit={end}
-                      />
+                        {element.kind === "text" ? (
+                          <TypographyValueControl
+                            label="Line height"
+                            value={element.lineHeight ?? 1.1}
+                            min={0}
+                            max={3}
+                            step={0.05}
+                            onChange={(lineHeight) =>
+                              update({ lineHeight }, `line-height-${element.id}`)
+                            }
+                            onCommit={end}
+                          />
+                        ) : (
+                          <div />
+                        )}
+                      </div>
+                      <div className="dc-field-pair dc-compact-text-fields">
+                        <TypographyValueControl
+                          label="Tracking"
+                          unit="PX"
+                          value={element.spacing}
+                          min={-10}
+                          max={90}
+                          step={0.1}
+                          onChange={(spacing) =>
+                            update({ spacing }, `spacing-${element.id}`)
+                          }
+                          onCommit={end}
+                        />
+                        <TypographyValueControl
+                          label="Ink bleed"
+                          unit="PX"
+                          value={element.inkBleed ?? 0}
+                          min={0}
+                          max={30}
+                          step={0.05}
+                          onChange={(inkBleed) =>
+                            update({ inkBleed }, `ink-bleed-${element.id}`)
+                          }
+                          onCommit={end}
+                        />
+                      </div>
                     </div>
                     <div className="dc-alignment">
                       <span>Anchor</span>

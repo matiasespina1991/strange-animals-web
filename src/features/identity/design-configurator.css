@@ -514,6 +514,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dc-layer-rename-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 30px;
+  border: 1px solid #aeb5a2;
+  padding: 4px 6px;
+  background: #fafaf7;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+.dc-layer-rename-input:focus {
+  outline: 2px solid #657248;
+  outline-offset: 1px;
+}
 .dc-layer-inline-actions {
   display: flex;
   flex: 0 0 auto;
@@ -1764,7 +1780,7 @@
   text-underline-offset: 3px;
 }
 .dc-ink.dc-ink-priority {
-  margin: 0;
+  margin: 0 0 8px;
   padding: 8px 0 0;
   border-top: 0;
   border-bottom: 0;
@@ -1792,6 +1808,10 @@
   margin-top: 0;
 }
 .dc-properties .dc-position-section {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+.dc-properties .dc-focus-section {
   margin-top: 12px;
   padding-top: 10px;
 }
@@ -2963,9 +2983,19 @@
 }
 .dc-text-surface {
   display: grid;
-  gap: 8px;
-  margin: 16px 0 14px;
+  gap: 5px;
+  margin: 0;
   font-size: 11px;
+}
+.dc-properties .dc-compact-text-fields > .dc-field {
+  margin-top: 0;
+}
+.dc-properties .dc-compact-text-controls {
+  display: grid;
+  gap: 12px;
+}
+.dc-properties .dc-compact-text-controls > .dc-field {
+  margin-top: 0;
 }
 .dc-text-surface-actions {
   display: flex;
