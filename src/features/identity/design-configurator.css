@@ -376,10 +376,9 @@
 }
 .dc-workspace {
   display: grid;
-  grid-template-columns: var(--dc-layer-panel-width, 184px) 8px minmax(
-      0,
-      1fr
-    ) 290px;
+  grid-template-columns:
+    var(--dc-layer-panel-width, 184px) 8px minmax(0, 1fr)
+    290px;
   border-top: 1px solid #d9dbd1;
   border-bottom: 1px solid #d9dbd1;
   min-height: 730px;
@@ -1155,10 +1154,9 @@
 }
 @media (min-width: 1600px) {
   .dc-workspace {
-    grid-template-columns: var(--dc-layer-panel-width, 184px) 8px minmax(
-        0,
-        1fr
-      ) 320px;
+    grid-template-columns:
+      var(--dc-layer-panel-width, 184px) 8px minmax(0, 1fr)
+      320px;
   }
   .dc-artboard {
     min-height: 660px;
@@ -1172,10 +1170,9 @@
 }
 @media (max-width: 1100px) {
   .dc-workspace {
-    grid-template-columns: var(--dc-layer-panel-width, 184px) 8px minmax(
-        0,
-        1fr
-      ) 260px;
+    grid-template-columns:
+      var(--dc-layer-panel-width, 184px) 8px minmax(0, 1fr)
+      260px;
   }
   .dc-layers {
     padding: 22px 12px;
@@ -2041,6 +2038,12 @@
 .dc-3d-controls button:hover {
   background: #e6e9dc;
 }
+.dc-3d-controls .dc-3d-zoom-level {
+  min-width: 56px;
+  color: #252620;
+  font-size: 11px;
+  text-align: center;
+}
 .dc-3d-controls .dc-3d-share-button {
   display: flex;
   width: auto;
@@ -2207,10 +2210,9 @@
     --dc-global-settings-height: 58px;
   }
   .design-configurator .dc-workspace {
-    grid-template-columns: var(--dc-layer-panel-width, 184px) 8px minmax(
-        0,
-        1fr
-      ) 320px;
+    grid-template-columns:
+      var(--dc-layer-panel-width, 184px) 8px minmax(0, 1fr)
+      320px;
     min-height: calc(730px - 2rem);
   }
   .design-configurator .dc-artboard {

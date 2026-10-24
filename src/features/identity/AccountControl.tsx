@@ -137,9 +137,7 @@ function AccountDialog({
       onKeyDown={(event) => event.stopPropagation()}
     >
       <div className="dc-picker-heading">
-        <h2 id={titleId}>
-          {user ? "Account" : "Sign in"}
-        </h2>
+        <h2 id={titleId}>{user ? "Account" : "Sign in"}</h2>
         <button onClick={close} disabled={busy} aria-label="Close account">
           <X size={16} />
         </button>

@@ -209,7 +209,7 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
       const shared = await createModelShare(file, modelTitle, (progress) => {
         setUploadProgress(progress);
       });
-      setSharedUrl(`${window.location.origin}/model/${shared.id}`);
+      setSharedUrl(`${window.location.origin}/${shared.id}`);
     } catch (error) {
       setPageError(
         error instanceof Error

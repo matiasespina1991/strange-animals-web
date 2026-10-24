@@ -21,23 +21,11 @@ type Properties = {
 const SLEEVE_SIZE_MM = 315;
 const WORLD_SCALE = 1 / 100;
 const INITIAL_CAMERA_POSITION = new THREE.Vector3(3.7, 2.8, 5.6);
-
-function createExtrudedRing(
-  outerRadius: number,
-  innerRadius: number,
-  depth: number,
-) {
-  const shape = new THREE.Shape();
-  shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-  const hole = new THREE.Path();
-  hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-  shape.holes.push(hole);
-  return new THREE.ExtrudeGeometry(shape, {
-    depth,
-    bevelEnabled: false,
-    curveSegments: 128,
-  });
-}
+const INITIAL_CAMERA_DISTANCE = INITIAL_CAMERA_POSITION.length();
+const PREVIOUS_MIN_CAMERA_DISTANCE = 1.5;
+const MAX_ZOOM_PERCENT = Math.round(
+  (INITIAL_CAMERA_DISTANCE / PREVIOUS_MIN_CAMERA_DISTANCE) * 4 * 100,
+);
 
 export function Sleeve3DPreview({
   labelCapture,
@@ -55,6 +43,7 @@ export function Sleeve3DPreview({
   const cameraReference = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsReference = useRef<OrbitControls | null>(null);
   const [error, setError] = useState("");
+  const [zoomPercent, setZoomPercent] = useState(100);
   const [sharing, setSharing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -98,9 +87,24 @@ export function Sleeve3DPreview({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
-    controls.minDistance = 1.5;
+    controls.minDistance = INITIAL_CAMERA_DISTANCE / (MAX_ZOOM_PERCENT / 100);
     controls.maxDistance = 10;
     controls.target.set(0, 0, 0);
+    let lastZoomPercent = 100;
+    const updateZoomPercent = () => {
+      const nextZoomPercent = Math.min(
+        MAX_ZOOM_PERCENT,
+        Math.round(
+          (INITIAL_CAMERA_DISTANCE / camera.position.distanceTo(controls.target)) *
+            100,
+        ),
+      );
+      if (nextZoomPercent !== lastZoomPercent) {
+        lastZoomPercent = nextZoomPercent;
+        setZoomPercent(nextZoomPercent);
+      }
+    };
+    controls.addEventListener("change", updateZoomPercent);
     controlsReference.current = controls;
 
     scene.add(new THREE.HemisphereLight(0xff_ff_ff, 0x34_33_2f, 2.2));
@@ -110,16 +114,24 @@ export function Sleeve3DPreview({
     const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 1.1);
     fillLight.position.set(4, 1, 3);
     scene.add(fillLight);
+    const sleeveHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.55);
+    sleeveHighlight.position.set(-3.7, -2.8, 6);
+    scene.add(sleeveHighlight);
+    const sleeveBackHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.55);
+    sleeveBackHighlight.position.set(-3.7, -2.8, -6);
+    scene.add(sleeveBackHighlight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const sleeveDepth = 0.04;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const sleeveBacking = new THREE.Mesh(
       new THREE.BoxGeometry(sleeveSize, sleeveSize, sleeveDepth),
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshPhysicalMaterial({
         color: sleeveColor,
-        roughness: 0.88,
+        roughness: 0.32,
         metalness: 0,
+        clearcoat: 0.19,
+        clearcoatRoughness: 0.22,
       }),
     );
     sleeveBacking.position.z = 0;
@@ -162,8 +174,12 @@ export function Sleeve3DPreview({
     drawSleeve();
     const sleeveFace = new THREE.Mesh(
       new THREE.PlaneGeometry(sleeveSize, sleeveSize),
-      new THREE.MeshBasicMaterial({
+      new THREE.MeshPhysicalMaterial({
         map: sleeveTexture,
+        roughness: 0.32,
+        metalness: 0,
+        clearcoat: 0.19,
+        clearcoatRoughness: 0.22,
         side: THREE.DoubleSide,
       }),
     );
@@ -171,53 +187,18 @@ export function Sleeve3DPreview({
     model.add(sleeveFace);
     const sleeveBack = new THREE.Mesh(
       new THREE.PlaneGeometry(sleeveSize, sleeveSize),
-      new THREE.MeshBasicMaterial({
+      new THREE.MeshPhysicalMaterial({
         map: sleeveTexture,
+        roughness: 0.32,
+        metalness: 0,
+        clearcoat: 0.19,
+        clearcoatRoughness: 0.22,
         side: THREE.DoubleSide,
       }),
     );
     sleeveBack.position.z = -sleeveDepth / 2 - 0.001;
     sleeveBack.rotation.y = Math.PI;
     model.add(sleeveBack);
-
-    const recordRadius = sleeveSize * 0.47;
-    const recordThickness = 0.006;
-    const labelRecess = 0.001;
-    const recordHalfThickness = recordThickness / 2;
-    const recordCenterZ = sleeveDepth / 2 + recordHalfThickness - 0.0004;
-    const spindleHoleRadius = 0.00365;
-    const vinylMaterial = new THREE.MeshStandardMaterial({
-      color: "#171816",
-      roughness: 0.42,
-      metalness: 0.04,
-    });
-    const recordCore = new THREE.Mesh(
-      createExtrudedRing(
-        recordRadius,
-        spindleHoleRadius,
-        recordThickness - labelRecess * 2,
-      ),
-      vinylMaterial,
-    );
-    recordCore.name = "Solid vinyl record body";
-    recordCore.position.z = recordCenterZ - recordHalfThickness + labelRecess;
-    model.add(recordCore);
-
-    const frontRim = new THREE.Mesh(
-      createExtrudedRing(recordRadius, labelRadius, labelRecess),
-      vinylMaterial,
-    );
-    frontRim.name = "Front recessed label rim";
-    frontRim.position.z = recordCenterZ + recordHalfThickness - labelRecess;
-    model.add(frontRim);
-
-    const backRim = new THREE.Mesh(
-      createExtrudedRing(recordRadius, labelRadius, labelRecess),
-      vinylMaterial,
-    );
-    backRim.name = "Back recessed label rim";
-    backRim.position.z = recordCenterZ - recordHalfThickness;
-    model.add(backRim);
 
     if (sleeveImage) {
       sleeveImageElement = new Image();
@@ -247,15 +228,10 @@ export function Sleeve3DPreview({
             roughness: 0.82,
             metalness: 0,
             transparent: true,
-            alphaTest: 0.01,
-            depthWrite: false,
             side: THREE.DoubleSide,
           }),
         );
-        label.name = back ? "Recessed back label" : "Recessed front label";
-        label.position.z = back
-          ? recordCenterZ - recordHalfThickness + labelRecess - 0.00002
-          : recordCenterZ + recordHalfThickness - labelRecess + 0.00002;
+        label.position.z = z;
         if (back) label.rotation.y = Math.PI;
         model.add(label);
       });
@@ -285,6 +261,7 @@ export function Sleeve3DPreview({
       active = false;
       observer.disconnect();
       renderer.setAnimationLoop(null);
+      controls.removeEventListener("change", updateZoomPercent);
       controls.dispose();
       controlsReference.current = null;
       cameraReference.current = null;
@@ -377,19 +354,22 @@ export function Sleeve3DPreview({
         "3D sleeve + label",
         setUploadProgress,
       );
-      setSharedUrl(`${window.location.origin}/model/${shared.id}`);
+      setSharedUrl(`${window.location.origin}/${shared.id}`);
     } catch (shareFailure) {
       const code =
-        typeof shareFailure === "object" && shareFailure !== null &&
+        typeof shareFailure === "object" &&
+        shareFailure !== null &&
         "code" in shareFailure
           ? shareFailure.code
           : "";
       setShareError(
         code === "storage/unauthorized"
           ? "Firebase Storage rules must be published to allow model sharing."
-          : shareFailure instanceof Error
-          ? shareFailure.message
-          : "The model could not be shared.",
+          : code === "permission-denied"
+            ? "Firestore sharing rules must be published to allow model sharing."
+            : shareFailure instanceof Error
+              ? shareFailure.message
+              : "The model could not be shared.",
       );
     } finally {
       setSharing(false);
@@ -447,11 +427,19 @@ export function Sleeve3DPreview({
           <button
             className="dc-3d-share-button"
             aria-label={sharing ? "Sharing 3D model" : "Share 3D model"}
-            title={sharing ? `Uploading ${Math.round(uploadProgress * 100)}%` : "Share 3D model"}
+            title={
+              sharing
+                ? `Uploading ${Math.round(uploadProgress * 100)}%`
+                : "Share 3D model"
+            }
             disabled={sharing}
             onClick={() => void shareModel()}
           >
-            {sharing ? <span>{Math.round(uploadProgress * 100)}%</span> : <Share2 size={15} />}
+            {sharing ? (
+              <span>{Math.round(uploadProgress * 100)}%</span>
+            ) : (
+              <Share2 size={15} />
+            )}
           </button>
           {sharedUrl && (
             <button
@@ -471,6 +459,9 @@ export function Sleeve3DPreview({
           >
             <Minus size={16} />
           </button>
+          <output className="dc-3d-zoom-level" aria-label="3D zoom level">
+            {zoomPercent}%
+          </output>
           <button
             aria-label="Zoom in 3D preview"
             title="Zoom in"
@@ -501,7 +492,11 @@ export function Sleeve3DPreview({
           }}
         />
       )}
-      {shareError && <p className="dc-3d-share-error" role="alert">{shareError}</p>}
+      {shareError && (
+        <p className="dc-3d-share-error" role="alert">
+          {shareError}
+        </p>
+      )}
       {sharedUrl && (
         <label className="dc-3d-share-result">
           <span>Public 3D model link</span>

@@ -73,7 +73,9 @@ export function App() {
     );
   }
 
-  const sharedModelMatch = route.match(/^\/model\/([^/]+)$/);
+  const sharedModelMatch = route.match(
+    /^\/(?:model\/)?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+  );
   if (route === "/ar-model" || sharedModelMatch) {
     return (
       <Suspense fallback={<p>Loading 3D model viewer…</p>}>

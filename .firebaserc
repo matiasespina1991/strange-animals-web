@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "strange-animals-web"
-  }
+  },
+  "targets": {
+    "strange-animals-web": {
+      "storage": {
+        "default": [
+          "strange-animals-web.firebasestorage.app"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
