@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   AlignCenter,
   AlignLeft,
@@ -32,6 +33,9 @@ import {
   EyeOff,
   FileText,
   Focus,
+  FolderPlus,
+  History,
+  Folder,
   Maximize,
   Minimize,
   ImagePlus,
@@ -89,6 +93,7 @@ import {
 import { GlobalInkControl } from "./GlobalInkControl";
 import { AssetLibrary } from "./AssetLibrary";
 import { AccountControl } from "./AccountControl";
+import { accountAuth } from "./account-auth";
 import { createExportDiagnostics } from "./export-diagnostics";
 import { createUsedFontDownload } from "./design-configurator-font-download";
 import { hasUnsavedProject } from "./project-dirty-state";
@@ -104,7 +109,6 @@ import {
 import {
   clamp,
   designReducer,
-  DRAFT_KEY,
   initialDesign,
   makeLayer,
   parseDesign,
@@ -115,6 +119,12 @@ import {
   type LabelLayer,
   type LabelSide,
 } from "./design-configurator-model";
+import {
+  getGalleryProject,
+  getGalleryVersion,
+  loadGalleryDesign,
+  saveGalleryVersion,
+} from "./design-gallery-repository";
 import {
   captureLabelPreview,
   createSleeveLabelSvg,
@@ -312,12 +322,20 @@ function FontRow({
 export function DesignConfiguratorEditor() {
   const sleeveCanvasSizeMm = 315;
   const [initial] = useState(seed);
+  const [accountUser, setAccountUser] = useState(accountAuth.currentUser);
+  useEffect(
+    () => onAuthStateChanged(accountAuth, setAccountUser),
+    [],
+  );
   const [history, dispatch] = useReducer(designReducer, {
     past: [],
     present: initial.design,
     future: [],
   });
   const design = history.present;
+  const [galleryProjectId, setGalleryProjectId] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get("projectId"),
+  );
   const editorRoot = useRef<HTMLElement>(null);
   const projectBarRef = useRef<HTMLDivElement>(null);
   const globalSettingsRef = useRef<HTMLElement>(null);
@@ -442,6 +460,46 @@ export function DesignConfiguratorEditor() {
     B: "",
   });
   const [sleevePreviewBusy, setSleevePreviewBusy] = useState(false);
+  const [gallerySaving, setGallerySaving] = useState(false);
+  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
+  const saveMenuReference = useRef<HTMLDivElement>(null);
+  const [modelExportInput, setModelExportInput] = useState<{
+    requestId: string;
+    design: LabelDesign;
+    captures: { A: string; B: string };
+  } | null>(null);
+  const pendingModelExport = useRef<{
+    resolve: (model: Blob) => void;
+    reject: (error: unknown) => void;
+  } | null>(null);
+  const onModelExporterReady = useRef((exportModel: () => Promise<Blob>) => {
+    const pending = pendingModelExport.current;
+    if (!pending) return;
+    pendingModelExport.current = null;
+    void exportModel()
+      .then(pending.resolve, pending.reject)
+      .finally(() => setModelExportInput(null));
+  }).current;
+  useEffect(() => {
+    if (!saveMenuOpen) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !saveMenuReference.current?.contains(event.target)
+      ) {
+        setSaveMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSaveMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [saveMenuOpen]);
   useEffect(() => {
     if (!initial.showTemplateWelcome) return;
     try {
@@ -553,21 +611,48 @@ export function DesignConfiguratorEditor() {
         : "",
     ),
     [storageError, setStorageError] = useState("");
-  const [lastSaved, setLastSaved] = useState<string | undefined>(() => {
-      try {
-        const saved = localStorage.getItem(DRAFT_KEY);
-        return saved
-          ? JSON.stringify(parseDesign(JSON.parse(saved)))
-          : undefined;
-      } catch {
-        return undefined;
-      }
-    }),
+  const [lastSaved, setLastSaved] = useState<string | undefined>(() =>
+      JSON.stringify(initial.design),
+    ),
     [exportFormat, setExportFormat] = useState("svg"),
     [exportSides, setExportSides] = useState("current"),
     [includeBleed, setIncludeBleed] = useState(false),
     [includeSleeve, setIncludeSleeve] = useState(false),
     [textLength, setTextLength] = useState(0);
+  useEffect(() => {
+    const projectId = new URLSearchParams(window.location.search).get("projectId");
+    if (!projectId || !/^[0-9a-f-]{36}$/i.test(projectId)) return;
+    const user = accountUser;
+    if (!user) return;
+    let active = true;
+    void (async () => {
+      try {
+        const project = await getGalleryProject(user.uid, projectId);
+        if (!project) throw Error("This design is not in your gallery.");
+        const requestedVersionId = new URLSearchParams(window.location.search).get("versionId");
+        const versionId = requestedVersionId ?? project.latestVersionId;
+        const version = await getGalleryVersion(user.uid, projectId, versionId);
+        if (!version) throw Error("This design version could not be found.");
+        const loadedDesign = await loadGalleryDesign(version);
+        if (!active) return;
+        dispatch({ type: "replace", design: loadedDesign });
+        setGalleryProjectId(projectId);
+        setLastSaved(JSON.stringify(loadedDesign));
+        setNotice(`Loaded version ${version.version} from My Gallery.`);
+      } catch (cause) {
+        if (active) {
+          setNotice(
+            cause instanceof Error
+              ? cause.message
+              : "This gallery design could not be loaded.",
+          );
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [accountUser]);
   const imageInput = useRef<HTMLInputElement>(null),
     projectInput = useRef<HTMLInputElement>(null);
   const drag = useRef<{
@@ -625,6 +710,11 @@ export function DesignConfiguratorEditor() {
     end();
     change(() => next);
     end();
+    setGalleryProjectId(null);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.delete("projectId");
+    nextUrl.searchParams.delete("versionId");
+    window.history.replaceState(null, "", nextUrl);
     setSelectedLayers([]);
     setSelected("title");
     setSide("A");
@@ -994,34 +1084,89 @@ export function DesignConfiguratorEditor() {
       clamp(event.clientX - workspace.getBoundingClientRect().left, 176, 360),
     );
   };
-  const save = () => {
+  const generateGalleryModel = (
+    sourceDesign: LabelDesign,
+    captures: { A: string; B: string },
+  ) =>
+    new Promise<Blob>((resolve, reject) => {
+      pendingModelExport.current = { resolve, reject };
+      setModelExportInput({
+        requestId: crypto.randomUUID(),
+        design: sourceDesign,
+        captures,
+      });
+    });
+  const saveToGallery = async (asNewProject = false) => {
+    if (gallerySaving) return;
+    const user = accountUser;
+    if (!user) {
+      setNotice("Sign in to save designs to My Gallery.");
+      return;
+    }
+    setGallerySaving(true);
+    setSaveMenuOpen(false);
+    setNotice("Capturing both sides and generating the 3D model…");
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(design));
+      const [markupA, markupB] = await Promise.all([
+        createLabelSvg(design, "A", fonts, false),
+        createLabelSvg(design, "B", fonts, false),
+      ]);
+      const [captureA, captureB] = await Promise.all([
+        captureLabelPreview(markupA),
+        captureLabelPreview(markupB),
+      ]);
+      const [frontPreview, backPreview] = await Promise.all([
+        fetch(captureA).then((response) => response.blob()),
+        fetch(captureB).then((response) => response.blob()),
+      ]);
+      const model = await generateGalleryModel(design, {
+        A: captureA,
+        B: captureB,
+      });
+      const saved = await saveGalleryVersion({
+        uid: user.uid,
+        design,
+        frontPreview,
+        backPreview,
+        model,
+        projectId: galleryProjectId ?? undefined,
+        asNewProject,
+      });
+      setGalleryProjectId(saved.project.id);
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("projectId", saved.project.id);
+      nextUrl.searchParams.set("versionId", saved.versionId);
+      window.history.replaceState(null, "", nextUrl);
       setLastSaved(JSON.stringify(design));
       setNotice(
-        "Proyecto guardado en este navegador. Descargá JSON para tener un respaldo.",
+        `${asNewProject ? "New project" : "Saved to My Gallery"} · version ${saved.version}.`,
       );
-    } catch {
-      setNotice("No hay espacio para guardar. Usá Download project (JSON).");
+    } catch (cause) {
+      setNotice(
+        cause instanceof Error
+          ? cause.message
+          : "The design could not be saved to My Gallery.",
+      );
+    } finally {
+      setGallerySaving(false);
     }
   };
-  const load = () => {
+  const saveLocally = () => {
     try {
-      const value = localStorage.getItem(DRAFT_KEY);
-      if (!value) {
-        setNotice("Todavía no hay un proyecto guardado.");
-        return;
-      }
-      const parsed = parseDesign(JSON.parse(value));
-      change(() => parsed);
-      setLastSaved(JSON.stringify(parsed));
-      setDialog(null);
-      setNotice("Proyecto abierto. Las fuentes se restauran automáticamente.");
-    } catch (e) {
-      setNotice(
-        e instanceof Error ? e.message : "No se pudo abrir el proyecto.",
-      );
+      const serialized = JSON.stringify(design);
+      localStorage.setItem(RECOVERY_KEY, serialized);
+      setLastSaved(serialized);
+      setNotice("Saved on this device. Sign in to add this design to My Gallery.");
+    } catch {
+      setNotice("Could not save locally. Download the project JSON to keep a copy.");
     }
+  };
+  const save = () => {
+    if (accountUser) void saveToGallery();
+    else saveLocally();
+  };
+  const load = () => {
+    window.location.assign("/identity/my-gallery");
   };
   const exportProject = () =>
     downloadDesignFile(
@@ -1520,9 +1665,11 @@ export function DesignConfiguratorEditor() {
         <div>
           <span className="dc-eyebrow">
             VINYL LABEL /{" "}
-            {lastSaved === JSON.stringify(design)
-              ? "SAVED LOCALLY"
-              : "AUTORECOVERY ON"}
+            {accountUser
+              ? lastSaved === JSON.stringify(design) && galleryProjectId
+                ? "SAVED TO MY GALLERY"
+                : "AUTORECOVERY ON"
+              : "LOCAL AUTOSAVE ONLY"}
           </span>
           <label className="dc-project-name">
             <span className="sr-only">Project name</span>
@@ -1562,10 +1709,48 @@ export function DesignConfiguratorEditor() {
             <FileText size={15} />
             <span>File</span>
           </button>
-          <button className="dc-save" onClick={save}>
-            <Save size={15} />
-            Save
-          </button>
+          <div className="dc-save-split" ref={saveMenuReference}>
+            <button
+              className="dc-save dc-save-main"
+              disabled={gallerySaving}
+              onClick={save}
+            >
+              <Save size={15} />
+              {gallerySaving ? "Saving…" : "Save"}
+            </button>
+            {accountUser && (
+              <>
+                <button
+                  className="dc-save dc-save-chevron"
+                  type="button"
+                  aria-label="More save options"
+                  aria-haspopup="menu"
+                  aria-expanded={saveMenuOpen}
+                  title="More save options"
+                  disabled={gallerySaving}
+                  onClick={() => setSaveMenuOpen((open) => !open)}
+                >
+                  <ChevronDown size={14} />
+                </button>
+                {saveMenuOpen && (
+                  <div className="dc-save-menu" role="menu" aria-label="Save options">
+                    <button type="button" role="menuitem" onClick={() => void saveToGallery(true)}>
+                      <FolderPlus size={15} /> Save as New Project
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => void saveToGallery(false)}>
+                      <History size={15} /> Save as New Version
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {accountUser && (
+            <a className="dc-save dc-gallery-link" href="/identity/my-gallery">
+              <Folder size={15} />
+              <span>My Gallery</span>
+            </a>
+          )}
           <button className="dc-save" onClick={() => setDialog("settings")}>
             <Settings size={15} />
             <span>Project settings</span>
@@ -1576,6 +1761,22 @@ export function DesignConfiguratorEditor() {
           </button>
         </div>
       </div>
+      {modelExportInput && (
+        <div className="dc-hidden-exporter" aria-hidden="true">
+          <Sleeve3DPreview
+            key={modelExportInput.requestId}
+            labelCapture={modelExportInput.captures.A}
+            labelCaptureBack={modelExportInput.captures.B}
+            onModelExporterReady={onModelExporterReady}
+            side="A"
+            sleeveColor={modelExportInput.design.sleeveColor}
+            sleeveImage={modelExportInput.design.sleeveImage}
+            sleeveZoom={modelExportInput.design.sleeveZoom}
+            labelDiameterMm={modelExportInput.design.diameterMm}
+            labelHoleMm={modelExportInput.design.holeMm}
+          />
+        </div>
+      )}
       {storageError && (
         <div className="dc-storage-warning" role="alert">
           {storageError}
@@ -2874,8 +3075,7 @@ export function DesignConfiguratorEditor() {
         <Modal title="File" close={() => setDialog(null)}>
           <div className="dc-dialog-scroll">
             <p className="dc-font-explanation">
-              Projects live in this browser. Download JSON to transfer or back
-              them up.
+              My Gallery keeps each saved design and its versions with your account.
             </p>
             <div className="dc-project-files">
               <button onClick={() => setDialog("new")}>
@@ -2884,7 +3084,7 @@ export function DesignConfiguratorEditor() {
               </button>
               <button onClick={load}>
                 <FileText size={16} />
-                Open saved project
+                Open My Gallery
               </button>
               <button onClick={exportProject}>
                 <ArrowDownToLine size={16} />

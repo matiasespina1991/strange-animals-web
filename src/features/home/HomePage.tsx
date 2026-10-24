@@ -115,6 +115,18 @@ export function HomePage() {
         return;
       }
 
+      if (altShortcut && event.code === "KeyF") {
+        event.preventDefault();
+        window.location.assign("/identity/typography/typefaces");
+        return;
+      }
+
+      if (altShortcut && event.code === "KeyV") {
+        event.preventDefault();
+        window.location.assign("/identity/design-configurator");
+        return;
+      }
+
       if (event.code === "KeyW") {
         event.preventDefault();
         openWinamp();

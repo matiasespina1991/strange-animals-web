@@ -16,6 +16,7 @@ import type { LabelSide } from "./design-configurator-model";
 type Properties = {
   labelCapture: string;
   labelCaptureBack: string;
+  onModelExporterReady?: (exportModel: () => Promise<Blob>) => void;
   side: LabelSide;
   sleeveColor: string;
   sleeveImage?: string;
@@ -36,6 +37,7 @@ const MAX_ZOOM_PERCENT = Math.round(
 export function Sleeve3DPreview({
   labelCapture,
   labelCaptureBack,
+  onModelExporterReady,
   side,
   sleeveColor,
   sleeveImage,
@@ -44,6 +46,9 @@ export function Sleeve3DPreview({
   labelHoleMm,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
+  const modelExporterReference = useRef<() => Promise<Blob>>(() =>
+    Promise.reject(Error("The 3D preview is not ready yet.")),
+  );
   const modelReference = useRef<THREE.Group | null>(null);
   const labelImagesReference = useRef<HTMLImageElement[]>([]);
   const sleeveImageReference = useRef<HTMLImageElement | null>(null);
@@ -346,6 +351,11 @@ export function Sleeve3DPreview({
       );
     });
   };
+  modelExporterReference.current = exportModel;
+  useEffect(() => {
+    if (!onModelExporterReady) return;
+    onModelExporterReady(() => modelExporterReference.current());
+  }, [onModelExporterReady]);
 
   const shareModel = async () => {
     if (sharing) return;

@@ -6,23 +6,39 @@ import {
   doc,
   getDocs,
   getDoc,
-  query,
   serverTimestamp,
   updateDoc,
-  where,
   writeBatch,
+  getFirestore,
 } from "firebase/firestore";
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { FontLoadQueue } from "./font-load-queue";
 import { logFontLoad, traceFontLoad } from "./font-load-diagnostics";
 import { readFontBytes, type FontDownloadProgress } from "./font-download-progress";
 import { firebaseAuth, firebaseDb, firebaseStorage } from "@/lib/firebase";
+import { accountAuth } from "./account-auth";
+import { getStorage } from "firebase/storage";
 import { canUseLocalFontUseCase, hasLocalFontUseCase, setLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
 
 // Large Japanese/color fonts exceed 20 MiB even after a valid OTF reexport.
 const MAX_PREVIEW_SIZE_BYTES = 64 * 1024 * 1024;
 const DELETE_CONCURRENCY = 8;
 const FIRESTORE_BATCH_SIZE = 450;
+
+function fontReadContext() {
+  const account = accountAuth.currentUser;
+  return account
+    ? {
+        database: getFirestore(accountAuth.app),
+        storage: getStorage(accountAuth.app),
+        user: account,
+      }
+    : {
+        database: firebaseDb,
+        storage: firebaseStorage,
+        user: firebaseAuth.currentUser,
+      };
+}
 
 export async function renameFontFamily(font: FontCatalogItem, name: string) {
   if (!import.meta.env.DEV) throw new Error("Development only");
@@ -381,8 +397,6 @@ function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | nul
 
   const enabled = value.enabled === true;
 
-  if (!import.meta.env.DEV && !enabled) return null;
-
   const displayName =
     typeof value.displayName === "string" && value.displayName.trim()
       ? value.displayName.trim()
@@ -459,12 +473,8 @@ function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | nul
 }
 
 export async function listFontCatalog() {
-  const fontsReference = collection(firebaseDb, "fonts");
-  const snapshot = await getDocs(
-    import.meta.env.DEV
-      ? fontsReference
-      : query(fontsReference, where("enabled", "==", true)),
-  );
+  const fontsReference = collection(fontReadContext().database, "fonts");
+  const snapshot = await getDocs(fontsReference);
 
   return snapshot.docs
     .map((documentSnapshot) =>
@@ -548,8 +558,9 @@ export async function updateFontUseCases(
 }
 
 export async function listFontVariants(font: FontCatalogItem) {
+  const { database } = fontReadContext();
   const snapshot = await getDocs(
-    collection(firebaseDb, "fonts", font.id, "files"),
+    collection(database, "fonts", font.id, "files"),
   );
 
   const variants = snapshot.docs
@@ -557,8 +568,6 @@ export async function listFontVariants(font: FontCatalogItem) {
       const value = documentSnapshot.data() as FontFileDocument;
 
       if (
-        value.enabled !== true ||
-        (!import.meta.env.DEV && value.previewEnabled === false) ||
         value.kind !== "font" ||
         typeof value.fileName !== "string" ||
         typeof value.relativePath !== "string" ||
@@ -625,9 +634,10 @@ export async function loadFontVariant(
   return fontLoads.load(loadKey, async (downloadSignal, reportProgress) => {
     reportProgress({ phase: "downloading", loaded: 0, total: null });
     const familyName = `strange-animals-font-${font.id}-${variant.id}`;
-    const location = ref(firebaseStorage, variant.storagePath);
+    const context = fontReadContext();
+    const location = ref(context.storage, variant.storagePath);
     trace.event("auth:waiting");
-    const token = await firebaseAuth.currentUser?.getIdToken();
+    const token = await context.user?.getIdToken();
     trace.event("download:request", { authenticated: Boolean(token) });
     downloadSignal.throwIfAborted();
     // Same authenticated media endpoint as the Storage SDK, with native cancellation.
@@ -674,14 +684,14 @@ export async function loadFontVariant(
 
 export async function downloadFontFamily(font: FontCatalogItem) {
   const { default: JSZip } = await import("jszip");
+  const context = fontReadContext();
   const snapshot = await getDocs(
-    collection(firebaseDb, "fonts", font.id, "files"),
+    collection(context.database, "fonts", font.id, "files"),
   );
   const files = snapshot.docs
     .map((documentSnapshot) => documentSnapshot.data() as FontFileDocument)
     .filter(
       (file) =>
-        file.enabled === true &&
         typeof file.relativePath === "string" &&
         !file.relativePath.startsWith("/") &&
         !file.relativePath.split("/").includes("..") &&
@@ -695,7 +705,7 @@ export async function downloadFontFamily(font: FontCatalogItem) {
 
   await Promise.all(
     files.map(async (file) => {
-      const bytes = await getBytes(ref(firebaseStorage, file.storagePath));
+      const bytes = await getBytes(ref(context.storage, file.storagePath));
 
       archive.file(file.relativePath as string, bytes);
     }),

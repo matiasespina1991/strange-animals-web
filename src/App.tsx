@@ -12,6 +12,8 @@ import { ReleaseIdVerifierPage } from "@/features/release-id-verifier/ReleaseIdV
 import { WinampSkinsStuffPicksPage } from "@/features/webamp-skins/WinampSkinsStuffPicksPage";
 import { WebampSkinUploaderPage } from "@/features/webamp-skins/WebampSkinUploaderPage";
 import { usePathRoute } from "@/hooks/usePathRoute";
+import { PersonalAccountGate } from "@/features/identity/PersonalAccountGate";
+import { IdentityAccessGate } from "@/features/identity/IdentityAccessGate";
 import { lazy, Suspense } from "react";
 
 const MyspacePlayerTestPage = lazy(
@@ -26,6 +28,9 @@ const TextEffectsLabPage = import.meta.env.DEV
   : null;
 const LayerPanelLayoutsLabPage = import.meta.env.DEV
   ? lazy(() => import("@/features/identity/LayerPanelLayoutsLabPage"))
+  : null;
+const DesignGalleryConceptsPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/identity/DesignGalleryConceptsPage"))
   : null;
 
 export function App() {
@@ -64,6 +69,17 @@ export function App() {
       </Suspense>
     );
   }
+  if (
+    import.meta.env.DEV &&
+    route === "/dev/design-gallery-concepts" &&
+    DesignGalleryConceptsPage
+  ) {
+    return (
+      <Suspense fallback={<p>Loading gallery concepts…</p>}>
+        <DesignGalleryConceptsPage />
+      </Suspense>
+    );
+  }
 
   if (route === "/listen/myspace-test") {
     return (
@@ -81,6 +97,25 @@ export function App() {
       <Suspense fallback={<p>Loading 3D model viewer…</p>}>
         <ARModelPage shareId={sharedModelMatch?.[1]} />
       </Suspense>
+    );
+  }
+
+  if (route === "/identity/my-gallery/model") {
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("projectId");
+    const versionId = params.get("versionId");
+    if (!projectId || !versionId) {
+      window.location.replace("/identity/my-gallery");
+      return null;
+    }
+    return (
+      <IdentityAccessGate>
+        <PersonalAccountGate>
+          <Suspense fallback={<p>Loading 3D model viewer…</p>}>
+            <ARModelPage galleryModel={{ projectId, versionId }} />
+          </Suspense>
+        </PersonalAccountGate>
+      </IdentityAccessGate>
     );
   }
 

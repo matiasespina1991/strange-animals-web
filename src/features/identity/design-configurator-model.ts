@@ -543,6 +543,7 @@ export type History = {
   group?: string;
 };
 export type HistoryAction =
+  | { type: "replace"; design: LabelDesign }
   | { type: "normalize"; change: (current: LabelDesign) => LabelDesign }
   | {
       type: "change";
@@ -551,6 +552,8 @@ export type HistoryAction =
     }
   | { type: "undo" | "redo" | "end" };
 export function designReducer(state: History, action: HistoryAction): History {
+  if (action.type === "replace")
+    return { past: [], present: action.design, future: [] };
   if (action.type === "normalize")
     return {
       ...state,

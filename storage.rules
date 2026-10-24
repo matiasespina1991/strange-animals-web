@@ -24,7 +24,7 @@ service firebase.storage {
     }
 
     match /media/private/fonts/{allPaths=**} {
-      allow read: if hasIdentityAccess();
+      allow read: if request.auth != null;
       allow delete: if hasIdentityAccess();
       allow create, update: if false;
     }
@@ -67,6 +67,33 @@ service firebase.storage {
         && request.auth.uid == ownerUid
         && modelId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
         && fileName.matches('^[A-Za-z0-9_.-]{1,150}[.]glb$');
+    }
+
+    match /media/private/design-gallery/{uid}/{projectId}/{versionId}/{fileName} {
+      function ownsGalleryAsset() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+
+      function validGalleryAssetPath() {
+        return projectId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+          && versionId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+          && fileName in ['design.json', 'front.png', 'back.png', 'model.glb'];
+      }
+
+      allow read: if ownsGalleryAsset() && validGalleryAssetPath();
+      allow create: if ownsGalleryAsset()
+        && validGalleryAssetPath()
+        && request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 104857600
+        && ((fileName == 'design.json'
+            && request.resource.contentType == 'application/json')
+          || (fileName in ['front.png', 'back.png']
+            && request.resource.contentType == 'image/png')
+          || (fileName == 'model.glb'
+            && request.resource.contentType == 'model/gltf-binary'));
+      allow update: if false;
+      allow delete: if ownsGalleryAsset() && validGalleryAssetPath();
     }
 
     match /{allPaths=**} {

@@ -4,6 +4,11 @@ import { ArrowUpLeft, Check, Copy, Share2, Upload } from "lucide-react";
 import { AccountControl } from "@/features/identity/AccountControl";
 import { accountAuth } from "@/features/identity/account-auth";
 import {
+  downloadGalleryModel,
+  getGalleryProject,
+  getGalleryVersion,
+} from "@/features/identity/design-gallery-repository";
+import {
   createModelShare,
   getSharedModel,
   MAX_SHARED_MODEL_BYTES,
@@ -18,6 +23,7 @@ let modelViewerPromise: Promise<void> | null = null;
 
 type ARModelPageProperties = {
   shareId?: string;
+  galleryModel?: { projectId: string; versionId: string };
 };
 
 function ensureModelViewer() {
@@ -53,18 +59,21 @@ function ensureModelViewer() {
   return modelViewerPromise;
 }
 
-export default function ARModelPage({ shareId }: ARModelPageProperties) {
+export default function ARModelPage({
+  shareId,
+  galleryModel,
+}: ARModelPageProperties) {
   const viewerHost = useRef<HTMLDivElement>(null);
   const modelObjectUrl = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [modelSource, setModelSource] = useState(
-    shareId ? "" : DEFAULT_GLB_URL,
+    shareId || galleryModel ? "" : DEFAULT_GLB_URL,
   );
   const [modelTitle, setModelTitle] = useState("Azucenas");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewerError, setViewerError] = useState("");
   const [pageError, setPageError] = useState("");
-  const [pageLoading, setPageLoading] = useState(Boolean(shareId));
+  const [pageLoading, setPageLoading] = useState(Boolean(shareId || galleryModel));
   const [accountReady, setAccountReady] = useState(false);
   const [signedIn, setSignedIn] = useState(Boolean(accountAuth.currentUser));
   const [sharing, setSharing] = useState(false);
@@ -77,12 +86,14 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
   useEffect(() => {
     document.title = shareId
       ? "Shared 3D model | Strange Animals"
-      : "3D AR preview | Strange Animals";
+      : galleryModel
+        ? "My Gallery model | Strange Animals"
+        : "3D AR preview | Strange Animals";
     return onAuthStateChanged(accountAuth, (user) => {
       setSignedIn(Boolean(user));
       setAccountReady(true);
     });
-  }, [shareId]);
+  }, [galleryModel, shareId]);
 
   useEffect(() => {
     if (!shareId) return;
@@ -109,6 +120,53 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
       active = false;
     };
   }, [shareId]);
+
+  useEffect(() => {
+    if (!galleryModel) return;
+    let active = true;
+    let objectUrl: string | null = null;
+    setPageLoading(true);
+    setPageError("");
+    void (async () => {
+      try {
+        const user = accountAuth.currentUser;
+        if (!user) throw Error("Sign in to open this private 3D model.");
+        const [project, version] = await Promise.all([
+          getGalleryProject(user.uid, galleryModel.projectId),
+          getGalleryVersion(
+            user.uid,
+            galleryModel.projectId,
+            galleryModel.versionId,
+          ),
+        ]);
+        if (!project || !version)
+          throw Error("This model version could not be found in your gallery.");
+        const blob = await downloadGalleryModel(version.modelPath);
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        modelObjectUrl.current = objectUrl;
+        setModelTitle(`${project.title} · v${version.version}`);
+        setModelSource(objectUrl);
+      } catch (cause) {
+        if (active) {
+          setPageError(
+            cause instanceof Error
+              ? cause.message
+              : "This private model could not be loaded.",
+          );
+        }
+      } finally {
+        if (active) setPageLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        if (modelObjectUrl.current === objectUrl) modelObjectUrl.current = null;
+      }
+    };
+  }, [galleryModel?.projectId, galleryModel?.versionId]);
 
   useEffect(() => {
     const host = viewerHost.current;
@@ -281,17 +339,17 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
         <div className="ar-model-heading">
           <a
             className="ar-model-back"
-            href="/identity/design-configurator"
-            aria-label="Back to design configurator"
+            href={galleryModel ? "/identity/my-gallery" : "/identity/design-configurator"}
+            aria-label={galleryModel ? "Back to My Gallery" : "Back to design configurator"}
           >
             <ArrowUpLeft size={15} />
           </a>
           <div>
-            <p>{shareId ? "SHARED 3D MODEL" : "3D MODEL / AR PREVIEW"}</p>
+            <p>{shareId ? "SHARED 3D MODEL" : galleryModel ? "MY GALLERY / 3D MODEL" : "3D MODEL / AR PREVIEW"}</p>
             <h1>{modelTitle}</h1>
           </div>
         </div>
-        {!shareId && (
+        {!shareId && !galleryModel && (
           <div className="ar-model-actions">
             <input
               ref={fileInput}
@@ -348,12 +406,12 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
           {pageLoading && (
             <p className="ar-model-stage-message">Loading model…</p>
           )}
-          {pageError && shareId && (
+          {pageError && (shareId || galleryModel) && (
             <p className="ar-model-stage-message" role="alert">
               {pageError}
             </p>
           )}
-          {viewerError && !shareId && (
+          {viewerError && !shareId && !galleryModel && (
             <div className="ar-model-stage-message" role="alert">
               <p>{viewerError}</p>
               <button onClick={() => fileInput.current?.click()}>
@@ -364,7 +422,7 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
         </div>
         <span className="ar-model-stage-index">MODEL VIEWER / 01</span>
       </section>
-      {!shareId && (
+      {!shareId && !galleryModel && (
         <section className="ar-model-share-status" aria-live="polite">
           {sharing && (
             <div className="ar-model-progress" aria-label="Upload progress">

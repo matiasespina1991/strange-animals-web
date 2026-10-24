@@ -20,6 +20,13 @@ rules_version='2'
 //   by ID only; clients may create their own, get public documents, and cannot
 //   list, update, or delete shares.
 //
+// Collection: designUsers/{uid}/projects/{projectId}
+//   Owner-only project metadata, the latest monotonically increasing version,
+//   and front/back screenshot paths for the latest version.
+// Subcollection: designUsers/{uid}/projects/{projectId}/versions/{versionId}
+//   Immutable numbered design JSON, front/back screenshots, and private GLB
+//   paths in Cloud Storage. Large files are not stored in Firestore documents.
+//
 // Collection: fonts
 // Document ID: normalized font-family ID
 // Client-editable metadata fields:
@@ -276,7 +283,7 @@ service cloud.firestore {
     // entry. Both are private; only the fixed identity may delete them through
     // the temporary catalog-management control.
     match /fonts/{fontId} {
-      allow read: if hasIdentityAccess();
+      allow read: if request.auth != null;
       allow delete: if hasIdentityAccess();
       allow update: if hasIdentityAccess()
         && isValidFontCatalogMetadataUpdate(request.resource.data);
@@ -302,7 +309,7 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
 
       match /files/{fileId} {
-        allow read: if hasIdentityAccess();
+        allow read: if request.auth != null;
         allow delete: if hasIdentityAccess();
         allow create: if hasIdentityAccess()
           && getAfter(/databases/$(database)/documents/fonts/$(fontId)).data.storagePrefix == 'media/private/fonts/copies/' + fontId
@@ -375,6 +382,120 @@ service cloud.firestore {
         && isSharedModelId(modelId)
         && isValidSharedModel(request.resource.data, modelId);
       allow update, delete: if false;
+    }
+
+    function isDesignGalleryOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isValidDesignGalleryProject(data, uid, projectId) {
+      return data.keys().hasAll([
+          'title',
+          'latestVersion',
+          'latestVersionId',
+          'frontPreviewPath',
+          'backPreviewPath',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title',
+          'latestVersion',
+          'latestVersionId',
+          'frontPreviewPath',
+          'backPreviewPath',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 120
+        && data.latestVersion is int
+        && data.latestVersion >= 1
+        && data.latestVersion <= 999999
+        && data.latestVersionId is string
+        && isSharedModelId(data.latestVersionId)
+        && data.frontPreviewPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + data.latestVersionId + '/front.png'
+        && data.backPreviewPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + data.latestVersionId + '/back.png'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    function isValidDesignGalleryVersion(data, uid, projectId, versionId) {
+      return isSharedModelId(versionId)
+        && data.keys().hasAll([
+          'version',
+          'designPath',
+          'frontPreviewPath',
+          'backPreviewPath',
+          'modelPath',
+          'modelFileName',
+          'modelSizeBytes',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'version',
+          'designPath',
+          'frontPreviewPath',
+          'backPreviewPath',
+          'modelPath',
+          'modelFileName',
+          'modelSizeBytes',
+          'createdAt'
+        ])
+        && data.version is int
+        && data.version >= 1
+        && data.version <= 999999
+        && data.designPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + versionId + '/design.json'
+        && data.frontPreviewPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + versionId + '/front.png'
+        && data.backPreviewPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + versionId + '/back.png'
+        && data.modelPath == 'media/private/design-gallery/'
+          + uid + '/' + projectId + '/' + versionId + '/model.glb'
+        && data.modelFileName is string
+        && data.modelFileName.matches('^[A-Za-z0-9_.-]{1,150}[.]glb$')
+        && data.modelSizeBytes is int
+        && data.modelSizeBytes > 0
+        && data.modelSizeBytes <= 104857600
+        && data.createdAt is timestamp
+        && data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)).data.latestVersion == data.version
+        && getAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)).data.latestVersionId == versionId;
+    }
+
+    match /designUsers/{uid}/projects/{projectId} {
+      allow get, list: if isDesignGalleryOwner(uid);
+      allow create: if isDesignGalleryOwner(uid)
+        && isValidDesignGalleryProject(request.resource.data, uid, projectId)
+        && request.resource.data.latestVersion == 1
+        && request.resource.data.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));
+      allow update: if isDesignGalleryOwner(uid)
+        && isValidDesignGalleryProject(request.resource.data, uid, projectId)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.latestVersion == resource.data.latestVersion + 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title',
+          'latestVersion',
+          'latestVersionId',
+          'frontPreviewPath',
+          'backPreviewPath',
+          'updatedAt'
+        ])
+        && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));
+      allow delete: if false;
+
+      match /versions/{versionId} {
+        allow get, list: if isDesignGalleryOwner(uid);
+        allow create: if isDesignGalleryOwner(uid)
+          && isValidDesignGalleryVersion(request.resource.data, uid, projectId, versionId);
+        allow update, delete: if false;
+      }
     }
 
     match /{document=**} {
