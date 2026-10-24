@@ -2315,7 +2315,8 @@ export function DesignConfiguratorEditor() {
                         value={element.size}
                         min={3}
                         max={3000}
-                        sliderMax={3000}
+                        sliderMax={250}
+                        expandSlider
                         step={0.5}
                         onChange={(size) =>
                           update({ size }, `size-${element.id}`)
@@ -2344,7 +2345,7 @@ export function DesignConfiguratorEditor() {
                         unit="PX"
                         value={element.spacing}
                         min={-10}
-                        max={30}
+                        max={90}
                         step={0.1}
                         onChange={(spacing) =>
                           update({ spacing }, `spacing-${element.id}`)
@@ -2356,7 +2357,7 @@ export function DesignConfiguratorEditor() {
                         unit="PX"
                         value={element.inkBleed ?? 0}
                         min={0}
-                        max={8}
+                        max={30}
                         step={0.05}
                         onChange={(inkBleed) =>
                           update({ inkBleed }, `ink-bleed-${element.id}`)
@@ -2765,6 +2766,7 @@ export function DesignConfiguratorEditor() {
             sleeveImage={design.sleeveImage}
             sleeveZoom={design.sleeveZoom}
             labelDiameterMm={design.diameterMm}
+            labelHoleMm={design.holeMm}
           />
         </Modal>
       )}

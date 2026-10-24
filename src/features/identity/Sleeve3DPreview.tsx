@@ -24,6 +24,7 @@ type Properties = {
   sleeveImage?: string;
   sleeveZoom: number;
   labelDiameterMm: number;
+  labelHoleMm: number;
 };
 
 const SLEEVE_SIZE_MM = 315;
@@ -43,6 +44,7 @@ export function Sleeve3DPreview({
   sleeveImage,
   sleeveZoom,
   labelDiameterMm,
+  labelHoleMm,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
   const modelReference = useRef<THREE.Group | null>(null);
@@ -125,20 +127,18 @@ export function Sleeve3DPreview({
     scene.add(fillLight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
-    const sleeveDepth = 0.04;
+    const sleeveDepth = 0.03;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
-    const sleeveBacking = new THREE.Mesh(
-      new THREE.BoxGeometry(sleeveSize, sleeveSize, sleeveDepth),
-      new THREE.MeshPhysicalMaterial({
-        color: sleeveColor,
-        roughness: 0.32,
-        metalness: 0,
-        clearcoat: 0.19,
-        clearcoatRoughness: 0.22,
-      }),
-    );
-    sleeveBacking.position.z = 0;
-    model.add(sleeveBacking);
+    const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
+    const sleeveShape = new THREE.Shape();
+    sleeveShape.moveTo(-sleeveSize / 2, -sleeveSize / 2);
+    sleeveShape.lineTo(sleeveSize / 2, -sleeveSize / 2);
+    sleeveShape.lineTo(sleeveSize / 2, sleeveSize / 2);
+    sleeveShape.lineTo(-sleeveSize / 2, sleeveSize / 2);
+    sleeveShape.closePath();
+    const centerHole = new THREE.Path();
+    centerHole.absarc(0, 0, holeRadius, 0, Math.PI * 2, true);
+    sleeveShape.holes.push(centerHole);
 
     const sleeveCanvas = document.createElement("canvas");
     sleeveCanvas.width = 1024;
@@ -175,33 +175,44 @@ export function Sleeve3DPreview({
     };
 
     drawSleeve();
-    const sleeveFace = new THREE.Mesh(
-      new THREE.PlaneGeometry(sleeveSize, sleeveSize),
+    const sleeveGeometry = new THREE.ExtrudeGeometry(sleeveShape, {
+      depth: sleeveDepth,
+      bevelEnabled: false,
+      curveSegments: 64,
+    });
+    sleeveGeometry.translate(0, 0, -sleeveDepth / 2);
+    const sleevePosition = sleeveGeometry.getAttribute("position");
+    const sleeveUv = sleeveGeometry.getAttribute("uv");
+    const sleeveIndices = sleeveGeometry.getIndex();
+    for (const group of sleeveGeometry.groups) {
+      if (group.materialIndex !== 0) continue;
+      for (let vertex = group.start; vertex < group.start + group.count; vertex++) {
+        const positionIndex = sleeveIndices ? sleeveIndices.getX(vertex) : vertex;
+        sleeveUv.setXY(
+          positionIndex,
+          (sleevePosition.getX(positionIndex) + sleeveSize / 2) / sleeveSize,
+          (sleevePosition.getY(positionIndex) + sleeveSize / 2) / sleeveSize,
+        );
+      }
+    }
+    sleeveUv.needsUpdate = true;
+    const sleeve = new THREE.Mesh(sleeveGeometry, [
       new THREE.MeshPhysicalMaterial({
         map: sleeveTexture,
         roughness: 0.32,
         metalness: 0,
         clearcoat: 0.19,
         clearcoatRoughness: 0.22,
-        side: THREE.DoubleSide,
       }),
-    );
-    sleeveFace.position.z = sleeveDepth / 2 + 0.001;
-    model.add(sleeveFace);
-    const sleeveBack = new THREE.Mesh(
-      new THREE.PlaneGeometry(sleeveSize, sleeveSize),
       new THREE.MeshPhysicalMaterial({
-        map: sleeveTexture,
+        color: sleeveColor,
         roughness: 0.32,
         metalness: 0,
         clearcoat: 0.19,
         clearcoatRoughness: 0.22,
-        side: THREE.DoubleSide,
       }),
-    );
-    sleeveBack.position.z = -sleeveDepth / 2 - 0.001;
-    sleeveBack.rotation.y = Math.PI;
-    model.add(sleeveBack);
+    ]);
+    model.add(sleeve);
 
     if (sleeveImage) {
       sleeveImageElement = new Image();
@@ -294,6 +305,7 @@ export function Sleeve3DPreview({
     labelCaptureBack,
     labelDiameterMm,
     sleeveColor,
+    labelHoleMm,
     sleeveImage,
     sleeveZoom,
   ]);

@@ -2796,6 +2796,30 @@
   padding: 0;
   accent-color: #657248;
 }
+.design-configurator .dc-typography-expand {
+  display: inline-flex;
+  min-width: 25px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0 6px;
+  padding: 0 4px;
+  border: 1px solid #aab098;
+  border-radius: 2px;
+  background: #f0f1e9;
+  color: #657248;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.design-configurator .dc-typography-expand:hover {
+  background: #e4e8d9;
+}
+.design-configurator .dc-typography-expand[aria-pressed="true"] {
+  border-color: #657248;
+  background: #dfe4d1;
+  color: #384329;
+}
 .dc-properties .dc-field input[type="number"] {
   padding: 5px 8px;
 }

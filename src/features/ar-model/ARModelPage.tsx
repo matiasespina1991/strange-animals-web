@@ -118,6 +118,9 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
         if (!active) return;
         const viewer = document.createElement("model-viewer");
         viewer.setAttribute("src", modelSource);
+        if (/\b(?:sleeve|vinyl|vinilo|vinilos)\b/i.test(modelTitle)) {
+          viewer.setAttribute("scale", "0.1 0.1 0.1");
+        }
         viewer.setAttribute("camera-controls", "");
         viewer.setAttribute("auto-rotate", "");
         viewer.setAttribute("autoplay", "");
