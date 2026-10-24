@@ -17,6 +17,7 @@ import { lazy, Suspense } from "react";
 const MyspacePlayerTestPage = lazy(
   () => import("@/features/listen/MyspacePlayerTestPage"),
 );
+const ARModelPage = lazy(() => import("@/features/ar-model/ARModelPage"));
 const FontFilterLabPage = import.meta.env.DEV
   ? lazy(() => import("@/features/identity/FontFilterLabPage"))
   : null;
@@ -68,6 +69,15 @@ export function App() {
     return (
       <Suspense fallback={<p>Loading player…</p>}>
         <MyspacePlayerTestPage />
+      </Suspense>
+    );
+  }
+
+  const sharedModelMatch = route.match(/^\/model\/([^/]+)$/);
+  if (route === "/ar-model" || sharedModelMatch) {
+    return (
+      <Suspense fallback={<p>Loading 3D model viewer…</p>}>
+        <ARModelPage shareId={sharedModelMatch?.[1]} />
       </Suspense>
     );
   }

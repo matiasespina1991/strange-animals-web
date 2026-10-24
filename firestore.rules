@@ -14,6 +14,12 @@ rules_version='2'
 //   - updatedAt: timestamp (required)
 // This document contains no email, name, or other PII.
 //
+// Collection: sharedModels
+// Document ID: UUID; exact fields schemaVersion, visibility, ownerUid, title,
+//   fileName, storagePath, contentType, sizeBytes, createdAt. Shares are public
+//   by ID only; clients may create their own, get public documents, and cannot
+//   list, update, or delete shares.
+//
 // Collection: fonts
 // Document ID: normalized font-family ID
 // Client-editable metadata fields:
@@ -312,6 +318,63 @@ service cloud.firestore {
         allow update: if hasIdentityAccess()
           && isValidFontFilePreviewUpdate(request.resource.data);
       }
+    }
+
+    function isSharedModelId(modelId) {
+      return modelId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+    }
+
+    function isValidSharedModel(data, modelId) {
+      return data.keys().hasAll([
+          'schemaVersion',
+          'visibility',
+          'ownerUid',
+          'title',
+          'fileName',
+          'storagePath',
+          'contentType',
+          'sizeBytes',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'schemaVersion',
+          'visibility',
+          'ownerUid',
+          'title',
+          'fileName',
+          'storagePath',
+          'contentType',
+          'sizeBytes',
+          'createdAt'
+        ])
+        && data.schemaVersion is int
+        && data.schemaVersion == 1
+        && data.visibility == 'public'
+        && data.ownerUid == request.auth.uid
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 120
+        && data.fileName is string
+        && data.fileName.matches('^[A-Za-z0-9_.-]{1,150}[.]glb$')
+        && data.storagePath is string
+        && data.storagePath == 'media/public/shared-models/'
+          + request.auth.uid + '/' + modelId + '/' + data.fileName
+        && data.contentType == 'model/gltf-binary'
+        && data.sizeBytes is int
+        && data.sizeBytes > 0
+        && data.sizeBytes <= 104857600
+        && data.createdAt is timestamp
+        && data.createdAt == request.time;
+    }
+
+    match /sharedModels/{modelId} {
+      allow get: if isSharedModelId(modelId)
+        && resource.data.visibility == 'public';
+      allow list: if false;
+      allow create: if request.auth != null
+        && isSharedModelId(modelId)
+        && isValidSharedModel(request.resource.data, modelId);
+      allow update, delete: if false;
     }
 
     match /{document=**} {

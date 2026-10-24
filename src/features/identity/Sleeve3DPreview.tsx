@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus, RotateCcw } from "lucide-react";
+import { Check, Copy, Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { accountAuth } from "./account-auth";
+import { AccountControl } from "./AccountControl";
+import { createModelShare } from "../ar-model/model-share-repository";
 import type { LabelSide } from "./design-configurator-model";
 
 type Properties = {
@@ -18,6 +22,23 @@ const SLEEVE_SIZE_MM = 315;
 const WORLD_SCALE = 1 / 100;
 const INITIAL_CAMERA_POSITION = new THREE.Vector3(3.7, 2.8, 5.6);
 
+function createExtrudedRing(
+  outerRadius: number,
+  innerRadius: number,
+  depth: number,
+) {
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+  const hole = new THREE.Path();
+  hole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  return new THREE.ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: false,
+    curveSegments: 128,
+  });
+}
+
 export function Sleeve3DPreview({
   labelCapture,
   labelCaptureBack,
@@ -28,9 +49,18 @@ export function Sleeve3DPreview({
   labelDiameterMm,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
+  const modelReference = useRef<THREE.Group | null>(null);
+  const labelImagesReference = useRef<HTMLImageElement[]>([]);
+  const sleeveImageReference = useRef<HTMLImageElement | null>(null);
   const cameraReference = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsReference = useRef<OrbitControls | null>(null);
   const [error, setError] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [shareError, setShareError] = useState("");
+  const [sharedUrl, setSharedUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const container = host.current;
@@ -39,7 +69,12 @@ export function Sleeve3DPreview({
     let active = true;
     let sleeveImageElement: HTMLImageElement | null = null;
     const labelImages: HTMLImageElement[] = [];
+    labelImagesReference.current = labelImages;
     const scene = new THREE.Scene();
+    const model = new THREE.Group();
+    model.name = "Strange Animals sleeve and label";
+    scene.add(model);
+    modelReference.current = model;
     scene.background = new THREE.Color("#e5e7e1");
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     camera.position.copy(INITIAL_CAMERA_POSITION);
@@ -63,7 +98,7 @@ export function Sleeve3DPreview({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
-    controls.minDistance = 3.7;
+    controls.minDistance = 1.5;
     controls.maxDistance = 10;
     controls.target.set(0, 0, 0);
     controlsReference.current = controls;
@@ -78,6 +113,7 @@ export function Sleeve3DPreview({
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const sleeveDepth = 0.04;
+    const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const sleeveBacking = new THREE.Mesh(
       new THREE.BoxGeometry(sleeveSize, sleeveSize, sleeveDepth),
       new THREE.MeshStandardMaterial({
@@ -87,7 +123,7 @@ export function Sleeve3DPreview({
       }),
     );
     sleeveBacking.position.z = 0;
-    scene.add(sleeveBacking);
+    model.add(sleeveBacking);
 
     const sleeveCanvas = document.createElement("canvas");
     sleeveCanvas.width = 1024;
@@ -132,7 +168,7 @@ export function Sleeve3DPreview({
       }),
     );
     sleeveFace.position.z = sleeveDepth / 2 + 0.001;
-    scene.add(sleeveFace);
+    model.add(sleeveFace);
     const sleeveBack = new THREE.Mesh(
       new THREE.PlaneGeometry(sleeveSize, sleeveSize),
       new THREE.MeshBasicMaterial({
@@ -142,15 +178,54 @@ export function Sleeve3DPreview({
     );
     sleeveBack.position.z = -sleeveDepth / 2 - 0.001;
     sleeveBack.rotation.y = Math.PI;
-    scene.add(sleeveBack);
+    model.add(sleeveBack);
+
+    const recordRadius = sleeveSize * 0.47;
+    const recordThickness = 0.006;
+    const labelRecess = 0.001;
+    const recordHalfThickness = recordThickness / 2;
+    const recordCenterZ = sleeveDepth / 2 + recordHalfThickness - 0.0004;
+    const spindleHoleRadius = 0.00365;
+    const vinylMaterial = new THREE.MeshStandardMaterial({
+      color: "#171816",
+      roughness: 0.42,
+      metalness: 0.04,
+    });
+    const recordCore = new THREE.Mesh(
+      createExtrudedRing(
+        recordRadius,
+        spindleHoleRadius,
+        recordThickness - labelRecess * 2,
+      ),
+      vinylMaterial,
+    );
+    recordCore.name = "Solid vinyl record body";
+    recordCore.position.z = recordCenterZ - recordHalfThickness + labelRecess;
+    model.add(recordCore);
+
+    const frontRim = new THREE.Mesh(
+      createExtrudedRing(recordRadius, labelRadius, labelRecess),
+      vinylMaterial,
+    );
+    frontRim.name = "Front recessed label rim";
+    frontRim.position.z = recordCenterZ + recordHalfThickness - labelRecess;
+    model.add(frontRim);
+
+    const backRim = new THREE.Mesh(
+      createExtrudedRing(recordRadius, labelRadius, labelRecess),
+      vinylMaterial,
+    );
+    backRim.name = "Back recessed label rim";
+    backRim.position.z = recordCenterZ - recordHalfThickness;
+    model.add(backRim);
 
     if (sleeveImage) {
       sleeveImageElement = new Image();
+      sleeveImageReference.current = sleeveImageElement;
       sleeveImageElement.addEventListener("load", drawSleeve);
       sleeveImageElement.src = sleeveImage;
     }
 
-    const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const addLabelFace = (capture: string, z: number, back = false) => {
       const labelImage = new Image();
       labelImages.push(labelImage);
@@ -172,12 +247,17 @@ export function Sleeve3DPreview({
             roughness: 0.82,
             metalness: 0,
             transparent: true,
+            alphaTest: 0.01,
+            depthWrite: false,
             side: THREE.DoubleSide,
           }),
         );
-        label.position.z = z;
+        label.name = back ? "Recessed back label" : "Recessed front label";
+        label.position.z = back
+          ? recordCenterZ - recordHalfThickness + labelRecess - 0.00002
+          : recordCenterZ + recordHalfThickness - labelRecess + 0.00002;
         if (back) label.rotation.y = Math.PI;
-        scene.add(label);
+        model.add(label);
       });
       labelImage.addEventListener("error", () => {
         if (active) setError("The captured label artwork could not be loaded.");
@@ -208,6 +288,9 @@ export function Sleeve3DPreview({
       controls.dispose();
       controlsReference.current = null;
       cameraReference.current = null;
+      modelReference.current = null;
+      labelImagesReference.current = [];
+      sleeveImageReference.current = null;
       scene.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return;
         object.geometry.dispose();
@@ -232,6 +315,97 @@ export function Sleeve3DPreview({
     sleeveImage,
     sleeveZoom,
   ]);
+
+  const exportModel = async () => {
+    const model = modelReference.current;
+    if (!model) throw Error("The 3D preview is not ready yet.");
+    const images = [
+      ...labelImagesReference.current,
+      ...(sleeveImageReference.current ? [sleeveImageReference.current] : []),
+    ];
+    await Promise.all(
+      images.map(
+        (image) =>
+          new Promise<void>((resolve, reject) => {
+            if (image.complete) {
+              if (image.naturalWidth) resolve();
+              else reject(Error("A preview texture could not be loaded."));
+              return;
+            }
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener(
+              "error",
+              () => reject(Error("A preview texture could not be loaded.")),
+              { once: true },
+            );
+          }),
+      ),
+    );
+    return new Promise<Blob>((resolve, reject) => {
+      new GLTFExporter().parse(
+        model,
+        (result) => {
+          if (!(result instanceof ArrayBuffer)) {
+            reject(Error("The 3D model could not be exported."));
+            return;
+          }
+          resolve(new Blob([result], { type: "model/gltf-binary" }));
+        },
+        reject,
+        { binary: true },
+      );
+    });
+  };
+
+  const shareModel = async () => {
+    if (sharing) return;
+    if (!accountAuth.currentUser) {
+      setShareError("");
+      setSignInOpen(true);
+      return;
+    }
+    setSharing(true);
+    setShareError("");
+    setUploadProgress(0);
+    try {
+      const modelBlob = await exportModel();
+      const modelFile = new File([modelBlob], "strange-animals-sleeve.glb", {
+        type: "model/gltf-binary",
+      });
+      const shared = await createModelShare(
+        modelFile,
+        "3D sleeve + label",
+        setUploadProgress,
+      );
+      setSharedUrl(`${window.location.origin}/model/${shared.id}`);
+    } catch (shareFailure) {
+      const code =
+        typeof shareFailure === "object" && shareFailure !== null &&
+        "code" in shareFailure
+          ? shareFailure.code
+          : "";
+      setShareError(
+        code === "storage/unauthorized"
+          ? "Firebase Storage rules must be published to allow model sharing."
+          : shareFailure instanceof Error
+          ? shareFailure.message
+          : "The model could not be shared.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!sharedUrl) return;
+    try {
+      await navigator.clipboard.writeText(sharedUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setShareError("Copy was blocked. Select the link and copy it manually.");
+    }
+  };
 
   const resetView = () => {
     const camera = cameraReference.current;
@@ -271,6 +445,24 @@ export function Sleeve3DPreview({
         <span>3D SLEEVE · FRONT A / BACK B · STARTING SIDE {side}</span>
         <div>
           <button
+            className="dc-3d-share-button"
+            aria-label={sharing ? "Sharing 3D model" : "Share 3D model"}
+            title={sharing ? `Uploading ${Math.round(uploadProgress * 100)}%` : "Share 3D model"}
+            disabled={sharing}
+            onClick={() => void shareModel()}
+          >
+            {sharing ? <span>{Math.round(uploadProgress * 100)}%</span> : <Share2 size={15} />}
+          </button>
+          {sharedUrl && (
+            <button
+              aria-label={copied ? "Share link copied" : "Copy share link"}
+              title={copied ? "Copied" : "Copy share link"}
+              onClick={() => void copyShareLink()}
+            >
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+            </button>
+          )}
+          <button
             aria-label="Zoom out 3D preview"
             title="Zoom out"
             onClick={() => {
@@ -297,6 +489,25 @@ export function Sleeve3DPreview({
           </button>
         </div>
       </div>
+      {signInOpen && (
+        <AccountControl
+          autoOpen
+          hideTrigger
+          signInPrompt="Sign in with Google to share this 3D model."
+          onClose={() => setSignInOpen(false)}
+          onSignedIn={() => {
+            setSignInOpen(false);
+            void shareModel();
+          }}
+        />
+      )}
+      {shareError && <p className="dc-3d-share-error" role="alert">{shareError}</p>}
+      {sharedUrl && (
+        <label className="dc-3d-share-result">
+          <span>Public 3D model link</span>
+          <input aria-label="Public 3D model link" readOnly value={sharedUrl} />
+        </label>
+      )}
     </div>
   );
 }

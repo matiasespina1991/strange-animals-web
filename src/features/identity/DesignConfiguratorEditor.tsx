@@ -11,6 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   AlignCenter,
   AlignLeft,
@@ -383,11 +384,21 @@ export function DesignConfiguratorEditor() {
     }
   };
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
+  const [layerPanelWidth, setLayerPanelWidth] = useState(184);
+  const [reorderingLayer, setReorderingLayer] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{
+    id: string;
+    before: boolean;
+  } | null>(null);
+  const prefersReducedMotion = useReducedMotion();
   const [resetTarget, setResetTarget] = useState<{
     side: LabelSide;
     layer: LabelLayer;
   } | null>(null);
   const layerList = useRef<HTMLDivElement>(null);
+  const artboardReference = useRef<HTMLDivElement>(null);
+  const draggedLayerId = useRef<string | null>(null);
+  const layerResizePointer = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [panning, setPanning] = useState(false);
   const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
@@ -397,22 +408,18 @@ export function DesignConfiguratorEditor() {
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties");
   useEffect(() => {
-    const handleZoomShortcut = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-      const zoomDirection =
-        event.key === "+" || event.key === "=" || event.code === "NumpadAdd"
-          ? 1
-          : event.key === "-" || event.code === "NumpadSubtract"
-            ? -1
-            : 0;
-      if (!zoomDirection) return;
+    const artboard = artboardReference.current;
+    if (!artboard) return;
+    const handleTrackpadPinch = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
       event.preventDefault();
+      const delta = Math.max(-120, Math.min(120, event.deltaY));
       setZoom((current) =>
-        Math.min(500, Math.max(10, current + zoomDirection * 30)),
+        Math.round(clamp(current * Math.exp(-delta * 0.008), 10, 500)),
       );
     };
-    document.addEventListener("keydown", handleZoomShortcut);
-    return () => document.removeEventListener("keydown", handleZoomShortcut);
+    artboard.addEventListener("wheel", handleTrackpadPinch, { passive: false });
+    return () => artboard.removeEventListener("wheel", handleTrackpadPinch);
   }, []);
   const [dialog, setDialog] = useState<
     | "fonts"
@@ -881,16 +888,47 @@ export function DesignConfiguratorEditor() {
     selectLayer(layer);
     setDialog(null);
   };
-  const duplicate = () => {
-    if (!hasSelection || layers.length >= 50) return;
+  const duplicateLayer = (layer: LabelLayer) => {
+    if (layers.length >= 50) return;
     const copy = {
-      ...element,
+      ...layer,
       id: crypto.randomUUID(),
-      name: `${element.name} copy`,
-      y: clamp(element.y + 12, 0, 600),
+      name: `${layer.name} copy`,
+      y: clamp(layer.y + 12, 0, 600),
     };
-    change((c) => ({ ...c, [side]: [...c[side], copy] }));
+    change((current) => {
+      const next = [...current[side]];
+      const index = next.findIndex((item) => item.id === layer.id);
+      if (index < 0) return current;
+      next.splice(index + 1, 0, copy);
+      return { ...current, [side]: next };
+    });
     selectLayer(copy);
+  };
+  const duplicate = () => {
+    if (hasSelection) duplicateLayer(element);
+  };
+  const deleteLayer = (id: string) => {
+    const index = layers.findIndex((layer) => layer.id === id);
+    if (index < 0) return;
+    const remainingSelection = selectedLayers.filter(
+      (selectedId) => selectedId !== id,
+    );
+    if (selection.has(id)) {
+      const nextLayer = layers[index + 1]?.id ?? layers[index - 1]?.id ?? null;
+      const nextSelected = remainingSelection[0] ?? nextLayer;
+      setSelectedLayers(
+        remainingSelection.length
+          ? remainingSelection
+          : nextSelected
+            ? [nextSelected]
+            : [],
+      );
+      setSelected(nextSelected);
+    }
+    end();
+    change((current) => removeLayers(current, side, new Set([id])));
+    end();
   };
   const reorder = (direction: number) =>
     change((c) => {
@@ -902,6 +940,32 @@ export function DesignConfiguratorEditor() {
       [next[i], next[target]] = [next[target], next[i]];
       return { ...c, [side]: next };
     });
+  const moveLayer = (sourceId: string, targetId: string, before: boolean) =>
+    change((current) => {
+      const next = [...current[side]];
+      const sourceIndex = next.findIndex((layer) => layer.id === sourceId);
+      if (sourceIndex < 0 || sourceId === targetId) return current;
+      const [moved] = next.splice(sourceIndex, 1);
+      const targetIndex = next.findIndex((layer) => layer.id === targetId);
+      if (targetIndex < 0) return current;
+      next.splice(targetIndex + (before ? 0 : 1), 0, moved);
+      if (next.every((layer, index) => layer.id === current[side][index]?.id))
+        return current;
+      return { ...current, [side]: next };
+    }, "layer-reorder");
+  const finishLayerDrag = () => {
+    if (draggedLayerId.current) end();
+    draggedLayerId.current = null;
+    setReorderingLayer(null);
+    setDropIndicator(null);
+  };
+  const resizeLayerPanel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const workspace = event.currentTarget.parentElement;
+    if (!workspace) return;
+    setLayerPanelWidth(
+      clamp(event.clientX - workspace.getBoundingClientRect().left, 176, 360),
+    );
+  };
   const save = () => {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(design));
@@ -1490,7 +1554,12 @@ export function DesignConfiguratorEditor() {
           <button onClick={exportProject}>Download JSON</button>
         </div>
       )}
-      <div className="dc-workspace">
+      <div
+        className="dc-workspace"
+        style={
+          { "--dc-layer-panel-width": `${layerPanelWidth}px` } as CSSProperties
+        }
+      >
         <section
           className="dc-global-settings"
           ref={globalSettingsRef}
@@ -1663,10 +1732,56 @@ export function DesignConfiguratorEditor() {
           </div>
           <div className="dc-layer-list" ref={layerList}>
             {layers.map((layer, i) => (
-              <div
+              <motion.div
                 key={layer.id}
                 data-layer-tile={layer.id}
-                className={`dc-layer ${selection.has(layer.id) ? "is-selected" : ""}`}
+                layout="position"
+                transition={
+                  prefersReducedMotion
+                    ? { layout: { duration: 0 } }
+                    : {
+                        layout: {
+                          type: "spring",
+                          stiffness: 520,
+                          damping: 38,
+                        },
+                      }
+                }
+                draggable
+                aria-grabbed={reorderingLayer === layer.id}
+                className={`dc-layer ${selection.has(layer.id) ? "is-selected" : ""} ${reorderingLayer === layer.id ? "is-dragging" : ""} ${dropIndicator?.id === layer.id ? (dropIndicator.before ? "drop-before" : "drop-after") : ""}`}
+                onDragStart={(event) => {
+                  const target = event.target as Element;
+                  if (
+                    target.closest(".dc-layer-inline-actions, .dc-visibility")
+                  ) {
+                    event.preventDefault();
+                    return;
+                  }
+                  draggedLayerId.current = layer.id;
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", layer.id);
+                  setReorderingLayer(layer.id);
+                }}
+                onDragOver={(event) => {
+                  const sourceId = draggedLayerId.current;
+                  if (!sourceId || sourceId === layer.id) return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  const before = event.clientY < bounds.top + bounds.height / 2;
+                  setDropIndicator((current) =>
+                    current?.id === layer.id && current.before === before
+                      ? current
+                      : { id: layer.id, before },
+                  );
+                  moveLayer(sourceId, layer.id, before);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  finishLayerDrag();
+                }}
+                onDragEnd={finishLayerDrag}
               >
                 <button
                   className="dc-layer-select"
@@ -1705,8 +1820,8 @@ export function DesignConfiguratorEditor() {
                   ) : (
                     <Type size={15} />
                   )}
-                  <span>
-                    {layer.name}
+                  <span className="dc-layer-copy">
+                    <span className="dc-layer-name">{layer.name}</span>
                     <small>
                       {layer.kind === "circular"
                         ? "Text arc"
@@ -1716,6 +1831,23 @@ export function DesignConfiguratorEditor() {
                     </small>
                   </span>
                 </button>
+                <div className="dc-layer-inline-actions">
+                  <button
+                    aria-label={`Duplicate ${layer.name}`}
+                    title={`Duplicate ${layer.name}`}
+                    disabled={layers.length >= 50}
+                    onClick={() => duplicateLayer(layer)}
+                  >
+                    <Copy size={14} />
+                  </button>
+                  <button
+                    aria-label={`Delete ${layer.name}`}
+                    title={`Delete ${layer.name}`}
+                    onClick={() => deleteLayer(layer.id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
                 <button
                   className="dc-visibility"
                   aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
@@ -1725,7 +1857,7 @@ export function DesignConfiguratorEditor() {
                 >
                   {layer.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                 </button>
-              </div>
+              </motion.div>
             ))}
           </div>
           <button className="dc-load" onClick={() => setDialog("settings")}>
@@ -1734,6 +1866,50 @@ export function DesignConfiguratorEditor() {
             <ArrowUpRight size={13} />
           </button>
         </aside>
+        <div
+          className="dc-layer-resize"
+          role="separator"
+          aria-label="Resize layers panel"
+          aria-orientation="vertical"
+          aria-valuemin={176}
+          aria-valuemax={360}
+          aria-valuenow={layerPanelWidth}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            layerResizePointer.current = event.pointerId;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (layerResizePointer.current === event.pointerId)
+              resizeLayerPanel(event);
+          }}
+          onPointerUp={(event) => {
+            if (layerResizePointer.current !== event.pointerId) return;
+            layerResizePointer.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId))
+              event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          onPointerCancel={() => {
+            layerResizePointer.current = null;
+          }}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 20 : 8;
+            const nextWidth =
+              event.key === "ArrowLeft"
+                ? layerPanelWidth - step
+                : event.key === "ArrowRight"
+                  ? layerPanelWidth + step
+                  : event.key === "Home"
+                    ? 176
+                    : event.key === "End"
+                      ? 360
+                      : null;
+            if (nextWidth === null) return;
+            event.preventDefault();
+            setLayerPanelWidth(clamp(nextWidth, 176, 360));
+          }}
+        />
         <section className="dc-stage" aria-label="Vinyl label preview">
           <div className="dc-stage-top">
             <span>
@@ -1818,6 +1994,7 @@ export function DesignConfiguratorEditor() {
           </div>
           <div
             className="dc-artboard"
+            ref={artboardReference}
             onPointerDown={startCanvasPan}
             onPointerMove={moveCanvasPan}
             onPointerUp={endCanvasPan}
@@ -2805,7 +2982,8 @@ export function DesignConfiguratorEditor() {
                 {" × "}
                 {includeSleeve
                   ? 315
-                  : design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0)}{" "}
+                  : design.diameterMm +
+                    (includeBleed ? design.bleedMm * 2 : 0)}{" "}
                 mm
               </strong>
               <span>
