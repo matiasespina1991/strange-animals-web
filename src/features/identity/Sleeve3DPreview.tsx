@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Minus, Plus, RotateCcw, Share2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Minus,
+  Plus,
+  RotateCcw,
+  Share2,
+} from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
@@ -81,7 +89,7 @@ export function Sleeve3DPreview({
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 0.9;
     container.append(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -107,19 +115,14 @@ export function Sleeve3DPreview({
     controls.addEventListener("change", updateZoomPercent);
     controlsReference.current = controls;
 
-    scene.add(new THREE.HemisphereLight(0xff_ff_ff, 0x34_33_2f, 1.1));
-    const keyLight = new THREE.DirectionalLight(0xff_ff_ff, 1.7);
+    scene.add(new THREE.AmbientLight(0xff_ff_ff, 0.7));
+    scene.add(new THREE.HemisphereLight(0xff_ff_ff, 0x34_33_2f, 1.5));
+    const keyLight = new THREE.DirectionalLight(0xff_ff_ff, 0.3);
     keyLight.position.set(-3, 5, 6);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 0.55);
+    const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 0.25);
     fillLight.position.set(4, 1, 3);
     scene.add(fillLight);
-    const sleeveHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.28);
-    sleeveHighlight.position.set(-3.7, -2.8, 6);
-    scene.add(sleeveHighlight);
-    const sleeveBackHighlight = new THREE.DirectionalLight(0xff_ff_ff, 0.28);
-    sleeveBackHighlight.position.set(-3.7, -2.8, -6);
-    scene.add(sleeveBackHighlight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const sleeveDepth = 0.04;
@@ -500,10 +503,15 @@ export function Sleeve3DPreview({
         </p>
       )}
       {sharedUrl && (
-        <label className="dc-3d-share-result">
-          <span>Public 3D model link</span>
-          <input aria-label="Public 3D model link" readOnly value={sharedUrl} />
-        </label>
+        <a
+          className="dc-3d-share-result"
+          href={sharedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Open public 3D model</span>
+          <ExternalLink size={14} aria-hidden="true" />
+        </a>
       )}
     </div>
   );
