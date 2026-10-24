@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Check,
-  Copy,
-  ExternalLink,
   Minus,
   Plus,
   RotateCcw,
@@ -57,9 +54,8 @@ export function Sleeve3DPreview({
   const [sharing, setSharing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [shareError, setShareError] = useState("");
-  const [sharedUrl, setSharedUrl] = useState("");
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const container = host.current;
@@ -360,6 +356,7 @@ export function Sleeve3DPreview({
     }
     setSharing(true);
     setShareError("");
+    setPreviewUrl("");
     setUploadProgress(0);
     try {
       const modelBlob = await exportModel();
@@ -371,7 +368,14 @@ export function Sleeve3DPreview({
         "3D sleeve + label",
         setUploadProgress,
       );
-      setSharedUrl(`${window.location.origin}/${shared.id}`);
+      const url = `${window.location.origin}/${shared.id}`;
+      const previewWindow = window.open(url, "_blank");
+      if (previewWindow) {
+        previewWindow.opener = null;
+        setPreviewUrl("");
+      } else {
+        setPreviewUrl(url);
+      }
     } catch (shareFailure) {
       const code =
         typeof shareFailure === "object" &&
@@ -393,14 +397,12 @@ export function Sleeve3DPreview({
     }
   };
 
-  const copyShareLink = async () => {
-    if (!sharedUrl) return;
-    try {
-      await navigator.clipboard.writeText(sharedUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setShareError("Copy was blocked. Select the link and copy it manually.");
+  const openPreview = () => {
+    if (!previewUrl) return;
+    const previewWindow = window.open(previewUrl, "_blank");
+    if (previewWindow) {
+      previewWindow.opener = null;
+      setPreviewUrl("");
     }
   };
 
@@ -458,15 +460,6 @@ export function Sleeve3DPreview({
               <Share2 size={15} />
             )}
           </button>
-          {sharedUrl && (
-            <button
-              aria-label={copied ? "Share link copied" : "Copy share link"}
-              title={copied ? "Copied" : "Copy share link"}
-              onClick={() => void copyShareLink()}
-            >
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-            </button>
-          )}
           <output className="dc-3d-zoom-level" aria-label="3D zoom level">
             {zoomPercent}%
           </output>
@@ -514,16 +507,10 @@ export function Sleeve3DPreview({
           {shareError}
         </p>
       )}
-      {sharedUrl && (
-        <a
-          className="dc-3d-share-result"
-          href={sharedUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>Open public 3D model</span>
-          <ExternalLink size={14} aria-hidden="true" />
-        </a>
+      {previewUrl && (
+        <button className="dc-3d-open-preview" onClick={openPreview}>
+          Open 3D preview
+        </button>
       )}
     </div>
   );

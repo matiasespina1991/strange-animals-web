@@ -71,6 +71,8 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [sharedUrl, setSharedUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [previewCopied, setPreviewCopied] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState("");
 
   useEffect(() => {
     document.title = shareId
@@ -235,6 +237,32 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
     }
   };
 
+  const copyPreviewLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setPreviewCopied(true);
+    } catch {
+      setShareFeedback("Could not copy link");
+    }
+  };
+
+  const sharePreviewLink = async () => {
+    if (!navigator.share) {
+      await copyPreviewLink();
+      return;
+    }
+    try {
+      await navigator.share({
+        title: modelTitle,
+        text: "3D AR preview",
+        url: window.location.href,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareFeedback("Use Copy link to share this preview");
+    }
+  };
+
   return (
     <main className="ar-model-page">
       <header className="ar-model-header">
@@ -243,7 +271,7 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
           href="/"
           aria-label="Strange Animals home"
         >
-          STRANGE ANIMALS
+          <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </a>
         <div className="ar-model-account">
           <AccountControl />
@@ -251,7 +279,11 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
       </header>
       <div className="ar-model-toolbar">
         <div className="ar-model-heading">
-          <a className="ar-model-back" href="/" aria-label="Back to home">
+          <a
+            className="ar-model-back"
+            href="/identity/design-configurator"
+            aria-label="Back to design configurator"
+          >
             <ArrowUpLeft size={15} />
           </a>
           <div>
@@ -289,6 +321,29 @@ export default function ARModelPage({ shareId }: ARModelPageProperties) {
         )}
       </div>
       <section className="ar-model-stage" aria-label="3D model preview">
+        {shareId && (
+          <div className="ar-model-preview-share">
+            <button
+              type="button"
+              aria-label="Share 3D preview"
+              title="Share 3D preview"
+              onClick={() => void sharePreviewLink()}
+            >
+              <Share2 size={16} />
+            </button>
+            <button
+              type="button"
+              aria-label={previewCopied ? "Link copied" : "Copy preview link"}
+              title={previewCopied ? "Copied" : "Copy preview link"}
+              onClick={() => void copyPreviewLink()}
+            >
+              {previewCopied ? <Check size={16} /> : <Copy size={16} />}
+            </button>
+            <span className="ar-model-share-feedback" aria-live="polite">
+              {shareFeedback}
+            </span>
+          </div>
+        )}
         <div className="ar-model-viewer" ref={viewerHost}>
           {pageLoading && (
             <p className="ar-model-stage-message">Loading model…</p>

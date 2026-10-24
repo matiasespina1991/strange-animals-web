@@ -20,11 +20,26 @@
   border-bottom: 1px solid var(--ar-line);
 }
 
+.ar-model-brand img {
+  display: block;
+  width: 120px;
+  max-width: 42vw;
+  height: auto;
+  filter: invert(1);
+}
+
 .ar-model-brand {
-  color: inherit;
-  font-size: 12px;
-  font-weight: 700;
   text-decoration: none;
+}
+
+.ar-model-preview-share {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ar-model-account {
@@ -52,6 +67,7 @@
 
 .ar-model-back,
 .ar-model-actions button,
+.ar-model-preview-share button,
 .ar-model-share-result > button,
 .ar-model-stage-message button {
   display: inline-flex;
@@ -76,6 +92,7 @@
 
 .ar-model-back:hover,
 .ar-model-actions button:hover:not(:disabled),
+.ar-model-preview-share button:hover,
 .ar-model-share-result > button:hover,
 .ar-model-stage-message button:hover {
   border-color: var(--ar-accent);
@@ -113,6 +130,21 @@
   border-color: var(--ar-accent) !important;
   background: var(--ar-accent) !important;
   color: white !important;
+}
+
+.ar-model-share-feedback {
+  color: var(--ar-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.ar-model-preview-share button {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  background: var(--ar-paper);
 }
 
 .ar-model-stage {
@@ -238,6 +270,21 @@
 
   .ar-model-header {
     min-height: 60px;
+  }
+
+  .ar-model-preview-share {
+    gap: 5px;
+  }
+
+  .ar-model-preview-share button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .ar-model-share-feedback {
+    display: none;
   }
 
   .ar-model-toolbar {

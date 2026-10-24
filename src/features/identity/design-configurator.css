@@ -2060,8 +2060,9 @@
   padding: 0 8px;
   font-size: 10px;
 }
-.dc-3d-share-result {
+.design-configurator .dc-3d-open-preview {
   display: flex;
+  width: 100%;
   min-height: 40px;
   align-items: center;
   justify-content: space-between;
@@ -2070,10 +2071,11 @@
   padding: 0 12px;
   background: #fafaf7;
   color: #4e5d3d;
+  font: inherit;
   font-size: 10px;
-  text-decoration: none;
+  cursor: pointer;
 }
-.dc-3d-share-result:hover {
+.design-configurator .dc-3d-open-preview:hover {
   background: #e6e9dc;
 }
 .dc-3d-share-error {
@@ -2300,7 +2302,7 @@
     min-height: 0;
     contain: size;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
     scrollbar-gutter: stable;
   }
 }
@@ -2962,8 +2964,8 @@
 .dc-text-surface {
   display: grid;
   gap: 8px;
-  margin: 0 0 14px;
-  font-size: 12px;
+  margin: 16px 0 14px;
+  font-size: 11px;
 }
 .dc-text-surface-actions {
   display: flex;
