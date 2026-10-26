@@ -3,7 +3,6 @@ import { Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
-import previewBackgroundUrl from "../../../input/pexels-photo-6131931.avif";
 import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
 import { createModelShare } from "../ar-model/model-share-repository";
@@ -26,6 +25,7 @@ type Properties = {
 
 const SLEEVE_SIZE_MM = 315;
 const WORLD_SCALE = 1 / 100;
+const previewBackgroundUrl = "/media/images/pexels-photo-6131931.avif";
 const INITIAL_CAMERA_POSITION = new THREE.Vector3(3.7, 2.8, 5.6);
 const INITIAL_CAMERA_DISTANCE = INITIAL_CAMERA_POSITION.length();
 const PREVIOUS_MIN_CAMERA_DISTANCE = 1.5;
@@ -62,7 +62,7 @@ export function Sleeve3DPreview({
   const [sharing, setSharing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const pendingShareWindowReference = useRef<Window | null>(null);
   const [shareError, setShareError] = useState("");
 
   useEffect(() => {
@@ -549,14 +549,22 @@ export function Sleeve3DPreview({
   modelExporterReference.current = exportModel;
   const shareModel = async () => {
     if (sharing) return;
+    const previewWindow =
+      pendingShareWindowReference.current ?? window.open("about:blank", "_blank");
+    if (!previewWindow) {
+      setShareError("Allow pop-ups to open the shared 3D model in a new tab.");
+      return;
+    }
     if (!accountAuth.currentUser) {
       setShareError("");
+      pendingShareWindowReference.current = previewWindow;
       setSignInOpen(true);
       return;
     }
+    pendingShareWindowReference.current = null;
+    previewWindow.opener = null;
     setSharing(true);
     setShareError("");
-    setPreviewUrl("");
     setUploadProgress(0);
     if (import.meta.env.DEV) console.info("[Sleeve3DPreview/share] started");
     try {
@@ -581,14 +589,10 @@ export function Sleeve3DPreview({
           url,
         });
       }
-      const previewWindow = window.open(url, "_blank");
-      if (previewWindow) {
-        previewWindow.opener = null;
-        setPreviewUrl("");
-      } else {
-        setPreviewUrl(url);
-      }
+      if (!previewWindow.closed) previewWindow.location.replace(url);
     } catch (shareFailure) {
+      if (!previewWindow.closed) previewWindow.close();
+      pendingShareWindowReference.current = null;
       if (import.meta.env.DEV) {
         console.error("[Sleeve3DPreview/share] failed", {
           error: shareFailure,
@@ -611,15 +615,6 @@ export function Sleeve3DPreview({
       );
     } finally {
       setSharing(false);
-    }
-  };
-
-  const openPreview = () => {
-    if (!previewUrl) return;
-    const previewWindow = window.open(previewUrl, "_blank");
-    if (previewWindow) {
-      previewWindow.opener = null;
-      setPreviewUrl("");
     }
   };
 
@@ -712,7 +707,11 @@ export function Sleeve3DPreview({
           autoOpen
           hideTrigger
           signInPrompt="Sign in with Google to share this 3D model."
-          onClose={() => setSignInOpen(false)}
+          onClose={() => {
+            setSignInOpen(false);
+            pendingShareWindowReference.current?.close();
+            pendingShareWindowReference.current = null;
+          }}
           onSignedIn={() => {
             setSignInOpen(false);
             void shareModel();
@@ -723,11 +722,6 @@ export function Sleeve3DPreview({
         <p className="dc-3d-share-error" role="alert">
           {shareError}
         </p>
-      )}
-      {previewUrl && (
-        <button className="dc-3d-open-preview" onClick={openPreview}>
-          Open 3D preview
-        </button>
       )}
     </div>
   );

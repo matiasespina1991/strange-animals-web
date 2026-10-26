@@ -2038,7 +2038,12 @@ export function DesignConfiguratorEditor({
         </div>
         <div className="dc-header-actions">
           <AccountControl />
-          <a className="dc-back" href="/identity/typography/typefaces">
+          <a
+            className="dc-back"
+            href="/identity/typography/typefaces"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <ArrowUpRight size={15} />
             Typefaces collection
           </a>
