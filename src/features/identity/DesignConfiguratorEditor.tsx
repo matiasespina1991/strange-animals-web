@@ -149,7 +149,10 @@ import "./design-configurator.css";
 import "./design-configurator-mobile.css";
 import "./design-configurator-theme.css";
 import { ConfiguratorThemeToggle } from "./ConfiguratorThemeToggle";
-import { readConfiguratorTheme, saveConfiguratorTheme } from "./configurator-theme";
+import {
+  readConfiguratorTheme,
+  saveConfiguratorTheme,
+} from "./configurator-theme";
 import { canvasHoleMask } from "./canvas-hole-mask";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
@@ -719,10 +722,19 @@ export function DesignConfiguratorEditor({
   useEffect(() => {
     const canvas = artboardReference.current;
     if (!canvas) return;
-    let gesture: { distance: number; zoom: number; x: number; y: number; offset: { x: number; y: number } } | null = null;
+    let gesture: {
+      distance: number;
+      zoom: number;
+      x: number;
+      y: number;
+      offset: { x: number; y: number };
+    } | null = null;
     let consuming = false;
     const measure = (touches: TouchList) => ({
-      distance: Math.hypot(touches[1].clientX - touches[0].clientX, touches[1].clientY - touches[0].clientY),
+      distance: Math.hypot(
+        touches[1].clientX - touches[0].clientX,
+        touches[1].clientY - touches[0].clientY,
+      ),
       x: (touches[0].clientX + touches[1].clientX) / 2,
       y: (touches[0].clientY + touches[1].clientY) / 2,
     });
@@ -735,13 +747,21 @@ export function DesignConfiguratorEditor({
       canvasPan.current = null;
       setDragging(false);
       setPanning(false);
-      gesture = { ...measure(event.touches), zoom: touchView.current.zoom, offset: { ...touchView.current.viewOffset } };
+      gesture = {
+        ...measure(event.touches),
+        zoom: touchView.current.zoom,
+        offset: { ...touchView.current.viewOffset },
+      };
     };
     const move = (event: TouchEvent) => {
       if (!gesture || event.touches.length !== 2) return;
       event.preventDefault();
       const next = measure(event.touches);
-      const nextZoom = clamp(gesture.zoom * next.distance / Math.max(1, gesture.distance), 60, 1200);
+      const nextZoom = clamp(
+        (gesture.zoom * next.distance) / Math.max(1, gesture.distance),
+        60,
+        1200,
+      );
       const ratio = nextZoom / gesture.zoom;
       const bounds = canvas.getBoundingClientRect();
       const originX = bounds.left + bounds.width / 2;
@@ -759,8 +779,14 @@ export function DesignConfiguratorEditor({
     const blockDrag = (event: PointerEvent) => {
       if (consuming && event.pointerType === "touch") event.stopPropagation();
     };
-    canvas.addEventListener("touchstart", start, { passive: false, capture: true });
-    canvas.addEventListener("touchmove", move, { passive: false, capture: true });
+    canvas.addEventListener("touchstart", start, {
+      passive: false,
+      capture: true,
+    });
+    canvas.addEventListener("touchmove", move, {
+      passive: false,
+      capture: true,
+    });
     canvas.addEventListener("touchend", finish, true);
     canvas.addEventListener("touchcancel", finish, true);
     canvas.addEventListener("pointermove", blockDrag, true);
@@ -2120,7 +2146,12 @@ export function DesignConfiguratorEditor({
           <span className="dc-version">ver {packageManifest.version}</span>
         </div>
         <div className="dc-header-actions">
-          <ConfiguratorThemeToggle theme={theme} onToggle={() => setTheme(current => current === "dark" ? "light" : "dark")} />
+          <ConfiguratorThemeToggle
+            theme={theme}
+            onToggle={() =>
+              setTheme((current) => (current === "dark" ? "light" : "dark"))
+            }
+          />
           <AccountControl />
           <a
             className="dc-back"
@@ -2783,8 +2814,14 @@ export function DesignConfiguratorEditor({
                   {
                     backgroundColor: previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
-                    maskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
-                    WebkitMaskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
+                    maskImage:
+                      surface === "cookie"
+                        ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm)
+                        : undefined,
+                    WebkitMaskImage:
+                      surface === "cookie"
+                        ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm)
+                        : undefined,
                     maskSize: "100% 100%",
                     WebkitMaskSize: "100% 100%",
                     maskRepeat: "no-repeat",
@@ -2822,7 +2859,7 @@ export function DesignConfiguratorEditor({
                           color: layer.color,
                           fontFamily: familyFor(layer),
                           fontSize: `${layer.size}px`,
-                          fontWeight: layer.size > 40 ? 700 : 400,
+                          fontWeight: 400,
                           opacity: layer.opacity ?? 1,
                           textAlign:
                             layer.align === "middle" ? "center" : layer.align,
