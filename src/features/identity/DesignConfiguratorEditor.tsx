@@ -13,6 +13,7 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { onAuthStateChanged } from "firebase/auth";
+import packageManifest from "../../../package.json";
 import {
   AlignCenter,
   AlignLeft,
@@ -99,7 +100,7 @@ import { createExportDiagnostics } from "./export-diagnostics";
 import { createUsedFontDownload } from "./design-configurator-font-download";
 import { hasUnsavedProject } from "./project-dirty-state";
 import { removeLayers } from "./layer-operations";
-import type { InsertableAsset } from "./asset-library";
+import { sanitizeSvgSource, type InsertableAsset } from "./asset-library";
 import { ConfirmationDialog } from "./TextColorConfirmation";
 import {
   hasCustomTextColors,
@@ -147,7 +148,7 @@ import "./design-configurator.css";
 import "./design-configurator-mobile.css";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
-const RECOVERY_SUCCESS_NOTICE = "Tu diseño fue recuperado exitosamente.";
+const RECOVERY_SUCCESS_NOTICE = "Autosave recovered";
 
 function seed() {
   try {
@@ -627,9 +628,7 @@ export function DesignConfiguratorEditor({
     [usedFontsBusy, setUsedFontsBusy] = useState(false),
     [exportBusy, setExportBusy] = useState(false),
     [notice, setNotice] = useState(
-      initial.recovered
-        ? RECOVERY_SUCCESS_NOTICE
-        : "",
+      initial.recovered ? RECOVERY_SUCCESS_NOTICE : "",
     ),
     [storageError, setStorageError] = useState("");
   const [lastSaved, setLastSaved] = useState<string | undefined>(() =>
@@ -1396,27 +1395,37 @@ export function DesignConfiguratorEditor({
       setNotice(e instanceof Error ? e.message : "Proyecto inválido.");
     }
   };
-  const importImage = async (file?: File) => {
+  const importImage = async (
+    file?: File,
+    dropPosition?: { x: number; y: number },
+  ) => {
     if (!file) return;
     if (layers.length >= 50) {
       setNotice("Máximo de 50 elementos por lado.");
       return;
     }
+    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
     if (
-      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      (!isSvg &&
+        !["image/png", "image/jpeg", "image/webp"].includes(file.type)) ||
       file.size > 5 * 1024 * 1024
     ) {
-      setNotice("Usá PNG, JPEG o WebP de hasta 5 MB.");
+      setNotice("Usá SVG, PNG, JPEG o WebP de hasta 5 MB.");
       return;
     }
     const targetSide = side,
       targetSurface = surface;
     try {
+      const source = isSvg
+        ? new Blob([sanitizeSvgSource(await file.text())], {
+            type: "image/svg+xml",
+          })
+        : file;
       const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result));
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(source);
       });
       const image = new Image();
       await new Promise<void>((resolve, reject) => {
@@ -1432,7 +1441,8 @@ export function DesignConfiguratorEditor({
       };
       const layer = {
         ...imageLayer,
-        ...initialImageLayerPosition(targetSurface, imageLayer),
+        ...(dropPosition ??
+          initialImageLayerPosition(targetSurface, imageLayer)),
       };
       change((current) =>
         updateSurfaceLayers(
@@ -2036,6 +2046,7 @@ export function DesignConfiguratorEditor({
           <span>identity</span>
           <ChevronRight size={12} />
           <strong>Vinyl Designer Wizard Pro</strong>
+          <span className="dc-version">ver {packageManifest.version}</span>
         </div>
         <div className="dc-header-actions">
           <AccountControl />
@@ -2530,11 +2541,6 @@ export function DesignConfiguratorEditor({
               </motion.div>
             ))}
           </div>
-          <button className="dc-load" onClick={() => setDialog("settings")}>
-            <Settings size={15} />
-            Project settings
-            <ArrowUpRight size={13} />
-          </button>
         </aside>
         <div
           className="dc-layer-resize"
@@ -2602,7 +2608,7 @@ export function DesignConfiguratorEditor({
             <button
               className="dc-preview-3d-button"
               aria-label="Open 3D sleeve preview"
-              title="3D sleeve preview"
+              data-tooltip="3D sleeve preview"
               disabled={sleevePreviewBusy}
               onClick={() => void openSleevePreview()}
             >
@@ -2641,6 +2647,49 @@ export function DesignConfiguratorEditor({
           <div
             className="dc-artboard"
             ref={artboardReference}
+            onDragOver={(event) => {
+              if (draggedLayerId.current) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                return;
+              }
+              if (Array.from(event.dataTransfer.types).includes("Files")) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+              }
+            }}
+            onDrop={(event) => {
+              if (draggedLayerId.current) {
+                event.preventDefault();
+                finishLayerDrag();
+                return;
+              }
+              if (!Array.from(event.dataTransfer.types).includes("Files"))
+                return;
+              event.preventDefault();
+              const file = event.dataTransfer.files[0];
+              if (!file) return;
+              const canvas = event.currentTarget.querySelector<HTMLElement>(
+                ".dc-sleeve-design-canvas",
+              );
+              const bounds = canvas?.getBoundingClientRect();
+              const dropPosition =
+                bounds?.width && bounds.height
+                  ? {
+                      x: clamp(
+                        ((event.clientX - bounds.left) / bounds.width) * 600,
+                        0,
+                        600,
+                      ),
+                      y: clamp(
+                        ((event.clientY - bounds.top) / bounds.height) * 600,
+                        0,
+                        600,
+                      ),
+                    }
+                  : undefined;
+              void importImage(file, dropPosition);
+            }}
             onPointerDown={startCanvasPan}
             onPointerMove={moveCanvasPan}
             onPointerUp={endCanvasPan}
@@ -3381,7 +3430,7 @@ export function DesignConfiguratorEditor({
         hidden
         ref={imageInput}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg"
         onChange={(e) => {
           void importImage(e.target.files?.[0]);
           e.currentTarget.value = "";

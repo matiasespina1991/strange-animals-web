@@ -550,7 +550,8 @@ export function Sleeve3DPreview({
   const shareModel = async () => {
     if (sharing) return;
     const previewWindow =
-      pendingShareWindowReference.current ?? window.open("about:blank", "_blank");
+      pendingShareWindowReference.current ??
+      window.open("about:blank", "_blank");
     if (!previewWindow) {
       setShareError("Allow pop-ups to open the shared 3D model in a new tab.");
       return;

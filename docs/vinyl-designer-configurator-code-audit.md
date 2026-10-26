@@ -42,17 +42,17 @@ Las observaciones siguientes están ordenadas de mayor a menor impacto. “Defec
 
 ## Métricas de tamaño actuales
 
-| Archivo | Líneas | Observación |
-| --- | ---: | --- |
-| `DesignConfiguratorEditor.tsx` | 3.862 | Estado, efectos, servicios, handlers y layout |
-| `design-configurator.css` | 3.601 | 641 reglas; overrides repartidos |
-| `design-configurator-mobile.css` | 471 | Hoja responsive separada |
-| `design-configurator-model.ts` | 954 | Dominio, geometría, historial y parsing |
-| `LabelArtwork.tsx` | 772 | Renderer SVG multipropósito |
-| `Sleeve3DPreview.tsx` | 734 | Escena, render y compartir modelo |
-| `design-configurator-export.tsx` | 637 | Exportación y servicio de fuentes |
-| `design-configurator-psd.ts` | 420 | Construcción PSD |
-| `test-design-configurator.mjs` | 1.843 | Suite imperativa en un único script |
+| Archivo                          | Líneas | Observación                                   |
+| -------------------------------- | -----: | --------------------------------------------- |
+| `DesignConfiguratorEditor.tsx`   |  3.862 | Estado, efectos, servicios, handlers y layout |
+| `design-configurator.css`        |  3.601 | 641 reglas; overrides repartidos              |
+| `design-configurator-mobile.css` |    471 | Hoja responsive separada                      |
+| `design-configurator-model.ts`   |    954 | Dominio, geometría, historial y parsing       |
+| `LabelArtwork.tsx`               |    772 | Renderer SVG multipropósito                   |
+| `Sleeve3DPreview.tsx`            |    734 | Escena, render y compartir modelo             |
+| `design-configurator-export.tsx` |    637 | Exportación y servicio de fuentes             |
+| `design-configurator-psd.ts`     |    420 | Construcción PSD                              |
+| `test-design-configurator.mjs`   |  1.843 | Suite imperativa en un único script           |
 
 ## Fuera de alcance y límites de la revisión
 

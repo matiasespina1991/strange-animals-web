@@ -67,7 +67,7 @@ export async function loadBrandAsset(
   };
 }
 
-function sanitizeSvg(source: string) {
+export function sanitizeSvgSource(source: string) {
   const unsafeCssUrl =
     /url\(\s*["']?(?!#|data:image\/(?:png|jpeg|webp);base64,)/i;
   const cleanedSource = source
@@ -123,7 +123,7 @@ export async function loadDesignConfiguratorAsset(
   const response = await fetch(asset.downloadUrl);
   if (!response.ok)
     throw new Error("Could not load this SVG asset. Please retry.");
-  const svg = sanitizeSvg(await response.text());
+  const svg = sanitizeSvgSource(await response.text());
   return makeInsertableAsset(
     asset.name,
     new Blob([svg], { type: "image/svg+xml" }),

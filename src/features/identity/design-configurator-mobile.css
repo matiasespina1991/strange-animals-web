@@ -349,7 +349,8 @@
     width: 26px;
     height: 36px;
     place-items: center;
-    border: 1px solid #c4cab9;
+    border: 1px dotted #c4cab9;
+    padding: 0;
     color: #59664a;
   }
 

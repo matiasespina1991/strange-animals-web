@@ -128,7 +128,7 @@ function applyPageMetadata(html: string, metadata: PageMetadata) {
 function copyStaticAssets(): Plugin {
   return {
     name: "copy-static-assets",
-    enforce: 'post',
+    enforce: "post",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const requestPath = decodeURIComponent(
@@ -183,22 +183,22 @@ function copyStaticAssets(): Plugin {
       });
     },
     generateBundle: {
-      order: 'post',
+      order: "post",
       async handler(_outputOptions, bundle) {
-        const indexAsset = bundle['index.html'];
-        if (!indexAsset || indexAsset.type !== 'asset') {
-          this.error('The generated index.html asset is missing.');
+        const indexAsset = bundle["index.html"];
+        if (!indexAsset || indexAsset.type !== "asset") {
+          this.error("The generated index.html asset is missing.");
         }
 
         const builtIndex =
-          typeof indexAsset.source === 'string'
+          typeof indexAsset.source === "string"
             ? indexAsset.source
-            : Buffer.from(indexAsset.source).toString('utf8');
+            : Buffer.from(indexAsset.source).toString("utf8");
 
         await Promise.all(
           copiedFiles.map(async (file) =>
             this.emitFile({
-              type: 'asset',
+              type: "asset",
               fileName: file,
               source: await fs.readFile(path.join(rootDirectory, file)),
             }),
@@ -207,7 +207,7 @@ function copyStaticAssets(): Plugin {
 
         for (const metadata of routeMetadata.values()) {
           this.emitFile({
-            type: 'asset',
+            type: "asset",
             fileName: `${routeMetadataDirectory}/${metadata.outputFile}`,
             source: applyPageMetadata(builtIndex, metadata),
           });
