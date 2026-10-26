@@ -219,8 +219,10 @@
     background-color 150ms,
     color 150ms;
 }
-.design-configurator button:not(:disabled):hover {
-  background-color: var(--dc-hover, #e8e9e1);
+@media (min-width: 801px) and (hover: hover) and (pointer: fine) {
+  .design-configurator button:not(:disabled):hover {
+    background-color: var(--dc-hover, #e8e9e1);
+  }
 }
 .dc-header {
   height: 78px;
@@ -411,9 +413,11 @@
   text-align: left;
   cursor: pointer;
 }
-.dc-save-menu button:hover,
 .dc-save-menu button:focus-visible {
   background: var(--dc-hover, #e9ede1);
+}
+@media (min-width: 801px) and (hover: hover) and (pointer: fine) {
+  .dc-save-menu button:hover { background: var(--dc-hover, #e9ede1); }
 }
 .dc-hidden-exporter {
   position: fixed;
@@ -1675,15 +1679,22 @@
   display: block;
   margin-top: 4px;
 }
+.dc-project-name .dc-project-title-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--dc-muted, #657248);
+}
 .dc-project-name input {
   font: inherit;
   font-size: 22px !important;
   letter-spacing: -0.5px;
   width: min(360px, 100%);
   max-width: 100%;
-  border: 0;
+  border: 1px solid var(--dc-border, #ced2c2);
   background: transparent;
-  padding: 0;
+  padding: 6px 8px;
   outline-offset: 5px;
 }
 .dc-project-bar > div:first-child {

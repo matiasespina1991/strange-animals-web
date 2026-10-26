@@ -2136,7 +2136,7 @@ export function DesignConfiguratorEditor({
       <div className="dc-project-bar" ref={projectBarRef}>
         <div>
           <label className="dc-project-name">
-            <span className="sr-only">Project name</span>
+            <span className="dc-project-title-label">Project title</span>
             <input
               maxLength={120}
               value={design.title}
