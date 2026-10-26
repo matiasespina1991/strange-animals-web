@@ -1,0 +1,44 @@
+/* Scoped UI theme only. SVG artwork and inline color swatches retain their ink. */
+.design-configurator[data-theme="dark"] {
+  --dc-color-scheme: dark;
+  --dc-bg: #171a16;
+  --dc-panel: #20241e;
+  --dc-input-bg: #171c15;
+  --dc-workspace: #12150f;
+  --dc-surface-muted: #2a3225;
+  --dc-hover: #35402e;
+  --dc-selected: #35472a;
+  --dc-text: #edf0e8;
+  --dc-muted: #b6c0aa;
+  --dc-accent: #c0d99e;
+  --dc-border: #69765c;
+  --dc-divider: #414b39;
+  --dc-action-bg: #3d542f;
+  --dc-on-action: #f8faef;
+  --dc-warning-bg: #382b1b;
+  --dc-warning-text: #f4c58d;
+  --dc-grid: rgb(190 205 172 / 0.07);
+}
+
+.design-configurator .dc-theme-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--dc-text, #252620);
+}
+.design-configurator .dc-theme-toggle:focus-visible {
+  outline: 2px solid var(--dc-accent, #64734b);
+  outline-offset: 3px;
+}
+.design-configurator[data-theme="dark"] .dc-brand img { filter: none; }
+.design-configurator[data-theme="dark"] :is(input, textarea)::placeholder { color: #9eaa92; opacity: 1; }
+.design-configurator[data-theme="dark"] :is(input, textarea, select):focus-visible { outline-color: var(--dc-accent); }
+.design-configurator[data-theme="dark"] .dc-font-picker { color: var(--dc-text); }
+.design-configurator[data-theme="dark"] .dc-color-popover { box-shadow: 0 6px 24px #0008; }
+@media (pointer: coarse) {
+  .design-configurator .dc-theme-toggle { flex-basis: 44px; width: 44px; height: 44px; }
+}

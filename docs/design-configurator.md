@@ -6,6 +6,8 @@ Route: `/identity/vinyl-designer-configurator`, behind the existing Identity acc
 
 ## Editing
 
+- The sun/moon button at the far right of the header toggles a scoped light/dark UI theme. It defaults to light and remembers the choice in `sa-design-configurator-theme`, independently of project JSON and undo history. Dark mode themes desktop/mobile controls, drawers and dialogs; artwork, color swatches and asset previews retain their actual colors. UI color literals use semantic CSS variables with original light colors as fallbacks.
+
 - Content includes compact aa / Aa / AA actions for lowercase, title case and uppercase, preserving whitespace and line breaks. Each action is undoable.
 - Text Opacity (0–100%) sits before the 3D controls and applies once to the complete straight/circular text element, including its effects. Selection guides remain opaque. It persists in projects, renders in SVG/PNG/PDF and is exported as editable PSD layer opacity without baking it twice.
 - Focus > Blur applies 0–40 px of defocus to any selected text, circular text or image, including the complete 3D effect. Zero disables blur; selection guides stay sharp. Blur persists in saved projects and SVG/PNG/PDF exports. Blurred PSD layers are rasterized to preserve their appearance; unblurred text can still use vector outlines.

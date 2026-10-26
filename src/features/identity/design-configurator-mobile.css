@@ -146,13 +146,13 @@
 
   .design-configurator .dc-mobile-global-toggle > span:nth-child(2) {
     margin-left: auto;
-    color: #6f7365;
+    color: var(--dc-muted, #6f7365);
     font-size: 9px;
   }
 
   .design-configurator .dc-mobile-global-toggle > svg {
     flex: 0 0 auto;
-    color: #657248;
+    color: var(--dc-muted, #657248);
   }
 
   .design-configurator .dc-mobile-global-toggle[aria-expanded="true"] > svg {
@@ -291,7 +291,7 @@
     min-width: 0;
     height: 36px;
     align-items: stretch;
-    border: 1px solid #c4cab9;
+    border: 1px solid var(--dc-border, #c4cab9);
   }
 
   .design-configurator .dc-mobile-toolbar-segment button {
@@ -311,13 +311,13 @@
   }
 
   .design-configurator .dc-mobile-toolbar-segment button + button {
-    border-left: 1px solid #c4cab9;
+    border-left: 1px solid var(--dc-border, #c4cab9);
   }
 
   .design-configurator .dc-mobile-toolbar-segment button[aria-pressed="true"],
   .design-configurator .dc-mobile-toolbar-guides[aria-pressed="true"] {
-    background: #e6e9dc;
-    color: #29351f;
+    background: var(--dc-selected, #e6e9dc);
+    color: var(--dc-text, #29351f);
   }
 
   .design-configurator .dc-mobile-toolbar-side button {
@@ -333,7 +333,7 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    border: 1px solid #c4cab9;
+    border: 1px solid var(--dc-border, #c4cab9);
     padding: 0 8px;
     font-size: 11px;
     font-size: 11px;
@@ -349,9 +349,9 @@
     width: 26px;
     height: 36px;
     place-items: center;
-    border: 1px dotted #c4cab9;
+    border: 1px dotted var(--dc-border, #c4cab9);
     padding: 0;
-    color: #59664a;
+    color: var(--dc-muted, #59664a);
   }
 
   .design-configurator .dc-mobile-toolbar-preview:disabled {
@@ -411,9 +411,9 @@
     min-height: 56px;
     flex: 0 0 56px;
     align-items: stretch;
-    border-top: 1px solid #d0d6c3;
+    border-top: 1px solid var(--dc-divider, #d0d6c3);
     padding: 5px 12px max(5px, env(safe-area-inset-bottom));
-    background: #fafaf7;
+    background: var(--dc-panel, #fafaf7);
   }
 
   .design-configurator .dc-mobile-tabs button {

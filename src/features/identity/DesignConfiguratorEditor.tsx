@@ -146,6 +146,9 @@ import {
 } from "./design-configurator-export";
 import "./design-configurator.css";
 import "./design-configurator-mobile.css";
+import "./design-configurator-theme.css";
+import { ConfiguratorThemeToggle } from "./ConfiguratorThemeToggle";
+import { readConfiguratorTheme, saveConfiguratorTheme } from "./configurator-theme";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
 const RECOVERY_SUCCESS_NOTICE = "Autosave recovered";
@@ -337,6 +340,8 @@ export function DesignConfiguratorEditor({
 }) {
   const sleeveCanvasSizeMm = SLEEVE_SIZE_MM;
   const [initial] = useState(seed);
+  const [theme, setTheme] = useState(readConfiguratorTheme);
+  useEffect(() => saveConfiguratorTheme(theme), [theme]);
   const [accountUser, setAccountUser] = useState(accountAuth.currentUser);
   useEffect(() => onAuthStateChanged(accountAuth, setAccountUser), []);
   const [history, dispatch] = useReducer(designReducer, {
@@ -1981,6 +1986,7 @@ export function DesignConfiguratorEditor({
   return (
     <main
       ref={editorRoot}
+      data-theme={theme}
       className={`design-configurator${dragging ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
       data-native-cursor-surface
       onKeyDown={(e) => {
@@ -2049,6 +2055,7 @@ export function DesignConfiguratorEditor({
           <span className="dc-version">ver {packageManifest.version}</span>
         </div>
         <div className="dc-header-actions">
+          <ConfiguratorThemeToggle theme={theme} onToggle={() => setTheme(current => current === "dark" ? "light" : "dark")} />
           <AccountControl />
           <a
             className="dc-back"
@@ -2063,14 +2070,6 @@ export function DesignConfiguratorEditor({
       </header>
       <div className="dc-project-bar" ref={projectBarRef}>
         <div>
-          <span className="dc-eyebrow">
-            VINYL LABEL /{" "}
-            {accountUser
-              ? lastSaved === JSON.stringify(design) && galleryProjectId
-                ? "SAVED TO MY GALLERY"
-                : "AUTORECOVERY ON"
-              : "LOCAL AUTOSAVE ONLY"}
-          </span>
           <label className="dc-project-name">
             <span className="sr-only">Project name</span>
             <input
