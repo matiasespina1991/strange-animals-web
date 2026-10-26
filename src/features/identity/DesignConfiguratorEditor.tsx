@@ -67,6 +67,7 @@ import { readBarcodeSourcePalette } from "./barcode-source-palette";
 import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
 import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
+import { FontPickerPanel, isMobileFontPicker } from "./FontPickerPanel";
 import {
   GLOBAL_COLOR_PRESETS,
   INK_COLOR_PRESETS,
@@ -593,6 +594,8 @@ export function DesignConfiguratorEditor({
   const [query, setQuery] = useState(""),
     [fontLimit, setFontLimit] = useState(40);
   const openFontPicker = () => {
+    const target = activeLayers.find((layer) => layer.id === selected);
+    if (!target || target.kind === "image") return;
     setScope("all");
     setQuery("");
     setCategoryByScope((current) => ({
@@ -711,6 +714,64 @@ export function DesignConfiguratorEditor({
     offsetY: number;
   } | null>(null);
   const prefix = useId().replaceAll(":", "");
+  const touchView = useRef({ zoom, viewOffset });
+  touchView.current = { zoom, viewOffset };
+  useEffect(() => {
+    const canvas = artboardReference.current;
+    if (!canvas) return;
+    let gesture: { distance: number; zoom: number; x: number; y: number; offset: { x: number; y: number } } | null = null;
+    let consuming = false;
+    const measure = (touches: TouchList) => ({
+      distance: Math.hypot(touches[1].clientX - touches[0].clientX, touches[1].clientY - touches[0].clientY),
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    });
+    const start = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return;
+      event.preventDefault();
+      consuming = true;
+      drag.current = undefined;
+      sleeveLayerDrag.current = null;
+      canvasPan.current = null;
+      setDragging(false);
+      setPanning(false);
+      gesture = { ...measure(event.touches), zoom: touchView.current.zoom, offset: { ...touchView.current.viewOffset } };
+    };
+    const move = (event: TouchEvent) => {
+      if (!gesture || event.touches.length !== 2) return;
+      event.preventDefault();
+      const next = measure(event.touches);
+      const nextZoom = clamp(gesture.zoom * next.distance / Math.max(1, gesture.distance), 60, 1200);
+      const ratio = nextZoom / gesture.zoom;
+      const bounds = canvas.getBoundingClientRect();
+      const originX = bounds.left + bounds.width / 2;
+      const originY = bounds.top + bounds.height / 2;
+      setZoom(Math.round(nextZoom));
+      setViewOffset({
+        x: next.x - originX - (gesture.x - originX - gesture.offset.x) * ratio,
+        y: next.y - originY - (gesture.y - originY - gesture.offset.y) * ratio,
+      });
+    };
+    const finish = (event: TouchEvent) => {
+      if (event.touches.length < 2) gesture = null;
+      if (!event.touches.length) consuming = false;
+    };
+    const blockDrag = (event: PointerEvent) => {
+      if (consuming && event.pointerType === "touch") event.stopPropagation();
+    };
+    canvas.addEventListener("touchstart", start, { passive: false, capture: true });
+    canvas.addEventListener("touchmove", move, { passive: false, capture: true });
+    canvas.addEventListener("touchend", finish, true);
+    canvas.addEventListener("touchcancel", finish, true);
+    canvas.addEventListener("pointermove", blockDrag, true);
+    return () => {
+      canvas.removeEventListener("touchstart", start, true);
+      canvas.removeEventListener("touchmove", move, true);
+      canvas.removeEventListener("touchend", finish, true);
+      canvas.removeEventListener("touchcancel", finish, true);
+      canvas.removeEventListener("pointermove", blockDrag, true);
+    };
+  }, []);
   const layers = activeLayers,
     element =
       layers.find((l) => l.id === selected) ?? layers[0] ?? initialDesign.A[0],
@@ -1022,7 +1083,10 @@ export function DesignConfiguratorEditor({
         undefined,
         targetSurface,
       );
-      setDialog(null);
+      hoverRequest.current += 1;
+      setHoverFamily(null);
+      setHoverFontLoading(false);
+      if (!isMobileFontPicker()) setDialog(null);
     } catch (error) {
       setNotice(
         error instanceof Error ? error.message : "No se pudo cargar la fuente.",
@@ -2177,7 +2241,8 @@ export function DesignConfiguratorEditor({
             onClick={() => setDialog("settings")}
           >
             <Settings size={15} />
-            <span>Project settings</span>
+            <span className="dc-settings-desktop-label">Project settings</span>
+            <span className="dc-settings-mobile-label">Settings</span>
           </button>
           <button className="dc-export" onClick={() => setDialog("export")}>
             <ArrowDownToLine size={15} />
@@ -2717,6 +2782,7 @@ export function DesignConfiguratorEditor({
                 style={
                   {
                     backgroundColor: previewDesign.sleeveColor,
+                    "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
                     maskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
                     WebkitMaskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
                     maskSize: "100% 100%",
@@ -3424,7 +3490,7 @@ export function DesignConfiguratorEditor({
           <button
             type="button"
             aria-haspopup="dialog"
-            disabled={!hasSelection}
+            disabled={!hasSelection || element.kind === "image"}
             onClick={openFontPicker}
           >
             <Type size={16} />
@@ -3453,10 +3519,8 @@ export function DesignConfiguratorEditor({
         }}
       />
       {dialog === "fonts" && (
-        <Modal
-          title="Fonts"
-          className="dc-font-picker"
-          allowBackgroundScroll
+        <FontPickerPanel
+          targetName={element.name}
           close={() => setDialog(null)}
         >
           <label className="dc-font-search">
@@ -3638,7 +3702,7 @@ export function DesignConfiguratorEditor({
               <ArrowUpRight size={13} />
             </a>
           </div>
-        </Modal>
+        </FontPickerPanel>
       )}
       {dialog === "sleeve-preview" && (
         <Modal

@@ -10,17 +10,17 @@ const load = file => { const exports = {}; vm.runInNewContext(compile(file), { e
 const capacity = load("src/features/identity/color-swatch-capacity.ts");
 const palettes = load("src/features/identity/design-configurator-colors.ts");
 const { colorSwatchCapacity: fit } = capacity;
-assert.equal(fit(247, 22, 4, 26, 4, 100), 8);
-assert.equal(fit(378, 22, 4, 26, 4, 100), 13);
+assert.equal(fit(247, 22, 4, 26, 4, 100), 7);
+assert.equal(fit(378, 22, 4, 26, 4, 100), 12);
 assert.equal(fit(200, 22, 4, 26, 4, 3), 3);
 assert.equal(fit(0, 22, 4, 26, 4, 100), 0);
 for (let width = 100; width <= 600; width++) {
   const count = fit(width, 22, 4, 26, 4, 100);
   assert.ok(count <= 14);
-  assert.ok(count * 22 + (count - 1) * 4 + 26 + 4 <= width);
+  assert.ok(count * 22 + (count - 1) * 4 + 26 + 4 + 22 <= width);
 }
 assert.equal(new Set(palettes.INK_COLOR_PRESETS).size, palettes.INK_COLOR_PRESETS.length);
-for (const color of ["#FF3B30", "#2F6BFF", "#FFD400", "#39FF14"]) assert.ok(palettes.INK_COLOR_PRESETS.slice(0, 8).includes(color));
+for (const color of ["#D99189", "#91ACD3", "#E6CD86", "#A9C69B"]) assert.ok(palettes.INK_COLOR_PRESETS.slice(0, 8).includes(color));
 assert.ok(palettes.INK_COLOR_PRESETS.includes("#F72585"));
 let chosen, preview, stateIndex = 0;
 const hooks = {

@@ -43,7 +43,7 @@ export function MobileCanvasToolbar({
               onSideChange(nextSide);
             }}
           >
-            Side {nextSide}
+            {nextSide} side
           </button>
         ))}
       </div>
