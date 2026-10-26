@@ -20,10 +20,7 @@ const odysseyDescription =
 const jazzLicksDescription =
   "Strange Animals presents Jazz Licks Vol. 1, a compilation release exploring jazz-infused jungle and drum n bass beats from producers around the world.";
 
-const routeMetadata = new Map<
-  string,
-  PageMetadata & { outputFile: string }
->([
+const routeMetadata = new Map<string, PageMetadata & { outputFile: string }>([
   [
     "/listen/sajs001cd",
     {
@@ -131,14 +128,13 @@ function applyPageMetadata(html: string, metadata: PageMetadata) {
 function copyStaticAssets(): Plugin {
   return {
     name: "copy-static-assets",
+    enforce: 'post',
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const requestPath = decodeURIComponent(
           (request.url ?? "").split("?")[0] ?? "",
         );
-        const metadata = routeMetadata.get(
-          normalizeRequestPath(requestPath),
-        );
+        const metadata = routeMetadata.get(normalizeRequestPath(requestPath));
 
         if (request.method === "GET" && metadata) {
           try {
@@ -186,35 +182,37 @@ function copyStaticAssets(): Plugin {
         }
       });
     },
-    async closeBundle() {
-      const outputDirectory = path.join(rootDirectory, "dist");
-      const builtIndex = await fs.readFile(
-        path.join(outputDirectory, "index.html"),
-        "utf8",
-      );
+    generateBundle: {
+      order: 'post',
+      async handler(_outputOptions, bundle) {
+        const indexAsset = bundle['index.html'];
+        if (!indexAsset || indexAsset.type !== 'asset') {
+          this.error('The generated index.html asset is missing.');
+        }
 
-      await fs.mkdir(path.join(outputDirectory, routeMetadataDirectory), {
-        recursive: true,
-      });
+        const builtIndex =
+          typeof indexAsset.source === 'string'
+            ? indexAsset.source
+            : Buffer.from(indexAsset.source).toString('utf8');
 
-      await Promise.all([
-        ...copiedFiles.map(async (file) => {
-          await fs.copyFile(
-            path.join(rootDirectory, file),
-            path.join(outputDirectory, file),
-          );
-        }),
-        ...[...routeMetadata.values()].map(async (metadata) => {
-          await fs.writeFile(
-            path.join(
-              outputDirectory,
-              routeMetadataDirectory,
-              metadata.outputFile,
-            ),
-            applyPageMetadata(builtIndex, metadata),
-          );
-        }),
-      ]);
+        await Promise.all(
+          copiedFiles.map(async (file) =>
+            this.emitFile({
+              type: 'asset',
+              fileName: file,
+              source: await fs.readFile(path.join(rootDirectory, file)),
+            }),
+          ),
+        );
+
+        for (const metadata of routeMetadata.values()) {
+          this.emitFile({
+            type: 'asset',
+            fileName: `${routeMetadataDirectory}/${metadata.outputFile}`,
+            source: applyPageMetadata(builtIndex, metadata),
+          });
+        }
+      },
     },
   };
 }
