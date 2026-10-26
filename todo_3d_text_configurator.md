@@ -1,10 +1,10 @@
-# Briefing: texto 3D en el Designer Configurator
+# Briefing: texto 3D en el Vinyl Designer Configurator
 
 ## Contexto para el agente
 
-El usuario me asignó analizar `todo_circular_3d_text.md`, `todo_3d_text.md` y la web/código del Designer Configurator, y preparar una síntesis para que otro agente pueda continuar el trabajo sin depender de esta conversación. Esta nota es esa síntesis. La revisión fue de solo lectura: no se implementó ninguno de los dos efectos.
+El usuario me asignó analizar `todo_circular_3d_text.md`, `todo_3d_text.md` y la web/código del Vinyl Designer Configurator, y preparar una síntesis para que otro agente pueda continuar el trabajo sin depender de esta conversación. Esta nota es esa síntesis. La revisión fue de solo lectura: no se implementó ninguno de los dos efectos.
 
-La intención es integrar en el Designer Configurator dos efectos de texto 3D **fijos y estáticos**. No son dos versiones del mismo efecto: uno construye texto alrededor de un cilindro segmentado; el otro crea profundidad apilando copias del texto. No agregar animación de ningún tipo: ni rotación continua, flotación, wobble, retrasos entre capas, movimiento individual ni controles de reproducción/velocidad. Una orientación o ángulo fijo que el usuario pueda editar sí forma parte del efecto estático. Conservá las funciones existentes y decidí la mejor forma de exponer ambos efectos en la interfaz.
+La intención es integrar en el Vinyl Designer Configurator dos efectos de texto 3D **fijos y estáticos**. No son dos versiones del mismo efecto: uno construye texto alrededor de un cilindro segmentado; el otro crea profundidad apilando copias del texto. No agregar animación de ningún tipo: ni rotación continua, flotación, wobble, retrasos entre capas, movimiento individual ni controles de reproducción/velocidad. Una orientación o ángulo fijo que el usuario pueda editar sí forma parte del efecto estático. Conservá las funciones existentes y decidí la mejor forma de exponer ambos efectos en la interfaz.
 
 El agente que implemente esto debe inspeccionar el estado actual del código antes de actuar. Si descubre que otra arquitectura encaja mejor, que una parte de esta nota está desactualizada o que una decisión literal causaría problemas de edición/exportación, puede cambiarla por una solución mejor. La nota explica intención y contexto, no impone nombres de tipos, componentes ni una técnica de render específica.
 
@@ -13,11 +13,11 @@ El agente que implemente esto debe inspeccionar el estado actual del código ant
 - `todo_circular_3d_text.md`: prototipo HTML/SCSS y transcripción de una demostración CSS. El efecto principal divide una frase en paneles estrechos, los distribuye alrededor del eje Y y los hace rotar como un anillo/cilindro.
 - `todo_3d_text.md`: referencia sobre texto 3D por capas y variaciones. Describe el apilado de duplicados a lo largo de Z, además de ejemplos animados, decoraciones y patrones. Los ejemplos de movimiento son material de referencia, no alcance de implementación.
 - `docs/design-configurator.md`: documentación funcional y de exportación del configurador actual.
-- Ruta revisada en el navegador: `/identity/design-configurator`. Está dentro de Identity y protegida por `IdentityAccessGate`. La página muestra inicialmente el proyecto “Other frequencies”, con dos caras A/B, panel de elementos, preview SVG y panel de propiedades.
+- Ruta actual: `/identity/vinyl-designer-configurator`, dentro de Identity y protegida por `IdentityAccessGate`. `/identity/design-configurator` redirige a la ruta nueva. La página muestra inicialmente el proyecto “Other frequencies”, con dos caras A/B, panel de elementos, preview SVG y panel de propiedades.
 
 ## Cómo está construido el configurador actual
 
-- `src/features/identity/IdentityRoute.tsx` registra la ruta `/identity/design-configurator` dentro del gate de acceso de Identity.
+- `src/features/identity/IdentityRoute.tsx` registra `/identity/vinyl-designer-configurator` dentro del gate de Identity y redirige el path anterior.
 - `src/features/identity/DesignConfiguratorEditor.tsx` contiene la experiencia principal: selección de cara y capas, controles, picker de fuentes, plantillas, importación, historial, guardado, recuperación, exportación y presentación responsive.
 - `src/features/identity/design-configurator-model.ts` define `LabelDesign`, `LabelLayer`, los valores iniciales, `makeLayer`, validación/importación (`parseDesign`) y el reducer de undo/redo. El modelo actual declara `kind: "text" | "circular" | "image"`. `LabelDesign` es versión 2.
 - `src/features/identity/LabelArtwork.tsx` dibuja el disco como SVG en un `viewBox` de 600 × 600. El texto normal se renderiza con `<text>` y `<tspan>`; el tipo `circular` se dibuja con `<textPath>` sobre `circularPath`. Cada grupo editable tiene su id, selección, teclado y eventos de pointer para arrastrarlo.

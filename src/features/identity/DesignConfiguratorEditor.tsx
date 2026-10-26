@@ -2034,7 +2034,7 @@ export function DesignConfiguratorEditor({
         <div className="dc-breadcrumb">
           <span>identity</span>
           <ChevronRight size={12} />
-          <strong>design configurator</strong>
+          <strong>vinyl designer configurator</strong>
         </div>
         <div className="dc-header-actions">
           <AccountControl />

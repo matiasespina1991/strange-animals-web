@@ -1,8 +1,8 @@
-# Vinyl label configurator
+# Vinyl Designer Configurator
 
 Image properties use compact crop fields and color swatches. Rounded corners follow the cropped rectangle, not the original image bounds. Barcodes have independent bars/text and background colors; SVG assets have a fill override. Color inversion is only available for Strange Animals brand logos. Asset roles persist when layers are renamed; older layers are recognized by their original asset names. These settings are shared by preview and export.
 
-Route: `/identity/design-configurator`, behind the existing Identity access gate.
+Route: `/identity/vinyl-designer-configurator`, behind the existing Identity access gate. The former `/identity/design-configurator` URL redirects here.
 
 ## Editing
 

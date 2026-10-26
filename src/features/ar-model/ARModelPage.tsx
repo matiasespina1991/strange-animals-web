@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ArrowUpLeft, Check, Copy, Share2, Upload } from "lucide-react";
 import { AccountControl } from "@/features/identity/AccountControl";
 import { accountAuth } from "@/features/identity/account-auth";
+import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "@/features/identity/identity-routes";
 import {
   downloadGalleryModel,
   getGalleryProject,
@@ -344,12 +345,12 @@ export default function ARModelPage({
             href={
               galleryModel
                 ? "/identity/my-gallery"
-                : "/identity/design-configurator"
+                : VINYL_DESIGNER_CONFIGURATOR_PATH
             }
             aria-label={
               galleryModel
                 ? "Back to My Gallery"
-                : "Back to design configurator"
+                : "Back to Vinyl Designer Configurator"
             }
           >
             <ArrowUpLeft size={15} />

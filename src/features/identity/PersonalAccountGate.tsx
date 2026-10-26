@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { AccountControl } from "./AccountControl";
 import { accountAuth } from "./account-auth";
+import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
 
 export function PersonalAccountGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(accountAuth.currentUser);
@@ -29,18 +30,18 @@ export function PersonalAccountGate({ children }: { children: ReactNode }) {
     <main className="mg-page">
       <header className="mg-header">
         <a
-          href="/identity/design-configurator"
-          aria-label="Back to the design configurator"
+          href={VINYL_DESIGNER_CONFIGURATOR_PATH}
+          aria-label="Back to Vinyl Designer Configurator"
         >
           <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </a>
         <div className="mg-header-actions">
-          <a href="/identity/design-configurator">Design configurator</a>
+          <a href={VINYL_DESIGNER_CONFIGURATOR_PATH}>Vinyl Designer Configurator</a>
         </div>
       </header>
       <div className="mg-main">
         <div className="mg-breadcrumb">
-          <a href="/identity/design-configurator">DESIGN CONFIGURATOR</a>
+          <a href={VINYL_DESIGNER_CONFIGURATOR_PATH}>VINYL DESIGNER CONFIGURATOR</a>
           <span>/</span>
           <b>MY GALLERY</b>
         </div>
@@ -52,7 +53,7 @@ export function PersonalAccountGate({ children }: { children: ReactNode }) {
             with Google to open your private projects and versions.
           </p>
           <AccountControl signInPrompt="Sign in with Google to access your private gallery." />
-          <a href="/identity/design-configurator">Back to your local design</a>
+          <a href={VINYL_DESIGNER_CONFIGURATOR_PATH}>Back to your local design</a>
         </section>
       </div>
     </main>

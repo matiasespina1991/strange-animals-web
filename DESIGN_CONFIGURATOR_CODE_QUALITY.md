@@ -1,4 +1,6 @@
-# Design Configurator — auditoría y plan de calidad
+# Vinyl Designer Configurator — auditoría histórica
+
+> Esta revisión del 2026-10-20 quedó reemplazada por la auditoría actual en `docs/vinyl-designer-configurator-code-audit.md`. Sus métricas y prioridades son históricas.
 
 Fecha: 2026-10-20. Estado: revisión; no se implementaron refactors ni se instalaron paquetes.
 

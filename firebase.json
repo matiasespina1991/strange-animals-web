@@ -66,6 +66,16 @@
     ],
     "redirects": [
       {
+        "source": "/identity/design-configurator",
+        "destination": "/identity/vinyl-designer-configurator",
+        "type": 301
+      },
+      {
+        "source": "/identity/design-configurator/**",
+        "destination": "/identity/vinyl-designer-configurator",
+        "type": 301
+      },
+      {
         "source": "/identity/fonts",
         "destination": "/identity/typography/typefaces",
         "type": 301

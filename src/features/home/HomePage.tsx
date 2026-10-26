@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useTadeGameStore } from "@/store/tade-game-store";
+import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "@/features/identity/identity-routes";
 import type { WebampSkin } from "@/features/webamp-skins/webamp-skin-repository";
 import { BrandLogoExperience } from "./components/BrandLogoExperience";
 import { DoomDialog } from "./components/DoomDialog";
@@ -123,7 +124,7 @@ export function HomePage() {
 
       if (altShortcut && event.code === "KeyV") {
         event.preventDefault();
-        window.location.assign("/identity/design-configurator");
+        window.location.assign(VINYL_DESIGNER_CONFIGURATOR_PATH);
         return;
       }
 

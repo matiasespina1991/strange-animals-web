@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Box, Check, Disc3, Focus, Grid2X2, Layers3, Minus, Plus } from "lucide-react";
 import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
+import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
 import { SleeveSurfaceIcon } from "./SleeveSurfaceIcon";
 import "./configurator-controls-lab.css";
 
@@ -160,14 +161,14 @@ export default function ConfiguratorControlsLabPage() {
   return (
     <main className="cc-page">
       <header className="cc-header">
-        <a href="/identity/design-configurator"><ArrowLeft size={16} /> Back to configurator</a>
+        <a href={VINYL_DESIGNER_CONFIGURATOR_PATH}><ArrowLeft size={16} /> Back to Vinyl Designer Configurator</a>
         <a className="cc-header-mobile-link" href="/dev/configurator-mobile-sketch">Mobile layout study <ArrowLeft size={14} /></a>
         <span>DEVELOPMENT / IDENTITY / CONTROL STUDY</span>
       </header>
       <div className="cc-main">
         <div className="cc-intro">
           <div>
-            <p className="cc-kicker">DESIGN CONFIGURATOR · INTERACTION STUDY</p>
+            <p className="cc-kicker">VINYL DESIGNER CONFIGURATOR · INTERACTION STUDY</p>
             <h1>Surface & color controls</h1>
             <p>Twelve directions for switching between Cookie and Sleeve, and finding a color.</p>
           </div>

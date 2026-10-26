@@ -19,6 +19,7 @@ import {
   Trash2,
   Type,
 } from "lucide-react";
+import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
 import "./layer-panel-layouts-lab.css";
 
 const layoutOptions = [
@@ -152,10 +153,10 @@ export default function LayerPanelLayoutsLabPage() {
     <main className="lpl-page">
       <header className="lpl-header">
         <div>
-          <a className="lpl-back" href="/identity/design-configurator">
+          <a className="lpl-back" href={VINYL_DESIGNER_CONFIGURATOR_PATH}>
             <ChevronLeft size={15} /> Configurador
           </a>
-          <p className="lpl-eyebrow">DESIGN CONFIGURATOR / LAYOUT LAB</p>
+          <p className="lpl-eyebrow">VINYL DESIGNER CONFIGURATOR / LAYOUT LAB</p>
           <h1>Layer panel</h1>
           <p className="lpl-intro">
             Cinco formas de ganar espacio sin perder de vista los elementos ni

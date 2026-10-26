@@ -5,6 +5,10 @@ import { IdentityTypefacesLab } from "./IdentityTypefacesLab";
 import { IdentityDesignConfigurator } from "./IdentityDesignConfigurator";
 import { PersonalAccountGate } from "./PersonalAccountGate";
 import MyGalleryPage from "./MyGalleryPage";
+import {
+  LEGACY_DESIGN_CONFIGURATOR_PATH,
+  VINYL_DESIGNER_CONFIGURATOR_PATH,
+} from "./identity-routes";
 
 type IdentityRouteProperties = {
   route: string;
@@ -12,6 +16,12 @@ type IdentityRouteProperties = {
 
 export function IdentityRoute({ route }: IdentityRouteProperties) {
   useEffect(() => {
+    if (route === LEGACY_DESIGN_CONFIGURATOR_PATH) {
+      window.location.replace(
+        `${VINYL_DESIGNER_CONFIGURATOR_PATH}${window.location.search}${window.location.hash}`,
+      );
+      return;
+    }
     if (
       route === "/identity/fonts" ||
       route === "/identity/typefaces/fonts" ||
@@ -21,9 +31,11 @@ export function IdentityRoute({ route }: IdentityRouteProperties) {
     }
   }, [route]);
 
+  if (route === LEGACY_DESIGN_CONFIGURATOR_PATH) return null;
+
   return (
     <IdentityAccessGate>
-      {route === "/identity/design-configurator" ||
+      {route === VINYL_DESIGNER_CONFIGURATOR_PATH ||
       route === "/identity/my-gallery" ? (
         <IdentityDesignConfigurator
           initialView={route === "/identity/my-gallery" ? "gallery" : "editor"}

@@ -1,8 +1,8 @@
-# Plan de continuidad: assets del Designer Configurator
+# Plan de continuidad: assets del Vinyl Designer Configurator
 
 ## Solicitud
 
-Incorporar los assets SVG ubicados en `input/` al Designer Configurator:
+Incorporar los assets SVG ubicados en `input/` al Vinyl Designer Configurator:
 
 - En el modal **Assets**, mantener los logos de Strange Animals y la opción actual de crear barcode.
 - Agregar una carpeta de primer nivel **Hvnter assets**. Al abrirla, mostrar sus subcarpetas y, dentro de cada una, sus SVG.
