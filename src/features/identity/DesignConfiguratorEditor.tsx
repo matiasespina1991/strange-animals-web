@@ -149,6 +149,7 @@ import "./design-configurator-mobile.css";
 import "./design-configurator-theme.css";
 import { ConfiguratorThemeToggle } from "./ConfiguratorThemeToggle";
 import { readConfiguratorTheme, saveConfiguratorTheme } from "./configurator-theme";
+import { canvasHoleMask } from "./canvas-hole-mask";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
 const RECOVERY_SUCCESS_NOTICE = "Autosave recovered";
@@ -2716,6 +2717,12 @@ export function DesignConfiguratorEditor({
                 style={
                   {
                     backgroundColor: previewDesign.sleeveColor,
+                    maskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
+                    WebkitMaskImage: surface === "cookie" ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm) : undefined,
+                    maskSize: "100% 100%",
+                    WebkitMaskSize: "100% 100%",
+                    maskRepeat: "no-repeat",
+                    WebkitMaskRepeat: "no-repeat",
                     "--dc-label-diameter": `${(design.diameterMm / sleeveCanvasSizeMm) * 100}%`,
                   } as CSSProperties
                 }
@@ -2823,7 +2830,7 @@ export function DesignConfiguratorEditor({
                   }
                   selectedIds={surface === "cookie" ? selection : undefined}
                   guides={guides}
-                  whiteCenter
+                  cutCenter={surface !== "cookie"}
                   innerShadow
                   onSelect={surface === "cookie" ? selectLayer : undefined}
                   onPointerDown={surface === "cookie" ? startDrag : undefined}

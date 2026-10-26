@@ -524,6 +524,11 @@ assert.ok(
 const previewSvg = renderToStaticMarkup(
   LabelArtwork({ ...artworkProps, whiteCenter: true, innerShadow: true }),
 );
+assert.doesNotMatch(exportedSvg, /<circle[^>]+fill="black"/);
+assert.match(exportedSvg, /clip-rule="evenodd"/);
+const parentCutoutSvg = renderToStaticMarkup(LabelArtwork({ ...artworkProps, cutCenter: false, guides: true }));
+assert.doesNotMatch(parentCutoutSvg, /fill="black"|test-hole|clip-rule="evenodd"/);
+assert.match(parentCutoutSvg, /<clipPath id="test-trim"><circle/);
 assert.ok(previewSvg.includes("cookie-inner-shadow"));
 const previewStyles = await readFile(
   new URL("../src/features/identity/design-configurator.css", import.meta.url),

@@ -400,6 +400,7 @@ export function LabelArtwork({
   guides = false,
   bleed = false,
   whiteCenter = false,
+  cutCenter = true,
   innerShadow = false,
   onSelect,
   onPointerDown,
@@ -416,6 +417,7 @@ export function LabelArtwork({
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
+  cutCenter?: boolean;
   innerShadow?: boolean;
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
@@ -565,25 +567,13 @@ export function LabelArtwork({
               />
             ),
         )}
-        <mask
-          id={`${prefix}-hole`}
-          x={-extra}
-          y={-extra}
-          width={600 + extra * 2}
-          height={600 + extra * 2}
-          maskUnits="userSpaceOnUse"
-        >
-          <rect
-            x={-extra}
-            y={-extra}
-            width={600 + extra * 2}
-            height={600 + extra * 2}
-            fill="white"
-          />
-          <circle cx="300" cy="300" r={hole} fill="black" />
-        </mask>
         <clipPath id={`${prefix}-trim`}>
-          <circle cx="300" cy="300" r={300 + extra} />
+          {cutCenter ? <path
+            clipRule="evenodd"
+            fillRule="evenodd"
+            stroke="none"
+            d={`M${300 - (300 + extra)} 300a${300 + extra} ${300 + extra} 0 1 0 ${2 * (300 + extra)} 0a${300 + extra} ${300 + extra} 0 1 0 ${-2 * (300 + extra)} 0Z M${300 - hole} 300a${hole} ${hole} 0 1 0 ${2 * hole} 0a${hole} ${hole} 0 1 0 ${-2 * hole} 0Z`}
+          /> : <circle cx="300" cy="300" r={300 + extra} />}
         </clipPath>
         {design[side].map(
           (layer, index) =>
@@ -598,7 +588,6 @@ export function LabelArtwork({
       </defs>
       {whiteCenter && <circle cx="300" cy="300" r={hole} fill="#ffffff" />}
       <g
-        mask={`url(#${prefix}-hole)`}
         clipPath={`url(#${prefix}-trim)`}
         fontFamily="Alte DIN Input"
         fontWeight="400"
@@ -763,7 +752,6 @@ export function LabelArtwork({
       {guides && (
         <g className="dc-print-guides">
           <circle cx="300" cy="300" r={safe} />
-          <circle cx="300" cy="300" r={hole} />
           <path d="M 300 282 V 318 M 282 300 H 318" />
         </g>
       )}

@@ -47,6 +47,18 @@ for (const background of ["--dc-bg", "--dc-panel", "--dc-input-bg", "--dc-select
 assert.ok(contrast(tokens["--dc-on-action"], tokens["--dc-action-bg"]) >= 4.5);
 assert.ok(contrast(tokens["--dc-warning-text"], tokens["--dc-warning-bg"]) >= 4.5);
 assert.ok(contrast(tokens["--dc-border"], tokens["--dc-input-bg"]) >= 3);
+assert.ok(contrast(tokens["--dc-resize-grip"], tokens["--dc-surface-muted"]) >= 3);
+assert.ok(contrast('#657248', '#e1e4db') >= 3, 'Light resize grips must be visible');
+const resizeCss = postcss.parse(readFileSync("src/features/identity/design-configurator.css", "utf8"));
+for (const selector of [".dc-layer-resize::before", ".dc-properties-resize::before"]) {
+  let found = false;
+  resizeCss.walkRules(selector, rule => rule.walkDecls("background", decl => {
+    found = true;
+    assert.match(decl.value, /--dc-resize-grip/);
+    assert.doesNotMatch(decl.value, /--dc-surface-muted/);
+  }));
+  assert.ok(found);
+}
 for (const path of ["src/features/identity/design-configurator.css", "src/features/identity/design-configurator-mobile.css"]) {
   const sheet = postcss.parse(readFileSync(path, "utf8"));
   assert.ok(sheet.nodes.length);
