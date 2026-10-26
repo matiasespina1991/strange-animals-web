@@ -61,12 +61,12 @@
     position: static;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: 40px auto;
+    grid-template-rows: 34px auto;
     height: auto;
-    min-height: 72px;
+    min-height: 60px;
     flex: 0 0 auto;
-    gap: 4px 10px;
-    padding: 6px 12px 10px;
+    gap: 2px 10px;
+    padding: 4px 12px 6px;
   }
 
   .design-configurator .dc-brand {
@@ -78,8 +78,14 @@
     grid-row: 2;
     min-width: 0;
     flex: 1 1 auto;
-    gap: 6px;
+    gap: 2px;
+    line-height: 1.1;
     font-size: 13px;
+  }
+
+  .design-configurator .dc-breadcrumb .dc-version {
+    margin-left: 0;
+    line-height: 1.1;
   }
 
   .design-configurator .dc-breadcrumb > span:first-child,
@@ -328,7 +334,7 @@
     flex: 0 0 auto;
     flex-wrap: nowrap;
     align-items: center;
-    padding: 4px 6px;
+    padding: 4px 12px;
   }
 
   .design-configurator .dc-stage-top > span,
@@ -340,6 +346,8 @@
   .design-configurator .dc-mobile-canvas-toolbar {
     display: grid;
     width: 100%;
+    box-sizing: border-box;
+    padding-inline: 4px;
     min-width: 0;
     grid-template-columns: max-content max-content minmax(36px, 1fr) max-content;
     align-items: center;
@@ -360,7 +368,7 @@
     align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 0 6px;
+    padding: 0 7px;
     font-size: 12px;
     white-space: nowrap;
   }
@@ -381,7 +389,7 @@
   }
 
   .design-configurator .dc-mobile-toolbar-side button {
-    min-width: 56px;
+    min-width: 44px;
     padding-inline: 8px;
   }
 
@@ -404,6 +412,12 @@
 
   .design-configurator .dc-mobile-toolbar-guides svg {
     flex: 0 0 auto;
+  }
+
+  .design-configurator .dc-mobile-toolbar-guides > span {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
   }
 
   .design-configurator .dc-mobile-toolbar-preview {
