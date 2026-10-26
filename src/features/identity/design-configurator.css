@@ -444,7 +444,7 @@
   grid-template-columns:
     var(--dc-layer-panel-width, 184px) 8px minmax(0, 1fr) 8px
     var(--dc-properties-panel-width, 300px);
-  border-top: 1px solid var(--dc-divider, #d9dbd1);
+  border-top: 0;
   border-bottom: 1px solid var(--dc-divider, #d9dbd1);
   min-height: 730px;
 }
