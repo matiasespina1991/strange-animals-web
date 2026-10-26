@@ -2028,7 +2028,7 @@
   padding-top: 16px;
 }
 .design-configurator .dc-layers {
-  padding-bottom: 0;
+  padding-bottom: 10px;
 }
 .dc-layers .dc-panel-title,
 .dc-properties .dc-panel-title {
