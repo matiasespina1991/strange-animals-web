@@ -504,6 +504,8 @@ service cloud.firestore {
           'latestVersionId',
           'frontPreviewPath',
           'backPreviewPath',
+          'frontSleevePreviewPath',
+          'backSleevePreviewPath',
           'updatedAt'
         ])
         && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));

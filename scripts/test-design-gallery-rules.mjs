@@ -208,6 +208,37 @@ const immutableVersion = await request(
 );
 assertStatus(immutableVersion, 403, "version documents are immutable");
 
+const secondVersionId = uuid();
+const secondRoot = `media/private/design-gallery/${uid}/${projectIdForTest}/${secondVersionId}`;
+const secondPaths = Object.fromEntries([
+  ['frontPreviewPath', 'front.png'], ['backPreviewPath', 'back.png'],
+  ['frontSleevePreviewPath', 'front-with-sleeve.png'], ['backSleevePreviewPath', 'back-with-sleeve.png'],
+].map(([key, file]) => [key, { stringValue: `${secondRoot}/${file}` }]));
+const secondWrites = [
+  {
+    update: { name: `${documentRoot}/${projectPath}`, fields: {
+      title: { stringValue: 'Rules test version 2' }, latestVersion: { integerValue: '2' },
+      latestVersionId: { stringValue: secondVersionId }, ...secondPaths,
+    } },
+    updateMask: { fieldPaths: ['title', 'latestVersion', 'latestVersionId', ...Object.keys(secondPaths)] },
+    updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
+  },
+  {
+    update: { name: `${documentRoot}/${projectPath}/versions/${secondVersionId}`, fields: {
+      version: { integerValue: '2' }, designPath: { stringValue: `${secondRoot}/design.json` }, ...secondPaths,
+    } },
+    updateTransforms: [{ fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME' }],
+    currentDocument: { exists: false },
+  },
+];
+const commitSecondVersion = token => request(`${firestoreBase}:commit`, {
+  token, method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ writes: secondWrites }),
+});
+assertStatus(await commitSecondVersion(other.idToken), 403, 'other account cannot add a version');
+assertStatus(await commitSecondVersion(owner.idToken), 200, 'owner saves version 2 including sleeve previews');
+assertStatus(await commitSecondVersion(owner.idToken), 403, 'version replay is rejected');
+
 const galleryObjectPath = `${assetRoot}/design.json`;
 const galleryUpload = await request(
   `${storageBase}?uploadType=media&name=${encodeURIComponent(galleryObjectPath)}`,
