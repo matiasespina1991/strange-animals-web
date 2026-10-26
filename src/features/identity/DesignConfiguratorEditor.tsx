@@ -474,7 +474,7 @@ export function DesignConfiguratorEditor({
       const delta = Math.max(-120, Math.min(120, event.deltaY));
       const sensitivity = event.ctrlKey ? 0.008 : 0.0035;
       setZoom((current) =>
-        Math.round(clamp(current * Math.exp(-delta * sensitivity), 10, 500)),
+        Math.round(clamp(current * Math.exp(-delta * sensitivity), 60, 1200)),
       );
     };
     artboard.addEventListener("wheel", handleCanvasWheel, { passive: false });
@@ -2849,16 +2849,16 @@ export function DesignConfiguratorEditor({
             <div className="dc-zoom">
               <button
                 aria-label="Zoom out"
-                disabled={zoom <= 10}
-                onClick={() => setZoom(Math.max(10, zoom - 30))}
+                disabled={zoom <= 60}
+                onClick={() => setZoom(Math.max(60, zoom - 30))}
               >
                 <Minus size={14} />
               </button>
               <output>{zoom}%</output>
               <button
                 aria-label="Zoom in"
-                disabled={zoom >= 500}
-                onClick={() => setZoom(Math.min(500, zoom + 30))}
+                disabled={zoom >= 1200}
+                onClick={() => setZoom(Math.min(1200, zoom + 30))}
               >
                 <Plus size={14} />
               </button>

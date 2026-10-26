@@ -144,7 +144,10 @@ export function Sleeve3DPreview({
     const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
-    const sleeveCornerBevel = 0.002;
+    const sleeveCornerBevel = 0.006;
+    const sleeveEdgeBevelSize = 0.008;
+    const sleeveEdgeBevelThickness = 0.0025;
+    const sleeveGeometryDepth = sleeveDepth - sleeveEdgeBevelThickness * 2;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
     const cookieRecessInnerRadius = labelRadius - cookieBevelSize - 0.0005;
@@ -230,11 +233,14 @@ export function Sleeve3DPreview({
     };
     drawSleeve();
     const sleeveGeometry = new THREE.ExtrudeGeometry(sleeveShape, {
-      depth: sleeveDepth,
-      bevelEnabled: false,
+      depth: sleeveGeometryDepth,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      bevelSize: sleeveEdgeBevelSize,
+      bevelThickness: sleeveEdgeBevelThickness,
       curveSegments: 64,
     });
-    sleeveGeometry.translate(0, 0, -sleeveDepth / 2);
+    sleeveGeometry.translate(0, 0, -sleeveGeometryDepth / 2);
     const sleevePosition = sleeveGeometry.getAttribute("position");
     const sleeveUv = sleeveGeometry.getAttribute("uv");
     const sleeveIndices = sleeveGeometry.getIndex();
