@@ -133,6 +133,10 @@ export function Sleeve3DPreview({
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const sleeveDepth = 0.03;
+    const cookieRecessDepth = 0.01;
+    const cookieDepth = sleeveDepth - cookieRecessDepth * 2;
+    const cookieBevelSize = 0.006;
+    const cookieBevelThickness = 0.002;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
     const sleeveShape = new THREE.Shape();
@@ -141,9 +145,9 @@ export function Sleeve3DPreview({
     sleeveShape.lineTo(sleeveSize / 2, sleeveSize / 2);
     sleeveShape.lineTo(-sleeveSize / 2, sleeveSize / 2);
     sleeveShape.closePath();
-    const centerHole = new THREE.Path();
-    centerHole.absarc(0, 0, holeRadius, 0, Math.PI * 2, true);
-    sleeveShape.holes.push(centerHole);
+    const cookieRecess = new THREE.Path();
+    cookieRecess.absarc(0, 0, labelRadius + 0.0005, 0, Math.PI * 2, true);
+    sleeveShape.holes.push(cookieRecess);
 
     const createSleeveTexture = () => {
       const canvas = document.createElement("canvas");
@@ -271,6 +275,38 @@ export function Sleeve3DPreview({
       }),
     ]);
     model.add(sleeve);
+    const cookieShape = new THREE.Shape();
+    cookieShape.absarc(
+      0,
+      0,
+      labelRadius - cookieBevelSize,
+      0,
+      Math.PI * 2,
+      false,
+    );
+    const cookieCenterHole = new THREE.Path();
+    cookieCenterHole.absarc(0, 0, holeRadius, 0, Math.PI * 2, true);
+    cookieShape.holes.push(cookieCenterHole);
+    const cookieCoreDepth = cookieDepth - cookieBevelThickness * 2;
+    const cookieGeometry = new THREE.ExtrudeGeometry(cookieShape, {
+      depth: cookieCoreDepth,
+      bevelEnabled: true,
+      bevelSegments: 4,
+      bevelSize: cookieBevelSize,
+      bevelThickness: cookieBevelThickness,
+      curveSegments: 128,
+    });
+    cookieGeometry.translate(0, 0, -cookieCoreDepth / 2);
+    const cookie = new THREE.Mesh(
+      cookieGeometry,
+      new THREE.MeshPhysicalMaterial({
+        color: 0xd8_d6_cd,
+        roughness: 0.84,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }),
+    );
+    model.add(cookie);
 
     if (sleeveImage) {
       sleeveImageElement = new Image();
@@ -320,11 +356,22 @@ export function Sleeve3DPreview({
         context.fillStyle = innerShadow;
         context.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
         context.globalCompositeOperation = "source-over";
+        context.globalCompositeOperation = "destination-out";
+        context.beginPath();
+        context.arc(
+          center,
+          center,
+          (holeRadius / labelRadius) * center,
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+        context.globalCompositeOperation = "source-over";
         const labelTexture = new THREE.CanvasTexture(labelCanvas);
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         const label = new THREE.Mesh(
-          new THREE.CircleGeometry(labelRadius, 128),
+          new THREE.CircleGeometry(labelRadius - cookieBevelSize, 128),
           new THREE.MeshPhysicalMaterial({
             map: labelTexture,
             roughness: 0.32,
@@ -344,8 +391,8 @@ export function Sleeve3DPreview({
       });
       labelImage.src = capture;
     };
-    addLabelFace(labelCapture, sleeveDepth / 2 + 0.004);
-    addLabelFace(labelCaptureBack, -sleeveDepth / 2 - 0.004, true);
+    addLabelFace(labelCapture, cookieDepth / 2 + 0.0001);
+    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.0001, true);
 
     const resize = () => {
       if (!container.clientWidth || !container.clientHeight) return;
