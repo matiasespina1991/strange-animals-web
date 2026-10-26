@@ -1,6 +1,6 @@
-import {Box, Disc3, Grid2X2} from 'lucide-react';
-import type {LabelSide, LabelSurface} from './design-configurator-model';
-import {SleeveSurfaceIcon} from './SleeveSurfaceIcon';
+import { Box, Disc3, Grid2X2 } from "lucide-react";
+import type { LabelSide, LabelSurface } from "./design-configurator-model";
+import { SleeveSurfaceIcon } from "./SleeveSurfaceIcon";
 
 type MobileCanvasToolbarProperties = {
   surface: LabelSurface;
@@ -34,7 +34,7 @@ export function MobileCanvasToolbar({
         role="group"
         aria-label="Record side"
       >
-        {(['A', 'B'] as const).map((nextSide) => (
+        {(["A", "B"] as const).map((nextSide) => (
           <button
             key={nextSide}
             type="button"
@@ -54,9 +54,9 @@ export function MobileCanvasToolbar({
       >
         <button
           type="button"
-          aria-pressed={surface === 'cookie'}
+          aria-pressed={surface === "cookie"}
           onClick={() => {
-            onSurfaceChange('cookie');
+            onSurfaceChange("cookie");
           }}
         >
           <Disc3 size={12} aria-hidden="true" />
@@ -64,9 +64,9 @@ export function MobileCanvasToolbar({
         </button>
         <button
           type="button"
-          aria-pressed={surface === 'sleeve'}
+          aria-pressed={surface === "sleeve"}
           onClick={() => {
-            onSurfaceChange('sleeve');
+            onSurfaceChange("sleeve");
           }}
         >
           <SleeveSurfaceIcon size={12} />

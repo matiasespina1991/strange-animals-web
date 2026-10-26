@@ -159,7 +159,8 @@
     transform: rotate(180deg);
   }
 
-  .design-configurator .dc-global-settings[data-mobile-collapsed="true"]
+  .design-configurator
+    .dc-global-settings[data-mobile-collapsed="true"]
     .dc-global-settings-controls {
     display: none;
   }
@@ -191,13 +192,20 @@
     white-space: nowrap;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-custom-paper {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-custom-paper {
     grid-column: 2;
     grid-row: 1;
     flex: 0 0 22px;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-custom-paper input {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-custom-paper
+    input {
     width: 22px;
     height: 22px;
     min-width: 22px;
@@ -206,7 +214,10 @@
     box-sizing: border-box;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-swatches {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-color-swatches {
     grid-column: 3;
     grid-row: 1;
     min-width: 0;
@@ -215,14 +226,21 @@
     gap: 4px;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-paper-options {
     min-width: 0;
     flex: 0 0 auto;
     gap: 4px;
     margin: 0;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options button {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-paper-options
+    button {
     width: 22px;
     height: 22px;
     min-width: 22px;
@@ -431,12 +449,21 @@
     gap: 4px;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-swatches,
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-color-swatches,
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-paper-options {
     gap: 1px;
   }
 
-  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-more {
+  .design-configurator
+    .dc-global-settings-controls
+    > .dc-preview-stock
+    .dc-color-more {
     width: 24px;
     height: 22px;
     flex: 0 0 24px;

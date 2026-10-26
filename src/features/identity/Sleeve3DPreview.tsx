@@ -3,6 +3,7 @@ import { Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import previewBackgroundUrl from "../../../input/pexels-photo-6131931.avif";
 import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
 import { createModelShare } from "../ar-model/model-share-repository";
@@ -78,14 +79,15 @@ export function Sleeve3DPreview({
     model.name = "Strange Animals sleeve and label";
     scene.add(model);
     modelReference.current = model;
-    scene.background = new THREE.Color("#e5e7e1");
+    scene.background = null;
+    const previousContainerBackground = container.style.background;
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     camera.position.copy(INITIAL_CAMERA_POSITION);
     cameraReference.current = camera;
 
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch {
       setError("WebGL is not available in this browser.");
       return;
@@ -93,9 +95,11 @@ export function Sleeve3DPreview({
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
+    container.style.background = `#e5e7e1 url("${previewBackgroundUrl}") center / cover no-repeat`;
     container.append(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -132,21 +136,35 @@ export function Sleeve3DPreview({
     scene.add(fillLight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
-    const sleeveDepth = 0.03;
-    const cookieRecessDepth = 0.01;
-    const cookieDepth = sleeveDepth - cookieRecessDepth * 2;
+    const baseSleeveDepth = 0.03;
+    const cookieRecessDepth = 0.009;
+    const cookieThicknessScale = 0.8;
+    const cookieDepth =
+      (baseSleeveDepth - cookieRecessDepth * 2) * cookieThicknessScale;
+    const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
+    const sleeveCornerBevel = 0.002;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
+    const cookieRecessInnerRadius = labelRadius - cookieBevelSize - 0.0005;
+    const cookieRecessLipWidth = cookieRecessDepth;
+    const cookieRecessLipDepth = cookieRecessDepth;
+    const cookieRecessOpeningRadius =
+      cookieRecessInnerRadius + cookieRecessLipWidth;
     const sleeveShape = new THREE.Shape();
-    sleeveShape.moveTo(-sleeveSize / 2, -sleeveSize / 2);
-    sleeveShape.lineTo(sleeveSize / 2, -sleeveSize / 2);
-    sleeveShape.lineTo(sleeveSize / 2, sleeveSize / 2);
-    sleeveShape.lineTo(-sleeveSize / 2, sleeveSize / 2);
+    const sleeveHalfSize = sleeveSize / 2;
+    sleeveShape.moveTo(-sleeveHalfSize + sleeveCornerBevel, -sleeveHalfSize);
+    sleeveShape.lineTo(sleeveHalfSize - sleeveCornerBevel, -sleeveHalfSize);
+    sleeveShape.lineTo(sleeveHalfSize, -sleeveHalfSize + sleeveCornerBevel);
+    sleeveShape.lineTo(sleeveHalfSize, sleeveHalfSize - sleeveCornerBevel);
+    sleeveShape.lineTo(sleeveHalfSize - sleeveCornerBevel, sleeveHalfSize);
+    sleeveShape.lineTo(-sleeveHalfSize + sleeveCornerBevel, sleeveHalfSize);
+    sleeveShape.lineTo(-sleeveHalfSize, sleeveHalfSize - sleeveCornerBevel);
+    sleeveShape.lineTo(-sleeveHalfSize, -sleeveHalfSize + sleeveCornerBevel);
     sleeveShape.closePath();
     const cookieRecess = new THREE.Path();
-    cookieRecess.absarc(0, 0, labelRadius + 0.0005, 0, Math.PI * 2, true);
+    cookieRecess.absarc(0, 0, cookieRecessOpeningRadius, 0, Math.PI * 2, true);
     sleeveShape.holes.push(cookieRecess);
 
     const createSleeveTexture = () => {
@@ -245,7 +263,9 @@ export function Sleeve3DPreview({
       (group) => group.materialIndex === 1,
     );
     if (!lidGroup || !sideGroup || lidGroup.count % 2 !== 0)
-      throw new Error("The sleeve geometry does not have separate front and back faces.");
+      throw new Error(
+        "The sleeve geometry does not have separate front and back faces.",
+      );
     const faceCount = lidGroup.count / 2;
     sleeveGeometry.clearGroups();
     sleeveGeometry.addGroup(lidGroup.start, faceCount, 1);
@@ -275,6 +295,34 @@ export function Sleeve3DPreview({
       }),
     ]);
     model.add(sleeve);
+    const addCookieRecessLip = (back = false) => {
+      const geometry = new THREE.CylinderGeometry(
+        cookieRecessOpeningRadius,
+        cookieRecessInnerRadius,
+        cookieRecessLipDepth,
+        128,
+        1,
+        true,
+      );
+      geometry.rotateX(back ? -Math.PI / 2 : Math.PI / 2);
+      const lip = new THREE.Mesh(
+        geometry,
+        new THREE.MeshPhysicalMaterial({
+          color: sleeveColor,
+          roughness: 0.32,
+          metalness: 0,
+          clearcoat: 0.19,
+          clearcoatRoughness: 0.22,
+          side: THREE.DoubleSide,
+        }),
+      );
+      lip.position.z = back
+        ? -sleeveDepth / 2 + cookieRecessLipDepth / 2
+        : sleeveDepth / 2 - cookieRecessLipDepth / 2;
+      model.add(lip);
+    };
+    addCookieRecessLip();
+    addCookieRecessLip(true);
     const cookieShape = new THREE.Shape();
     cookieShape.absarc(
       0,
@@ -297,15 +345,20 @@ export function Sleeve3DPreview({
       curveSegments: 128,
     });
     cookieGeometry.translate(0, 0, -cookieCoreDepth / 2);
-    const cookie = new THREE.Mesh(
-      cookieGeometry,
+    const cookie = new THREE.Mesh(cookieGeometry, [
       new THREE.MeshPhysicalMaterial({
         color: 0xd8_d6_cd,
         roughness: 0.84,
         metalness: 0,
         side: THREE.DoubleSide,
       }),
-    );
+      new THREE.MeshPhysicalMaterial({
+        color: 0x12_12_12,
+        roughness: 0.84,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }),
+    ]);
     model.add(cookie);
 
     if (sleeveImage) {
@@ -391,8 +444,8 @@ export function Sleeve3DPreview({
       });
       labelImage.src = capture;
     };
-    addLabelFace(labelCapture, cookieDepth / 2 + 0.0001);
-    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.0001, true);
+    addLabelFace(labelCapture, cookieDepth / 2 + 0.001);
+    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.001, true);
 
     const resize = () => {
       if (!container.clientWidth || !container.clientHeight) return;
@@ -436,6 +489,7 @@ export function Sleeve3DPreview({
       labelImages.forEach((image) => image.removeAttribute("src"));
       renderer.dispose();
       renderer.domElement.remove();
+      container.style.background = previousContainerBackground;
     };
   }, [
     labelCapture,

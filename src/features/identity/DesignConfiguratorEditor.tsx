@@ -56,9 +56,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import {
-  listFontCatalog,
-} from "./font-catalog-repository";
+import { listFontCatalog } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
 import { ContentTextControl } from "./ContentTextControl";
@@ -333,15 +331,12 @@ export function DesignConfiguratorEditor({
   gallerySelection,
 }: {
   onOpenGallery: () => void;
-  gallerySelection?: {projectId: string; versionId: string};
+  gallerySelection?: { projectId: string; versionId: string };
 }) {
   const sleeveCanvasSizeMm = SLEEVE_SIZE_MM;
   const [initial] = useState(seed);
   const [accountUser, setAccountUser] = useState(accountAuth.currentUser);
-  useEffect(
-    () => onAuthStateChanged(accountAuth, setAccountUser),
-    [],
-  );
+  useEffect(() => onAuthStateChanged(accountAuth, setAccountUser), []);
   const [history, dispatch] = useReducer(designReducer, {
     past: [],
     present: initial.design,
@@ -470,16 +465,18 @@ export function DesignConfiguratorEditor({
   useEffect(() => {
     const artboard = artboardReference.current;
     if (!artboard) return;
-    const handleTrackpadPinch = (event: WheelEvent) => {
-      if (!event.ctrlKey) return;
+    const handleCanvasWheel = (event: WheelEvent) => {
+      const isMobileViewport = window.matchMedia("(max-width: 800px)").matches;
+      if ((!event.ctrlKey && isMobileViewport) || !event.deltaY) return;
       event.preventDefault();
       const delta = Math.max(-120, Math.min(120, event.deltaY));
+      const sensitivity = event.ctrlKey ? 0.008 : 0.0035;
       setZoom((current) =>
-        Math.round(clamp(current * Math.exp(-delta * 0.008), 10, 500)),
+        Math.round(clamp(current * Math.exp(-delta * sensitivity), 10, 500)),
       );
     };
-    artboard.addEventListener("wheel", handleTrackpadPinch, { passive: false });
-    return () => artboard.removeEventListener("wheel", handleTrackpadPinch);
+    artboard.addEventListener("wheel", handleCanvasWheel, { passive: false });
+    return () => artboard.removeEventListener("wheel", handleCanvasWheel);
   }, []);
   const [dialog, setDialog] = useState<
     | "fonts"
@@ -644,7 +641,8 @@ export function DesignConfiguratorEditor({
     [textLength, setTextLength] = useState(0);
   useEffect(() => {
     const parameters = new URLSearchParams(window.location.search);
-    const projectId = gallerySelection?.projectId ?? parameters.get("projectId");
+    const projectId =
+      gallerySelection?.projectId ?? parameters.get("projectId");
     if (!projectId || !/^[0-9a-f-]{36}$/i.test(projectId)) return;
     const user = accountUser;
     if (!user) return;
@@ -653,7 +651,8 @@ export function DesignConfiguratorEditor({
       try {
         const project = await getGalleryProject(user.uid, projectId);
         if (!project) throw Error("This design is not in your gallery.");
-        const requestedVersionId = gallerySelection?.versionId ?? parameters.get("versionId");
+        const requestedVersionId =
+          gallerySelection?.versionId ?? parameters.get("versionId");
         const versionId = requestedVersionId ?? project.latestVersionId;
         const version = await getGalleryVersion(user.uid, projectId, versionId);
         if (!version) throw Error("This design version could not be found.");
@@ -787,7 +786,8 @@ export function DesignConfiguratorEditor({
     targetSurface: LabelSurface = surface,
   ) =>
     change(
-      (current) => updateSurfaceLayers(current, targetSurface, s, (layers) =>
+      (current) =>
+        updateSurfaceLayers(current, targetSurface, s, (layers) =>
           layers.map((layer) =>
             layer.id === id ? { ...layer, ...patch } : layer,
           ),
@@ -821,7 +821,12 @@ export function DesignConfiguratorEditor({
   const end = () => dispatch({ type: "end" });
   useEffect(() => {
     let active = true;
-    const pending = [...design.A, ...design.B, ...design.sleeveA, ...design.sleeveB].filter(
+    const pending = [
+      ...design.A,
+      ...design.B,
+      ...design.sleeveA,
+      ...design.sleeveB,
+    ].filter(
       (layer) =>
         layer.kind === "image" &&
         imageRole(layer) === "barcode" &&
@@ -912,7 +917,12 @@ export function DesignConfiguratorEditor({
   useEffect(() => {
     let active = true;
     const keys = new Set<string>();
-    for (const layer of [...design.A, ...design.B, ...design.sleeveA, ...design.sleeveB]) {
+    for (const layer of [
+      ...design.A,
+      ...design.B,
+      ...design.sleeveA,
+      ...design.sleeveB,
+    ]) {
       if (!layer.fontId) continue;
       const key = fontKey(layer);
       if (keys.has(key) || families[key] || fontErrors[key]) continue;
@@ -996,10 +1006,16 @@ export function DesignConfiguratorEditor({
         [fontKey({ fontId: font.id, variantId: resolved.variant.id })]:
           resolved.family,
       }));
-      patchLayer(targetSide, targetId, {
-        fontId: font.id,
-        variantId: resolved.variant.id,
-      }, undefined, targetSurface);
+      patchLayer(
+        targetSide,
+        targetId,
+        {
+          fontId: font.id,
+          variantId: resolved.variant.id,
+        },
+        undefined,
+        targetSurface,
+      );
       setDialog(null);
     } catch (error) {
       setNotice(
@@ -1025,12 +1041,19 @@ export function DesignConfiguratorEditor({
     }
     const layer = makeLayer(kind);
     if (kind === "circular") layer.name = "New text";
-    change((current) => updateSurfaceLayers(current, surface, side, (currentLayers) => [...currentLayers, layer]));
+    change((current) =>
+      updateSurfaceLayers(current, surface, side, (currentLayers) => [
+        ...currentLayers,
+        layer,
+      ]),
+    );
     selectLayer(layer);
   };
   const remove = () => {
     if (!hasSelection) return;
-    const selectedForRemoval = layers.filter((layer) => selection.has(layer.id));
+    const selectedForRemoval = layers.filter((layer) =>
+      selection.has(layer.id),
+    );
     if (selectedForRemoval.length)
       setDeleteTarget({
         side,
@@ -1052,7 +1075,12 @@ export function DesignConfiguratorEditor({
       ...initialImageLayerPosition(surface, imageLayer),
     };
     end();
-    change((current) => updateSurfaceLayers(current, surface, side, (currentLayers) => [...currentLayers, layer]));
+    change((current) =>
+      updateSurfaceLayers(current, surface, side, (currentLayers) => [
+        ...currentLayers,
+        layer,
+      ]),
+    );
     end();
     selectLayer(layer);
     setDialog(null);
@@ -1090,12 +1118,19 @@ export function DesignConfiguratorEditor({
     const deletedSelection = selectedLayers.some((id) => ids.has(id));
     if (deletedSelection) {
       const remainingSelection = selectedLayers.filter((id) => !ids.has(id));
-      const currentLayers = getSurfaceLayers(design, deleteTarget.surface, deleteTarget.side);
-      const firstRemovedIndex = currentLayers.findIndex((layer) => ids.has(layer.id));
-      const nextLayer = currentLayers
-        .slice(firstRemovedIndex + 1)
-        .find((layer) => !ids.has(layer.id))
-        ?? [...currentLayers.slice(0, firstRemovedIndex)]
+      const currentLayers = getSurfaceLayers(
+        design,
+        deleteTarget.surface,
+        deleteTarget.side,
+      );
+      const firstRemovedIndex = currentLayers.findIndex((layer) =>
+        ids.has(layer.id),
+      );
+      const nextLayer =
+        currentLayers
+          .slice(firstRemovedIndex + 1)
+          .find((layer) => !ids.has(layer.id)) ??
+        [...currentLayers.slice(0, firstRemovedIndex)]
           .reverse()
           .find((layer) => !ids.has(layer.id));
       const nextSelected = remainingSelection[0] ?? nextLayer?.id ?? null;
@@ -1109,7 +1144,9 @@ export function DesignConfiguratorEditor({
       setSelected(nextSelected);
     }
     end();
-    change((current) => removeLayers(current, deleteTarget.side, deleteTarget.surface, ids));
+    change((current) =>
+      removeLayers(current, deleteTarget.side, deleteTarget.surface, ids),
+    );
     end();
     setDeleteTarget(null);
   };
@@ -1204,7 +1241,7 @@ export function DesignConfiguratorEditor({
     }
     const saveStartedAt = performance.now();
     if (import.meta.env.DEV) {
-      console.info('[StudioShelf/save] started', {
+      console.info("[StudioShelf/save] started", {
         asNewProject,
         hasProject: Boolean(galleryProjectId),
       });
@@ -1213,7 +1250,7 @@ export function DesignConfiguratorEditor({
     setSaveMenuOpen(false);
     setNotice("Capturing Cookie and Cookie + Sleeve previews…");
     try {
-      if (import.meta.env.DEV) console.info('[StudioShelf/save] capture-start');
+      if (import.meta.env.DEV) console.info("[StudioShelf/save] capture-start");
       const [markupA, markupB] = await Promise.all([
         createLabelSvg(design, "A", fonts, false),
         createLabelSvg(design, "B", fonts, false),
@@ -1226,20 +1263,22 @@ export function DesignConfiguratorEditor({
         createSleeveLabelSvg(markupA, design, false, sleeveArtworkA),
         createSleeveLabelSvg(markupB, design, false, sleeveArtworkB),
       ]);
-      const [captureA, captureB, captureSleeveA, captureSleeveB] = await Promise.all([
-        captureLabelPreview(markupA),
-        captureLabelPreview(markupB),
-        captureLabelPreview(sleeveMarkupA),
-        captureLabelPreview(sleeveMarkupB),
-      ]);
-      const [frontPreview, backPreview, frontSleevePreview, backSleevePreview] = await Promise.all([
-        fetch(captureA).then((response) => response.blob()),
-        fetch(captureB).then((response) => response.blob()),
-        fetch(captureSleeveA).then((response) => response.blob()),
-        fetch(captureSleeveB).then((response) => response.blob()),
-      ]);
+      const [captureA, captureB, captureSleeveA, captureSleeveB] =
+        await Promise.all([
+          captureLabelPreview(markupA),
+          captureLabelPreview(markupB),
+          captureLabelPreview(sleeveMarkupA),
+          captureLabelPreview(sleeveMarkupB),
+        ]);
+      const [frontPreview, backPreview, frontSleevePreview, backSleevePreview] =
+        await Promise.all([
+          fetch(captureA).then((response) => response.blob()),
+          fetch(captureB).then((response) => response.blob()),
+          fetch(captureSleeveA).then((response) => response.blob()),
+          fetch(captureSleeveB).then((response) => response.blob()),
+        ]);
       if (import.meta.env.DEV) {
-        console.info('[StudioShelf/save] captures-ready', {
+        console.info("[StudioShelf/save] captures-ready", {
           frontBytes: frontPreview.size,
           backBytes: backPreview.size,
           frontSleeveBytes: frontSleevePreview.size,
@@ -1266,7 +1305,7 @@ export function DesignConfiguratorEditor({
         `${asNewProject ? "New project" : "Saved to My Gallery"} · version ${saved.version}.`,
       );
       if (import.meta.env.DEV) {
-        console.info('[StudioShelf/save] complete', {
+        console.info("[StudioShelf/save] complete", {
           elapsedMs: Math.round(performance.now() - saveStartedAt),
           projectId: saved.project.id,
           version: saved.version,
@@ -1274,7 +1313,7 @@ export function DesignConfiguratorEditor({
       }
     } catch (cause) {
       if (import.meta.env.DEV) {
-        console.error('[StudioShelf/save] failed', {
+        console.error("[StudioShelf/save] failed", {
           elapsedMs: Math.round(performance.now() - saveStartedAt),
           cause,
         });
@@ -1293,16 +1332,20 @@ export function DesignConfiguratorEditor({
       const serialized = JSON.stringify(design);
       localStorage.setItem(RECOVERY_KEY, serialized);
       setLastSaved(serialized);
-      setNotice("Saved on this device. Sign in to add this design to My Gallery.");
+      setNotice(
+        "Saved on this device. Sign in to add this design to My Gallery.",
+      );
       if (import.meta.env.DEV) {
-        console.info('[StudioShelf/save] local-complete', {
+        console.info("[StudioShelf/save] local-complete", {
           bytes: new Blob([serialized]).size,
         });
       }
     } catch {
-      setNotice("Could not save locally. Download the project JSON to keep a copy.");
+      setNotice(
+        "Could not save locally. Download the project JSON to keep a copy.",
+      );
       if (import.meta.env.DEV) {
-        console.error('[StudioShelf/save] local-failed', {
+        console.error("[StudioShelf/save] local-failed", {
           recoveryKey: RECOVERY_KEY,
         });
       }
@@ -1388,12 +1431,16 @@ export function DesignConfiguratorEditor({
       };
       const layer = {
         ...imageLayer,
-        ...initialImageLayerPosition(
-          targetSurface,
-          imageLayer,
-        ),
+        ...initialImageLayerPosition(targetSurface, imageLayer),
       };
-      change((current) => updateSurfaceLayers(current, targetSurface, targetSide, (currentLayers) => [...currentLayers, layer]));
+      change((current) =>
+        updateSurfaceLayers(
+          current,
+          targetSurface,
+          targetSide,
+          (currentLayers) => [...currentLayers, layer],
+        ),
+      );
       selectLayer(layer);
     } catch {
       setNotice("No se pudo leer la imagen.");
@@ -1487,15 +1534,35 @@ export function DesignConfiguratorEditor({
       !start ||
       start.pointerId !== event.pointerId ||
       !event.currentTarget.hasPointerCapture(event.pointerId)
-    ) return;
-    const canvas = event.currentTarget.closest<HTMLElement>('.dc-sleeve-canvas');
+    )
+      return;
+    const canvas =
+      event.currentTarget.closest<HTMLElement>(".dc-sleeve-canvas");
     if (!canvas) return;
     const bounds = canvas.getBoundingClientRect();
     if (!bounds.width || !bounds.height) return;
-    patchLayer(start.side, start.id, {
-      x: clamp(Math.round(start.x + ((event.clientX - start.clientX) / bounds.width) * 600), 0, 600),
-      y: clamp(Math.round(start.y + ((event.clientY - start.clientY) / bounds.height) * 600), 0, 600),
-    }, 'sleeve-drag', start.surface);
+    patchLayer(
+      start.side,
+      start.id,
+      {
+        x: clamp(
+          Math.round(
+            start.x + ((event.clientX - start.clientX) / bounds.width) * 600,
+          ),
+          0,
+          600,
+        ),
+        y: clamp(
+          Math.round(
+            start.y + ((event.clientY - start.clientY) / bounds.height) * 600,
+          ),
+          0,
+          600,
+        ),
+      },
+      "sleeve-drag",
+      start.surface,
+    );
   };
   const endSleeveLayerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -1514,10 +1581,7 @@ export function DesignConfiguratorEditor({
   const startCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (
       e.button !== 0 ||
-      (e.target instanceof Element &&
-        e.target.closest(
-          "[data-layer-id]",
-        ))
+      (e.target instanceof Element && e.target.closest("[data-layer-id]"))
     )
       return;
     end();
@@ -1537,18 +1601,20 @@ export function DesignConfiguratorEditor({
   const openSleevePreview = async () => {
     setSleevePreviewBusy(true);
     try {
-      const [markupA, markupB, sleeveMarkupA, sleeveMarkupB] = await Promise.all([
-        createLabelSvg(previewDesign, "A", fonts, false),
-        createLabelSvg(previewDesign, "B", fonts, false),
-        createSleeveArtworkSvg(previewDesign, fonts, "A"),
-        createSleeveArtworkSvg(previewDesign, fonts, "B"),
-      ]);
-      const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] = await Promise.all([
-        captureLabelPreview(markupA),
-        captureLabelPreview(markupB),
-        captureLabelPreview(sleeveMarkupA),
-        captureLabelPreview(sleeveMarkupB),
-      ]);
+      const [markupA, markupB, sleeveMarkupA, sleeveMarkupB] =
+        await Promise.all([
+          createLabelSvg(previewDesign, "A", fonts, false),
+          createLabelSvg(previewDesign, "B", fonts, false),
+          createSleeveArtworkSvg(previewDesign, fonts, "A"),
+          createSleeveArtworkSvg(previewDesign, fonts, "B"),
+        ]);
+      const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] =
+        await Promise.all([
+          captureLabelPreview(markupA),
+          captureLabelPreview(markupB),
+          captureLabelPreview(sleeveMarkupA),
+          captureLabelPreview(sleeveMarkupB),
+        ]);
       setSleevePreviewLabels({
         A: captureA,
         B: captureB,
@@ -1764,7 +1830,11 @@ export function DesignConfiguratorEditor({
           </button>
         ))}
       </div>
-      <div className="dc-surface-switch" role="tablist" aria-label="Design surface">
+      <div
+        className="dc-surface-switch"
+        role="tablist"
+        aria-label="Design surface"
+      >
         <button
           type="button"
           role="tab"
@@ -2040,7 +2110,11 @@ export function DesignConfiguratorEditor({
                 {gallerySaving ? "Saving…" : "Save..."}
               </button>
               {saveMenuOpen && (
-                <div className="dc-save-menu" role="menu" aria-label="Save options">
+                <div
+                  className="dc-save-menu"
+                  role="menu"
+                  aria-label="Save options"
+                >
                   <button
                     type="button"
                     role="menuitem"
@@ -2125,9 +2199,7 @@ export function DesignConfiguratorEditor({
             className="dc-mobile-global-toggle"
             type="button"
             aria-expanded={mobileGlobalSettingsOpen}
-            onClick={() =>
-              setMobileGlobalSettingsOpen((isOpen) => !isOpen)
-            }
+            onClick={() => setMobileGlobalSettingsOpen((isOpen) => !isOpen)}
           >
             <span>Global settings</span>
             <span>3 color groups</span>
@@ -2218,7 +2290,10 @@ export function DesignConfiguratorEditor({
           }}
           onDragLeave={(event) => {
             const nextTarget = event.relatedTarget;
-            if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget))
+            if (
+              nextTarget instanceof Node &&
+              event.currentTarget.contains(nextTarget)
+            )
               return;
             stopLayerAutoScroll();
           }}
@@ -2245,10 +2320,16 @@ export function DesignConfiguratorEditor({
           </div>
           {deleteTarget && (
             <ConfirmationDialog
-              title={deleteTarget.layers.length === 1 ? "Delete this layer?" : `Delete ${deleteTarget.layers.length} layers?`}
-              description={deleteTarget.layers.length === 1
-                ? `Are you sure you want to delete “${deleteTarget.layers[0].name}”? You can undo this change.`
-                : `Are you sure you want to delete ${deleteTarget.layers.length} selected layers? You can undo this change.`}
+              title={
+                deleteTarget.layers.length === 1
+                  ? "Delete this layer?"
+                  : `Delete ${deleteTarget.layers.length} layers?`
+              }
+              description={
+                deleteTarget.layers.length === 1
+                  ? `Are you sure you want to delete “${deleteTarget.layers[0].name}”? You can undo this change.`
+                  : `Are you sure you want to delete ${deleteTarget.layers.length} selected layers? You can undo this change.`
+              }
               confirmLabel="Delete"
               onCancel={() => setDeleteTarget(null)}
               onConfirm={confirmDelete}
@@ -2507,7 +2588,10 @@ export function DesignConfiguratorEditor({
             />
             <span>
               <span className="dc-live-dot" />
-                {surface === "cookie" ? `COOKIE · SIDE ${side}` : "SLEEVE · FRONT / BACK"} / PREVIEW
+              {surface === "cookie"
+                ? `COOKIE · SIDE ${side}`
+                : "SLEEVE · FRONT / BACK"}{" "}
+              / PREVIEW
             </span>
             <button
               className="dc-preview-3d-button"
@@ -2583,10 +2667,7 @@ export function DesignConfiguratorEditor({
                 }
               >
                 {design.sleeveImage && (
-                  <div
-                    aria-hidden="true"
-                    className="dc-sleeve-image-frame"
-                  >
+                  <div aria-hidden="true" className="dc-sleeve-image-frame">
                     <div
                       className="dc-sleeve-background"
                       style={{
@@ -2600,7 +2681,9 @@ export function DesignConfiguratorEditor({
                   className={`dc-sleeve-elements${surface === "sleeve" ? " is-editing" : ""}`}
                   aria-label="Sleeve artwork layers"
                 >
-                    {sleeveLayers.filter((layer) => layer.visible).map((layer) => (
+                  {sleeveLayers
+                    .filter((layer) => layer.visible)
+                    .map((layer) => (
                       <div
                         key={layer.id}
                         data-layer-id={layer.id}
@@ -2614,7 +2697,8 @@ export function DesignConfiguratorEditor({
                           fontSize: `${layer.size}px`,
                           fontWeight: layer.size > 40 ? 700 : 400,
                           opacity: layer.opacity ?? 1,
-                          textAlign: layer.align === "middle" ? "center" : layer.align,
+                          textAlign:
+                            layer.align === "middle" ? "center" : layer.align,
                           transform: `translate(-50%, -50%) rotate(${layer.angle}deg)`,
                         }}
                         onPointerDown={
@@ -2653,25 +2737,36 @@ export function DesignConfiguratorEditor({
                                 : undefined
                             }
                           />
-                        ) : layer.text}
+                        ) : (
+                          layer.text
+                        )}
                       </div>
                     ))}
                 </div>
                 <LabelArtwork
                   design={previewDesign}
                   hiddenTextId={
-                    surface === "cookie" && dialog === "fonts" && hoverFontLoading
+                    surface === "cookie" &&
+                    dialog === "fonts" &&
+                    hoverFontLoading
                       ? element.id
                       : undefined
                   }
                   side={side}
                   prefix={prefix}
                   fontFamily={(layer) =>
-                    surface === "cookie" && dialog === "fonts" && layer.id === element.id && hoverFamily
+                    surface === "cookie" &&
+                    dialog === "fonts" &&
+                    layer.id === element.id &&
+                    hoverFamily
                       ? hoverFamily
                       : familyFor(layer)
                   }
-                  selected={surface === "cookie" && hasSelection ? element.id : undefined}
+                  selected={
+                    surface === "cookie" && hasSelection
+                      ? element.id
+                      : undefined
+                  }
                   selectedIds={surface === "cookie" ? selection : undefined}
                   guides={guides}
                   whiteCenter
@@ -2687,9 +2782,13 @@ export function DesignConfiguratorEditor({
           <div className="dc-canvas-footer">
             <span className="dc-measure dc-measure-bottom">
               {surface === "cookie" ? (
-                <><span>SIDE {side}</span>Ø {design.holeMm} mm center hole</>
+                <>
+                  <span>SIDE {side}</span>Ø {design.holeMm} mm center hole
+                </>
               ) : (
-                <><span>SLEEVE</span>Artwork surface</>
+                <>
+                  <span>SLEEVE</span>Artwork surface
+                </>
               )}
             </span>
             <div className="dc-zoom">
@@ -2807,22 +2906,36 @@ export function DesignConfiguratorEditor({
               description={`Are you sure you want to reset “${resetTarget.layer.name}”? You can undo this change.`}
               onCancel={() => setResetTarget(null)}
               onConfirm={() => {
-                const { side: targetSide, surface: targetSurface, layer } = resetTarget;
-                const defaults = getSurfaceLayers(initialDesign, targetSurface, targetSide).find(
-                  (item) => item.id === layer.id,
-                ) ?? makeLayer(layer.kind, layer.id);
+                const {
+                  side: targetSide,
+                  surface: targetSurface,
+                  layer,
+                } = resetTarget;
+                const defaults =
+                  getSurfaceLayers(
+                    initialDesign,
+                    targetSurface,
+                    targetSide,
+                  ).find((item) => item.id === layer.id) ??
+                  makeLayer(layer.kind, layer.id);
                 end();
-                patchLayer(targetSide, layer.id, {
-                  ...defaults,
-                  fontId: defaults.fontId,
-                  variantId: defaults.variantId,
-                  inkBleed: defaults.inkBleed ?? 0,
-                  textEffect: defaults.textEffect,
-                  textEffectSettings: defaults.textEffectSettings,
-                  image: layer.kind === "image" ? layer.image : undefined,
-                  imageRatio:
-                    layer.kind === "image" ? layer.imageRatio : undefined,
-                }, undefined, targetSurface);
+                patchLayer(
+                  targetSide,
+                  layer.id,
+                  {
+                    ...defaults,
+                    fontId: defaults.fontId,
+                    variantId: defaults.variantId,
+                    inkBleed: defaults.inkBleed ?? 0,
+                    textEffect: defaults.textEffect,
+                    textEffectSettings: defaults.textEffectSettings,
+                    image: layer.kind === "image" ? layer.image : undefined,
+                    imageRatio:
+                      layer.kind === "image" ? layer.imageRatio : undefined,
+                  },
+                  undefined,
+                  targetSurface,
+                );
                 end();
                 setResetTarget(null);
               }}
@@ -2869,9 +2982,7 @@ export function DesignConfiguratorEditor({
                     <h3
                       tabIndex={0}
                       title="Double-click to rename layer"
-                      onDoubleClick={() =>
-                        beginLayerRename(element, "heading")
-                      }
+                      onDoubleClick={() => beginLayerRename(element, "heading")}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
@@ -3036,7 +3147,10 @@ export function DesignConfiguratorEditor({
                             max={3}
                             step={0.05}
                             onChange={(lineHeight) =>
-                              update({ lineHeight }, `line-height-${element.id}`)
+                              update(
+                                { lineHeight },
+                                `line-height-${element.id}`,
+                              )
                             }
                             onCommit={end}
                           />
@@ -3492,7 +3606,8 @@ export function DesignConfiguratorEditor({
         <Modal title="File" close={() => setDialog(null)}>
           <div className="dc-dialog-scroll">
             <p className="dc-font-explanation">
-              My Gallery keeps each saved design and its versions with your account.
+              My Gallery keeps each saved design and its versions with your
+              account.
             </p>
             <div className="dc-project-files">
               <button onClick={() => setDialog("new")}>

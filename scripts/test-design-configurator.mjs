@@ -54,12 +54,14 @@ const colorSourceWithLocalHelpers = colorSource.replace(
   /^import \{ getSurfaceLayers, updateSurfaceLayers, type LabelDesign, type LabelSide, type LabelSurface \} from "\.\/design-configurator-model";\r?\n/m,
   "",
 );
-const colorCode = `${compiled}\n${ts.transpileModule(colorSourceWithLocalHelpers, {
-  compilerOptions: {
-    module: ts.ModuleKind.ESNext,
-    target: ts.ScriptTarget.ES2022,
-  },
-}).outputText}`;
+const colorCode = `${compiled}\n${
+  ts.transpileModule(colorSourceWithLocalHelpers, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText
+}`;
 const {
   hasCustomTextColors,
   changeLayerTextColors,
@@ -82,12 +84,9 @@ assert.equal(
   "Repeated global palette changes must not require confirmation",
 );
 const sleeveText = makeLayer("text", "sleeve-artist");
-const sleeveColorDesign = updateSurfaceLayers(
-  original,
-  "sleeve",
-  "A",
-  () => [sleeveText],
-);
+const sleeveColorDesign = updateSurfaceLayers(original, "sleeve", "A", () => [
+  sleeveText,
+]);
 const sleeveColorChanged = changeGlobalTextColor(
   sleeveColorDesign,
   "#FA8AA6",
@@ -398,19 +397,22 @@ const operationsWithoutModelImport = operationsSource.replace(
   /^import \{ updateSurfaceLayers, type LabelDesign, type LabelSide, type LabelSurface \} from "\.\/design-configurator-model";\r?\n/m,
   "",
 );
-const operationsCode = `${compiled}\n${ts.transpileModule(operationsWithoutModelImport, {
-  compilerOptions: {
-    module: ts.ModuleKind.ESNext,
-    target: ts.ScriptTarget.ES2022,
-  },
-}).outputText}`;
+const operationsCode = `${compiled}\n${
+  ts.transpileModule(operationsWithoutModelImport, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText
+}`;
 const operations = await import(asModule(operationsCode));
 const selectedIds = new Set(original.A.slice(0, 2).map((layer) => layer.id));
 const deleted = designReducer(
   { past: [], present: original, future: [] },
   {
     type: "change",
-    change: (design) => operations.removeLayers(design, "A", "cookie", selectedIds),
+    change: (design) =>
+      operations.removeLayers(design, "A", "cookie", selectedIds),
   },
 );
 assert.equal(deleted.present.A.length, original.A.length - 2);
@@ -427,12 +429,9 @@ const deleteAll = operations.removeLayers(
   new Set(original.A.map((layer) => layer.id)),
 );
 assert.deepEqual(parseDesign(JSON.parse(JSON.stringify(deleteAll))).A, []);
-const sleeveDeleteSource = updateSurfaceLayers(
-  original,
-  "sleeve",
-  "A",
-  () => [makeLayer("text", "sleeve-delete")],
-);
+const sleeveDeleteSource = updateSurfaceLayers(original, "sleeve", "A", () => [
+  makeLayer("text", "sleeve-delete"),
+]);
 const sleeveDelete = operations.removeLayers(
   sleeveDeleteSource,
   "A",
@@ -527,10 +526,7 @@ const previewSvg = renderToStaticMarkup(
 );
 assert.ok(previewSvg.includes("cookie-inner-shadow"));
 const previewStyles = await readFile(
-  new URL(
-    "../src/features/identity/design-configurator.css",
-    import.meta.url,
-  ),
+  new URL("../src/features/identity/design-configurator.css", import.meta.url),
   "utf8",
 );
 assert.match(
@@ -668,10 +664,25 @@ for (const tilt of [-75, 0, 75]) {
 }
 assert.equal(parseDesign({ ...original, sleeveZoom: undefined }).sleeveZoom, 1);
 assert.equal(parseDesign({ ...original, sleeveZoom: 99 }).sleeveZoom, 5);
-assert.equal(parseDesign({ ...original, sleeveImageOffsetX: undefined }).sleeveImageOffsetX, 0);
-assert.equal(parseDesign({ ...original, sleeveImageOffsetY: undefined }).sleeveImageOffsetY, 0);
-assert.equal(parseDesign({ ...original, sleeveImageOffsetX: -45, sleeveImageOffsetY: 80 }).sleeveImageOffsetX, -45);
-assert.equal(parseDesign({ ...original, sleeveImageOffsetX: 900 }).sleeveImageOffsetX, 600);
+assert.equal(
+  parseDesign({ ...original, sleeveImageOffsetX: undefined })
+    .sleeveImageOffsetX,
+  0,
+);
+assert.equal(
+  parseDesign({ ...original, sleeveImageOffsetY: undefined })
+    .sleeveImageOffsetY,
+  0,
+);
+assert.equal(
+  parseDesign({ ...original, sleeveImageOffsetX: -45, sleeveImageOffsetY: 80 })
+    .sleeveImageOffsetX,
+  -45,
+);
+assert.equal(
+  parseDesign({ ...original, sleeveImageOffsetX: 900 }).sleeveImageOffsetX,
+  600,
+);
 assert.deepEqual(
   parseDesign({ ...original, sleeveLayers: undefined }).sleeveLayers,
   [],
@@ -685,7 +696,10 @@ const sleeveLayer = {
 const legacySleeveDesign = { ...original };
 delete legacySleeveDesign.sleeveA;
 delete legacySleeveDesign.sleeveB;
-const sleeveDesign = parseDesign({ ...legacySleeveDesign, sleeveLayers: [sleeveLayer] });
+const sleeveDesign = parseDesign({
+  ...legacySleeveDesign,
+  sleeveLayers: [sleeveLayer],
+});
 assert.equal(sleeveDesign.sleeveA[0].id, "sleeve-only");
 assert.equal(sleeveDesign.sleeveA[0].fontId, "sleeve-font");
 assert.deepEqual(sleeveDesign.sleeveLayers, []);
@@ -709,27 +723,32 @@ const isolatedUpdate = updateSurfaceLayers(
   "A",
   (layers) => [...layers, sleeveLayer],
 );
-assert.deepEqual(getSurfaceLayers(isolatedUpdate, "sleeve", "A"), [sleeveLayer]);
+assert.deepEqual(getSurfaceLayers(isolatedUpdate, "sleeve", "A"), [
+  sleeveLayer,
+]);
 assert.deepEqual(getSurfaceLayers(isolatedUpdate, "cookie", "A"), original.A);
-assert.deepEqual(getSurfaceLayers(isolatedUpdate, "sleeve", "B"), original.sleeveB);
+assert.deepEqual(
+  getSurfaceLayers(isolatedUpdate, "sleeve", "B"),
+  original.sleeveB,
+);
 assert.deepEqual(getSurfaceLayers(isolatedUpdate, "cookie", "B"), original.B);
 assert.deepEqual(sleeveLabelGeometry(100), {
   center: 300,
   radius: (100 / 315) * 300,
-  radiusPercent: ((100 / 315) * 300 / 600) * 100,
+  radiusPercent: (((100 / 315) * 300) / 600) * 100,
 });
-assert.deepEqual(initialImageLayerPosition("cookie", { width: 180, imageRatio: 2 }), {
-  x: 300,
-  y: 300,
-});
+assert.deepEqual(
+  initialImageLayerPosition("cookie", { width: 180, imageRatio: 2 }),
+  {
+    x: 300,
+    y: 300,
+  },
+);
 assert.equal(
   initialImageLayerPosition("sleeve", { width: 180, imageRatio: 2 }).y,
   100,
 );
-assert.equal(
-  initialImageLayerPosition("sleeve", { width: 150 }).y,
-  100,
-);
+assert.equal(initialImageLayerPosition("sleeve", { width: 150 }).y, 100);
 assert.throws(() => parseDesign({ ...original, sleeveLayers: {} }));
 assert.equal(
   parseDesign({ ...original, sleeveImage: "data:image/png;base64,aGVsbG8=" })

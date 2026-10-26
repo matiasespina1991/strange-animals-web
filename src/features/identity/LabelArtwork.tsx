@@ -500,11 +500,7 @@ export function LabelArtwork({
                 imageRole(layer) === "barcode"),
           )
           .map(({ layer, id }) => (
-            <filter
-              key={id}
-              id={id}
-              colorInterpolationFilters="sRGB"
-            >
+            <filter key={id} id={id} colorInterpolationFilters="sRGB">
               {layer.imageFill ? (
                 <>
                   <feFlood floodColor={layer.imageFill} />
@@ -607,12 +603,7 @@ export function LabelArtwork({
         fontFamily="Alte DIN Input"
         fontWeight="400"
       >
-        <circle
-          cx="300"
-          cy="300"
-          r={300 + extra}
-          fill={design.paper}
-        />
+        <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />
         {design.frame && (
           <circle
             cx="300"

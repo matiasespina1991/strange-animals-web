@@ -318,12 +318,7 @@ export async function createSleeveLabelPsd(
   const labelUrl = URL.createObjectURL(labelPng);
   const labelImage = new Image();
   try {
-    const sleeveLayers = await rasterSleeveLayers(
-      design,
-      side,
-      fonts,
-      pixels,
-    );
+    const sleeveLayers = await rasterSleeveLayers(design, side, fonts, pixels);
     await new Promise<void>((resolve, reject) => {
       labelImage.onload = () => resolve();
       labelImage.onerror = () =>

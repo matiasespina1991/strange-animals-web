@@ -223,7 +223,9 @@ export async function createSleeveArtworkSvg(
   fonts: FontCatalogItem[],
   side: LabelSide,
 ) {
-  const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter((layer) => layer.visible);
+  const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter(
+    (layer) => layer.visible,
+  );
   const resolved = new Map<string, ResolvedLabelFont>();
   for (const layer of visibleLayers) {
     if (layer.kind === "image" || !layer.fontId) continue;
@@ -249,7 +251,8 @@ export async function createSleeveArtworkSvg(
   ];
   for (const font of defaultFonts) {
     const response = await fetch(font.url);
-    if (!response.ok) throw Error("No se pudo incluir una fuente de interfaz en la captura.");
+    if (!response.ok)
+      throw Error("No se pudo incluir una fuente de interfaz en la captura.");
     rules.push(
       `@font-face{font-family:${JSON.stringify(font.family)};src:url(data:font/${font.extension};base64,${base64(new Uint8Array(await response.arrayBuffer()))}) format('${font.format}');font-weight:400;}`,
     );
@@ -259,14 +262,19 @@ export async function createSleeveArtworkSvg(
     if (embedded.has(item.family)) continue;
     embedded.add(item.family);
     const bytes = new Uint8Array(
-      await getBytes(ref(firebaseStorage, item.variant.storagePath), 20 * 1024 * 1024),
+      await getBytes(
+        ref(firebaseStorage, item.variant.storagePath),
+        20 * 1024 * 1024,
+      ),
     );
-    const format = ({
-      otf: "opentype",
-      ttf: "truetype",
-      woff: "woff",
-      woff2: "woff2",
-    } as Record<string, string>)[item.variant.extension];
+    const format = (
+      {
+        otf: "opentype",
+        ttf: "truetype",
+        woff: "woff",
+        woff2: "woff2",
+      } as Record<string, string>
+    )[item.variant.extension];
     if (!format) throw Error("Formato de fuente no exportable.");
     rules.push(
       `@font-face{font-family:${JSON.stringify(item.family)};src:url(data:font/${item.variant.extension};base64,${base64(bytes)}) format('${format}');font-weight:400;}`,
@@ -319,7 +327,9 @@ export async function createSleeveArtworkSvg(
       image.onerror = () => reject(Error("Could not load sleeve artwork."));
       image.src = design.sleeveImage!;
     });
-    const scale = Math.max(600 / image.naturalWidth, 600 / image.naturalHeight) * design.sleeveZoom;
+    const scale =
+      Math.max(600 / image.naturalWidth, 600 / image.naturalHeight) *
+      design.sleeveZoom;
     const width = image.naturalWidth * scale;
     const height = image.naturalHeight * scale;
     const imageNode = document.createElementNS(svgNamespace, "image");
@@ -362,7 +372,8 @@ export async function createSleeveArtworkSvg(
       continue;
     }
 
-    const family = resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer);
+    const family =
+      resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer);
     const textAnchor = layer.align === "middle" ? "middle" : layer.align;
     if (layer.kind === "circular") {
       const pathId = `sleeve-arc-${layer.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -396,13 +407,21 @@ export async function createSleeveArtworkSvg(
     text.setAttribute("text-anchor", textAnchor);
     text.setAttribute("dominant-baseline", "middle");
     text.setAttribute("opacity", String(layer.opacity ?? 1));
-    text.setAttribute("transform", `rotate(${layer.angle} ${layer.x} ${layer.y})`);
+    text.setAttribute(
+      "transform",
+      `rotate(${layer.angle} ${layer.x} ${layer.y})`,
+    );
     const lines = layer.text.split("\n");
     const lineHeight = layer.size * layer.lineHeight;
     lines.forEach((line, index) => {
       const span = document.createElementNS(svgNamespace, "tspan");
       span.setAttribute("x", String(layer.x));
-      span.setAttribute("dy", String(index === 0 ? -(lines.length - 1) * lineHeight / 2 : lineHeight));
+      span.setAttribute(
+        "dy",
+        String(
+          index === 0 ? (-(lines.length - 1) * lineHeight) / 2 : lineHeight,
+        ),
+      );
       span.textContent = line;
       text.append(span);
     });

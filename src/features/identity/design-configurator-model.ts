@@ -164,7 +164,10 @@ export function initialImageLayerPosition(
   const y =
     imageHeight + topPadding * 2 >= 600
       ? 300
-      : Math.min(Math.max(imageHeight / 2 + topPadding, 100), 600 - imageHeight / 2 - topPadding);
+      : Math.min(
+          Math.max(imageHeight / 2 + topPadding, 100),
+          600 - imageHeight / 2 - topPadding,
+        );
   return {
     x: 300,
     y,
