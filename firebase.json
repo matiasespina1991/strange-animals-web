@@ -66,33 +66,43 @@
     ],
     "redirects": [
       {
+        "source": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
+        "type": 301
+      },
+      {
+        "source": "/identity/vinyl-designer-wizard-pro/**",
+        "destination": "/identity/vinyl-artwork-designer-pro",
+        "type": 301
+      },
+      {
         "source": "/identity/design-configurator",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {
         "source": "/identity/design-configurator/**",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {
         "source": "/identity/vinyl-designer-configurator",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {
         "source": "/identity/vinyl-designer-configurator/**",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {
         "source": "/identity/vinyl-designer-configurator",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {
         "source": "/identity/vinyl-designer-configurator/**",
-        "destination": "/identity/vinyl-designer-wizard-pro",
+        "destination": "/identity/vinyl-artwork-designer-pro",
         "type": 301
       },
       {

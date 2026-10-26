@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { DesignConfiguratorEditor } from "./DesignConfiguratorEditor";
 import { MyGalleryPage } from "./MyGalleryPage";
 import { PersonalAccountGate } from "./PersonalAccountGate";
-import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
+import { VINYL_ARTWORK_DESIGNER_PRO_PATH } from "./identity-routes";
 
 type GallerySelection = { projectId: string; versionId: string };
 
@@ -16,11 +16,11 @@ export function IdentityDesignConfigurator({
 
   useEffect(() => {
     if (initialView !== "gallery") return;
-    if (window.location.pathname !== VINYL_DESIGNER_WIZARD_PRO_PATH) {
+    if (window.location.pathname !== VINYL_ARTWORK_DESIGNER_PRO_PATH) {
       window.history.replaceState(
         null,
         "",
-        `${VINYL_DESIGNER_WIZARD_PRO_PATH}${window.location.search}${window.location.hash}`,
+        `${VINYL_ARTWORK_DESIGNER_PRO_PATH}${window.location.search}${window.location.hash}`,
       );
       window.dispatchEvent(new PopStateEvent("popstate"));
     }

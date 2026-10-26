@@ -2116,7 +2116,7 @@ export function DesignConfiguratorEditor({
         <div className="dc-breadcrumb">
           <span>identity</span>
           <ChevronRight size={12} />
-          <strong>Vinyl Designer Wizard Pro</strong>
+          <strong>Vinyl Artwork Designer Pro</strong>
           <span className="dc-version">ver {packageManifest.version}</span>
         </div>
         <div className="dc-header-actions">
@@ -2672,8 +2672,8 @@ export function DesignConfiguratorEditor({
             </span>
             <button
               className="dc-preview-3d-button"
-              aria-label="Open 3D sleeve preview"
-              data-tooltip="3D sleeve preview"
+              aria-label="Preview in 3D"
+              data-tooltip="Preview in 3D"
               disabled={sleevePreviewBusy}
               onClick={() => void openSleevePreview()}
             >

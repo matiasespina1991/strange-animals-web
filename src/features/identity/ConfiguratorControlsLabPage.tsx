@@ -11,7 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
-import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
+import { VINYL_ARTWORK_DESIGNER_PRO_PATH } from "./identity-routes";
 import { SleeveSurfaceIcon } from "./SleeveSurfaceIcon";
 import "./configurator-controls-lab.css";
 
@@ -268,8 +268,8 @@ export default function ConfiguratorControlsLabPage() {
   return (
     <main className="cc-page">
       <header className="cc-header">
-        <a href={VINYL_DESIGNER_WIZARD_PRO_PATH}>
-          <ArrowLeft size={16} /> Back to Vinyl Designer Wizard Pro
+        <a href={VINYL_ARTWORK_DESIGNER_PRO_PATH}>
+          <ArrowLeft size={16} /> Back to Vinyl Artwork Designer Pro
         </a>
         <a
           className="cc-header-mobile-link"
@@ -283,7 +283,7 @@ export default function ConfiguratorControlsLabPage() {
         <div className="cc-intro">
           <div>
             <p className="cc-kicker">
-              VINYL DESIGNER WIZARD PRO · INTERACTION STUDY
+              VINYL ARTWORK DESIGNER PRO · INTERACTION STUDY
             </p>
             <h1>Surface & color controls</h1>
             <p>

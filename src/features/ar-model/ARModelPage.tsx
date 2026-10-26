@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ArrowUpLeft, Check, Copy, Share2, Upload } from "lucide-react";
 import { AccountControl } from "@/features/identity/AccountControl";
 import { accountAuth } from "@/features/identity/account-auth";
-import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "@/features/identity/identity-routes";
+import { VINYL_ARTWORK_DESIGNER_PRO_PATH } from "@/features/identity/identity-routes";
 import {
   downloadGalleryModel,
   getGalleryProject,
@@ -345,12 +345,12 @@ export default function ARModelPage({
             href={
               galleryModel
                 ? "/identity/my-gallery"
-                : VINYL_DESIGNER_WIZARD_PRO_PATH
+                : VINYL_ARTWORK_DESIGNER_PRO_PATH
             }
             aria-label={
               galleryModel
                 ? "Back to My Gallery"
-                : "Back to Vinyl Designer Wizard Pro"
+                : "Back to Vinyl Artwork Designer Pro"
             }
           >
             <ArrowUpLeft size={15} />

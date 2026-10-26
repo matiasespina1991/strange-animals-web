@@ -21,7 +21,7 @@ import {
   Type,
   Undo2,
 } from "lucide-react";
-import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
+import { VINYL_ARTWORK_DESIGNER_PRO_PATH } from "./identity-routes";
 import "./mobile-configurator-sketch.css";
 
 type Concept = "dock" | "sheet";
@@ -482,12 +482,12 @@ export default function MobileConfiguratorSketchPage() {
         <section className="mcs-intro">
           <div>
             <p className="mcs-kicker">
-              VINYL DESIGNER WIZARD PRO · MOBILE STUDY
+              VINYL ARTWORK DESIGNER PRO · MOBILE STUDY
             </p>
             <h1>Mobile workspace</h1>
           </div>
-          <a href={VINYL_DESIGNER_WIZARD_PRO_PATH}>
-            Open Vinyl Designer Wizard Pro <ArrowRight size={15} />
+          <a href={VINYL_ARTWORK_DESIGNER_PRO_PATH}>
+            Open Vinyl Artwork Designer Pro <ArrowRight size={15} />
           </a>
         </section>
         <div

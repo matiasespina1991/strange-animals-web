@@ -10,7 +10,7 @@ import {
   listSharedModels,
   type SharedModel,
 } from "../ar-model/model-share-repository";
-import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
+import { VINYL_ARTWORK_DESIGNER_PRO_PATH } from "./identity-routes";
 import { AccountControl } from "./AccountControl";
 import { accountAuth } from "./account-auth";
 import {
@@ -294,7 +294,7 @@ export function MyGalleryPage({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Back to Vinyl Designer Wizard Pro"
+          aria-label="Back to Vinyl Artwork Designer Pro"
         >
           <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </button>
@@ -308,7 +308,7 @@ export function MyGalleryPage({
       <div className="mg-main">
         <div className="mg-breadcrumb">
           <button type="button" onClick={onBack}>
-            <ArrowLeft size={13} /> VINYL DESIGNER WIZARD PRO
+            <ArrowLeft size={13} /> VINYL ARTWORK DESIGNER PRO
           </button>
           <span>/</span>
           <b>MY GALLERY</b>
@@ -362,7 +362,7 @@ export function MyGalleryPage({
                 public link will appear here.
               </p>
               <button type="button" onClick={onBack}>
-                Open Vinyl Designer Wizard Pro <ArrowUpRight size={14} />
+                Open Vinyl Artwork Designer Pro <ArrowUpRight size={14} />
               </button>
             </section>
           ) : (
@@ -423,7 +423,7 @@ export function MyGalleryPage({
               here.
             </p>
             <button type="button" onClick={onBack}>
-              Open Vinyl Designer Wizard Pro <ArrowUpRight size={14} />
+              Open Vinyl Artwork Designer Pro <ArrowUpRight size={14} />
             </button>
           </section>
         ) : (

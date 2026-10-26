@@ -1681,7 +1681,7 @@
 }
 .dc-project-name .dc-project-title-label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
   font-size: 12px;
   line-height: 1.2;
   color: var(--dc-muted, #657248);
@@ -1694,7 +1694,7 @@
   max-width: 100%;
   border: 1px solid var(--dc-border, #ced2c2);
   background: transparent;
-  padding: 6px 8px;
+  padding: 1px 3px;
   outline-offset: 5px;
 }
 .dc-project-bar > div:first-child {

@@ -86,8 +86,8 @@ export function MobileCanvasToolbar({
       <button
         className="dc-mobile-toolbar-preview"
         type="button"
-        aria-label="Open 3D sleeve preview"
-        title="3D sleeve preview"
+        aria-label="Preview in 3D"
+        title="Preview in 3D"
         disabled={previewBusy}
         onClick={onOpenPreview}
       >

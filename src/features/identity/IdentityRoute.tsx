@@ -8,7 +8,7 @@ import MyGalleryPage from "./MyGalleryPage";
 import {
   LEGACY_DESIGN_CONFIGURATOR_PATH,
   PREVIOUS_VINYL_DESIGNER_CONFIGURATOR_PATH,
-  VINYL_DESIGNER_WIZARD_PRO_PATH,
+  VINYL_ARTWORK_DESIGNER_PRO_PATH,
 } from "./identity-routes";
 
 type IdentityRouteProperties = {
@@ -18,11 +18,12 @@ type IdentityRouteProperties = {
 export function IdentityRoute({ route }: IdentityRouteProperties) {
   useEffect(() => {
     if (
+      route === "/identity/vinyl-designer-wizard-pro" ||
       route === LEGACY_DESIGN_CONFIGURATOR_PATH ||
       route === PREVIOUS_VINYL_DESIGNER_CONFIGURATOR_PATH
     ) {
       window.location.replace(
-        `${VINYL_DESIGNER_WIZARD_PRO_PATH}${window.location.search}${window.location.hash}`,
+        `${VINYL_ARTWORK_DESIGNER_PRO_PATH}${window.location.search}${window.location.hash}`,
       );
       return;
     }
@@ -36,6 +37,7 @@ export function IdentityRoute({ route }: IdentityRouteProperties) {
   }, [route]);
 
   if (
+    route === "/identity/vinyl-designer-wizard-pro" ||
     route === LEGACY_DESIGN_CONFIGURATOR_PATH ||
     route === PREVIOUS_VINYL_DESIGNER_CONFIGURATOR_PATH
   )
@@ -43,7 +45,7 @@ export function IdentityRoute({ route }: IdentityRouteProperties) {
 
   return (
     <IdentityAccessGate>
-      {route === VINYL_DESIGNER_WIZARD_PRO_PATH ||
+      {route === VINYL_ARTWORK_DESIGNER_PRO_PATH ||
       route === "/identity/my-gallery" ? (
         <IdentityDesignConfigurator
           initialView={route === "/identity/my-gallery" ? "gallery" : "editor"}
