@@ -147,6 +147,7 @@ import "./design-configurator.css";
 import "./design-configurator-mobile.css";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
+const RECOVERY_SUCCESS_NOTICE = "Tu diseño fue recuperado exitosamente.";
 
 function seed() {
   try {
@@ -627,7 +628,7 @@ export function DesignConfiguratorEditor({
     [exportBusy, setExportBusy] = useState(false),
     [notice, setNotice] = useState(
       initial.recovered
-        ? "Tu diseño anterior fue recuperado automáticamente."
+        ? RECOVERY_SUCCESS_NOTICE
         : "",
     ),
     [storageError, setStorageError] = useState("");
@@ -2034,7 +2035,7 @@ export function DesignConfiguratorEditor({
         <div className="dc-breadcrumb">
           <span>identity</span>
           <ChevronRight size={12} />
-          <strong>vinyl designer configurator</strong>
+          <strong>Vinyl Designer Wizard Pro</strong>
         </div>
         <div className="dc-header-actions">
           <AccountControl />
@@ -3855,7 +3856,17 @@ export function DesignConfiguratorEditor({
         </Modal>
       )}
       {notice && (
-        <div className="dc-toast" role="status">
+        <div
+          className={
+            notice === RECOVERY_SUCCESS_NOTICE
+              ? "dc-toast dc-toast-success"
+              : "dc-toast"
+          }
+          role="status"
+        >
+          {notice === RECOVERY_SUCCESS_NOTICE && (
+            <Check size={15} aria-hidden="true" />
+          )}
           {notice}
           <button aria-label="Dismiss message" onClick={() => setNotice("")}>
             <X size={14} />

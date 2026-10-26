@@ -7,7 +7,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { listSharedModels, type SharedModel } from "../ar-model/model-share-repository";
-import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
+import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
 import { AccountControl } from "./AccountControl";
 import { accountAuth } from "./account-auth";
 import {
@@ -240,7 +240,7 @@ export function MyGalleryPage({
   return (
     <main className="mg-page">
       <header className="mg-header">
-        <button type="button" onClick={onBack} aria-label="Back to Vinyl Designer Configurator">
+        <button type="button" onClick={onBack} aria-label="Back to Vinyl Designer Wizard Pro">
           <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </button>
         <div className="mg-header-actions">
@@ -250,7 +250,7 @@ export function MyGalleryPage({
       </header>
       <div className="mg-main">
         <div className="mg-breadcrumb">
-          <button type="button" onClick={onBack}><ArrowLeft size={13} /> VINYL DESIGNER CONFIGURATOR</button>
+          <button type="button" onClick={onBack}><ArrowLeft size={13} /> VINYL DESIGNER WIZARD PRO</button>
           <span>/</span><b>MY GALLERY</b>
         </div>
         <section className="mg-heading">
@@ -267,7 +267,7 @@ export function MyGalleryPage({
             <section className="mg-empty">
               <span>01 / PUBLIC SHARES</span><h2>No shared 3D models yet.</h2>
               <p>Open 3D Sleeve Preview and choose Share. The generated GLB and public link will appear here.</p>
-              <button type="button" onClick={onBack}>Open Vinyl Designer Configurator <ArrowUpRight size={14} /></button>
+              <button type="button" onClick={onBack}>Open Vinyl Designer Wizard Pro <ArrowUpRight size={14} /></button>
             </section>
           ) : (
             <div className="mg-model-list" role="tabpanel">
@@ -290,7 +290,7 @@ export function MyGalleryPage({
           <section className="mg-empty">
             <span>01 / YOUR STUDIO</span><h2>Your first design starts here.</h2>
             <p>Save a project from the configurator and its versions will live here.</p>
-            <button type="button" onClick={onBack}>Open Vinyl Designer Configurator <ArrowUpRight size={14} /></button>
+            <button type="button" onClick={onBack}>Open Vinyl Designer Wizard Pro <ArrowUpRight size={14} /></button>
           </section>
         ) : (
           <>

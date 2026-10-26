@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
-import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
+import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
 import "./design-gallery-concepts.css";
 
 const projects = [
@@ -266,20 +266,20 @@ export default function DesignGalleryConceptsPage() {
     <main className="gc-page">
       <header className="gc-header">
         <a
-          href={VINYL_DESIGNER_CONFIGURATOR_PATH}
-          aria-label="Back to Vinyl Designer Configurator"
+          href={VINYL_DESIGNER_WIZARD_PRO_PATH}
+          aria-label="Back to Vinyl Designer Wizard Pro"
         >
           <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </a>
         <div>
           <span>IDENTITY</span>
           <i>/</i>
-          <span>VINYL DESIGNER CONFIGURATOR</span>
+          <span>VINYL DESIGNER WIZARD PRO</span>
           <i>/</i>
           <b>GALLERY STUDY</b>
         </div>
-        <a className="gc-back" href={VINYL_DESIGNER_CONFIGURATOR_PATH}>
-          <ArrowLeft size={14} /> Back to Vinyl Designer Configurator
+        <a className="gc-back" href={VINYL_DESIGNER_WIZARD_PRO_PATH}>
+          <ArrowLeft size={14} /> Back to Vinyl Designer Wizard Pro
         </a>
       </header>
       <div className="gc-main">

@@ -21,7 +21,7 @@ import {
   Type,
   Undo2,
 } from "lucide-react";
-import { VINYL_DESIGNER_CONFIGURATOR_PATH } from "./identity-routes";
+import { VINYL_DESIGNER_WIZARD_PRO_PATH } from "./identity-routes";
 import "./mobile-configurator-sketch.css";
 
 type Concept = "dock" | "sheet";
@@ -276,8 +276,8 @@ export default function MobileConfiguratorSketchPage() {
           <a href="/dev/configurator-mobile-sketch" aria-current="page">Mobile layout</a>
         </nav>
         <section className="mcs-intro">
-          <div><p className="mcs-kicker">VINYL DESIGNER CONFIGURATOR · MOBILE STUDY</p><h1>Mobile workspace</h1></div>
-          <a href={VINYL_DESIGNER_CONFIGURATOR_PATH}>Open Vinyl Designer Configurator <ArrowRight size={15} /></a>
+          <div><p className="mcs-kicker">VINYL DESIGNER WIZARD PRO · MOBILE STUDY</p><h1>Mobile workspace</h1></div>
+          <a href={VINYL_DESIGNER_WIZARD_PRO_PATH}>Open Vinyl Designer Wizard Pro <ArrowRight size={15} /></a>
         </section>
         <div className="mcs-concept-switch" role="group" aria-label="Choose mobile layout">
           {concepts.map((concept) => (

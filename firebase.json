@@ -67,12 +67,32 @@
     "redirects": [
       {
         "source": "/identity/design-configurator",
-        "destination": "/identity/vinyl-designer-configurator",
+        "destination": "/identity/vinyl-designer-wizard-pro",
         "type": 301
       },
       {
         "source": "/identity/design-configurator/**",
-        "destination": "/identity/vinyl-designer-configurator",
+        "destination": "/identity/vinyl-designer-wizard-pro",
+        "type": 301
+      },
+      {
+        "source": "/identity/vinyl-designer-configurator",
+        "destination": "/identity/vinyl-designer-wizard-pro",
+        "type": 301
+      },
+      {
+        "source": "/identity/vinyl-designer-configurator/**",
+        "destination": "/identity/vinyl-designer-wizard-pro",
+        "type": 301
+      },
+      {
+        "source": "/identity/vinyl-designer-configurator",
+        "destination": "/identity/vinyl-designer-wizard-pro",
+        "type": 301
+      },
+      {
+        "source": "/identity/vinyl-designer-configurator/**",
+        "destination": "/identity/vinyl-designer-wizard-pro",
         "type": 301
       },
       {

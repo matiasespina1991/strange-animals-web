@@ -1354,6 +1354,13 @@
   font-size: 12px;
   box-shadow: 0 8px 25px #17200f22;
 }
+.dc-toast-success {
+  gap: 10px;
+  border: 1px solid #9ac9a4;
+  background: #eaf5ec;
+  color: #236b36;
+  box-shadow: 0 8px 25px #17200f18;
+}
 .dc-toast button {
   color: inherit;
 }
