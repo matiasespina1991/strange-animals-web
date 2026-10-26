@@ -69,7 +69,7 @@ import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
 import {
   GLOBAL_COLOR_PRESETS,
-  MUTED_TO_VIVID_COLOR_PRESETS,
+  INK_COLOR_PRESETS,
 } from "./design-configurator-colors";
 import { SleeveSurfaceIcon } from "./SleeveSurfaceIcon";
 import { MobileCanvasToolbar } from "./MobileCanvasToolbar";
@@ -3131,7 +3131,7 @@ export function DesignConfiguratorEditor({
                             />
                           </label>
                           <ColorSwatches
-                            colors={MUTED_TO_VIVID_COLOR_PRESETS}
+                            colors={INK_COLOR_PRESETS}
                             visibleCount={propertiesPanelWidth <= 300 ? 4 : 5}
                             label="Ink color"
                             onPreview={(color) => previewColor("ink", color)}

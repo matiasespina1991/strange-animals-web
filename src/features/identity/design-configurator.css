@@ -2117,6 +2117,13 @@
   --dc-swatch-size: 22px;
 }
 .dc-preview-stock .dc-paper-options button {
+  flex: 0 0 var(--dc-swatch-size);
+  min-width: var(--dc-swatch-size);
+  min-height: var(--dc-swatch-size);
+  max-width: var(--dc-swatch-size);
+  max-height: var(--dc-swatch-size);
+  aspect-ratio: 1;
+  padding: 0;
   justify-content: center;
   width: var(--dc-swatch-size);
   height: var(--dc-swatch-size);
@@ -2593,6 +2600,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 7px;
 }
 .design-configurator .dc-color-more {
@@ -3053,7 +3061,13 @@
 }
 .dc-ink .dc-layer-ink-controls {
   gap: 7px;
+  width: 100%;
+  min-width: 0;
 }
+.dc-ink.dc-ink-priority { display:grid; grid-template-columns:minmax(0,1fr); gap:7px; }
+.dc-layer-ink-controls .dc-custom-paper { flex:0 0 var(--dc-swatch-size); }
+.dc-layer-ink-controls .dc-color-swatches { --dc-auto-swatches:1; flex:1 1 0; min-width:0; }
+.dc-layer-ink-controls .dc-paper-options { flex:0 0 auto; }
 .dc-ink .dc-color-popover {
   left: auto;
   right: 0;

@@ -124,6 +124,18 @@ const BASE_COLOR_PRESETS = [
   "#E7C3BA",
   "#7A5B6F",
 
+  // Additional vivid and pastel inks.
+  "#F7FF00",
+  "#FF6B35",
+  "#FFB703",
+  "#F94144",
+  "#00F5D4",
+  "#00BBF9",
+  "#4361EE",
+  "#7209B7",
+  "#F72585",
+  "#B8F2E6",
+  "#FDE2E4",
   // Soft cool tints.
   "#C8D0F0",
   "#D9D0E8",
@@ -198,7 +210,15 @@ export const MUTED_TO_VIVID_COLOR_PRESETS = [
   ...vividColors.map(({ color }) => color),
 ];
 
-const GLOBAL_FEATURED_COLORS = MUTED_TO_VIVID_NEUTRALS;
+const GLOBAL_FEATURED_COLORS = [
+  ...MUTED_TO_VIVID_NEUTRALS,
+  "#FF3B30", "#2F6BFF", "#FFD400", "#39FF14", "#FF00A8", "#00E5C3", "#FF7A00", "#6A00FF",
+];
+
+export const INK_COLOR_PRESETS = [
+  ...GLOBAL_FEATURED_COLORS,
+  ...MUTED_TO_VIVID_COLOR_PRESETS.filter(color => !GLOBAL_FEATURED_COLORS.includes(color.toUpperCase())),
+];
 
 export const GLOBAL_COLOR_PRESETS = [
   ...GLOBAL_FEATURED_COLORS,

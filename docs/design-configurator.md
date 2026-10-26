@@ -6,6 +6,8 @@ Route: `/identity/vinyl-designer-configurator`, behind the existing Identity acc
 
 ## Editing
 
+- Mobile global color rows and Ink color use available width to reveal more presets, keeping the + overflow palette. Preset buttons have fixed square dimensions and cannot shrink into ovals. Ink color has a dedicated featured set of neutral and vivid inks plus the complete expanded palette; its label sits above the row to leave more room for colors.
+
 - The sun/moon button at the far right of the header toggles a scoped light/dark UI theme. It defaults to light and remembers the choice in `sa-design-configurator-theme`, independently of project JSON and undo history. Dark mode themes desktop/mobile controls, drawers and dialogs; artwork, color swatches and asset previews retain their actual colors. UI color literals use semantic CSS variables with original light colors as fallbacks.
 
 - Content includes compact aa / Aa / AA actions for lowercase, title case and uppercase, preserving whitespace and line breaks. Each action is undoable.

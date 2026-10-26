@@ -221,8 +221,10 @@
     grid-column: 3;
     grid-row: 1;
     min-width: 0;
-    justify-self: end;
-    flex: 0 0 auto;
+    justify-self: stretch;
+    width: 100%;
+    flex: 1 1 auto;
+    --dc-auto-swatches: 1;
     gap: 4px;
   }
 
