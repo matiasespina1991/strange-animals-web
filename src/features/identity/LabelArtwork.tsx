@@ -656,7 +656,7 @@ export function LabelArtwork({
                     cx="300"
                     cy="300"
                     r={layer.radius}
-                    className="dc-selection-guide"
+                    className="dc-arc-selection-guide"
                   />
                 ) : layer.kind === "image" ? (
                   <rect

@@ -22,7 +22,6 @@ export function ImageAppearanceControls({ layer, onChange, onCommit }: {
     </div>}
     {role !== "brand-logo" && role !== "barcode" && layer.image?.startsWith("data:image/svg+xml") && <>
       {color("Fill color", layer.imageFill ?? "#000000", imageFill => onChange({ imageFill, imageInverted: false }, `image-fill-${layer.id}`))}
-      {layer.imageFill && <button type="button" className="dc-image-reset" onClick={() => { onCommit(); onChange({ imageFill: undefined }); }}>Original colors</button>}
     </>}
     {role === "brand-logo" && <label className="dc-image-invert">
       <input type="checkbox" checked={layer.imageInverted ?? false} onChange={event => { onCommit(); onChange({ imageInverted: event.target.checked, imageFill: undefined, imageBarColor: undefined }); }} />

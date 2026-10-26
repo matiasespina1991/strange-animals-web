@@ -965,6 +965,14 @@
   mix-blend-mode: difference;
   pointer-events: none;
 }
+.dc-arc-selection-guide {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
 .dc-print-guides {
   fill: none;
   stroke: #fff;
