@@ -11,13 +11,87 @@ import {
   type FontVariant,
 } from "./font-catalog-repository";
 import {
+  barcodeSourceMatrix,
+  circularPath,
+  getSurfaceLayers,
+  imageRole,
   safeFilename,
+  SLEEVE_SIZE_MM,
+  sleeveLabelGeometry,
   type LabelDesign,
   type LabelLayer,
   type LabelSide,
 } from "./design-configurator-model";
 
 export type ResolvedLabelFont = { family: string; variant: FontVariant };
+
+function appendSleeveImageColorFilter(
+  definitions: SVGDefsElement,
+  layer: LabelLayer,
+  svgNamespace: string,
+) {
+  const role = imageRole(layer);
+  if (
+    !layer.imageFill &&
+    !(role === "brand-logo" && layer.imageInverted) &&
+    role !== "barcode"
+  )
+    return undefined;
+
+  const id = `sleeve-image-color-${layer.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  const filter = document.createElementNS(svgNamespace, "filter");
+  filter.setAttribute("id", id);
+  filter.setAttribute("color-interpolation-filters", "sRGB");
+  if (layer.imageFill) {
+    const flood = document.createElementNS(svgNamespace, "feFlood");
+    flood.setAttribute("flood-color", layer.imageFill);
+    const composite = document.createElementNS(svgNamespace, "feComposite");
+    composite.setAttribute("in2", "SourceAlpha");
+    composite.setAttribute("operator", "in");
+    filter.append(flood, composite);
+  } else if (role === "barcode") {
+    const matrix = document.createElementNS(svgNamespace, "feColorMatrix");
+    matrix.setAttribute("in", "SourceGraphic");
+    matrix.setAttribute("result", "barcode-source");
+    matrix.setAttribute("type", "matrix");
+    matrix.setAttribute("values", barcodeSourceMatrix(layer.imageBarSource));
+    const transfer = document.createElementNS(
+      svgNamespace,
+      "feComponentTransfer",
+    );
+    transfer.setAttribute("in", "barcode-source");
+    const bars = layer.imageBarColor ?? layer.imageBarSource?.bars ?? "#000000";
+    const background =
+      layer.imageBarBackground ?? layer.imageBarSource?.background ?? "#ffffff";
+    const channels = [1, 3, 5];
+    const functions = ["feFuncR", "feFuncG", "feFuncB"];
+    for (const [index, functionName] of functions.entries()) {
+      const channel = document.createElementNS(svgNamespace, functionName);
+      channel.setAttribute("type", "table");
+      channel.setAttribute(
+        "tableValues",
+        `${parseInt(bars.slice(channels[index], channels[index] + 2), 16) / 255} ${parseInt(background.slice(channels[index], channels[index] + 2), 16) / 255}`,
+      );
+      transfer.append(channel);
+    }
+    filter.append(matrix, transfer);
+  } else {
+    const transfer = document.createElementNS(
+      svgNamespace,
+      "feComponentTransfer",
+    );
+    for (const functionName of ["feFuncR", "feFuncG", "feFuncB"]) {
+      const channel = document.createElementNS(svgNamespace, functionName);
+      channel.setAttribute("type", "table");
+      channel.setAttribute("tableValues", "1 0");
+      transfer.append(channel);
+    }
+    filter.append(transfer);
+  }
+  definitions.append(filter);
+  return id;
+}
+
 export const fontKey = (layer: Pick<LabelLayer, "fontId" | "variantId">) =>
   `${layer.fontId ?? "default"}:${layer.variantId ?? "preview"}`;
 const fontPromises = new Map<string, Promise<ResolvedLabelFont>>();
@@ -143,13 +217,210 @@ export async function createLabelSvg(
   svg.removeAttribute("class");
   return new XMLSerializer().serializeToString(svg);
 }
+
+export async function createSleeveArtworkSvg(
+  design: LabelDesign,
+  fonts: FontCatalogItem[],
+  side: LabelSide,
+) {
+  const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter((layer) => layer.visible);
+  const resolved = new Map<string, ResolvedLabelFont>();
+  for (const layer of visibleLayers) {
+    if (layer.kind === "image" || !layer.fontId) continue;
+    const font = fonts.find((item) => item.id === layer.fontId);
+    if (!font) throw Error(`La fuente de «${layer.name}» no está disponible.`);
+    resolved.set(fontKey(layer), await resolveLabelFont(font, layer.variantId));
+  }
+
+  const rules: string[] = [];
+  const defaultFonts = [
+    {
+      family: "Alte DIN Input",
+      url: "/media/fonts/Alte%20DIN%201451%20Mittelschrift%20gepraegt%20Regular.ttf",
+      format: "truetype",
+      extension: "ttf",
+    },
+    {
+      family: "Berlin Type Office",
+      url: "/media/fonts/BerlinType-Bold.otf",
+      format: "opentype",
+      extension: "otf",
+    },
+  ];
+  for (const font of defaultFonts) {
+    const response = await fetch(font.url);
+    if (!response.ok) throw Error("No se pudo incluir una fuente de interfaz en la captura.");
+    rules.push(
+      `@font-face{font-family:${JSON.stringify(font.family)};src:url(data:font/${font.extension};base64,${base64(new Uint8Array(await response.arrayBuffer()))}) format('${font.format}');font-weight:400;}`,
+    );
+  }
+  const embedded = new Set<string>();
+  for (const item of resolved.values()) {
+    if (embedded.has(item.family)) continue;
+    embedded.add(item.family);
+    const bytes = new Uint8Array(
+      await getBytes(ref(firebaseStorage, item.variant.storagePath), 20 * 1024 * 1024),
+    );
+    const format = ({
+      otf: "opentype",
+      ttf: "truetype",
+      woff: "woff",
+      woff2: "woff2",
+    } as Record<string, string>)[item.variant.extension];
+    if (!format) throw Error("Formato de fuente no exportable.");
+    rules.push(
+      `@font-face{font-family:${JSON.stringify(item.family)};src:url(data:font/${item.variant.extension};base64,${base64(bytes)}) format('${format}');font-weight:400;}`,
+    );
+  }
+
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const root = document.createElementNS(svgNamespace, "svg");
+  root.setAttribute("xmlns", svgNamespace);
+  root.setAttribute("width", "600");
+  root.setAttribute("height", "600");
+  root.setAttribute("viewBox", "0 0 600 600");
+  const defs = document.createElementNS(svgNamespace, "defs");
+  const clip = document.createElementNS(svgNamespace, "clipPath");
+  clip.setAttribute("id", "sleeve-texture-clip");
+  const clipRect = document.createElementNS(svgNamespace, "rect");
+  clipRect.setAttribute("width", "600");
+  clipRect.setAttribute("height", "600");
+  clip.append(clipRect);
+  const cardboardMask = document.createElementNS(svgNamespace, "mask");
+  cardboardMask.setAttribute("id", "sleeve-cardboard-mask");
+  cardboardMask.setAttribute("maskUnits", "userSpaceOnUse");
+  cardboardMask.setAttribute("maskContentUnits", "userSpaceOnUse");
+  const cardboardArea = document.createElementNS(svgNamespace, "rect");
+  cardboardArea.setAttribute("width", "600");
+  cardboardArea.setAttribute("height", "600");
+  cardboardArea.setAttribute("fill", "white");
+  const cookieCutout = document.createElementNS(svgNamespace, "circle");
+  const labelGeometry = sleeveLabelGeometry(design.diameterMm);
+  cookieCutout.setAttribute("cx", String(labelGeometry.center));
+  cookieCutout.setAttribute("cy", String(labelGeometry.center));
+  cookieCutout.setAttribute("r", String(labelGeometry.radius));
+  cookieCutout.setAttribute("fill", "black");
+  cardboardMask.append(cardboardArea, cookieCutout);
+  const style = document.createElementNS(svgNamespace, "style");
+  style.textContent = rules.join("\n");
+  defs.append(clip, cardboardMask, style);
+  root.append(defs);
+
+  const background = document.createElementNS(svgNamespace, "rect");
+  background.setAttribute("width", "600");
+  background.setAttribute("height", "600");
+  background.setAttribute("fill", design.sleeveColor);
+  root.append(background);
+
+  if (design.sleeveImage) {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(Error("Could not load sleeve artwork."));
+      image.src = design.sleeveImage!;
+    });
+    const scale = Math.max(600 / image.naturalWidth, 600 / image.naturalHeight) * design.sleeveZoom;
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    const imageNode = document.createElementNS(svgNamespace, "image");
+    imageNode.setAttribute("href", design.sleeveImage);
+    imageNode.setAttribute(
+      "x",
+      String((600 - width) / 2 + design.sleeveImageOffsetX),
+    );
+    imageNode.setAttribute(
+      "y",
+      String((600 - height) / 2 + design.sleeveImageOffsetY),
+    );
+    imageNode.setAttribute("width", String(width));
+    imageNode.setAttribute("height", String(height));
+    imageNode.setAttribute("clip-path", "url(#sleeve-texture-clip)");
+    root.append(imageNode);
+  }
+
+  const sleeveLayers = document.createElementNS(svgNamespace, "g");
+  sleeveLayers.setAttribute("id", "sleeve-layer-overlays");
+  sleeveLayers.setAttribute("mask", "url(#sleeve-cardboard-mask)");
+  for (const layer of visibleLayers) {
+    if (layer.kind === "image" && layer.image) {
+      const width = layer.width;
+      const height = width / Math.max(layer.imageRatio ?? 1, 0.05);
+      const image = document.createElementNS(svgNamespace, "image");
+      image.setAttribute("href", layer.image);
+      image.setAttribute("x", String(layer.x - width / 2));
+      image.setAttribute("y", String(layer.y - height / 2));
+      image.setAttribute("width", String(width));
+      image.setAttribute("height", String(height));
+      image.setAttribute("opacity", String(layer.opacity ?? 1));
+      const filterId = appendSleeveImageColorFilter(defs, layer, svgNamespace);
+      if (filterId) image.setAttribute("filter", `url(#${filterId})`);
+      image.setAttribute(
+        "transform",
+        `rotate(${layer.angle} ${layer.x} ${layer.y})`,
+      );
+      sleeveLayers.append(image);
+      continue;
+    }
+
+    const family = resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer);
+    const textAnchor = layer.align === "middle" ? "middle" : layer.align;
+    if (layer.kind === "circular") {
+      const pathId = `sleeve-arc-${layer.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+      const path = document.createElementNS(svgNamespace, "path");
+      path.setAttribute("id", pathId);
+      path.setAttribute("d", circularPath(layer));
+      defs.append(path);
+      const text = document.createElementNS(svgNamespace, "text");
+      text.setAttribute("fill", layer.color);
+      text.setAttribute("font-family", family);
+      text.setAttribute("font-size", String(layer.size));
+      text.setAttribute("letter-spacing", String(layer.spacing));
+      text.setAttribute("text-anchor", textAnchor);
+      text.setAttribute("opacity", String(layer.opacity ?? 1));
+      const textPath = document.createElementNS(svgNamespace, "textPath");
+      textPath.setAttribute("href", `#${pathId}`);
+      textPath.setAttribute("startOffset", "50%");
+      textPath.textContent = layer.text.replace(/\n/g, " ");
+      text.append(textPath);
+      sleeveLayers.append(text);
+      continue;
+    }
+
+    const text = document.createElementNS(svgNamespace, "text");
+    text.setAttribute("x", String(layer.x));
+    text.setAttribute("y", String(layer.y));
+    text.setAttribute("fill", layer.color);
+    text.setAttribute("font-family", family);
+    text.setAttribute("font-size", String(layer.size));
+    text.setAttribute("letter-spacing", String(layer.spacing));
+    text.setAttribute("text-anchor", textAnchor);
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("opacity", String(layer.opacity ?? 1));
+    text.setAttribute("transform", `rotate(${layer.angle} ${layer.x} ${layer.y})`);
+    const lines = layer.text.split("\n");
+    const lineHeight = layer.size * layer.lineHeight;
+    lines.forEach((line, index) => {
+      const span = document.createElementNS(svgNamespace, "tspan");
+      span.setAttribute("x", String(layer.x));
+      span.setAttribute("dy", String(index === 0 ? -(lines.length - 1) * lineHeight / 2 : lineHeight));
+      span.textContent = line;
+      text.append(span);
+    });
+    sleeveLayers.append(text);
+  }
+
+  root.append(sleeveLayers);
+  return new XMLSerializer().serializeToString(root);
+}
+
 export async function createSleeveLabelSvg(
   labelMarkup: string,
   design: LabelDesign,
   includeBleed: boolean,
+  sleeveArtworkMarkup?: string,
 ) {
   const svgNamespace = "http://www.w3.org/2000/svg";
-  const sleeveSizeMm = 315;
+  const sleeveSizeMm = SLEEVE_SIZE_MM;
   const labelSizeMm =
     design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0);
   const labelDocument = new DOMParser().parseFromString(
@@ -163,6 +434,36 @@ export async function createSleeveLabelSvg(
   root.setAttribute("width", `${sleeveSizeMm}mm`);
   root.setAttribute("height", `${sleeveSizeMm}mm`);
   root.setAttribute("viewBox", `0 0 ${sleeveSizeMm} ${sleeveSizeMm}`);
+  if (sleeveArtworkMarkup) {
+    const sleeveDocument = new DOMParser().parseFromString(
+      sleeveArtworkMarkup,
+      "image/svg+xml",
+    );
+    if (sleeveDocument.querySelector("parsererror"))
+      throw new Error("Could not compose sleeve artwork.");
+    const sleeveArtwork = document.importNode(
+      sleeveDocument.documentElement,
+      true,
+    ) as SVGSVGElement;
+    sleeveArtwork.setAttribute("x", "0");
+    sleeveArtwork.setAttribute("y", "0");
+    sleeveArtwork.setAttribute("width", String(sleeveSizeMm));
+    sleeveArtwork.setAttribute("height", String(sleeveSizeMm));
+    sleeveArtwork.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    root.append(sleeveArtwork);
+    const label = document.importNode(
+      labelDocument.documentElement,
+      true,
+    ) as SVGSVGElement;
+    label.setAttribute("x", String((sleeveSizeMm - labelSizeMm) / 2));
+    label.setAttribute("y", String((sleeveSizeMm - labelSizeMm) / 2));
+    label.setAttribute("width", String(labelSizeMm));
+    label.setAttribute("height", String(labelSizeMm));
+    label.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    root.append(label);
+    return new XMLSerializer().serializeToString(root);
+  }
+
   const defs = document.createElementNS(svgNamespace, "defs");
   const clipPath = document.createElementNS(svgNamespace, "clipPath");
   clipPath.setAttribute("id", "sleeve-art-clip");
@@ -196,8 +497,20 @@ export async function createSleeveLabelSvg(
     const imageHeight = sleeveImage.naturalHeight * coverScale;
     const image = document.createElementNS(svgNamespace, "image");
     image.setAttribute("href", design.sleeveImage);
-    image.setAttribute("x", String((sleeveSizeMm - imageWidth) / 2));
-    image.setAttribute("y", String((sleeveSizeMm - imageHeight) / 2));
+    image.setAttribute(
+      "x",
+      String(
+        (sleeveSizeMm - imageWidth) / 2 +
+          (design.sleeveImageOffsetX * sleeveSizeMm) / 600,
+      ),
+    );
+    image.setAttribute(
+      "y",
+      String(
+        (sleeveSizeMm - imageHeight) / 2 +
+          (design.sleeveImageOffsetY * sleeveSizeMm) / 600,
+      ),
+    );
     image.setAttribute("width", String(imageWidth));
     image.setAttribute("height", String(imageHeight));
     image.setAttribute("clip-path", "url(#sleeve-art-clip)");

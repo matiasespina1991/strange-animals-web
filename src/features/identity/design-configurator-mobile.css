@@ -1,0 +1,444 @@
+.design-configurator .dc-mobile-canvas-toolbar {
+  display: none;
+}
+.design-configurator .dc-mobile-global-toggle {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .design-configurator {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .design-configurator .dc-header {
+    position: static;
+    height: 56px;
+    min-height: 56px;
+    flex: 0 0 56px;
+    gap: 10px;
+    padding-inline: 12px;
+  }
+
+  .design-configurator .dc-brand {
+    width: clamp(64px, 22vw, 84px);
+  }
+
+  .design-configurator .dc-breadcrumb {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .design-configurator .dc-breadcrumb > span:first-child,
+  .design-configurator .dc-breadcrumb > svg,
+  .design-configurator .dc-back {
+    display: none;
+  }
+
+  .design-configurator .dc-breadcrumb strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .design-configurator .dc-header-actions {
+    flex: 0 0 auto;
+  }
+
+  .design-configurator .dc-project-bar {
+    position: static;
+    min-height: 96px;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 18px;
+  }
+
+  .design-configurator .dc-project-bar > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .design-configurator .dc-project-bar .dc-project-name {
+    display: block;
+    margin-top: 3px;
+  }
+
+  .design-configurator .dc-project-bar .dc-project-name input {
+    width: min(100%, 340px);
+    font-size: 22px !important;
+  }
+
+  .design-configurator .dc-project-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 54px repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0;
+  }
+
+  .design-configurator .dc-project-actions .dc-history {
+    justify-content: center;
+    margin: 0;
+  }
+
+  .design-configurator .dc-project-actions .dc-history button {
+    width: 26px;
+    height: 38px;
+  }
+
+  .design-configurator .dc-project-actions > .dc-save,
+  .design-configurator .dc-project-actions > .dc-export,
+  .design-configurator .dc-project-actions .dc-save-menu-container > .dc-save {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    justify-content: center;
+    padding: 5px 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .design-configurator .dc-project-actions .dc-save-menu-container {
+    min-width: 0;
+  }
+
+  .design-configurator .dc-workspace {
+    display: flex;
+    min-height: 0;
+    flex: 0 0 auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .design-configurator .dc-global-settings {
+    position: static;
+    top: auto;
+    flex: 0 0 auto;
+    align-content: start;
+    gap: 8px;
+    padding: 12px 18px;
+  }
+
+  .design-configurator .dc-global-settings-title {
+    display: none;
+  }
+
+  .design-configurator .dc-mobile-global-toggle {
+    display: flex;
+    width: 100%;
+    min-height: 30px;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    text-align: left;
+  }
+
+  .design-configurator .dc-mobile-global-toggle > span:first-child {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.45px;
+    text-transform: uppercase;
+  }
+
+  .design-configurator .dc-mobile-global-toggle > span:nth-child(2) {
+    margin-left: auto;
+    color: #6f7365;
+    font-size: 9px;
+  }
+
+  .design-configurator .dc-mobile-global-toggle > svg {
+    flex: 0 0 auto;
+    color: #657248;
+  }
+
+  .design-configurator .dc-mobile-global-toggle[aria-expanded="true"] > svg {
+    transform: rotate(180deg);
+  }
+
+  .design-configurator .dc-global-settings[data-mobile-collapsed="true"]
+    .dc-global-settings-controls {
+    display: none;
+  }
+
+  .design-configurator .dc-global-settings-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    grid-template-columns: 54px 22px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    overflow: visible;
+    font-size: 11px;
+    --dc-swatch-size: 22px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock > span {
+    grid-column: 1;
+    flex: initial;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-custom-paper {
+    grid-column: 2;
+    grid-row: 1;
+    flex: 0 0 22px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-custom-paper input {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    flex: 0 0 22px;
+    box-sizing: border-box;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-swatches {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    justify-self: end;
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options {
+    min-width: 0;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options button {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    flex: 0 0 22px;
+    aspect-ratio: 1;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .design-configurator .dc-canvas-context-controls-layers {
+    display: none;
+  }
+
+  .design-configurator .dc-stage {
+    order: 1;
+    min-height: max(420px, 70svh);
+    flex: 0 0 auto;
+    overflow: hidden;
+  }
+
+  .design-configurator .dc-stage-top {
+    display: flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 4px 6px;
+  }
+
+  .design-configurator .dc-stage-top > span,
+  .design-configurator .dc-stage-top > .dc-preview-3d-button,
+  .design-configurator .dc-stage-top > .dc-preview-controls {
+    display: none;
+  }
+
+  .design-configurator .dc-mobile-canvas-toolbar {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: max-content max-content minmax(0, 1fr) 26px;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .design-configurator .dc-mobile-toolbar-segment {
+    display: flex;
+    min-width: 0;
+    height: 36px;
+    align-items: stretch;
+    border: 1px solid #c4cab9;
+  }
+
+  .design-configurator .dc-mobile-toolbar-segment button {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .design-configurator .dc-mobile-toolbar-segment button svg,
+  .design-configurator .dc-mobile-toolbar-segment button > span {
+    flex: 0 0 auto;
+  }
+
+  .design-configurator .dc-mobile-toolbar-segment button + button {
+    border-left: 1px solid #c4cab9;
+  }
+
+  .design-configurator .dc-mobile-toolbar-segment button[aria-pressed="true"],
+  .design-configurator .dc-mobile-toolbar-guides[aria-pressed="true"] {
+    background: #e6e9dc;
+    color: #29351f;
+  }
+
+  .design-configurator .dc-mobile-toolbar-side button {
+    min-width: 56px;
+    padding-inline: 8px;
+  }
+
+  .design-configurator .dc-mobile-toolbar-guides {
+    display: flex;
+    justify-self: end;
+    min-width: 0;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1px solid #c4cab9;
+    padding: 0 8px;
+    font-size: 11px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .design-configurator .dc-mobile-toolbar-guides svg {
+    flex: 0 0 auto;
+  }
+
+  .design-configurator .dc-mobile-toolbar-preview {
+    display: grid;
+    width: 26px;
+    height: 36px;
+    place-items: center;
+    border: 1px solid #c4cab9;
+    color: #59664a;
+  }
+
+  .design-configurator .dc-mobile-toolbar-preview:disabled {
+    opacity: 0.4;
+  }
+
+  .design-configurator .dc-artboard {
+    min-height: 260px;
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    padding: 12px;
+  }
+
+  .design-configurator .dc-artboard-content {
+    padding: inherit;
+  }
+
+  .design-configurator .dc-sleeve-canvas {
+    width: min(100%, 610px, 53svh);
+  }
+
+  .design-configurator .dc-canvas-footer {
+    min-height: 52px;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    padding: 6px 12px;
+  }
+
+  .design-configurator .dc-canvas-footer > span {
+    max-width: 240px;
+    font-size: 9px;
+  }
+
+  .design-configurator .dc-layers,
+  .design-configurator .dc-properties {
+    order: 3;
+    min-height: 180px;
+    max-height: min(300px, 42svh);
+    flex: 0 0 min(260px, 38svh);
+    padding: 12px 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .design-configurator .dc-layers.dc-mobile-visible,
+  .design-configurator .dc-properties.dc-mobile-visible {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .design-configurator .dc-mobile-tabs {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    order: 2;
+    min-height: 56px;
+    flex: 0 0 56px;
+    align-items: stretch;
+    border-top: 1px solid #d0d6c3;
+    padding: 5px 12px max(5px, env(safe-area-inset-bottom));
+    background: #fafaf7;
+  }
+
+  .design-configurator .dc-mobile-tabs button {
+    min-width: 0;
+    min-height: 44px;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .design-configurator .dc-field textarea,
+  .design-configurator .dc-field select,
+  .design-configurator .dc-field input[type="number"],
+  .design-configurator .dc-field > input:not([type="range"]),
+  .design-configurator .dc-font-picker .dc-field select {
+    font-size: 12px;
+  }
+
+  .design-configurator .dc-add-controls button {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .design-configurator .dc-project-actions {
+    grid-template-columns: 54px repeat(2, minmax(0, 1fr));
+  }
+
+  .design-configurator .dc-project-settings > span {
+    display: none;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock {
+    grid-template-columns: 54px 22px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-swatches,
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-paper-options {
+    gap: 1px;
+  }
+
+  .design-configurator .dc-global-settings-controls > .dc-preview-stock .dc-color-more {
+    width: 24px;
+    height: 22px;
+    flex: 0 0 24px;
+  }
+}

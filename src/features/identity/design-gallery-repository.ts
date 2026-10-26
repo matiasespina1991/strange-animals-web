@@ -9,16 +9,16 @@ import {
   runTransaction,
   serverTimestamp,
   type Timestamp,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 import {
   deleteObject,
   getBlob,
   getStorage,
   ref,
   uploadBytes,
-} from 'firebase/storage';
-import {accountAuth} from './account-auth';
-import {parseDesign, type LabelDesign} from './design-configurator-model';
+} from "firebase/storage";
+import { accountAuth } from "./account-auth";
+import { parseDesign, type LabelDesign } from "./design-configurator-model";
 
 const galleryDatabase = getFirestore(accountAuth.app);
 const galleryStorage = getStorage(accountAuth.app);
@@ -31,6 +31,8 @@ export type GalleryProject = {
   latestVersionId: string;
   frontPreviewPath: string;
   backPreviewPath: string;
+  frontSleevePreviewPath?: string;
+  backSleevePreviewPath?: string;
   updatedAt: Timestamp;
 };
 
@@ -41,38 +43,40 @@ export type GalleryVersion = {
   designPath: string;
   frontPreviewPath: string;
   backPreviewPath: string;
-  modelPath: string;
-  modelFileName: string;
-  modelSizeBytes: number;
+  frontSleevePreviewPath?: string;
+  backSleevePreviewPath?: string;
+  modelPath?: string;
+  modelFileName?: string;
+  modelSizeBytes?: number;
 };
 
 function projectCollection(uid: string) {
-  return collection(galleryDatabase, 'designUsers', uid, 'projects');
+  return collection(galleryDatabase, "designUsers", uid, "projects");
 }
 
 function projectDocument(uid: string, projectId: string) {
-  return doc(galleryDatabase, 'designUsers', uid, 'projects', projectId);
+  return doc(galleryDatabase, "designUsers", uid, "projects", projectId);
 }
 
 function versionCollection(uid: string, projectId: string) {
   return collection(
     galleryDatabase,
-    'designUsers',
+    "designUsers",
     uid,
-    'projects',
+    "projects",
     projectId,
-    'versions',
+    "versions",
   );
 }
 
 function versionDocument(uid: string, projectId: string, versionId: string) {
   return doc(
     galleryDatabase,
-    'designUsers',
+    "designUsers",
     uid,
-    'projects',
+    "projects",
     projectId,
-    'versions',
+    "versions",
     versionId,
   );
 }
@@ -82,14 +86,18 @@ function readProject(
   data: Record<string, unknown>,
 ): GalleryProject {
   if (
-    typeof data.title !== 'string' ||
-    typeof data.latestVersion !== 'number' ||
-    typeof data.latestVersionId !== 'string' ||
-    typeof data.frontPreviewPath !== 'string' ||
-    typeof data.backPreviewPath !== 'string' ||
+    typeof data.title !== "string" ||
+    typeof data.latestVersion !== "number" ||
+    typeof data.latestVersionId !== "string" ||
+    typeof data.frontPreviewPath !== "string" ||
+    typeof data.backPreviewPath !== "string" ||
+    (data.frontSleevePreviewPath !== undefined &&
+      typeof data.frontSleevePreviewPath !== "string") ||
+    (data.backSleevePreviewPath !== undefined &&
+      typeof data.backSleevePreviewPath !== "string") ||
     !data.updatedAt
   ) {
-    throw new Error('This gallery project has invalid metadata.');
+    throw new Error("This gallery project has invalid metadata.");
   }
 
   return {
@@ -99,6 +107,8 @@ function readProject(
     latestVersionId: data.latestVersionId,
     frontPreviewPath: data.frontPreviewPath,
     backPreviewPath: data.backPreviewPath,
+    frontSleevePreviewPath: data.frontSleevePreviewPath as string | undefined,
+    backSleevePreviewPath: data.backSleevePreviewPath as string | undefined,
     updatedAt: data.updatedAt as Timestamp,
   };
 }
@@ -108,16 +118,28 @@ function readVersion(
   data: Record<string, unknown>,
 ): GalleryVersion {
   if (
-    typeof data.version !== 'number' ||
+    typeof data.version !== "number" ||
     !data.createdAt ||
-    typeof data.designPath !== 'string' ||
-    typeof data.frontPreviewPath !== 'string' ||
-    typeof data.backPreviewPath !== 'string' ||
-    typeof data.modelPath !== 'string' ||
-    typeof data.modelFileName !== 'string' ||
-    typeof data.modelSizeBytes !== 'number'
+    typeof data.designPath !== "string" ||
+    typeof data.frontPreviewPath !== "string" ||
+    typeof data.backPreviewPath !== "string" ||
+    (data.frontSleevePreviewPath !== undefined &&
+      typeof data.frontSleevePreviewPath !== "string") ||
+    (data.backSleevePreviewPath !== undefined &&
+      typeof data.backSleevePreviewPath !== "string") ||
+    (data.modelPath !== undefined && typeof data.modelPath !== "string") ||
+    (data.modelFileName !== undefined &&
+      typeof data.modelFileName !== "string") ||
+    (data.modelSizeBytes !== undefined &&
+      typeof data.modelSizeBytes !== "number") ||
+    ([data.modelPath, data.modelFileName, data.modelSizeBytes].some(
+      (value) => value !== undefined,
+    ) &&
+      [data.modelPath, data.modelFileName, data.modelSizeBytes].some(
+        (value) => value === undefined,
+      ))
   ) {
-    throw new Error('This design version has invalid metadata.');
+    throw new Error("This design version has invalid metadata.");
   }
 
   return {
@@ -127,15 +149,17 @@ function readVersion(
     designPath: data.designPath,
     frontPreviewPath: data.frontPreviewPath,
     backPreviewPath: data.backPreviewPath,
-    modelPath: data.modelPath,
-    modelFileName: data.modelFileName,
-    modelSizeBytes: data.modelSizeBytes,
+    frontSleevePreviewPath: data.frontSleevePreviewPath as string | undefined,
+    backSleevePreviewPath: data.backSleevePreviewPath as string | undefined,
+    modelPath: data.modelPath as string | undefined,
+    modelFileName: data.modelFileName as string | undefined,
+    modelSizeBytes: data.modelSizeBytes as number | undefined,
   };
 }
 
 export async function listGalleryProjects(uid: string) {
   const snapshot = await getDocs(
-    query(projectCollection(uid), orderBy('updatedAt', 'desc')),
+    query(projectCollection(uid), orderBy("updatedAt", "desc")),
   );
   return snapshot.docs.map((project) =>
     readProject(project.id, project.data()),
@@ -149,7 +173,7 @@ export async function getGalleryProject(uid: string, projectId: string) {
 
 export async function listGalleryVersions(uid: string, projectId: string) {
   const snapshot = await getDocs(
-    query(versionCollection(uid, projectId), orderBy('version', 'desc')),
+    query(versionCollection(uid, projectId), orderBy("version", "desc")),
   );
   return snapshot.docs.map((version) =>
     readVersion(version.id, version.data()),
@@ -183,7 +207,8 @@ export async function saveGalleryVersion({
   design,
   frontPreview,
   backPreview,
-  model,
+  frontSleevePreview,
+  backSleevePreview,
   projectId,
   asNewProject = false,
 }: {
@@ -191,7 +216,8 @@ export async function saveGalleryVersion({
   design: LabelDesign;
   frontPreview: Blob;
   backPreview: Blob;
-  model: Blob;
+  frontSleevePreview: Blob;
+  backSleevePreview: Blob;
   projectId?: string;
   asNewProject?: boolean;
 }) {
@@ -202,7 +228,7 @@ export async function saveGalleryVersion({
     ? await getDoc(targetProjectReference)
     : null;
   if (existingProjectId && !existingSnapshot?.exists()) {
-    throw new Error('This project is no longer in your gallery.');
+    throw new Error("This project is no longer in your gallery.");
   }
 
   const previousVersion = existingSnapshot?.exists()
@@ -214,37 +240,32 @@ export async function saveGalleryVersion({
   const designPath = `${root}/design.json`;
   const frontPreviewPath = `${root}/front.png`;
   const backPreviewPath = `${root}/back.png`;
-  const modelPath = `${root}/model.glb`;
-  const safeTitle = (design.title.trim() || 'untitled-project')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .replace(/[^\w.-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 136);
-  const modelFileName = `${safeTitle || 'design'}-v${version}.glb`;
+  const frontSleevePreviewPath = `${root}/front-with-sleeve.png`;
+  const backSleevePreviewPath = `${root}/back-with-sleeve.png`;
   const designFile = new Blob([JSON.stringify(design)], {
-    type: 'application/json',
+    type: "application/json",
   });
-  if (
-    designFile.size > MAX_GALLERY_FILE_BYTES ||
-    model.size === 0 ||
-    model.size > MAX_GALLERY_FILE_BYTES
-  ) {
-    throw new Error(
-      'The design or generated 3D model exceeds the 100 MB limit.',
-    );
+  if (designFile.size > MAX_GALLERY_FILE_BYTES) {
+    throw new Error("The design exceeds the 100 MB limit.");
   }
 
   const files = [
-    {path: designPath, file: designFile},
-    {path: frontPreviewPath, file: frontPreview},
-    {path: backPreviewPath, file: backPreview},
-    {path: modelPath, file: model},
+    { path: designPath, file: designFile },
+    { path: frontPreviewPath, file: frontPreview },
+    { path: backPreviewPath, file: backPreview },
+    { path: frontSleevePreviewPath, file: frontSleevePreview },
+    { path: backSleevePreviewPath, file: backSleevePreview },
   ];
 
   try {
+    if (import.meta.env.DEV) {
+      console.info("[StudioShelf/repository] upload-start", {
+        fileCount: files.length,
+        totalBytes: files.reduce((total, entry) => total + entry.file.size, 0),
+      });
+    }
     await Promise.all(
-      files.map(async ({path, file}) =>
+      files.map(async ({ path, file }) =>
         uploadBytes(ref(galleryStorage, path), file, {
           contentType: file.type,
         }),
@@ -262,7 +283,7 @@ export async function saveGalleryVersion({
         transaction.get(targetVersionReference),
       ]);
       if (versionSnapshot.exists()) {
-        throw new Error('This version already exists. Please save again.');
+        throw new Error("This version already exists. Please save again.");
       }
 
       if (existingProjectId) {
@@ -272,7 +293,7 @@ export async function saveGalleryVersion({
             .latestVersion !== previousVersion
         ) {
           throw new Error(
-            'This project changed in another session. Reload it and retry.',
+            "This project changed in another session. Reload it and retry.",
           );
         }
 
@@ -282,12 +303,14 @@ export async function saveGalleryVersion({
           latestVersionId: versionId,
           frontPreviewPath,
           backPreviewPath,
+          frontSleevePreviewPath,
+          backSleevePreviewPath,
           updatedAt: serverTimestamp(),
         });
       } else {
         if (projectSnapshot.exists()) {
           throw new Error(
-            'Could not create a unique gallery project. Please retry.',
+            "Could not create a unique gallery project. Please retry.",
           );
         }
 
@@ -297,6 +320,8 @@ export async function saveGalleryVersion({
           latestVersionId: versionId,
           frontPreviewPath,
           backPreviewPath,
+          frontSleevePreviewPath,
+          backSleevePreviewPath,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -307,24 +332,32 @@ export async function saveGalleryVersion({
         designPath,
         frontPreviewPath,
         backPreviewPath,
-        modelPath,
-        modelFileName,
-        modelSizeBytes: model.size,
+        frontSleevePreviewPath,
+        backSleevePreviewPath,
         createdAt: serverTimestamp(),
       });
     });
+    if (import.meta.env.DEV) {
+      console.info("[StudioShelf/repository] transaction-complete", {
+        projectId: targetProjectId,
+        version,
+      });
+    }
   } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("[StudioShelf/repository] failed", { error });
+    }
     await Promise.all(
-      files.map(async ({path}) =>
+      files.map(async ({ path }) =>
         deleteObject(ref(galleryStorage, path)).catch(() => undefined),
       ),
     );
     if (error instanceof Error) throw error;
-    throw new Error('The gallery save failed.', {cause: error});
+    throw new Error("The gallery save failed.", { cause: error });
   }
 
   const project = await getGalleryProject(uid, targetProjectId);
   if (!project)
-    throw new Error('The saved gallery project could not be loaded.');
-  return {project, versionId, version};
+    throw new Error("The saved gallery project could not be loaded.");
+  return { project, versionId, version };
 }

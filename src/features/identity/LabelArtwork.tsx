@@ -20,6 +20,7 @@ import {
   imageRole,
   imageCropBounds,
   barcodeSourceMatrix,
+  getSurfaceLayers,
 } from "./design-configurator-model";
 
 function SvgLayerText({
@@ -399,7 +400,7 @@ export function LabelArtwork({
   guides = false,
   bleed = false,
   whiteCenter = false,
-  previewShadow = false,
+  innerShadow = false,
   onSelect,
   onPointerDown,
   onPointerMove,
@@ -415,7 +416,7 @@ export function LabelArtwork({
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
-  previewShadow?: boolean;
+  innerShadow?: boolean;
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
@@ -424,6 +425,16 @@ export function LabelArtwork({
   const extra = bleed ? (design.bleedMm / design.diameterMm) * 600 : 0;
   const hole = (design.holeMm / design.diameterMm) * 300;
   const safe = 300 - (design.safeMm / design.diameterMm) * 600;
+  const imageFilterEntries = [
+    ...design[side].map((layer) => ({
+      layer,
+      id: `${prefix}-image-color-${layer.id}`,
+    })),
+    ...getSurfaceLayers(design, "sleeve", side).map((layer) => ({
+      layer,
+      id: `${prefix}-sleeve-image-color-${layer.id}`,
+    })),
+  ];
   return (
     <svg
       className="dc-disc"
@@ -435,6 +446,19 @@ export function LabelArtwork({
       aria-label={`${design.title}, side ${side}`}
     >
       <defs>
+        {innerShadow && (
+          <radialGradient
+            id={`${prefix}-cookie-inner-shadow`}
+            cx="50.5%"
+            cy="50.5%"
+            r="50%"
+          >
+            <stop offset="95%" stopColor="#161a14" stopOpacity="0" />
+            <stop offset="97%" stopColor="#161a14" stopOpacity="0.015" />
+            <stop offset="99%" stopColor="#161a14" stopOpacity="0.065" />
+            <stop offset="100%" stopColor="#161a14" stopOpacity="0.21" />
+          </radialGradient>
+        )}
         {design[side].map((layer, index) =>
           layer.kind !== "image" && layer.textTexture ? (
             <pattern
@@ -467,18 +491,18 @@ export function LabelArtwork({
             </clipPath>
           )),
         )}
-        {design[side]
+        {imageFilterEntries
           .filter(
-            (layer) =>
+            ({ layer }) =>
               layer.kind === "image" &&
               (layer.imageFill ||
                 (imageRole(layer) === "brand-logo" && layer.imageInverted) ||
                 imageRole(layer) === "barcode"),
           )
-          .map((layer) => (
+          .map(({ layer, id }) => (
             <filter
-              key={`image-color-${layer.id}`}
-              id={`${prefix}-image-color-${layer.id}`}
+              key={id}
+              id={id}
               colorInterpolationFilters="sRGB"
             >
               {layer.imageFill ? (
@@ -576,15 +600,6 @@ export function LabelArtwork({
             ),
         )}
       </defs>
-      {previewShadow && (
-        <circle
-          cx="300"
-          cy="300"
-          r={300 + extra}
-          fill={design.paper}
-          className="dc-label-shadow"
-        />
-      )}
       {whiteCenter && <circle cx="300" cy="300" r={hole} fill="#ffffff" />}
       <g
         mask={`url(#${prefix}-hole)`}
@@ -592,7 +607,12 @@ export function LabelArtwork({
         fontFamily="Alte DIN Input"
         fontWeight="400"
       >
-        <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />
+        <circle
+          cx="300"
+          cy="300"
+          r={300 + extra}
+          fill={design.paper}
+        />
         {design.frame && (
           <circle
             cx="300"
@@ -738,6 +758,15 @@ export function LabelArtwork({
               </g>
             </g>
           ),
+        )}
+        {innerShadow && (
+          <circle
+            cx="300"
+            cy="300"
+            r={300 + extra}
+            fill={`url(#${prefix}-cookie-inner-shadow)`}
+            pointerEvents="none"
+          />
         )}
       </g>
       {guides && (

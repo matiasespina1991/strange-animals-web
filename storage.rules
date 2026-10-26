@@ -77,7 +77,7 @@ service firebase.storage {
       function validGalleryAssetPath() {
         return projectId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
           && versionId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
-          && fileName in ['design.json', 'front.png', 'back.png', 'model.glb'];
+          && fileName in ['design.json', 'front.png', 'back.png', 'front-with-sleeve.png', 'back-with-sleeve.png', 'model.glb'];
       }
 
       allow read: if ownsGalleryAsset() && validGalleryAssetPath();
@@ -88,7 +88,7 @@ service firebase.storage {
         && request.resource.size <= 104857600
         && ((fileName == 'design.json'
             && request.resource.contentType == 'application/json')
-          || (fileName in ['front.png', 'back.png']
+          || (fileName in ['front.png', 'back.png', 'front-with-sleeve.png', 'back-with-sleeve.png']
             && request.resource.contentType == 'image/png')
           || (fileName == 'model.glb'
             && request.resource.contentType == 'model/gltf-binary'));

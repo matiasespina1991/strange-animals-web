@@ -73,7 +73,9 @@ export default function ARModelPage({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewerError, setViewerError] = useState("");
   const [pageError, setPageError] = useState("");
-  const [pageLoading, setPageLoading] = useState(Boolean(shareId || galleryModel));
+  const [pageLoading, setPageLoading] = useState(
+    Boolean(shareId || galleryModel),
+  );
   const [accountReady, setAccountReady] = useState(false);
   const [signedIn, setSignedIn] = useState(Boolean(accountAuth.currentUser));
   const [sharing, setSharing] = useState(false);
@@ -339,13 +341,27 @@ export default function ARModelPage({
         <div className="ar-model-heading">
           <a
             className="ar-model-back"
-            href={galleryModel ? "/identity/my-gallery" : "/identity/design-configurator"}
-            aria-label={galleryModel ? "Back to My Gallery" : "Back to design configurator"}
+            href={
+              galleryModel
+                ? "/identity/my-gallery"
+                : "/identity/design-configurator"
+            }
+            aria-label={
+              galleryModel
+                ? "Back to My Gallery"
+                : "Back to design configurator"
+            }
           >
             <ArrowUpLeft size={15} />
           </a>
           <div>
-            <p>{shareId ? "SHARED 3D MODEL" : galleryModel ? "MY GALLERY / 3D MODEL" : "3D MODEL / AR PREVIEW"}</p>
+            <p>
+              {shareId
+                ? "SHARED 3D MODEL"
+                : galleryModel
+                  ? "MY GALLERY / 3D MODEL"
+                  : "3D MODEL / AR PREVIEW"}
+            </p>
             <h1>{modelTitle}</h1>
           </div>
         </div>

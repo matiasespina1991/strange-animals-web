@@ -11,7 +11,6 @@ export function ContentTextControl({ text, onChange, onTransform, onCommit }: {
   return <div className="dc-field dc-text-field">
     <div className="dc-content-heading">
       <label htmlFor={id}>Content</label>
-      <span>{text.length} characters</span>
       <div className="dc-content-casing" role="group" aria-label="Text case">
         {[
           { label: "aa", title: "All lowercase", transform: (value: string) => value.toLowerCase() },

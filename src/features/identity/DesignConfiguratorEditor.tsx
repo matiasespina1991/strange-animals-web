@@ -17,9 +17,7 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
-  ArrowDown,
   ArrowDownToLine,
-  ArrowUp,
   ArrowUpRight,
   Box,
   Check,
@@ -28,6 +26,7 @@ import {
   ChevronRight,
   Compass,
   Copy,
+  Disc3,
   Grid2X2,
   Eye,
   EyeOff,
@@ -45,6 +44,7 @@ import {
   Plus,
   Redo2,
   RotateCcw,
+  RotateCw,
   Save,
   Search,
   Settings,
@@ -58,7 +58,6 @@ import {
 } from "lucide-react";
 import {
   listFontCatalog,
-  type FontCatalogItem,
 } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
@@ -67,10 +66,14 @@ import { ImageAppearanceControls } from "./ImageAppearanceControls";
 import { TextSurfaceControl } from "./TextSurfaceControl";
 import { readBarcodeSourcePalette } from "./barcode-source-palette";
 import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
-import { SleeveImageControl } from "./SleeveImageControl";
 import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
-import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
+import {
+  GLOBAL_COLOR_PRESETS,
+  MUTED_TO_VIVID_COLOR_PRESETS,
+} from "./design-configurator-colors";
+import { SleeveSurfaceIcon } from "./SleeveSurfaceIcon";
+import { MobileCanvasToolbar } from "./MobileCanvasToolbar";
 import { LabelTemplatePicker } from "./LabelTemplatePicker";
 import { FontStyleTiles } from "./FontStyleTiles";
 import { FontSpecimen } from "./FontSpecimen";
@@ -104,7 +107,6 @@ import {
   hasCustomTextColors,
   changeLayerTextColors,
   changeGlobalTextColor,
-  swapTextAndLabelColors,
 } from "./text-color-model";
 import {
   clamp,
@@ -115,9 +117,14 @@ import {
   RECOVERY_KEY,
   safeFilename,
   imageRole,
+  getSurfaceLayers,
+  updateSurfaceLayers,
+  initialImageLayerPosition,
+  SLEEVE_SIZE_MM,
   type LabelDesign,
   type LabelLayer,
   type LabelSide,
+  type LabelSurface,
 } from "./design-configurator-model";
 import {
   getGalleryProject,
@@ -127,6 +134,7 @@ import {
 } from "./design-gallery-repository";
 import {
   captureLabelPreview,
+  createSleeveArtworkSvg,
   createSleeveLabelSvg,
   createLabelSvg,
   defaultLabelFont,
@@ -138,6 +146,7 @@ import {
   resolveLabelFont,
 } from "./design-configurator-export";
 import "./design-configurator.css";
+import "./design-configurator-mobile.css";
 
 const TEMPLATE_WELCOME_KEY = "sa-label-template-welcome-seen-v1";
 
@@ -319,8 +328,14 @@ function FontRow({
   );
 }
 
-export function DesignConfiguratorEditor() {
-  const sleeveCanvasSizeMm = 315;
+export function DesignConfiguratorEditor({
+  onOpenGallery,
+  gallerySelection,
+}: {
+  onOpenGallery: () => void;
+  gallerySelection?: {projectId: string; versionId: string};
+}) {
+  const sleeveCanvasSizeMm = SLEEVE_SIZE_MM;
   const [initial] = useState(seed);
   const [accountUser, setAccountUser] = useState(accountAuth.currentUser);
   useEffect(
@@ -408,6 +423,9 @@ export function DesignConfiguratorEditor() {
   );
   const [renameDraft, setRenameDraft] = useState("");
   const [layerPanelWidth, setLayerPanelWidth] = useState(184);
+  const [propertiesPanelWidth, setPropertiesPanelWidth] = useState(() =>
+    window.innerWidth <= 1100 ? 260 : window.innerWidth >= 1600 ? 320 : 300,
+  );
   const [reorderingLayer, setReorderingLayer] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
     id: string;
@@ -416,21 +434,39 @@ export function DesignConfiguratorEditor() {
   const prefersReducedMotion = useReducedMotion();
   const [resetTarget, setResetTarget] = useState<{
     side: LabelSide;
+    surface: LabelSurface;
     layer: LabelLayer;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    side: LabelSide;
+    surface: LabelSurface;
+    layers: LabelLayer[];
   } | null>(null);
   const layerList = useRef<HTMLDivElement>(null);
   const artboardReference = useRef<HTMLDivElement>(null);
   const draggedLayerId = useRef<string | null>(null);
+  const layerAutoScrollTimer = useRef<number | null>(null);
+  const layerAutoScrollDirection = useRef<-1 | 0 | 1>(0);
+  useEffect(
+    () => () => {
+      if (layerAutoScrollTimer.current !== null)
+        window.clearInterval(layerAutoScrollTimer.current);
+    },
+    [],
+  );
   const cancelRenameOnBlur = useRef(false);
   const layerResizePointer = useRef<number | null>(null);
+  const propertiesResizePointer = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [panning, setPanning] = useState(false);
   const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
   const [side, setSide] = useState<LabelSide>("A"),
+    [surface, setSurface] = useState<"cookie" | "sleeve">("cookie"),
     [selected, setSelected] = useState<string | null>("legal"),
     [guides, setGuides] = useState(true),
     [zoom, setZoom] = useState(100),
-    [mobileTab, setMobileTab] = useState("properties");
+    [mobileTab, setMobileTab] = useState("properties"),
+    [mobileGlobalSettingsOpen, setMobileGlobalSettingsOpen] = useState(true);
   useEffect(() => {
     const artboard = artboardReference.current;
     if (!artboard) return;
@@ -458,28 +494,13 @@ export function DesignConfiguratorEditor() {
   const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
     A: "",
     B: "",
+    sleeveA: "",
+    sleeveB: "",
   });
   const [sleevePreviewBusy, setSleevePreviewBusy] = useState(false);
   const [gallerySaving, setGallerySaving] = useState(false);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuReference = useRef<HTMLDivElement>(null);
-  const [modelExportInput, setModelExportInput] = useState<{
-    requestId: string;
-    design: LabelDesign;
-    captures: { A: string; B: string };
-  } | null>(null);
-  const pendingModelExport = useRef<{
-    resolve: (model: Blob) => void;
-    reject: (error: unknown) => void;
-  } | null>(null);
-  const onModelExporterReady = useRef((exportModel: () => Promise<Blob>) => {
-    const pending = pendingModelExport.current;
-    if (!pending) return;
-    pendingModelExport.current = null;
-    void exportModel()
-      .then(pending.resolve, pending.reject)
-      .finally(() => setModelExportInput(null));
-  }).current;
   useEffect(() => {
     if (!saveMenuOpen) return;
     const closeOutside = (event: PointerEvent) => {
@@ -555,8 +576,10 @@ export function DesignConfiguratorEditor() {
     [catalogError, setCatalogError] = useState(""),
     [catalogAttempt, setCatalogAttempt] = useState(0);
   const [scope, setScope] = useState<FontPickerScope>("all");
+  const activeLayers = getSurfaceLayers(design, surface, side);
+  const sleeveLayers = getSurfaceLayers(design, "sleeve", side);
   const fontContext =
-    design[side].find((layer) => layer.id === selected)?.kind ?? "text";
+    activeLayers.find((layer) => layer.id === selected)?.kind ?? "text";
   const categoryScopeKey = `${scope}:${fontContext}`;
   const [categoryByScope, setCategoryByScope] = useState<
     Record<string, string | null>
@@ -620,7 +643,8 @@ export function DesignConfiguratorEditor() {
     [includeSleeve, setIncludeSleeve] = useState(false),
     [textLength, setTextLength] = useState(0);
   useEffect(() => {
-    const projectId = new URLSearchParams(window.location.search).get("projectId");
+    const parameters = new URLSearchParams(window.location.search);
+    const projectId = gallerySelection?.projectId ?? parameters.get("projectId");
     if (!projectId || !/^[0-9a-f-]{36}$/i.test(projectId)) return;
     const user = accountUser;
     if (!user) return;
@@ -629,7 +653,7 @@ export function DesignConfiguratorEditor() {
       try {
         const project = await getGalleryProject(user.uid, projectId);
         if (!project) throw Error("This design is not in your gallery.");
-        const requestedVersionId = new URLSearchParams(window.location.search).get("versionId");
+        const requestedVersionId = gallerySelection?.versionId ?? parameters.get("versionId");
         const versionId = requestedVersionId ?? project.latestVersionId;
         const version = await getGalleryVersion(user.uid, projectId, versionId);
         if (!version) throw Error("This design version could not be found.");
@@ -652,17 +676,28 @@ export function DesignConfiguratorEditor() {
     return () => {
       active = false;
     };
-  }, [accountUser]);
+  }, [accountUser, gallerySelection]);
   const imageInput = useRef<HTMLInputElement>(null),
     projectInput = useRef<HTMLInputElement>(null);
   const drag = useRef<{
     id: string;
     side: LabelSide;
+    surface: LabelSurface;
     x: number;
     y: number;
     layer: LabelLayer;
     changed: boolean;
   }>();
+  const sleeveLayerDrag = useRef<{
+    pointerId: number;
+    id: string;
+    side: LabelSide;
+    surface: LabelSurface;
+    clientX: number;
+    clientY: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const canvasPan = useRef<{
     pointerId: number;
     clientX: number;
@@ -671,7 +706,7 @@ export function DesignConfiguratorEditor() {
     offsetY: number;
   } | null>(null);
   const prefix = useId().replaceAll(":", "");
-  const layers = design[side],
+  const layers = activeLayers,
     element =
       layers.find((l) => l.id === selected) ?? layers[0] ?? initialDesign.A[0],
     currentFont = fonts.find((f) => f.id === element.fontId);
@@ -697,15 +732,14 @@ export function DesignConfiguratorEditor() {
       ? { ...design, paper: colorPreview.color }
       : colorPreview.target === "sleeve"
         ? { ...design, sleeveColor: colorPreview.color }
-        : {
-            ...design,
-            [side]: design[side].map((layer) =>
+        : updateSurfaceLayers(design, surface, side, (layers) =>
+            layers.map((layer) =>
               layer.kind !== "image" &&
               (colorPreview.target === "text" || selection.has(layer.id))
                 ? { ...layer, color: colorPreview.color }
                 : layer,
             ),
-          };
+          );
   const applyTemplate = (next: LabelDesign) => {
     end();
     change(() => next);
@@ -740,7 +774,7 @@ export function DesignConfiguratorEditor() {
     if (item.top < bounds.top) list.scrollTop += item.top - bounds.top;
     else if (item.bottom > bounds.bottom)
       list.scrollTop += item.bottom - bounds.bottom;
-  }, [element.id, side, mobileTab, hasSelection]);
+  }, [element.id, side, surface, mobileTab, hasSelection]);
   const change = (
     update: (current: LabelDesign) => LabelDesign,
     group?: string,
@@ -750,12 +784,14 @@ export function DesignConfiguratorEditor() {
     id: string,
     patch: Partial<LabelLayer>,
     group?: string,
+    targetSurface: LabelSurface = surface,
   ) =>
     change(
-      (current) => ({
-        ...current,
-        [s]: current[s].map((l) => (l.id === id ? { ...l, ...patch } : l)),
-      }),
+      (current) => updateSurfaceLayers(current, targetSurface, s, (layers) =>
+          layers.map((layer) =>
+            layer.id === id ? { ...layer, ...patch } : layer,
+          ),
+        ),
       group,
     );
   const beginLayerRename = (
@@ -785,7 +821,7 @@ export function DesignConfiguratorEditor() {
   const end = () => dispatch({ type: "end" });
   useEffect(() => {
     let active = true;
-    const pending = [...design.A, ...design.B].filter(
+    const pending = [...design.A, ...design.B, ...design.sleeveA, ...design.sleeveB].filter(
       (layer) =>
         layer.kind === "image" &&
         imageRole(layer) === "barcode" &&
@@ -842,6 +878,8 @@ export function DesignConfiguratorEditor() {
             ...current,
             A: current.A.map(migrate),
             B: current.B.map(migrate),
+            sleeveA: current.sleeveA.map(migrate),
+            sleeveB: current.sleeveB.map(migrate),
           };
         },
       });
@@ -849,7 +887,7 @@ export function DesignConfiguratorEditor() {
     return () => {
       active = false;
     };
-  }, [design.A, design.B]);
+  }, [design.A, design.B, design.sleeveA, design.sleeveB]);
   const familyFor = (layer: LabelLayer) =>
     families[fontKey(layer)] ?? defaultLabelFont(layer);
   useEffect(() => {
@@ -874,7 +912,7 @@ export function DesignConfiguratorEditor() {
   useEffect(() => {
     let active = true;
     const keys = new Set<string>();
-    for (const layer of [...design.A, ...design.B]) {
+    for (const layer of [...design.A, ...design.B, ...design.sleeveA, ...design.sleeveB]) {
       if (!layer.fontId) continue;
       const key = fontKey(layer);
       if (keys.has(key) || families[key] || fontErrors[key]) continue;
@@ -906,6 +944,8 @@ export function DesignConfiguratorEditor() {
   }, [
     design.A,
     design.B,
+    design.sleeveA,
+    design.sleeveB,
     fonts,
     fontsLoading,
     catalogError,
@@ -946,6 +986,7 @@ export function DesignConfiguratorEditor() {
   }, [element, families]);
   const selectFont = async (font: FontCatalogItem, variantId?: string) => {
     const targetSide = side,
+      targetSurface = surface,
       targetId = element.id;
     setFontBusy(true);
     try {
@@ -958,7 +999,7 @@ export function DesignConfiguratorEditor() {
       patchLayer(targetSide, targetId, {
         fontId: font.id,
         variantId: resolved.variant.id,
-      });
+      }, undefined, targetSurface);
       setDialog(null);
     } catch (error) {
       setNotice(
@@ -983,25 +1024,35 @@ export function DesignConfiguratorEditor() {
       return;
     }
     const layer = makeLayer(kind);
-    change((c) => ({ ...c, [side]: [...c[side], layer] }));
+    if (kind === "circular") layer.name = "New text";
+    change((current) => updateSurfaceLayers(current, surface, side, (currentLayers) => [...currentLayers, layer]));
     selectLayer(layer);
   };
   const remove = () => {
     if (!hasSelection) return;
-    end();
-    change((current) => removeLayers(current, side, selection));
-    end();
-    setSelectedLayers([]);
-    setSelected(null);
+    const selectedForRemoval = layers.filter((layer) => selection.has(layer.id));
+    if (selectedForRemoval.length)
+      setDeleteTarget({
+        side,
+        surface,
+        layers: selectedForRemoval,
+      });
   };
   const insertAsset = (asset: InsertableAsset) => {
     if (layers.length >= 50) {
       setNotice("Máximo de 50 elementos por lado.");
       return;
     }
-    const layer = { ...makeLayer("image"), ...asset, x: 300, y: 300 };
+    const imageLayer = {
+      ...makeLayer("image"),
+      ...asset,
+    };
+    const layer = {
+      ...imageLayer,
+      ...initialImageLayerPosition(surface, imageLayer),
+    };
     end();
-    change((current) => ({ ...current, [side]: [...current[side], layer] }));
+    change((current) => updateSurfaceLayers(current, surface, side, (currentLayers) => [...currentLayers, layer]));
     end();
     selectLayer(layer);
     setDialog(null);
@@ -1015,26 +1066,39 @@ export function DesignConfiguratorEditor() {
       y: clamp(layer.y + 12, 0, 600),
     };
     change((current) => {
-      const next = [...current[side]];
+      const currentLayers = getSurfaceLayers(current, surface, side);
+      const next = [...currentLayers];
       const index = next.findIndex((item) => item.id === layer.id);
       if (index < 0) return current;
       next.splice(index + 1, 0, copy);
-      return { ...current, [side]: next };
+      return updateSurfaceLayers(current, surface, side, () => next);
     });
     selectLayer(copy);
   };
-  const duplicate = () => {
-    if (hasSelection) duplicateLayer(element);
-  };
   const deleteLayer = (id: string) => {
-    const index = layers.findIndex((layer) => layer.id === id);
-    if (index < 0) return;
-    const remainingSelection = selectedLayers.filter(
-      (selectedId) => selectedId !== id,
-    );
-    if (selection.has(id)) {
-      const nextLayer = layers[index + 1]?.id ?? layers[index - 1]?.id ?? null;
-      const nextSelected = remainingSelection[0] ?? nextLayer;
+    const layer = layers.find((item) => item.id === id);
+    if (!layer) return;
+    setDeleteTarget({
+      side,
+      surface,
+      layers: [layer],
+    });
+  };
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const ids = new Set(deleteTarget.layers.map((layer) => layer.id));
+    const deletedSelection = selectedLayers.some((id) => ids.has(id));
+    if (deletedSelection) {
+      const remainingSelection = selectedLayers.filter((id) => !ids.has(id));
+      const currentLayers = getSurfaceLayers(design, deleteTarget.surface, deleteTarget.side);
+      const firstRemovedIndex = currentLayers.findIndex((layer) => ids.has(layer.id));
+      const nextLayer = currentLayers
+        .slice(firstRemovedIndex + 1)
+        .find((layer) => !ids.has(layer.id))
+        ?? [...currentLayers.slice(0, firstRemovedIndex)]
+          .reverse()
+          .find((layer) => !ids.has(layer.id));
+      const nextSelected = remainingSelection[0] ?? nextLayer?.id ?? null;
       setSelectedLayers(
         remainingSelection.length
           ? remainingSelection
@@ -1045,33 +1109,72 @@ export function DesignConfiguratorEditor() {
       setSelected(nextSelected);
     }
     end();
-    change((current) => removeLayers(current, side, new Set([id])));
+    change((current) => removeLayers(current, deleteTarget.side, deleteTarget.surface, ids));
     end();
+    setDeleteTarget(null);
   };
-  const reorder = (direction: number) =>
-    change((c) => {
-      if (!hasSelection) return c;
-      const next = [...c[side]],
-        i = next.findIndex((l) => l.id === element.id),
-        target = i + direction;
-      if (i < 0 || target < 0 || target >= next.length) return c;
-      [next[i], next[target]] = [next[target], next[i]];
-      return { ...c, [side]: next };
-    });
   const moveLayer = (sourceId: string, targetId: string, before: boolean) =>
     change((current) => {
-      const next = [...current[side]];
+      const currentLayers = getSurfaceLayers(current, surface, side);
+      const next = [...currentLayers];
       const sourceIndex = next.findIndex((layer) => layer.id === sourceId);
       if (sourceIndex < 0 || sourceId === targetId) return current;
       const [moved] = next.splice(sourceIndex, 1);
       const targetIndex = next.findIndex((layer) => layer.id === targetId);
       if (targetIndex < 0) return current;
       next.splice(targetIndex + (before ? 0 : 1), 0, moved);
-      if (next.every((layer, index) => layer.id === current[side][index]?.id))
+      if (next.every((layer, index) => layer.id === currentLayers[index]?.id))
         return current;
-      return { ...current, [side]: next };
+      return updateSurfaceLayers(current, surface, side, () => next);
     }, "layer-reorder");
+  const stopLayerAutoScroll = () => {
+    if (layerAutoScrollTimer.current !== null) {
+      window.clearInterval(layerAutoScrollTimer.current);
+      layerAutoScrollTimer.current = null;
+    }
+    layerAutoScrollDirection.current = 0;
+  };
+  const updateLayerAutoScroll = (clientY: number) => {
+    const list = layerList.current;
+    if (!list || !draggedLayerId.current) {
+      stopLayerAutoScroll();
+      return;
+    }
+    const bounds = list.getBoundingClientRect();
+    const edgeSize = Math.min(36, bounds.height / 4);
+    const direction =
+      clientY < bounds.top + edgeSize
+        ? -1
+        : clientY > bounds.bottom - edgeSize
+          ? 1
+          : 0;
+    if (direction === layerAutoScrollDirection.current) return;
+    stopLayerAutoScroll();
+    if (!direction || list.scrollHeight <= list.clientHeight) return;
+    layerAutoScrollDirection.current = direction;
+    layerAutoScrollTimer.current = window.setInterval(() => {
+      const currentList = layerList.current;
+      if (!currentList || !draggedLayerId.current) {
+        stopLayerAutoScroll();
+        return;
+      }
+      const maximumScroll = currentList.scrollHeight - currentList.clientHeight;
+      const nextScroll = Math.max(
+        0,
+        Math.min(
+          maximumScroll,
+          currentList.scrollTop + layerAutoScrollDirection.current * 8,
+        ),
+      );
+      if (nextScroll === currentList.scrollTop) {
+        stopLayerAutoScroll();
+        return;
+      }
+      currentList.scrollTop = nextScroll;
+    }, 60);
+  };
   const finishLayerDrag = () => {
+    stopLayerAutoScroll();
     if (draggedLayerId.current) end();
     draggedLayerId.current = null;
     setReorderingLayer(null);
@@ -1084,51 +1187,72 @@ export function DesignConfiguratorEditor() {
       clamp(event.clientX - workspace.getBoundingClientRect().left, 176, 360),
     );
   };
-  const generateGalleryModel = (
-    sourceDesign: LabelDesign,
-    captures: { A: string; B: string },
-  ) =>
-    new Promise<Blob>((resolve, reject) => {
-      pendingModelExport.current = { resolve, reject };
-      setModelExportInput({
-        requestId: crypto.randomUUID(),
-        design: sourceDesign,
-        captures,
-      });
-    });
+  const resizePropertiesPanel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const workspace = event.currentTarget.parentElement;
+    if (!workspace) return;
+    setPropertiesPanelWidth(
+      clamp(workspace.getBoundingClientRect().right - event.clientX, 260, 380),
+    );
+  };
   const saveToGallery = async (asNewProject = false) => {
     if (gallerySaving) return;
+    setSaveMenuOpen(false);
     const user = accountUser;
     if (!user) {
       setNotice("Sign in to save designs to My Gallery.");
       return;
     }
+    const saveStartedAt = performance.now();
+    if (import.meta.env.DEV) {
+      console.info('[StudioShelf/save] started', {
+        asNewProject,
+        hasProject: Boolean(galleryProjectId),
+      });
+    }
     setGallerySaving(true);
     setSaveMenuOpen(false);
-    setNotice("Capturing both sides and generating the 3D model…");
+    setNotice("Capturing Cookie and Cookie + Sleeve previews…");
     try {
+      if (import.meta.env.DEV) console.info('[StudioShelf/save] capture-start');
       const [markupA, markupB] = await Promise.all([
         createLabelSvg(design, "A", fonts, false),
         createLabelSvg(design, "B", fonts, false),
       ]);
-      const [captureA, captureB] = await Promise.all([
+      const [sleeveArtworkA, sleeveArtworkB] = await Promise.all([
+        createSleeveArtworkSvg(design, fonts, "A"),
+        createSleeveArtworkSvg(design, fonts, "B"),
+      ]);
+      const [sleeveMarkupA, sleeveMarkupB] = await Promise.all([
+        createSleeveLabelSvg(markupA, design, false, sleeveArtworkA),
+        createSleeveLabelSvg(markupB, design, false, sleeveArtworkB),
+      ]);
+      const [captureA, captureB, captureSleeveA, captureSleeveB] = await Promise.all([
         captureLabelPreview(markupA),
         captureLabelPreview(markupB),
+        captureLabelPreview(sleeveMarkupA),
+        captureLabelPreview(sleeveMarkupB),
       ]);
-      const [frontPreview, backPreview] = await Promise.all([
+      const [frontPreview, backPreview, frontSleevePreview, backSleevePreview] = await Promise.all([
         fetch(captureA).then((response) => response.blob()),
         fetch(captureB).then((response) => response.blob()),
+        fetch(captureSleeveA).then((response) => response.blob()),
+        fetch(captureSleeveB).then((response) => response.blob()),
       ]);
-      const model = await generateGalleryModel(design, {
-        A: captureA,
-        B: captureB,
-      });
+      if (import.meta.env.DEV) {
+        console.info('[StudioShelf/save] captures-ready', {
+          frontBytes: frontPreview.size,
+          backBytes: backPreview.size,
+          frontSleeveBytes: frontSleevePreview.size,
+          backSleeveBytes: backSleevePreview.size,
+        });
+      }
       const saved = await saveGalleryVersion({
         uid: user.uid,
         design,
         frontPreview,
         backPreview,
-        model,
+        frontSleevePreview,
+        backSleevePreview,
         projectId: galleryProjectId ?? undefined,
         asNewProject,
       });
@@ -1141,10 +1265,23 @@ export function DesignConfiguratorEditor() {
       setNotice(
         `${asNewProject ? "New project" : "Saved to My Gallery"} · version ${saved.version}.`,
       );
+      if (import.meta.env.DEV) {
+        console.info('[StudioShelf/save] complete', {
+          elapsedMs: Math.round(performance.now() - saveStartedAt),
+          projectId: saved.project.id,
+          version: saved.version,
+        });
+      }
     } catch (cause) {
+      if (import.meta.env.DEV) {
+        console.error('[StudioShelf/save] failed', {
+          elapsedMs: Math.round(performance.now() - saveStartedAt),
+          cause,
+        });
+      }
       setNotice(
         cause instanceof Error
-          ? cause.message
+          ? `Save failed: ${cause.message}`
           : "The design could not be saved to My Gallery.",
       );
     } finally {
@@ -1157,17 +1294,25 @@ export function DesignConfiguratorEditor() {
       localStorage.setItem(RECOVERY_KEY, serialized);
       setLastSaved(serialized);
       setNotice("Saved on this device. Sign in to add this design to My Gallery.");
+      if (import.meta.env.DEV) {
+        console.info('[StudioShelf/save] local-complete', {
+          bytes: new Blob([serialized]).size,
+        });
+      }
     } catch {
       setNotice("Could not save locally. Download the project JSON to keep a copy.");
+      if (import.meta.env.DEV) {
+        console.error('[StudioShelf/save] local-failed', {
+          recoveryKey: RECOVERY_KEY,
+        });
+      }
     }
   };
   const save = () => {
     if (accountUser) void saveToGallery();
     else saveLocally();
   };
-  const load = () => {
-    window.location.assign("/identity/my-gallery");
-  };
+  const load = () => onOpenGallery();
   const exportProject = () =>
     downloadDesignFile(
       new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }),
@@ -1220,7 +1365,8 @@ export function DesignConfiguratorEditor() {
       setNotice("Usá PNG, JPEG o WebP de hasta 5 MB.");
       return;
     }
-    const targetSide = side;
+    const targetSide = side,
+      targetSurface = surface;
     try {
       const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -1234,16 +1380,21 @@ export function DesignConfiguratorEditor() {
         image.onerror = reject;
         image.src = data;
       });
-      const layer = {
+      const imageLayer = {
         ...makeLayer("image"),
         name: file.name.slice(0, 80),
         image: data,
         imageRatio: clamp(image.naturalWidth / image.naturalHeight, 0.05, 20),
-        x: 300,
-        y: 300,
       };
-      change((c) => ({ ...c, [targetSide]: [...c[targetSide], layer] }));
-      if (targetSide === side) selectLayer(layer);
+      const layer = {
+        ...imageLayer,
+        ...initialImageLayerPosition(
+          targetSurface,
+          imageLayer,
+        ),
+      };
+      change((current) => updateSurfaceLayers(current, targetSurface, targetSide, (currentLayers) => [...currentLayers, layer]));
+      selectLayer(layer);
     } catch {
       setNotice("No se pudo leer la imagen.");
     }
@@ -1266,6 +1417,7 @@ export function DesignConfiguratorEditor() {
     drag.current = {
       id: layer.id,
       side,
+      surface,
       x: point.x,
       y: point.y,
       layer,
@@ -1296,6 +1448,7 @@ export function DesignConfiguratorEditor() {
           ),
         },
         "drag",
+        start.surface,
       );
     } else
       patchLayer(
@@ -1306,7 +1459,50 @@ export function DesignConfiguratorEditor() {
           y: clamp(Math.round(start.layer.y + p.y - start.y), 0, 600),
         },
         "drag",
+        start.surface,
       );
+  };
+  const startSleeveLayerDrag = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    layer: LabelLayer,
+  ) => {
+    if (event.button !== 0) return;
+    selectLayer(layer);
+    sleeveLayerDrag.current = {
+      pointerId: event.pointerId,
+      id: layer.id,
+      side,
+      surface,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      x: layer.x,
+      y: layer.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+  const moveSleeveLayerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = sleeveLayerDrag.current;
+    if (
+      !start ||
+      start.pointerId !== event.pointerId ||
+      !event.currentTarget.hasPointerCapture(event.pointerId)
+    ) return;
+    const canvas = event.currentTarget.closest<HTMLElement>('.dc-sleeve-canvas');
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    patchLayer(start.side, start.id, {
+      x: clamp(Math.round(start.x + ((event.clientX - start.clientX) / bounds.width) * 600), 0, 600),
+      y: clamp(Math.round(start.y + ((event.clientY - start.clientY) / bounds.height) * 600), 0, 600),
+    }, 'sleeve-drag', start.surface);
+  };
+  const endSleeveLayerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    sleeveLayerDrag.current = null;
+    end();
   };
   const endDrag = (e: ReactPointerEvent<SVGGElement>) => {
     if (e.currentTarget.hasPointerCapture(e.pointerId))
@@ -1318,7 +1514,10 @@ export function DesignConfiguratorEditor() {
   const startCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (
       e.button !== 0 ||
-      (e.target instanceof Element && e.target.closest("[data-layer-id]"))
+      (e.target instanceof Element &&
+        e.target.closest(
+          "[data-layer-id]",
+        ))
     )
       return;
     end();
@@ -1338,17 +1537,27 @@ export function DesignConfiguratorEditor() {
   const openSleevePreview = async () => {
     setSleevePreviewBusy(true);
     try {
-      const [markupA, markupB] = await Promise.all([
+      const [markupA, markupB, sleeveMarkupA, sleeveMarkupB] = await Promise.all([
         createLabelSvg(previewDesign, "A", fonts, false),
         createLabelSvg(previewDesign, "B", fonts, false),
+        createSleeveArtworkSvg(previewDesign, fonts, "A"),
+        createSleeveArtworkSvg(previewDesign, fonts, "B"),
       ]);
-      const [captureA, captureB] = await Promise.all([
+      const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] = await Promise.all([
         captureLabelPreview(markupA),
         captureLabelPreview(markupB),
+        captureLabelPreview(sleeveMarkupA),
+        captureLabelPreview(sleeveMarkupB),
       ]);
-      setSleevePreviewLabels({ A: captureA, B: captureB });
+      setSleevePreviewLabels({
+        A: captureA,
+        B: captureB,
+        sleeveA: sleeveCaptureA,
+        sleeveB: sleeveCaptureB,
+      });
       setDialog("sleeve-preview");
     } catch (error) {
+      console.error("[Sleeve3DPreview/capture] failed", error);
       setNotice(
         error instanceof Error
           ? error.message
@@ -1424,8 +1633,16 @@ export function DesignConfiguratorEditor() {
         }
         diagnostics.stage("create-svg", { side: s });
         const labelSvg = await createLabelSvg(design, s, fonts, includeBleed);
+        const sleeveArtwork = includeSleeve
+          ? await createSleeveArtworkSvg(design, fonts, s)
+          : undefined;
         const svg = includeSleeve
-          ? await createSleeveLabelSvg(labelSvg, design, includeBleed)
+          ? await createSleeveLabelSvg(
+              labelSvg,
+              design,
+              includeBleed,
+              sleeveArtwork,
+            )
           : labelSvg;
         if (exportFormat === "pdf" && printWindow) {
           printLabel(printWindow, svg, outputMm);
@@ -1519,6 +1736,56 @@ export function DesignConfiguratorEditor() {
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
+  const changeCanvasSide = (nextSide: typeof side) => {
+    if (nextSide === side) return;
+    end();
+    setSide(nextSide);
+    setSelected(getSurfaceLayers(design, surface, nextSide)[0]?.id ?? null);
+    setSelectedLayers([]);
+  };
+  const changeCanvasSurface = (nextSurface: typeof surface) => {
+    if (nextSurface === surface) return;
+    end();
+    setSurface(nextSurface);
+    setSelected(getSurfaceLayers(design, nextSurface, side)[0]?.id ?? null);
+    setSelectedLayers([]);
+  };
+  const canvasContextControls = () => (
+    <div className="dc-canvas-context-controls dc-canvas-context-controls-layers">
+      <div className="dc-side-switch" role="group" aria-label="Record side">
+        {(["A", "B"] as const).map((nextSide) => (
+          <button
+            key={nextSide}
+            type="button"
+            aria-pressed={side === nextSide}
+            onClick={() => changeCanvasSide(nextSide)}
+          >
+            Side {nextSide}
+          </button>
+        ))}
+      </div>
+      <div className="dc-surface-switch" role="tablist" aria-label="Design surface">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={surface === "cookie"}
+          onClick={() => changeCanvasSurface("cookie")}
+        >
+          <Disc3 size={15} aria-hidden="true" />
+          Cookie
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={surface === "sleeve"}
+          onClick={() => changeCanvasSurface("sleeve")}
+        >
+          <SleeveSurfaceIcon size={15} />
+          Sleeve
+        </button>
+      </div>
+    </div>
+  );
   const panelTitle = (title: string) => (
     <div className="dc-panel-title">
       <h2>{title}</h2>
@@ -1559,31 +1826,77 @@ export function DesignConfiguratorEditor() {
     min: number,
     max: number,
     unit: string,
-  ) => (
-    <label className="dc-field dc-slider-field">
-      <span>
-        {label}
-        <output>
-          {element[key] ?? 180} <small>{unit}</small>
-        </output>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={element[key] ?? 180}
-        onChange={(e) =>
-          update(
-            { [key]: Number(e.target.value) },
-            `range-${element.id}-${key}`,
-          )
-        }
-        onPointerUp={end}
-        onPointerCancel={end}
-        onBlur={end}
-      />
-    </label>
-  );
+  ) => {
+    const value = element[key] ?? 180;
+    const step = key === "angle" ? 15 : 1;
+    const changeAngle = (amount: number) => {
+      update(
+        { angle: clamp(value + amount, min, max) },
+        `range-${element.id}-angle`,
+      );
+      end();
+    };
+    return (
+      <label className="dc-field dc-slider-field">
+        <span>
+          {label}
+          {key === "angle" ? (
+            <div className="dc-rotation-value">
+              <div
+                className="dc-rotation-nudges"
+                role="group"
+                aria-label="Adjust rotation"
+              >
+                <button
+                  className="dc-capitalize"
+                  type="button"
+                  aria-label="Rotate 15 degrees counterclockwise"
+                  title="Rotate 15 degrees counterclockwise"
+                  disabled={value <= min}
+                  onClick={() => changeAngle(-15)}
+                >
+                  <RotateCcw size={12} aria-hidden="true" />
+                </button>
+                <button
+                  className="dc-capitalize"
+                  type="button"
+                  aria-label="Rotate 15 degrees clockwise"
+                  title="Rotate 15 degrees clockwise"
+                  disabled={value >= max}
+                  onClick={() => changeAngle(15)}
+                >
+                  <RotateCw size={12} aria-hidden="true" />
+                </button>
+              </div>
+              <output>
+                {value} <small>{unit}</small>
+              </output>
+            </div>
+          ) : (
+            <output>
+              {value} <small>{unit}</small>
+            </output>
+          )}
+        </span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) =>
+            update(
+              { [key]: Number(e.target.value) },
+              `range-${element.id}-${key}`,
+            )
+          }
+          onPointerUp={end}
+          onPointerCancel={end}
+          onBlur={end}
+        />
+      </label>
+    );
+  };
   return (
     <main
       ref={editorRoot}
@@ -1689,6 +2002,7 @@ export function DesignConfiguratorEditor() {
         <div className="dc-project-actions">
           <div className="dc-history">
             <button
+              type="button"
               aria-label="Undo"
               title="Undo (⌘/Ctrl Z)"
               disabled={!history.past.length}
@@ -1697,6 +2011,7 @@ export function DesignConfiguratorEditor() {
               <Undo2 size={17} />
             </button>
             <button
+              type="button"
               aria-label="Redo"
               title="Redo (⌘/Ctrl Shift Z)"
               disabled={!history.future.length}
@@ -1709,49 +2024,67 @@ export function DesignConfiguratorEditor() {
             <FileText size={15} />
             <span>File</span>
           </button>
-          <div className="dc-save-split" ref={saveMenuReference}>
-            <button
-              className="dc-save dc-save-main"
-              disabled={gallerySaving}
-              onClick={save}
-            >
-              <Save size={15} />
-              {gallerySaving ? "Saving…" : "Save"}
-            </button>
-            {accountUser && (
-              <>
-                <button
-                  className="dc-save dc-save-chevron"
-                  type="button"
-                  aria-label="More save options"
-                  aria-haspopup="menu"
-                  aria-expanded={saveMenuOpen}
-                  title="More save options"
-                  disabled={gallerySaving}
-                  onClick={() => setSaveMenuOpen((open) => !open)}
-                >
-                  <ChevronDown size={14} />
-                </button>
-                {saveMenuOpen && (
-                  <div className="dc-save-menu" role="menu" aria-label="Save options">
-                    <button type="button" role="menuitem" onClick={() => void saveToGallery(true)}>
-                      <FolderPlus size={15} /> Save as New Project
-                    </button>
-                    <button type="button" role="menuitem" onClick={() => void saveToGallery(false)}>
-                      <History size={15} /> Save as New Version
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
           {accountUser && (
-            <a className="dc-save dc-gallery-link" href="/identity/my-gallery">
+            <div className="dc-save-menu-container" ref={saveMenuReference}>
+              <button
+                className="dc-save dc-save-menu-trigger"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={saveMenuOpen}
+                aria-label="Save options"
+                title="Save options"
+                disabled={gallerySaving}
+                onClick={() => setSaveMenuOpen((open) => !open)}
+              >
+                <Save size={15} />
+                {gallerySaving ? "Saving…" : "Save..."}
+              </button>
+              {saveMenuOpen && (
+                <div className="dc-save-menu" role="menu" aria-label="Save options">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setSaveMenuOpen(false);
+                      save();
+                    }}
+                  >
+                    <Save size={15} /> Save
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void saveToGallery(false)}
+                  >
+                    <History size={15} /> Save as new version
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void saveToGallery(true)}
+                  >
+                    <FolderPlus size={15} /> Save as new project
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {accountUser && (
+            <button
+              className="dc-save dc-gallery-link"
+              type="button"
+              onClick={onOpenGallery}
+            >
               <Folder size={15} />
               <span>My Gallery</span>
-            </a>
+            </button>
           )}
-          <button className="dc-save" onClick={() => setDialog("settings")}>
+          <button
+            className="dc-save dc-project-settings"
+            aria-label="Project settings"
+            title="Project settings"
+            onClick={() => setDialog("settings")}
+          >
             <Settings size={15} />
             <span>Project settings</span>
           </button>
@@ -1761,22 +2094,6 @@ export function DesignConfiguratorEditor() {
           </button>
         </div>
       </div>
-      {modelExportInput && (
-        <div className="dc-hidden-exporter" aria-hidden="true">
-          <Sleeve3DPreview
-            key={modelExportInput.requestId}
-            labelCapture={modelExportInput.captures.A}
-            labelCaptureBack={modelExportInput.captures.B}
-            onModelExporterReady={onModelExporterReady}
-            side="A"
-            sleeveColor={modelExportInput.design.sleeveColor}
-            sleeveImage={modelExportInput.design.sleeveImage}
-            sleeveZoom={modelExportInput.design.sleeveZoom}
-            labelDiameterMm={modelExportInput.design.diameterMm}
-            labelHoleMm={modelExportInput.design.holeMm}
-          />
-        </div>
-      )}
       {storageError && (
         <div className="dc-storage-warning" role="alert">
           {storageError}
@@ -1786,11 +2103,15 @@ export function DesignConfiguratorEditor() {
       <div
         className="dc-workspace"
         style={
-          { "--dc-layer-panel-width": `${layerPanelWidth}px` } as CSSProperties
+          {
+            "--dc-layer-panel-width": `${layerPanelWidth}px`,
+            "--dc-properties-panel-width": `${propertiesPanelWidth}px`,
+          } as CSSProperties
         }
       >
         <section
           className="dc-global-settings"
+          data-mobile-collapsed={!mobileGlobalSettingsOpen}
           ref={globalSettingsRef}
           aria-labelledby="dc-global-settings-title"
         >
@@ -1800,24 +2121,32 @@ export function DesignConfiguratorEditor() {
           >
             Global settings
           </h2>
+          <button
+            className="dc-mobile-global-toggle"
+            type="button"
+            aria-expanded={mobileGlobalSettingsOpen}
+            onClick={() =>
+              setMobileGlobalSettingsOpen((isOpen) => !isOpen)
+            }
+          >
+            <span>Global settings</span>
+            <span>3 color groups</span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </button>
           <div className="dc-global-settings-controls">
             <GlobalInkControl
               onPreview={(color) => previewColor("text", color)}
-              key={side}
+              key={`${surface}-${side}`}
               side={side}
-              labelColor={design.paper}
-              onSwap={() => {
-                end();
-                change((current) => swapTextAndLabelColors(current, side));
-              }}
-              hasCustomColors={hasCustomTextColors(design, side)}
-              colors={design[side]
+              hasCustomColors={hasCustomTextColors(design, side, surface)}
+              colors={getSurfaceLayers(design, surface, side)
                 .filter((layer) => layer.kind !== "image")
                 .map((layer) => layer.color)}
+              visibleCount={4}
               onApply={(color) => {
                 end();
                 change((current) =>
-                  changeGlobalTextColor(current, color, side),
+                  changeGlobalTextColor(current, color, side, surface),
                 );
               }}
             />
@@ -1838,10 +2167,11 @@ export function DesignConfiguratorEditor() {
                 />
               </label>
               <ColorSwatches
-                colors={DESIGN_COLOR_PRESETS}
+                colors={GLOBAL_COLOR_PRESETS}
                 onPreview={(color) => previewColor("paper", color)}
                 value={design.paper}
                 label="Label"
+                visibleCount={4}
                 onChoose={(color) =>
                   change((current) => ({ ...current, paper: color }))
                 }
@@ -1866,23 +2196,12 @@ export function DesignConfiguratorEditor() {
                   onBlur={end}
                 />
               </label>
-              <SleeveImageControl
-                image={design.sleeveImage}
-                onError={setNotice}
-                onChange={(sleeveImage) => {
-                  end();
-                  change((current) => ({
-                    ...current,
-                    sleeveImage,
-                    sleeveZoom: 1,
-                  }));
-                }}
-              />
               <ColorSwatches
-                colors={DESIGN_COLOR_PRESETS}
+                colors={GLOBAL_COLOR_PRESETS}
                 onPreview={(color) => previewColor("sleeve", color)}
                 value={design.sleeveColor}
                 label="Sleeve color"
+                visibleCount={4}
                 onChoose={(color) =>
                   change((current) => ({ ...current, sleeveColor: color }))
                 }
@@ -1892,22 +2211,20 @@ export function DesignConfiguratorEditor() {
         </section>
         <aside
           className={`dc-layers ${mobileTab === "layers" ? "dc-mobile-visible" : ""}`}
+          onDragOver={(event) => {
+            if (!draggedLayerId.current) return;
+            event.preventDefault();
+            updateLayerAutoScroll(event.clientY);
+          }}
+          onDragLeave={(event) => {
+            const nextTarget = event.relatedTarget;
+            if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget))
+              return;
+            stopLayerAutoScroll();
+          }}
         >
-          {panelTitle("Elements")}
-          <div className="dc-side-switch" aria-label="Record side">
-            {(["A", "B"] as const).map((s) => (
-              <button
-                key={s}
-                aria-pressed={side === s}
-                onClick={() => {
-                  end();
-                  setSide(s);
-                }}
-              >
-                Side {s}
-              </button>
-            ))}
-          </div>
+          {panelTitle(`Side ${side} elements`)}
+          {canvasContextControls()}
           <div className="dc-add-controls">
             <button onClick={() => add("text")}>
               <Type size={14} />
@@ -1926,40 +2243,25 @@ export function DesignConfiguratorEditor() {
               Assets
             </button>
           </div>
-          <div className="dc-multi-controls">
-            <div className="dc-layer-actions">
-              <button
-                aria-label="Move element toward back"
-                disabled={!hasSelection || index <= 0}
-                onClick={() => reorder(-1)}
-              >
-                <ArrowUp size={15} />
-              </button>
-              <button
-                aria-label="Move element toward front"
-                disabled={!hasSelection || index >= layers.length - 1}
-                onClick={() => reorder(1)}
-              >
-                <ArrowDown size={15} />
-              </button>
-              <button
-                aria-label="Duplicate element"
-                disabled={!hasSelection || layers.length >= 50}
-                onClick={duplicate}
-              >
-                <Copy size={15} />
-              </button>
-              <button
-                aria-label="Delete selected elements"
-                disabled={!hasSelection}
-                onClick={remove}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-            <span>{selection.size} selected</span>
-          </div>
-          <div className="dc-layer-list" ref={layerList}>
+          {deleteTarget && (
+            <ConfirmationDialog
+              title={deleteTarget.layers.length === 1 ? "Delete this layer?" : `Delete ${deleteTarget.layers.length} layers?`}
+              description={deleteTarget.layers.length === 1
+                ? `Are you sure you want to delete “${deleteTarget.layers[0].name}”? You can undo this change.`
+                : `Are you sure you want to delete ${deleteTarget.layers.length} selected layers? You can undo this change.`}
+              confirmLabel="Delete"
+              onCancel={() => setDeleteTarget(null)}
+              onConfirm={confirmDelete}
+            />
+          )}
+          <div
+            className="dc-layer-list"
+            ref={layerList}
+            onDrop={(event) => {
+              event.preventDefault();
+              finishLayerDrag();
+            }}
+          >
             {layers.map((layer, i) => (
               <motion.div
                 key={layer.id}
@@ -1992,6 +2294,15 @@ export function DesignConfiguratorEditor() {
                   draggedLayerId.current = layer.id;
                   event.dataTransfer.effectAllowed = "move";
                   event.dataTransfer.setData("text/plain", layer.id);
+                  const dragImage = document.createElement("canvas");
+                  dragImage.width = 1;
+                  dragImage.height = 1;
+                  dragImage.style.position = "fixed";
+                  dragImage.style.left = "-1px";
+                  dragImage.style.top = "-1px";
+                  document.body.append(dragImage);
+                  event.dataTransfer.setDragImage(dragImage, 0, 0);
+                  requestAnimationFrame(() => dragImage.remove());
                   setReorderingLayer(layer.id);
                 }}
                 onDragOver={(event) => {
@@ -2184,23 +2495,20 @@ export function DesignConfiguratorEditor() {
         />
         <section className="dc-stage" aria-label="Vinyl label preview">
           <div className="dc-stage-top">
+            <MobileCanvasToolbar
+              surface={surface}
+              side={side}
+              guides={guides}
+              previewBusy={sleevePreviewBusy}
+              onSurfaceChange={changeCanvasSurface}
+              onSideChange={changeCanvasSide}
+              onToggleGuides={() => setGuides((current) => !current)}
+              onOpenPreview={() => void openSleevePreview()}
+            />
             <span>
               <span className="dc-live-dot" />
-              SIDE {side} / PREVIEW
+                {surface === "cookie" ? `COOKIE · SIDE ${side}` : "SLEEVE · FRONT / BACK"} / PREVIEW
             </span>
-            <label className="dc-preview-border">
-              <input
-                type="checkbox"
-                checked={design.frame}
-                onChange={(event) =>
-                  change((current) => ({
-                    ...current,
-                    frame: event.target.checked,
-                  }))
-                }
-              />
-              Decorative border
-            </label>
             <button
               className="dc-preview-3d-button"
               aria-label="Open 3D sleeve preview"
@@ -2214,30 +2522,6 @@ export function DesignConfiguratorEditor() {
               </span>
             </button>
             <div className="dc-preview-controls">
-              {design.sleeveImage && (
-                <label className="dc-sleeve-zoom">
-                  <span>Image in sleeve</span>
-                  <input
-                    type="range"
-                    min={10}
-                    max={500}
-                    step={1}
-                    value={Math.round(design.sleeveZoom * 100)}
-                    onChange={(event) =>
-                      change(
-                        (current) => ({
-                          ...current,
-                          sleeveZoom: Number(event.target.value) / 100,
-                        }),
-                        "sleeve-zoom",
-                      )
-                    }
-                    onPointerUp={end}
-                    onBlur={end}
-                  />
-                  <output>{Math.round(design.sleeveZoom * 100)}%</output>
-                </label>
-              )}
               <div className="dc-guides-control">
                 <Grid2X2 size={14} aria-hidden="true" />
                 <span id={`${prefix}-guides-label`}>Guides</span>
@@ -2289,7 +2573,8 @@ export function DesignConfiguratorEditor() {
               }}
             >
               <div
-                className="dc-sleeve-canvas"
+                className="dc-sleeve-canvas dc-sleeve-design-canvas"
+                data-editing-surface={surface}
                 style={
                   {
                     backgroundColor: previewDesign.sleeveColor,
@@ -2298,46 +2583,114 @@ export function DesignConfiguratorEditor() {
                 }
               >
                 {design.sleeveImage && (
-                  <div className="dc-sleeve-image-frame" aria-hidden="true">
+                  <div
+                    aria-hidden="true"
+                    className="dc-sleeve-image-frame"
+                  >
                     <div
                       className="dc-sleeve-background"
                       style={{
                         backgroundImage: `url("${design.sleeveImage}")`,
-                        transform: `scale(${design.sleeveZoom})`,
+                        transform: `translate(${design.sleeveImageOffsetX / 6}%, ${design.sleeveImageOffsetY / 6}%) scale(${design.sleeveZoom})`,
                       }}
                     />
                   </div>
                 )}
+                <div
+                  className={`dc-sleeve-elements${surface === "sleeve" ? " is-editing" : ""}`}
+                  aria-label="Sleeve artwork layers"
+                >
+                    {sleeveLayers.filter((layer) => layer.visible).map((layer) => (
+                      <div
+                        key={layer.id}
+                        data-layer-id={layer.id}
+                        className={`dc-sleeve-element${surface === "sleeve" && selected === layer.id ? " is-selected" : ""}`}
+                        style={{
+                          left: `${layer.x / 6}%`,
+                          top: `${layer.y / 6}%`,
+                          width: `${layer.width / 6}%`,
+                          color: layer.color,
+                          fontFamily: familyFor(layer),
+                          fontSize: `${layer.size}px`,
+                          fontWeight: layer.size > 40 ? 700 : 400,
+                          opacity: layer.opacity ?? 1,
+                          textAlign: layer.align === "middle" ? "center" : layer.align,
+                          transform: `translate(-50%, -50%) rotate(${layer.angle}deg)`,
+                        }}
+                        onPointerDown={
+                          surface === "sleeve"
+                            ? (event) => startSleeveLayerDrag(event, layer)
+                            : undefined
+                        }
+                        onPointerMove={
+                          surface === "sleeve" ? moveSleeveLayerDrag : undefined
+                        }
+                        onPointerUp={
+                          surface === "sleeve" ? endSleeveLayerDrag : undefined
+                        }
+                        onPointerCancel={
+                          surface === "sleeve" ? endSleeveLayerDrag : undefined
+                        }
+                        onClick={
+                          surface === "sleeve"
+                            ? () => selectLayer(layer)
+                            : undefined
+                        }
+                      >
+                        {layer.kind === "image" && layer.image ? (
+                          <img
+                            src={layer.image}
+                            alt={layer.name}
+                            draggable={false}
+                            style={
+                              layer.imageFill ||
+                              (imageRole(layer) === "brand-logo" &&
+                                layer.imageInverted) ||
+                              imageRole(layer) === "barcode"
+                                ? {
+                                    filter: `url(#${prefix}-sleeve-image-color-${layer.id})`,
+                                  }
+                                : undefined
+                            }
+                          />
+                        ) : layer.text}
+                      </div>
+                    ))}
+                </div>
                 <LabelArtwork
                   design={previewDesign}
                   hiddenTextId={
-                    dialog === "fonts" && hoverFontLoading
+                    surface === "cookie" && dialog === "fonts" && hoverFontLoading
                       ? element.id
                       : undefined
                   }
                   side={side}
                   prefix={prefix}
                   fontFamily={(layer) =>
-                    dialog === "fonts" && layer.id === element.id && hoverFamily
+                    surface === "cookie" && dialog === "fonts" && layer.id === element.id && hoverFamily
                       ? hoverFamily
                       : familyFor(layer)
                   }
-                  selected={hasSelection ? element.id : undefined}
-                  selectedIds={selection}
+                  selected={surface === "cookie" && hasSelection ? element.id : undefined}
+                  selectedIds={surface === "cookie" ? selection : undefined}
                   guides={guides}
                   whiteCenter
-                  previewShadow
-                  onSelect={selectLayer}
-                  onPointerDown={startDrag}
-                  onPointerMove={moveDrag}
-                  onPointerUp={endDrag}
+                  innerShadow
+                  onSelect={surface === "cookie" ? selectLayer : undefined}
+                  onPointerDown={surface === "cookie" ? startDrag : undefined}
+                  onPointerMove={surface === "cookie" ? moveDrag : undefined}
+                  onPointerUp={surface === "cookie" ? endDrag : undefined}
                 />
               </div>
             </div>
           </div>
           <div className="dc-canvas-footer">
             <span className="dc-measure dc-measure-bottom">
-              <span>SIDE {side}</span>Ø {design.holeMm} mm center hole
+              {surface === "cookie" ? (
+                <><span>SIDE {side}</span>Ø {design.holeMm} mm center hole</>
+              ) : (
+                <><span>SLEEVE</span>Artwork surface</>
+              )}
             </span>
             <div className="dc-zoom">
               <button
@@ -2382,6 +2735,51 @@ export function DesignConfiguratorEditor() {
             </div>
           </div>
         </section>
+        <div
+          className="dc-properties-resize"
+          role="separator"
+          aria-label="Resize properties panel"
+          aria-orientation="vertical"
+          aria-valuemin={260}
+          aria-valuemax={380}
+          aria-valuenow={propertiesPanelWidth}
+          tabIndex={0}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            propertiesResizePointer.current = event.pointerId;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (propertiesResizePointer.current === event.pointerId)
+              resizePropertiesPanel(event);
+          }}
+          onPointerUp={(event) => {
+            if (propertiesResizePointer.current !== event.pointerId) return;
+            propertiesResizePointer.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId))
+              event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          onPointerCancel={() => {
+            propertiesResizePointer.current = null;
+          }}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 20 : 8;
+            const nextWidth =
+              event.key === "ArrowRight"
+                ? propertiesPanelWidth + step
+                : event.key === "ArrowLeft"
+                  ? propertiesPanelWidth - step
+                  : event.key === "Home"
+                    ? 260
+                    : event.key === "End"
+                      ? 380
+                      : null;
+            if (nextWidth === null) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setPropertiesPanelWidth(clamp(nextWidth, 260, 380));
+          }}
+        />
         <aside
           className={`dc-properties ${mobileTab === "properties" ? "dc-mobile-visible" : ""}`}
         >
@@ -2390,7 +2788,13 @@ export function DesignConfiguratorEditor() {
             {hasSelection && (
               <button
                 className="dc-reset"
-                onClick={() => setResetTarget({ side, layer: element })}
+                onClick={() =>
+                  setResetTarget({
+                    side,
+                    surface,
+                    layer: element,
+                  })
+                }
               >
                 <RotateCcw size={13} />
                 Reset this element
@@ -2403,11 +2807,10 @@ export function DesignConfiguratorEditor() {
               description={`Are you sure you want to reset “${resetTarget.layer.name}”? You can undo this change.`}
               onCancel={() => setResetTarget(null)}
               onConfirm={() => {
-                const { side: targetSide, layer } = resetTarget;
-                const defaults =
-                  initialDesign[targetSide].find(
-                    (item) => item.id === layer.id,
-                  ) ?? makeLayer(layer.kind, layer.id);
+                const { side: targetSide, surface: targetSurface, layer } = resetTarget;
+                const defaults = getSurfaceLayers(initialDesign, targetSurface, targetSide).find(
+                  (item) => item.id === layer.id,
+                ) ?? makeLayer(layer.kind, layer.id);
                 end();
                 patchLayer(targetSide, layer.id, {
                   ...defaults,
@@ -2419,7 +2822,7 @@ export function DesignConfiguratorEditor() {
                   image: layer.kind === "image" ? layer.image : undefined,
                   imageRatio:
                     layer.kind === "image" ? layer.imageRatio : undefined,
-                });
+                }, undefined, targetSurface);
                 end();
                 setResetTarget(null);
               }}
@@ -2547,6 +2950,7 @@ export function DesignConfiguratorEditor() {
                                       side,
                                       ids,
                                       color,
+                                      surface,
                                     ),
                                   `ink-${[...ids].join("-")}`,
                                 );
@@ -2555,8 +2959,8 @@ export function DesignConfiguratorEditor() {
                             />
                           </label>
                           <ColorSwatches
-                            colors={DESIGN_COLOR_PRESETS}
-                            visibleCount={5}
+                            colors={MUTED_TO_VIVID_COLOR_PRESETS}
+                            visibleCount={propertiesPanelWidth <= 300 ? 4 : 5}
                             label="Ink color"
                             onPreview={(color) => previewColor("ink", color)}
                             value={
@@ -2578,6 +2982,7 @@ export function DesignConfiguratorEditor() {
                                   side,
                                   ids,
                                   color,
+                                  surface,
                                 ),
                               );
                             }}
@@ -2813,6 +3218,7 @@ export function DesignConfiguratorEditor() {
                   min={0}
                   max={40}
                   step={0.1}
+                  zeroLabel="Zero"
                   onChange={(blur) => update({ blur }, `blur-${element.id}`)}
                   onCommit={end}
                 />
@@ -2823,27 +3229,34 @@ export function DesignConfiguratorEditor() {
             </>
           )}
         </aside>
+        <nav className="dc-mobile-tabs" aria-label="Editor panels">
+          <button
+            type="button"
+            aria-pressed={mobileTab === "layers"}
+            onClick={() => setMobileTab("layers")}
+          >
+            <Layers size={16} />
+            Elements
+          </button>
+          <button
+            type="button"
+            aria-pressed={mobileTab === "properties"}
+            onClick={() => setMobileTab("properties")}
+          >
+            <SlidersHorizontal size={16} />
+            Properties
+          </button>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            disabled={!hasSelection}
+            onClick={openFontPicker}
+          >
+            <Type size={16} />
+            Fonts
+          </button>
+        </nav>
       </div>
-      <nav className="dc-mobile-tabs" aria-label="Editor panels">
-        <button
-          aria-pressed={mobileTab === "layers"}
-          onClick={() => setMobileTab("layers")}
-        >
-          <Layers size={16} />
-          Elements
-        </button>
-        <button
-          aria-pressed={mobileTab === "properties"}
-          onClick={() => setMobileTab("properties")}
-        >
-          <SlidersHorizontal size={16} />
-          Properties
-        </button>
-        <button disabled={!hasSelection} onClick={openFontPicker}>
-          <Type size={16} />
-          Fonts
-        </button>
-      </nav>
       <input
         hidden
         ref={imageInput}
@@ -3065,7 +3478,11 @@ export function DesignConfiguratorEditor() {
             side={side}
             sleeveColor={design.sleeveColor}
             sleeveImage={design.sleeveImage}
+            sleeveCaptureFront={sleevePreviewLabels.sleeveA}
+            sleeveCaptureBack={sleevePreviewLabels.sleeveB}
             sleeveZoom={design.sleeveZoom}
+            sleeveImageOffsetX={design.sleeveImageOffsetX}
+            sleeveImageOffsetY={design.sleeveImageOffsetY}
             labelDiameterMm={design.diameterMm}
             labelHoleMm={design.holeMm}
           />
@@ -3219,8 +3636,10 @@ export function DesignConfiguratorEditor() {
                 value={exportFormat}
                 disabled={exportBusy}
                 onChange={(e) => {
-                  setExportFormat(e.target.value);
-                  if (e.target.value === "pdf") setExportSides("current");
+                  const nextFormat = e.target.value;
+                  setExportFormat(nextFormat);
+                  if (nextFormat === "pdf") setExportSides("current");
+                  if (nextFormat === "png") setIncludeSleeve(true);
                 }}
               >
                 <option value="svg">

@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef } from "react";
 
-export function ConfirmationDialog({ title, description, onConfirm, onCancel }: {
+export function ConfirmationDialog({ title, description, onConfirm, onCancel, confirmLabel = "OK" }: {
   title: string;
   description: string;
   onConfirm: () => void; onCancel: () => void;
+  confirmLabel?: string;
 }) {
   const root = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -26,7 +27,7 @@ export function ConfirmationDialog({ title, description, onConfirm, onCancel }: 
     <p id={`${id}-description`}>{description}</p>
     <div className="dc-confirm-actions">
       <button ref={cancel} onClick={onCancel}>Cancel</button>
-      <button className="dc-confirm-apply" onClick={onConfirm}>OK</button>
+      <button className="dc-confirm-apply" onClick={onConfirm}>{confirmLabel}</button>
     </div>
   </dialog>;
 }

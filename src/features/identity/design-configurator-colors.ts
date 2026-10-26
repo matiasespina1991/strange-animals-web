@@ -157,3 +157,52 @@ export const DESIGN_COLOR_PRESETS = [
   ...BASE_COLOR_PRESETS,
   ...GRUNGE_COLOR_PRESETS,
 ] as const;
+
+const MUTED_TO_VIVID_NEUTRALS = [
+  "#FFFFFF",
+  "#000000",
+  "#656765",
+  "#2F2D2E",
+];
+
+function colorVividness(hex: string) {
+  const channels = [0, 2, 4].map((offset) =>
+    Number.parseInt(hex.slice(offset + 1, offset + 3), 16) / 255,
+  );
+  const [red, green, blue] = channels;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  const lightness = (max + min) / 2;
+  const saturation = delta
+    ? delta / (1 - Math.abs(2 * lightness - 1))
+    : 0;
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  return { saturation, lightness, luminance };
+}
+
+const vividColors = DESIGN_COLOR_PRESETS.filter(
+  (color) => !MUTED_TO_VIVID_NEUTRALS.includes(color.toUpperCase()),
+).map((color, index) => ({ color, index, ...colorVividness(color) }));
+
+vividColors.sort(
+  (a, b) =>
+    b.saturation * 0.75 + b.lightness * 0.25 -
+      (a.saturation * 0.75 + a.lightness * 0.25) ||
+    b.luminance - a.luminance ||
+    a.index - b.index,
+);
+
+export const MUTED_TO_VIVID_COLOR_PRESETS = [
+  ...MUTED_TO_VIVID_NEUTRALS,
+  ...vividColors.map(({ color }) => color),
+];
+
+const GLOBAL_FEATURED_COLORS = MUTED_TO_VIVID_NEUTRALS;
+
+export const GLOBAL_COLOR_PRESETS = [
+  ...GLOBAL_FEATURED_COLORS,
+  ...MUTED_TO_VIVID_COLOR_PRESETS.filter(
+    (color) => !GLOBAL_FEATURED_COLORS.includes(color.toUpperCase()),
+  ),
+];

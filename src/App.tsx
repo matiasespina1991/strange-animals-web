@@ -32,6 +32,12 @@ const LayerPanelLayoutsLabPage = import.meta.env.DEV
 const DesignGalleryConceptsPage = import.meta.env.DEV
   ? lazy(() => import("@/features/identity/DesignGalleryConceptsPage"))
   : null;
+const ConfiguratorControlsLabPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/identity/ConfiguratorControlsLabPage"))
+  : null;
+const MobileConfiguratorSketchPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/identity/MobileConfiguratorSketchPage"))
+  : null;
 
 export function App() {
   const route = usePathRoute();
@@ -77,6 +83,28 @@ export function App() {
     return (
       <Suspense fallback={<p>Loading gallery concepts…</p>}>
         <DesignGalleryConceptsPage />
+      </Suspense>
+    );
+  }
+  if (
+    import.meta.env.DEV &&
+    route === "/dev/configurator-controls" &&
+    ConfiguratorControlsLabPage
+  ) {
+    return (
+      <Suspense fallback={<p>Loading configurator controls…</p>}>
+        <ConfiguratorControlsLabPage />
+      </Suspense>
+    );
+  }
+  if (
+    import.meta.env.DEV &&
+    route === "/dev/configurator-mobile-sketch" &&
+    MobileConfiguratorSketchPage
+  ) {
+    return (
+      <Suspense fallback={<p>Loading mobile layout study…</p>}>
+        <MobileConfiguratorSketchPage />
       </Suspense>
     );
   }

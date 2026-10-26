@@ -1,7 +1,15 @@
 import { writePsd, type Layer } from "ag-psd";
-import { createLabelSvg, exportLabelPng } from "./design-configurator-export";
+import {
+  createLabelSvg,
+  createSleeveArtworkSvg,
+  exportLabelPng,
+} from "./design-configurator-export";
 import type { FontCatalogItem } from "./font-catalog-repository";
-import type { LabelDesign, LabelSide } from "./design-configurator-model";
+import {
+  getSurfaceLayers,
+  type LabelDesign,
+  type LabelSide,
+} from "./design-configurator-model";
 import { embeddedOutlineFonts, outlineText } from "./psd-text-outlines";
 import { PRINT_PPI, printPixelSize } from "./print-resolution";
 
@@ -31,6 +39,39 @@ async function raster(
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+async function rasterSleeveLayers(
+  design: LabelDesign,
+  side: LabelSide,
+  fonts: FontCatalogItem[],
+  pixels: number,
+) {
+  if (!getSurfaceLayers(design, "sleeve", side).some((layer) => layer.visible))
+    return undefined;
+
+  const artworkMarkup = await createSleeveArtworkSvg(design, fonts, side);
+  const artworkDocument = new DOMParser().parseFromString(
+    artworkMarkup,
+    "image/svg+xml",
+  );
+  if (artworkDocument.querySelector("parsererror"))
+    throw new Error("Could not prepare sleeve layers for the PSD.");
+
+  const artwork = artworkDocument.documentElement;
+  const overlays = artwork.querySelector("#sleeve-layer-overlays");
+  if (!overlays) throw new Error("Could not find sleeve layers for the PSD.");
+
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNamespace, "svg");
+  svg.setAttribute("xmlns", svgNamespace);
+  svg.setAttribute("width", "600");
+  svg.setAttribute("height", "600");
+  svg.setAttribute("viewBox", "0 0 600 600");
+  const definitions = artwork.querySelector("defs");
+  if (definitions) svg.append(document.importNode(definitions, true));
+  svg.append(document.importNode(overlays, true));
+  return raster(svg, pixels);
 }
 
 type PsdOptions = {
@@ -277,6 +318,12 @@ export async function createSleeveLabelPsd(
   const labelUrl = URL.createObjectURL(labelPng);
   const labelImage = new Image();
   try {
+    const sleeveLayers = await rasterSleeveLayers(
+      design,
+      side,
+      fonts,
+      pixels,
+    );
     await new Promise<void>((resolve, reject) => {
       labelImage.onload = () => resolve();
       labelImage.onerror = () =>
@@ -306,14 +353,16 @@ export async function createSleeveLabelPsd(
         ) * design.sleeveZoom;
       const imageWidth = sleeveImage.naturalWidth * coverScale;
       const imageHeight = sleeveImage.naturalHeight * coverScale;
+      const offsetX = (design.sleeveImageOffsetX * pixels) / 600;
+      const offsetY = (design.sleeveImageOffsetY * pixels) / 600;
       sleeveContext.save();
       sleeveContext.beginPath();
       sleeveContext.rect(0, 0, pixels, pixels);
       sleeveContext.clip();
       sleeveContext.drawImage(
         sleeveImage,
-        (pixels - imageWidth) / 2,
-        (pixels - imageHeight) / 2,
+        (pixels - imageWidth) / 2 + offsetX,
+        (pixels - imageHeight) / 2 + offsetY,
         imageWidth,
         imageHeight,
       );
@@ -340,17 +389,22 @@ export async function createSleeveLabelPsd(
     const compositeContext = compositeCanvas.getContext("2d");
     if (!compositeContext) throw new Error("Canvas unavailable.");
     compositeContext.drawImage(sleeveCanvas, 0, 0);
+    if (sleeveLayers) compositeContext.drawImage(sleeveLayers, 0, 0);
     compositeContext.drawImage(labelCanvas, 0, 0);
+    const children: Layer[] = [
+      { name: "Sleeve", canvas: sleeveCanvas },
+      ...(sleeveLayers
+        ? [{ name: "Sleeve artwork", canvas: sleeveLayers }]
+        : []),
+      { name: `Record label · ${side}`, canvas: labelCanvas },
+    ];
     return new Blob(
       [
         writePsd({
           width: pixels,
           height: pixels,
           canvas: compositeCanvas,
-          children: [
-            { name: "Sleeve", canvas: sleeveCanvas },
-            { name: `Record label · ${side}`, canvas: labelCanvas },
-          ],
+          children,
           imageResources: {
             resolutionInfo: {
               horizontalResolution: ppi,

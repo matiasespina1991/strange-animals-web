@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Minus,
-  Plus,
-  RotateCcw,
-  Share2,
-} from "lucide-react";
+import { Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
@@ -16,11 +11,14 @@ import type { LabelSide } from "./design-configurator-model";
 type Properties = {
   labelCapture: string;
   labelCaptureBack: string;
-  onModelExporterReady?: (exportModel: () => Promise<Blob>) => void;
   side: LabelSide;
   sleeveColor: string;
   sleeveImage?: string;
+  sleeveCaptureFront?: string;
+  sleeveCaptureBack?: string;
   sleeveZoom: number;
+  sleeveImageOffsetX: number;
+  sleeveImageOffsetY: number;
   labelDiameterMm: number;
   labelHoleMm: number;
 };
@@ -37,11 +35,14 @@ const MAX_ZOOM_PERCENT = Math.round(
 export function Sleeve3DPreview({
   labelCapture,
   labelCaptureBack,
-  onModelExporterReady,
   side,
   sleeveColor,
   sleeveImage,
+  sleeveCaptureFront,
+  sleeveCaptureBack,
   sleeveZoom,
+  sleeveImageOffsetX,
+  sleeveImageOffsetY,
   labelDiameterMm,
   labelHoleMm,
 }: Properties) {
@@ -52,6 +53,7 @@ export function Sleeve3DPreview({
   const modelReference = useRef<THREE.Group | null>(null);
   const labelImagesReference = useRef<HTMLImageElement[]>([]);
   const sleeveImageReference = useRef<HTMLImageElement | null>(null);
+  const sleeveCaptureImagesReference = useRef<HTMLImageElement[]>([]);
   const cameraReference = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsReference = useRef<OrbitControls | null>(null);
   const [error, setError] = useState("");
@@ -68,6 +70,7 @@ export function Sleeve3DPreview({
 
     let active = true;
     let sleeveImageElement: HTMLImageElement | null = null;
+    const sleeveCaptureImages: HTMLImageElement[] = [];
     const labelImages: HTMLImageElement[] = [];
     labelImagesReference.current = labelImages;
     const scene = new THREE.Scene();
@@ -106,7 +109,8 @@ export function Sleeve3DPreview({
       const nextZoomPercent = Math.min(
         MAX_ZOOM_PERCENT,
         Math.round(
-          (INITIAL_CAMERA_DISTANCE / camera.position.distanceTo(controls.target)) *
+          (INITIAL_CAMERA_DISTANCE /
+            camera.position.distanceTo(controls.target)) *
             100,
         ),
       );
@@ -141,19 +145,41 @@ export function Sleeve3DPreview({
     centerHole.absarc(0, 0, holeRadius, 0, Math.PI * 2, true);
     sleeveShape.holes.push(centerHole);
 
-    const sleeveCanvas = document.createElement("canvas");
-    sleeveCanvas.width = 1024;
-    sleeveCanvas.height = 1024;
-    const sleeveContext = sleeveCanvas.getContext("2d");
-    const sleeveTexture = new THREE.CanvasTexture(sleeveCanvas);
-    sleeveTexture.colorSpace = THREE.SRGBColorSpace;
+    const createSleeveTexture = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const context = canvas.getContext("2d");
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return { canvas, context, texture };
+    };
+    const sleeveFront = createSleeveTexture();
+    const sleeveBack = createSleeveTexture();
+    sleeveCaptureImagesReference.current = sleeveCaptureImages;
 
-    const drawSleeve = () => {
-      if (!sleeveContext) return;
-      const size = sleeveCanvas.width;
-      sleeveContext.clearRect(0, 0, size, size);
-      sleeveContext.fillStyle = sleeveColor;
-      sleeveContext.fillRect(0, 0, size, size);
+    const drawSleeveFace = (
+      target: ReturnType<typeof createSleeveTexture>,
+      capture: HTMLImageElement | null,
+      flipCapture = false,
+    ) => {
+      const { canvas, context, texture } = target;
+      if (!context) return;
+      const size = canvas.width;
+      context.clearRect(0, 0, size, size);
+      if (capture?.complete && capture.naturalWidth) {
+        context.save();
+        if (flipCapture) {
+          context.translate(size, 0);
+          context.scale(-1, 1);
+        }
+        context.drawImage(capture, 0, 0, size, size);
+        context.restore();
+        texture.needsUpdate = true;
+        return;
+      }
+      context.fillStyle = sleeveColor;
+      context.fillRect(0, 0, size, size);
       if (sleeveImageElement?.complete && sleeveImageElement.naturalWidth) {
         const coverScale = Math.max(
           size / sleeveImageElement.naturalWidth,
@@ -163,18 +189,23 @@ export function Sleeve3DPreview({
           sleeveImageElement.naturalWidth * coverScale * sleeveZoom;
         const imageHeight =
           sleeveImageElement.naturalHeight * coverScale * sleeveZoom;
-        sleeveContext.drawImage(
+        context.drawImage(
           sleeveImageElement,
-          (size - imageWidth) / 2,
-          (size - imageHeight) / 2,
+          (size - imageWidth) / 2 + (sleeveImageOffsetX * size) / 600,
+          (size - imageHeight) / 2 + (sleeveImageOffsetY * size) / 600,
           imageWidth,
           imageHeight,
         );
       }
-
-      sleeveTexture.needsUpdate = true;
+      texture.needsUpdate = true;
     };
 
+    let sleeveCaptureFrontElement: HTMLImageElement | null = null;
+    let sleeveCaptureBackElement: HTMLImageElement | null = null;
+    const drawSleeve = () => {
+      drawSleeveFace(sleeveFront, sleeveCaptureFrontElement);
+      drawSleeveFace(sleeveBack, sleeveCaptureBackElement, true);
+    };
     drawSleeve();
     const sleeveGeometry = new THREE.ExtrudeGeometry(sleeveShape, {
       depth: sleeveDepth,
@@ -187,8 +218,14 @@ export function Sleeve3DPreview({
     const sleeveIndices = sleeveGeometry.getIndex();
     for (const group of sleeveGeometry.groups) {
       if (group.materialIndex !== 0) continue;
-      for (let vertex = group.start; vertex < group.start + group.count; vertex++) {
-        const positionIndex = sleeveIndices ? sleeveIndices.getX(vertex) : vertex;
+      for (
+        let vertex = group.start;
+        vertex < group.start + group.count;
+        vertex++
+      ) {
+        const positionIndex = sleeveIndices
+          ? sleeveIndices.getX(vertex)
+          : vertex;
         sleeveUv.setXY(
           positionIndex,
           (sleevePosition.getX(positionIndex) + sleeveSize / 2) / sleeveSize,
@@ -197,9 +234,29 @@ export function Sleeve3DPreview({
       }
     }
     sleeveUv.needsUpdate = true;
+    const lidGroup = sleeveGeometry.groups.find(
+      (group) => group.materialIndex === 0,
+    );
+    const sideGroup = sleeveGeometry.groups.find(
+      (group) => group.materialIndex === 1,
+    );
+    if (!lidGroup || !sideGroup || lidGroup.count % 2 !== 0)
+      throw new Error("The sleeve geometry does not have separate front and back faces.");
+    const faceCount = lidGroup.count / 2;
+    sleeveGeometry.clearGroups();
+    sleeveGeometry.addGroup(lidGroup.start, faceCount, 1);
+    sleeveGeometry.addGroup(lidGroup.start + faceCount, faceCount, 0);
+    sleeveGeometry.addGroup(sideGroup.start, sideGroup.count, 2);
     const sleeve = new THREE.Mesh(sleeveGeometry, [
       new THREE.MeshPhysicalMaterial({
-        map: sleeveTexture,
+        map: sleeveFront.texture,
+        roughness: 0.32,
+        metalness: 0,
+        clearcoat: 0.19,
+        clearcoatRoughness: 0.22,
+      }),
+      new THREE.MeshPhysicalMaterial({
+        map: sleeveBack.texture,
         roughness: 0.32,
         metalness: 0,
         clearcoat: 0.19,
@@ -221,6 +278,18 @@ export function Sleeve3DPreview({
       sleeveImageElement.addEventListener("load", drawSleeve);
       sleeveImageElement.src = sleeveImage;
     }
+    if (sleeveCaptureFront) {
+      sleeveCaptureFrontElement = new Image();
+      sleeveCaptureImages.push(sleeveCaptureFrontElement);
+      sleeveCaptureFrontElement.addEventListener("load", drawSleeve);
+      sleeveCaptureFrontElement.src = sleeveCaptureFront;
+    }
+    if (sleeveCaptureBack) {
+      sleeveCaptureBackElement = new Image();
+      sleeveCaptureImages.push(sleeveCaptureBackElement);
+      sleeveCaptureBackElement.addEventListener("load", drawSleeve);
+      sleeveCaptureBackElement.src = sleeveCaptureBack;
+    }
 
     const addLabelFace = (capture: string, z: number, back = false) => {
       const labelImage = new Image();
@@ -233,6 +302,24 @@ export function Sleeve3DPreview({
         const context = labelCanvas.getContext("2d");
         if (!context) return;
         context.drawImage(labelImage, 0, 0, 1024, 1024);
+        const center = labelCanvas.width / 2;
+        const focalOffset = center * 0.005;
+        const innerShadow = context.createRadialGradient(
+          center + focalOffset,
+          center + focalOffset,
+          center * 0.95,
+          center + focalOffset,
+          center + focalOffset,
+          center,
+        );
+        innerShadow.addColorStop(0, "rgba(22, 26, 20, 0)");
+        innerShadow.addColorStop(0.4, "rgba(22, 26, 20, 0.015)");
+        innerShadow.addColorStop(0.8, "rgba(22, 26, 20, 0.065)");
+        innerShadow.addColorStop(1, "rgba(22, 26, 20, 0.21)");
+        context.globalCompositeOperation = "source-atop";
+        context.fillStyle = innerShadow;
+        context.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+        context.globalCompositeOperation = "source-over";
         const labelTexture = new THREE.CanvasTexture(labelCanvas);
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -285,6 +372,7 @@ export function Sleeve3DPreview({
       modelReference.current = null;
       labelImagesReference.current = [];
       sleeveImageReference.current = null;
+      sleeveCaptureImagesReference.current = [];
       scene.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return;
         object.geometry.dispose();
@@ -297,6 +385,7 @@ export function Sleeve3DPreview({
         }
       });
       sleeveImageElement?.removeAttribute("src");
+      sleeveCaptureImages.forEach((image) => image.removeAttribute("src"));
       labelImages.forEach((image) => image.removeAttribute("src"));
       renderer.dispose();
       renderer.domElement.remove();
@@ -308,7 +397,11 @@ export function Sleeve3DPreview({
     sleeveColor,
     labelHoleMm,
     sleeveImage,
+    sleeveCaptureFront,
+    sleeveCaptureBack,
     sleeveZoom,
+    sleeveImageOffsetX,
+    sleeveImageOffsetY,
   ]);
 
   const exportModel = async () => {
@@ -317,6 +410,7 @@ export function Sleeve3DPreview({
     const images = [
       ...labelImagesReference.current,
       ...(sleeveImageReference.current ? [sleeveImageReference.current] : []),
+      ...sleeveCaptureImagesReference.current,
     ];
     await Promise.all(
       images.map(
@@ -352,11 +446,6 @@ export function Sleeve3DPreview({
     });
   };
   modelExporterReference.current = exportModel;
-  useEffect(() => {
-    if (!onModelExporterReady) return;
-    onModelExporterReady(() => modelExporterReference.current());
-  }, [onModelExporterReady]);
-
   const shareModel = async () => {
     if (sharing) return;
     if (!accountAuth.currentUser) {
@@ -368,8 +457,14 @@ export function Sleeve3DPreview({
     setShareError("");
     setPreviewUrl("");
     setUploadProgress(0);
+    if (import.meta.env.DEV) console.info("[Sleeve3DPreview/share] started");
     try {
       const modelBlob = await exportModel();
+      if (import.meta.env.DEV) {
+        console.info("[Sleeve3DPreview/share] model-exported", {
+          bytes: modelBlob.size,
+        });
+      }
       const modelFile = new File([modelBlob], "strange-animals-sleeve.glb", {
         type: "model/gltf-binary",
       });
@@ -379,6 +474,12 @@ export function Sleeve3DPreview({
         setUploadProgress,
       );
       const url = `${window.location.origin}/${shared.id}`;
+      if (import.meta.env.DEV) {
+        console.info("[Sleeve3DPreview/share] public-link-created", {
+          id: shared.id,
+          url,
+        });
+      }
       const previewWindow = window.open(url, "_blank");
       if (previewWindow) {
         previewWindow.opener = null;
@@ -387,6 +488,11 @@ export function Sleeve3DPreview({
         setPreviewUrl(url);
       }
     } catch (shareFailure) {
+      if (import.meta.env.DEV) {
+        console.error("[Sleeve3DPreview/share] failed", {
+          error: shareFailure,
+        });
+      }
       const code =
         typeof shareFailure === "object" &&
         shareFailure !== null &&

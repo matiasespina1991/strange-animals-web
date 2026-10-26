@@ -42,7 +42,7 @@ const DEFAULT_FONT_SOURCES: Record<string, FontDownloadSource> = {
 
 function getUsedLayers(design: LabelDesign) {
   const layers = new Map<string, LabelLayer>();
-  for (const layer of [...design.A, ...design.B]) {
+  for (const layer of [...design.A, ...design.B, ...design.sleeveA, ...design.sleeveB]) {
     if (layer.kind === "image") continue;
     const key = layer.fontId
       ? `${layer.fontId}:${layer.variantId ?? "preview"}`

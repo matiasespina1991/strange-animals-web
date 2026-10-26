@@ -1,39 +1,37 @@
 import { useEffect, useState } from "react";
 import { ColorSwatches } from "./ColorSwatches";
-import { DESIGN_COLOR_PRESETS } from "./design-configurator-colors";
+import { GLOBAL_COLOR_PRESETS } from "./design-configurator-colors";
 import { TextColorConfirmation } from "./TextColorConfirmation";
-import { ArrowLeftRight } from "lucide-react";
 
 type Props = {
   side: "A" | "B";
   colors: string[];
   hasCustomColors: boolean;
   onApply: (color: string) => void;
-  labelColor?: string;
-  onSwap?: () => void;
   onPreview?: (color: string | null) => void;
+  visibleCount?: number;
 };
 
-export function GlobalInkControl({ side, colors, hasCustomColors, onApply, labelColor, onSwap, onPreview }: Props) {
+export function GlobalInkControl({ side, colors, hasCustomColors, onApply, onPreview, visibleCount = 3 }: Props) {
   const current = colors[0] ?? "#20211e";
   const mixed = colors.some(
     (color) => color.toLowerCase() !== current.toLowerCase(),
   );
   const [draft, setDraft] = useState(current);
-  const [pendingColor, setPendingColor] = useState<{ color: string; swap: boolean } | null>(null);
+  const [pendingColor, setPendingColor] = useState<string | null>(null);
   useEffect(() => setDraft(current), [current]);
-  const complete = (color: string, swap: boolean) => {
+  const complete = (color: string) => {
     setDraft(color);
-    if (swap && onSwap) onSwap(); else onApply(color);
+    onApply(color);
   };
-  const apply = (color: string, swap = false) => {
+  const apply = (color: string) => {
     if (!colors.some((value) => value.toLowerCase() !== color.toLowerCase()))
       return;
     if (hasCustomColors) {
-      setPendingColor({ color, swap });
+      setPendingColor(color);
       return;
     }
-    complete(color, swap);
+    complete(color);
   };
   return (
     <div className="dc-preview-stock" aria-label="Global text color">
@@ -50,9 +48,10 @@ export function GlobalInkControl({ side, colors, hasCustomColors, onApply, label
         />
       </label>
       <ColorSwatches
-        colors={DESIGN_COLOR_PRESETS}
+        colors={GLOBAL_COLOR_PRESETS}
         value={mixed ? undefined : current}
         label="Text color"
+        visibleCount={visibleCount}
         onChoose={apply}
         onPreview={onPreview}
       >
@@ -64,16 +63,12 @@ export function GlobalInkControl({ side, colors, hasCustomColors, onApply, label
               setDraft(current);
             }}
             onConfirm={() => {
-              complete(pendingColor.color, pendingColor.swap);
+              complete(pendingColor);
               setPendingColor(null);
             }}
           />
         )}
       </ColorSwatches>
-      {onSwap && labelColor && colors.length > 0 && !mixed && labelColor.toLowerCase() !== current.toLowerCase() && (
-        <button className="dc-swap-colors" aria-label="Swap text and label colors" title="Swap text and label colors"
-          onClick={() => apply(labelColor, true)}><ArrowLeftRight size={15} /></button>
-      )}
     </div>
   );
 }

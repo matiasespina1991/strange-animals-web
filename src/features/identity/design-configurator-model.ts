@@ -1,4 +1,7 @@
 export type LabelSide = "A" | "B";
+export type LabelSurface = "cookie" | "sleeve";
+export const SLEEVE_SIZE_MM = 315;
+export type LabelLayerGroup = LabelSide | `sleeve${LabelSide}`;
 export type TextBlendMode = "normal" | "difference";
 export type TextExtrusion = {
   depth: number;
@@ -106,10 +109,15 @@ export type LabelDesign = {
   title: string;
   A: LabelLayer[];
   B: LabelLayer[];
+  sleeveA: LabelLayer[];
+  sleeveB: LabelLayer[];
+  sleeveLayers: LabelLayer[];
   paper: string;
   sleeveColor: string;
   sleeveImage?: string;
   sleeveZoom: number;
+  sleeveImageOffsetX: number;
+  sleeveImageOffsetY: number;
   diameterMm: number;
   holeMm: number;
   bleedMm: number;
@@ -117,6 +125,51 @@ export type LabelDesign = {
   frame: boolean;
   mark: boolean;
 };
+export function layerGroupForSurface(
+  surface: LabelSurface,
+  side: LabelSide,
+): LabelLayerGroup {
+  return surface === "sleeve" ? `sleeve${side}` : side;
+}
+export function getSurfaceLayers(
+  design: LabelDesign,
+  surface: LabelSurface,
+  side: LabelSide,
+) {
+  return design[layerGroupForSurface(surface, side)];
+}
+export function updateSurfaceLayers(
+  design: LabelDesign,
+  surface: LabelSurface,
+  side: LabelSide,
+  update: (layers: LabelLayer[]) => LabelLayer[],
+): LabelDesign {
+  const key = layerGroupForSurface(surface, side);
+  const current = design[key];
+  const next = update(current);
+  return next === current ? design : { ...design, [key]: next };
+}
+export function sleeveLabelGeometry(diameterMm: number) {
+  const center = 300;
+  const radius = (diameterMm / SLEEVE_SIZE_MM) * center;
+  return { center, radius, radiusPercent: (radius / 600) * 100 };
+}
+export function initialImageLayerPosition(
+  surface: LabelSurface,
+  layer: Pick<LabelLayer, "width" | "imageRatio">,
+) {
+  if (surface === "cookie") return { x: 300, y: 300 };
+  const imageHeight = layer.width / Math.max(layer.imageRatio ?? 1, 0.05);
+  const topPadding = 24;
+  const y =
+    imageHeight + topPadding * 2 >= 600
+      ? 300
+      : Math.min(Math.max(imageHeight / 2 + topPadding, 100), 600 - imageHeight / 2 - topPadding);
+  return {
+    x: 300,
+    y,
+  };
+}
 export function imageRole(layer: Pick<LabelLayer, "name" | "imageRole">) {
   return (
     layer.imageRole ??
@@ -280,9 +333,14 @@ export const initialDesign: LabelDesign = {
           ? "B"
           : l.text,
   })),
+  sleeveA: [],
+  sleeveB: [],
+  sleeveLayers: [],
   paper: "#e5e8d9",
   sleeveColor: "#000000",
   sleeveZoom: 1,
+  sleeveImageOffsetX: 0,
+  sleeveImageOffsetY: 0,
   diameterMm: 100,
   holeMm: 7.3,
   bleedMm: 3,
@@ -826,6 +884,28 @@ export function parseDesign(input: unknown): LabelDesign {
     });
   };
   const diameterMm = numeric(input.diameterMm, 100, 50, 150);
+  const legacySleeveLayers =
+    input.sleeveLayers === undefined
+      ? []
+      : Array.isArray(input.sleeveLayers)
+        ? side(input.sleeveLayers)
+        : null;
+  if (!legacySleeveLayers) throw Error("Elementos de sleeve inválidos.");
+  const A = side(input.A);
+  const B = side(input.B);
+  const sleeveA =
+    input.sleeveA === undefined
+      ? legacySleeveLayers
+      : Array.isArray(input.sleeveA)
+        ? side(input.sleeveA)
+        : null;
+  const sleeveB =
+    input.sleeveB === undefined
+      ? []
+      : Array.isArray(input.sleeveB)
+        ? side(input.sleeveB)
+        : null;
+  if (!sleeveA || !sleeveB) throw Error("Elementos de sleeve inválidos.");
   const sleeveImage =
     typeof input.sleeveImage === "string" ? input.sleeveImage : undefined;
   if (
@@ -840,12 +920,17 @@ export function parseDesign(input: unknown): LabelDesign {
       typeof input.title === "string"
         ? input.title.slice(0, 120)
         : "Other frequencies",
-    A: side(input.A),
-    B: side(input.B),
+    A,
+    B,
+    sleeveA,
+    sleeveB,
+    sleeveLayers: [],
     paper: hex(input.paper, "#e5e8d9"),
     sleeveColor: hex(input.sleeveColor, "#000000"),
     sleeveImage,
     sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
+    sleeveImageOffsetX: numeric(input.sleeveImageOffsetX, 0, -600, 600),
+    sleeveImageOffsetY: numeric(input.sleeveImageOffsetY, 0, -600, 600),
     diameterMm,
     holeMm: numeric(input.holeMm, 7.3, 1, Math.min(40, diameterMm - 10)),
     bleedMm: numeric(input.bleedMm, 3, 0, 10),

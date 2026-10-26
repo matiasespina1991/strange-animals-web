@@ -1,29 +1,29 @@
-import assert from 'node:assert/strict';
+import assert from "node:assert/strict";
 
-const projectId = 'strange-animals-web';
+const projectId = "strange-animals-web";
 const bucket = `${projectId}.firebasestorage.app`;
-const authBase = 'http://127.0.0.1:9099';
+const authBase = "http://127.0.0.1:9099";
 const documentRoot = `projects/${projectId}/databases/(default)/documents`;
 const firestoreBase = `http://127.0.0.1:8080/v1/${documentRoot}`;
 const storageBase = `http://127.0.0.1:9199/v0/b/${bucket}/o`;
 const uuid = () => crypto.randomUUID();
 
-async function request(url, {token, ...options} = {}) {
+async function request(url, { token, ...options } = {}) {
   const headers = new Headers(options.headers);
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  const response = await fetch(url, {...options, headers});
-  return {response, body: await response.text()};
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(url, { ...options, headers });
+  return { response, body: await response.text() };
 }
 
 async function signUp(label) {
   const result = await request(
     `${authBase}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key`,
     {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: `${label}-${uuid()}@example.test`,
-        password: 'rules-test-password',
+        password: "rules-test-password",
         returnSecureToken: true,
       }),
     },
@@ -38,11 +38,11 @@ function assertStatus(result, expected, label) {
 
 async function seedDocument(path, fields) {
   const result = await request(`${firestoreBase}:commit`, {
-    token: 'owner',
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    token: "owner",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      writes: [{update: {name: `${documentRoot}/${path}`, fields}}],
+      writes: [{ update: { name: `${documentRoot}/${path}`, fields } }],
     }),
   });
   assert.equal(result.response.status, 200, result.body);
@@ -52,33 +52,33 @@ async function seedObject(path, contentType, contents) {
   const result = await request(
     `${storageBase}?uploadType=media&name=${encodeURIComponent(path)}`,
     {
-      token: 'owner',
-      method: 'POST',
-      headers: {'Content-Type': contentType},
+      token: "owner",
+      method: "POST",
+      headers: { "Content-Type": contentType },
       body: contents,
     },
   );
   assert.equal(result.response.status, 200, result.body);
 }
 
-const owner = await signUp('owner');
-const other = await signUp('other');
-const fontPath = 'fonts/rules-test-font';
+const owner = await signUp("owner");
+const other = await signUp("other");
+const fontPath = "fonts/rules-test-font";
 const fontFilePath = `${fontPath}/files/regular`;
-const fontStoragePath = 'media/private/fonts/rules-test/regular.woff2';
+const fontStoragePath = "media/private/fonts/rules-test/regular.woff2";
 
 await seedDocument(fontPath, {
-  name: {stringValue: 'Rules test font'},
-  enabled: {booleanValue: false},
+  name: { stringValue: "Rules test font" },
+  enabled: { booleanValue: false },
 });
 await seedDocument(fontFilePath, {
-  kind: {stringValue: 'font'},
-  fileName: {stringValue: 'regular.woff2'},
-  relativePath: {stringValue: 'regular.woff2'},
-  storagePath: {stringValue: fontStoragePath},
-  extension: {stringValue: 'woff2'},
+  kind: { stringValue: "font" },
+  fileName: { stringValue: "regular.woff2" },
+  relativePath: { stringValue: "regular.woff2" },
+  storagePath: { stringValue: fontStoragePath },
+  extension: { stringValue: "woff2" },
 });
-await seedObject(fontStoragePath, 'font/woff2', 'font fixture');
+await seedObject(fontStoragePath, "font/woff2", "font fixture");
 
 const fontReads = await Promise.all(
   [fontPath, fontFilePath].map(async (path) => ({
@@ -89,25 +89,25 @@ const fontReads = await Promise.all(
     denied: await request(`${firestoreBase}/${path}`),
   })),
 );
-for (const {path, readable, denied} of fontReads) {
+for (const { path, readable, denied } of fontReads) {
   assertStatus(readable, 200, `authenticated font read ${path}`);
   assert.ok(
     [401, 403].includes(denied.response.status),
-    'unauthenticated font read must fail',
+    "unauthenticated font read must fail",
   );
 }
 
 const fontBytes = await request(
   `${storageBase}/${encodeURIComponent(fontStoragePath)}?alt=media`,
-  {token: other.idToken},
+  { token: other.idToken },
 );
-assertStatus(fontBytes, 200, 'authenticated private font download');
+assertStatus(fontBytes, 200, "authenticated private font download");
 const anonymousFontBytes = await request(
   `${storageBase}/${encodeURIComponent(fontStoragePath)}?alt=media`,
 );
 assert.ok(
   [401, 403].includes(anonymousFontBytes.response.status),
-  'unauthenticated font download must fail',
+  "unauthenticated font download must fail",
 );
 
 const projectIdForTest = uuid();
@@ -118,44 +118,49 @@ const projectPath = `designUsers/${uid}/projects/${projectIdForTest}`;
 const versionPath = `${projectPath}/versions/${versionId}`;
 const commit = await request(`${firestoreBase}:commit`, {
   token: owner.idToken,
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     writes: [
       {
         update: {
           name: `${documentRoot}/${projectPath}`,
           fields: {
-            title: {stringValue: 'Rules test'},
-            latestVersion: {integerValue: '1'},
-            latestVersionId: {stringValue: versionId},
-            frontPreviewPath: {stringValue: `${assetRoot}/front.png`},
-            backPreviewPath: {stringValue: `${assetRoot}/back.png`},
+            title: { stringValue: "Rules test" },
+            latestVersion: { integerValue: "1" },
+            latestVersionId: { stringValue: versionId },
+            frontPreviewPath: { stringValue: `${assetRoot}/front.png` },
+            backPreviewPath: { stringValue: `${assetRoot}/back.png` },
+            frontSleevePreviewPath: {
+              stringValue: `${assetRoot}/front-with-sleeve.png`,
+            },
+            backSleevePreviewPath: {
+              stringValue: `${assetRoot}/back-with-sleeve.png`,
+            },
           },
         },
         updateTransforms: [
-          {fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME'},
-          {fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME'},
+          { fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" },
+          { fieldPath: "updatedAt", setToServerValue: "REQUEST_TIME" },
         ],
-        currentDocument: {exists: false},
+        currentDocument: { exists: false },
       },
       {
         update: {
           name: `${documentRoot}/${versionPath}`,
           fields: {
-            version: {integerValue: '1'},
-            designPath: {stringValue: `${assetRoot}/design.json`},
-            frontPreviewPath: {stringValue: `${assetRoot}/front.png`},
-            backPreviewPath: {stringValue: `${assetRoot}/back.png`},
-            modelPath: {stringValue: `${assetRoot}/model.glb`},
-            modelFileName: {stringValue: 'Rules-test-v1.glb'},
-            modelSizeBytes: {integerValue: '20'},
+            version: { integerValue: "1" },
+            designPath: { stringValue: `${assetRoot}/design.json` },
+            frontPreviewPath: { stringValue: `${assetRoot}/front.png` },
+            backPreviewPath: { stringValue: `${assetRoot}/back.png` },
+            frontSleevePreviewPath: { stringValue: `${assetRoot}/front-with-sleeve.png` },
+            backSleevePreviewPath: { stringValue: `${assetRoot}/back-with-sleeve.png` },
           },
         },
         updateTransforms: [
-          {fieldPath: 'createdAt', setToServerValue: 'REQUEST_TIME'},
+          { fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" },
         ],
-        currentDocument: {exists: false},
+        currentDocument: { exists: false },
       },
     ],
   }),
@@ -163,18 +168,18 @@ const commit = await request(`${firestoreBase}:commit`, {
 assertStatus(
   commit,
   200,
-  'owner creates project and immutable version atomically',
+  "owner creates project and immutable version atomically",
 );
 
 assertStatus(
-  await request(`${firestoreBase}/${projectPath}`, {token: owner.idToken}),
+  await request(`${firestoreBase}/${projectPath}`, { token: owner.idToken }),
   200,
-  'owner reads project',
+  "owner reads project",
 );
 assertStatus(
-  await request(`${firestoreBase}/${versionPath}`, {token: owner.idToken}),
+  await request(`${firestoreBase}/${versionPath}`, { token: owner.idToken }),
   200,
-  'owner reads version',
+  "owner reads version",
 );
 const privateReads = await Promise.all(
   [projectPath, versionPath].map(async (path) => ({
@@ -184,7 +189,7 @@ const privateReads = await Promise.all(
     }),
   })),
 );
-for (const {path, denied} of privateReads) {
+for (const { path, denied } of privateReads) {
   assertStatus(denied, 403, `other account cannot read ${path}`);
 }
 
@@ -192,46 +197,107 @@ const immutableVersion = await request(
   `${firestoreBase}/${versionPath}?updateMask.fieldPaths=version`,
   {
     token: owner.idToken,
-    method: 'PATCH',
-    headers: {'Content-Type': 'application/json'},
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fields: {
-        version: {integerValue: '2'},
+        version: { integerValue: "2" },
       },
     }),
   },
 );
-assertStatus(immutableVersion, 403, 'version documents are immutable');
+assertStatus(immutableVersion, 403, "version documents are immutable");
 
 const galleryObjectPath = `${assetRoot}/design.json`;
 const galleryUpload = await request(
   `${storageBase}?uploadType=media&name=${encodeURIComponent(galleryObjectPath)}`,
   {
     token: owner.idToken,
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: '{}',
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
   },
 );
-assertStatus(galleryUpload, 200, 'owner uploads private gallery asset');
+assertStatus(galleryUpload, 200, "owner uploads private gallery asset");
 assertStatus(
   await request(
     `${storageBase}/${encodeURIComponent(galleryObjectPath)}?alt=media`,
-    {token: owner.idToken},
+    { token: owner.idToken },
   ),
   200,
-  'owner reads private gallery asset',
+  "owner reads private gallery asset",
 );
 const otherGalleryRead = await request(
   `${storageBase}/${encodeURIComponent(galleryObjectPath)}?alt=media`,
-  {token: other.idToken},
+  { token: other.idToken },
 );
 assertStatus(
   otherGalleryRead,
   403,
-  'other account cannot read private gallery asset',
+  "other account cannot read private gallery asset",
 );
 
+const sleeveImageUploads = await Promise.all(
+  ['front-with-sleeve.png', 'back-with-sleeve.png'].map(async (fileName) => {
+    const imagePath = `${assetRoot}/${fileName}`;
+    const imageUpload = await request(
+      `${storageBase}?uploadType=media&name=${encodeURIComponent(imagePath)}`,
+      {
+        token: owner.idToken,
+        method: 'POST',
+        headers: { 'Content-Type': 'image/png' },
+        body: new Uint8Array([137, 80, 78, 71]),
+      },
+    );
+    return { fileName, imageUpload };
+  }),
+);
+for (const { fileName, imageUpload } of sleeveImageUploads) {
+  assertStatus(imageUpload, 200, `owner uploads ${fileName}`);
+}
+
+const sharedModelId = uuid();
+await seedDocument(`sharedModels/${sharedModelId}`, {
+  schemaVersion: { integerValue: "1" },
+  visibility: { stringValue: "public" },
+  ownerUid: { stringValue: owner.localId },
+  title: { stringValue: "Rules test shared model" },
+  fileName: { stringValue: "rules-test.glb" },
+  storagePath: {
+    stringValue: `media/public/shared-models/${owner.localId}/${sharedModelId}/rules-test.glb`,
+  },
+  contentType: { stringValue: "model/gltf-binary" },
+  sizeBytes: { integerValue: "20" },
+  createdAt: { timestampValue: new Date().toISOString() },
+});
+
+async function listOwnedModels(token, uid) {
+  return request(`${firestoreBase}:runQuery`, {
+    token,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "sharedModels" }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "ownerUid" },
+            op: "EQUAL",
+            value: { stringValue: uid },
+          },
+        },
+      },
+    }),
+  });
+}
+
+const ownerModels = await listOwnedModels(owner.idToken, owner.localId);
+assertStatus(ownerModels, 200, "owner lists their public model shares");
+assert.ok(ownerModels.body.includes(sharedModelId));
+const otherModels = await listOwnedModels(other.idToken, other.localId);
+assertStatus(otherModels, 200, "other account lists only their model shares");
+assert.ok(!otherModels.body.includes(sharedModelId));
+
 console.log(
-  'Firebase rules smoke tests passed: authenticated font reads, owner-only gallery, immutable versions.',
+  "Firebase rules smoke tests passed: authenticated font reads, owner-only gallery, immutable versions.",
 );

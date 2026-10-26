@@ -1,9 +1,14 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
+  query,
   serverTimestamp,
   setDoc,
+  where,
+  type Timestamp,
 } from "firebase/firestore";
 import {
   deleteObject,
@@ -26,7 +31,42 @@ export type SharedModel = {
   fileName: string;
   storagePath: string;
   downloadUrl: string;
+  createdAt: Timestamp;
 };
+
+function readSharedModel(
+  id: string,
+  data: Record<string, unknown>,
+): Omit<SharedModel, "downloadUrl"> | null {
+  if (
+    data.schemaVersion !== 1 ||
+    data.visibility !== "public" ||
+    typeof data.ownerUid !== "string" ||
+    typeof data.title !== "string" ||
+    !data.title.length ||
+    data.title.length > 120 ||
+    typeof data.fileName !== "string" ||
+    !/^[A-Za-z0-9_.-]{1,150}[.]glb$/i.test(data.fileName) ||
+    typeof data.storagePath !== "string" ||
+    data.storagePath !==
+      `media/public/shared-models/${data.ownerUid}/${id}/${data.fileName}` ||
+    data.contentType !== "model/gltf-binary" ||
+    typeof data.sizeBytes !== "number" ||
+    data.sizeBytes < 1 ||
+    data.sizeBytes > MAX_SHARED_MODEL_BYTES ||
+    !data.createdAt
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    title: data.title,
+    fileName: data.fileName,
+    storagePath: data.storagePath,
+    createdAt: data.createdAt as Timestamp,
+  };
+}
 
 function safeModelFileName(name: string) {
   const baseName = name
@@ -95,32 +135,34 @@ export async function getSharedModel(id: string): Promise<SharedModel | null> {
   const snapshot = await getDoc(doc(shareDatabase, "sharedModels", id));
   if (!snapshot.exists()) return null;
 
-  const data = snapshot.data();
-  if (
-    data.schemaVersion !== 1 ||
-    data.visibility !== "public" ||
-    typeof data.ownerUid !== "string" ||
-    typeof data.title !== "string" ||
-    !data.title.length ||
-    data.title.length > 120 ||
-    typeof data.fileName !== "string" ||
-    !/^[A-Za-z0-9_.-]{1,150}[.]glb$/i.test(data.fileName) ||
-    typeof data.storagePath !== "string" ||
-    data.storagePath !==
-      `media/public/shared-models/${data.ownerUid}/${id}/${data.fileName}` ||
-    data.contentType !== "model/gltf-binary" ||
-    typeof data.sizeBytes !== "number" ||
-    data.sizeBytes < 1 ||
-    data.sizeBytes > MAX_SHARED_MODEL_BYTES
-  ) {
-    return null;
-  }
+  const model = readSharedModel(snapshot.id, snapshot.data());
+  if (!model) return null;
 
   return {
-    id: snapshot.id,
-    title: data.title,
-    fileName: data.fileName,
-    storagePath: data.storagePath,
-    downloadUrl: await getDownloadURL(ref(shareStorage, data.storagePath)),
+    ...model,
+    downloadUrl: await getDownloadURL(ref(shareStorage, model.storagePath)),
   };
+}
+
+export async function listSharedModels(uid: string): Promise<SharedModel[]> {
+  const snapshot = await getDocs(
+    query(
+      collection(shareDatabase, "sharedModels"),
+      where("ownerUid", "==", uid),
+    ),
+  );
+  const records = snapshot.docs
+    .map((document) => readSharedModel(document.id, document.data()))
+    .filter(
+      (model): model is Omit<SharedModel, "downloadUrl"> => model !== null,
+    )
+    .sort(
+      (left, right) => right.createdAt.toMillis() - left.createdAt.toMillis(),
+    );
+  return Promise.all(
+    records.map(async (model) => ({
+      ...model,
+      downloadUrl: await getDownloadURL(ref(shareStorage, model.storagePath)),
+    })),
+  );
 }

@@ -14,11 +14,19 @@ import {
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { FontLoadQueue } from "./font-load-queue";
 import { logFontLoad, traceFontLoad } from "./font-load-diagnostics";
-import { readFontBytes, type FontDownloadProgress } from "./font-download-progress";
+import {
+  readFontBytes,
+  type FontDownloadProgress,
+} from "./font-download-progress";
 import { firebaseAuth, firebaseDb, firebaseStorage } from "@/lib/firebase";
 import { accountAuth } from "./account-auth";
 import { getStorage } from "firebase/storage";
-import { canUseLocalFontUseCase, hasLocalFontUseCase, setLocalFontUseCase, LOCAL_FONT_USE_CASE } from "./local-font-use-case";
+import {
+  canUseLocalFontUseCase,
+  hasLocalFontUseCase,
+  setLocalFontUseCase,
+  LOCAL_FONT_USE_CASE,
+} from "./local-font-use-case";
 
 // Large Japanese/color fonts exceed 20 MiB even after a valid OTF reexport.
 const MAX_PREVIEW_SIZE_BYTES = 64 * 1024 * 1024;
@@ -43,9 +51,13 @@ function fontReadContext() {
 export async function renameFontFamily(font: FontCatalogItem, name: string) {
   if (!import.meta.env.DEV) throw new Error("Development only");
   const value = name.trim();
-  if (!value || value.length > 200) throw new Error("El nombre debe tener entre 1 y 200 caracteres.");
+  if (!value || value.length > 200)
+    throw new Error("El nombre debe tener entre 1 y 200 caracteres.");
   await updateDoc(doc(firebaseDb, "fonts", font.id), {
-    name: value, displayName: value, sortName: value.toLowerCase(), updatedAt: serverTimestamp(),
+    name: value,
+    displayName: value,
+    sortName: value.toLowerCase(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -53,8 +65,11 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
   if (!import.meta.env.DEV) throw new Error("Development only");
   const source = await getDoc(doc(firebaseDb, "fonts", font.id));
   if (!source.exists()) throw new Error("Family no longer exists");
-  const files = await getDocs(collection(firebaseDb, "fonts", font.id, "files"));
-  if (!files.size || files.size >= FIRESTORE_BATCH_SIZE) throw new Error("Unsupported family size");
+  const files = await getDocs(
+    collection(firebaseDb, "fonts", font.id, "files"),
+  );
+  if (!files.size || files.size >= FIRESTORE_BATCH_SIZE)
+    throw new Error("Unsupported family size");
   const target = doc(collection(firebaseDb, "fonts"));
   const prefix = `media/private/fonts/copies/${target.id}`;
   const paths = new Map<string, string>();
@@ -63,34 +78,71 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
   try {
     for (const file of files.docs) {
       const data = file.data();
-      if (typeof data.storagePath !== "string" || !data.storagePath.startsWith("media/private/fonts/")) throw new Error("Invalid font path");
+      if (
+        typeof data.storagePath !== "string" ||
+        !data.storagePath.startsWith("media/private/fonts/")
+      )
+        throw new Error("Invalid font path");
       const destination = `${prefix}/${file.id}/${data.fileName}`;
       const bytes = await getBytes(ref(firebaseStorage, data.storagePath));
       if (bytes.byteLength === 0) {
         console.warn("[FontCatalog/duplicate] Skipping empty file", {
-          fontId: font.id, fileId: file.id, storagePath: data.storagePath,
+          fontId: font.id,
+          fileId: file.id,
+          storagePath: data.storagePath,
         });
         continue;
       }
-      await uploadBytes(ref(firebaseStorage, destination), bytes, { contentType: data.contentType ?? "application/octet-stream" });
+      await uploadBytes(ref(firebaseStorage, destination), bytes, {
+        contentType: data.contentType ?? "application/octet-stream",
+      });
       uploaded.push(destination);
       paths.set(data.storagePath, destination);
-      copies.push({ id: file.id, data: {
-        ...data, id: file.id, fontId: target.id, storagePath: destination, sizeBytes: bytes.byteLength, updatedAt: serverTimestamp(),
-      } });
+      copies.push({
+        id: file.id,
+        data: {
+          ...data,
+          id: file.id,
+          fontId: target.id,
+          storagePath: destination,
+          sizeBytes: bytes.byteLength,
+          updatedAt: serverTimestamp(),
+        },
+      });
     }
-    if (copies.length === 0) throw new Error("This family has no non-empty files to duplicate.");
+    if (copies.length === 0)
+      throw new Error("This family has no non-empty files to duplicate.");
     const original = source.data();
     const name = `${font.name.slice(0, 195)} copy`;
-    const previewFiles = copies.filter(file => file.data.kind === "font" || ["otf", "ttf", "woff", "woff2"].includes(String(file.data.extension)));
-    const preferredPath = original.preview?.storagePath ? paths.get(original.preview.storagePath) : undefined;
-    const previewFile = previewFiles.find(file => file.data.storagePath === preferredPath) ?? previewFiles[0];
+    const previewFiles = copies.filter(
+      (file) =>
+        file.data.kind === "font" ||
+        ["otf", "ttf", "woff", "woff2"].includes(String(file.data.extension)),
+    );
+    const preferredPath = original.preview?.storagePath
+      ? paths.get(original.preview.storagePath)
+      : undefined;
+    const previewFile =
+      previewFiles.find((file) => file.data.storagePath === preferredPath) ??
+      previewFiles[0];
     const parentData = {
-      ...original, id: target.id, sourceFontId: font.id,
-      name, displayName: name, sortName: name.toLowerCase(), storagePrefix: prefix,
+      ...original,
+      id: target.id,
+      sourceFontId: font.id,
+      name,
+      displayName: name,
+      sortName: name.toLowerCase(),
+      storagePrefix: prefix,
       enabled: typeof original.enabled === "boolean" ? original.enabled : true,
-      fileCount: copies.length, variantCount: previewFiles.length,
-      preview: previewFile ? { fileName: previewFile.data.fileName, format: previewFile.data.extension, storagePath: previewFile.data.storagePath } : null,
+      fileCount: copies.length,
+      variantCount: previewFiles.length,
+      preview: previewFile
+        ? {
+            fileName: previewFile.data.fileName,
+            format: previewFile.data.extension,
+            storagePath: previewFile.data.storagePath,
+          }
+        : null,
       updatedAt: serverTimestamp(),
     };
     // Bound source-document reads to the rules' per-batch access-call limit.
@@ -103,9 +155,13 @@ export async function duplicateFontFamily(font: FontCatalogItem) {
       await batch.commit();
     }
   } catch (error) {
-    await Promise.allSettled(copies.map(file => deleteDoc(doc(target, "files", file.id))));
+    await Promise.allSettled(
+      copies.map((file) => deleteDoc(doc(target, "files", file.id))),
+    );
     await Promise.allSettled([deleteDoc(target)]);
-    await Promise.allSettled(uploaded.map(path => deleteObject(ref(firebaseStorage, path))));
+    await Promise.allSettled(
+      uploaded.map((path) => deleteObject(ref(firebaseStorage, path))),
+    );
     throw error;
   }
 }
@@ -184,7 +240,8 @@ export type LoadedFontVariant = {
 };
 
 const fontLoads = new FontLoadQueue<LoadedFontVariant>(3, logFontLoad);
-export const reserveFontLoad = (priority: () => number) => fontLoads.reserve(priority);
+export const reserveFontLoad = (priority: () => number) =>
+  fontLoads.reserve(priority);
 export const refreshFontLoadPriorities = () => fontLoads.refresh();
 const FONT_FORMAT_PRIORITY: Record<string, number> = {
   otf: 4,
@@ -392,7 +449,10 @@ function readPreview(value: unknown) {
   };
 }
 
-function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | null {
+function readFont(
+  id: string,
+  value: FontCatalogDocument,
+): FontCatalogItem | null {
   if (typeof value.name !== "string") return null;
 
   const enabled = value.enabled === true;
@@ -430,16 +490,21 @@ function readFont(id: string, value: FontCatalogDocument): FontCatalogItem | nul
     enabled,
     id,
     name: displayName,
-    previewString: typeof value.previewString === "string" ? value.previewString : "",
+    previewString:
+      typeof value.previewString === "string" ? value.previewString : "",
     parentCategory,
     previewLetterSpacingExtraEm:
       typeof value.previewLetterSpacingExtraEm === "number" &&
-      Number.isFinite(value.previewLetterSpacingExtraEm) && value.previewLetterSpacingExtraEm >= 0
-        ? value.previewLetterSpacingExtraEm : 0,
+      Number.isFinite(value.previewLetterSpacingExtraEm) &&
+      value.previewLetterSpacingExtraEm >= 0
+        ? value.previewLetterSpacingExtraEm
+        : 0,
     previewLineHeightExtra:
       typeof value.previewLineHeightExtra === "number" &&
-      Number.isFinite(value.previewLineHeightExtra) && value.previewLineHeightExtra >= 0
-        ? value.previewLineHeightExtra : 0,
+      Number.isFinite(value.previewLineHeightExtra) &&
+      value.previewLineHeightExtra >= 0
+        ? value.previewLineHeightExtra
+        : 0,
     previewLineHeightExtraRem:
       typeof value.previewLineHeightExtraRem === "number" &&
       Number.isFinite(value.previewLineHeightExtraRem) &&
@@ -543,10 +608,12 @@ export async function updateFontUseCases(
   const normalizedUseCases = [
     ...new Set(useCases.map((useCase) => useCase.trim())),
   ]
-    .filter(useCase => Boolean(useCase) && useCase !== LOCAL_FONT_USE_CASE)
+    .filter((useCase) => Boolean(useCase) && useCase !== LOCAL_FONT_USE_CASE)
     .slice(0, 3);
 
-  const publicUseCases = font.useCases.filter(useCase => useCase !== LOCAL_FONT_USE_CASE);
+  const publicUseCases = font.useCases.filter(
+    (useCase) => useCase !== LOCAL_FONT_USE_CASE,
+  );
   if (JSON.stringify(normalizedUseCases) !== JSON.stringify(publicUseCases)) {
     await updateDoc(doc(firebaseDb, "fonts", font.id), {
       useCase: deleteField(),
@@ -554,7 +621,8 @@ export async function updateFontUseCases(
       updatedAt: serverTimestamp(),
     });
   }
-  if (canUseLocalFontUseCase()) setLocalFontUseCase(font.id, useCases.includes(LOCAL_FONT_USE_CASE));
+  if (canUseLocalFontUseCase())
+    setLocalFontUseCase(font.id, useCases.includes(LOCAL_FONT_USE_CASE));
 }
 
 export async function listFontVariants(font: FontCatalogItem) {
@@ -628,58 +696,99 @@ export async function loadFontVariant(
   priority?: () => number,
 ) {
   const loadKey = `${font.id}:${variant.id}`;
-  const trace = traceFontLoad({ fontId: font.id, fontName: font.name, variantId: variant.id, storagePath: variant.storagePath });
+  const trace = traceFontLoad({
+    fontId: font.id,
+    fontName: font.name,
+    variantId: variant.id,
+    storagePath: variant.storagePath,
+  });
   trace.event("queued");
   let lastProgressBucket = -1;
-  return fontLoads.load(loadKey, async (downloadSignal, reportProgress) => {
-    reportProgress({ phase: "downloading", loaded: 0, total: null });
-    const familyName = `strange-animals-font-${font.id}-${variant.id}`;
-    const context = fontReadContext();
-    const location = ref(context.storage, variant.storagePath);
-    trace.event("auth:waiting");
-    const token = await context.user?.getIdToken();
-    trace.event("download:request", { authenticated: Boolean(token) });
-    downloadSignal.throwIfAborted();
-    // Same authenticated media endpoint as the Storage SDK, with native cancellation.
-    // Do not create public download tokens for private font objects.
-    const url = `https://firebasestorage.googleapis.com/v0/b/${location.bucket}/o/${encodeURIComponent(location.fullPath)}?alt=media`;
-    const response = await fetch(url, {
-      signal: downloadSignal,
-      headers: token ? { Authorization: `Firebase ${token}` } : {},
-    });
-    trace.event("download:headers", { status: response.status, contentType: response.headers.get("content-type"), contentLength: response.headers.get("content-length") });
-    if (!response.ok) throw new Error(`Font download failed (${response.status})`);
-    trace.event("download:body");
-    const bytes = await readFontBytes(response, downloadSignal, MAX_PREVIEW_SIZE_BYTES, (progress) => {
-      reportProgress(progress);
-      const bucket = progress.total ? Math.floor(progress.loaded / progress.total * 4) : -1;
-      if (bucket !== lastProgressBucket) {
-        lastProgressBucket = bucket;
-        // Keep the body-stage watchdog running; progress logs must not reset it.
-        trace.event("download:body", { loadedBytes: progress.loaded, totalBytes: progress.total });
-      }
-    });
-    trace.event("decode:fontface", { bytes: bytes.byteLength });
-    downloadSignal.throwIfAborted();
-    reportProgress({ phase: "decoding", loaded: bytes.byteLength, total: bytes.byteLength });
-    const fontFace = new FontFace(familyName, bytes, { display: "swap" });
+  return fontLoads
+    .load(
+      loadKey,
+      async (downloadSignal, reportProgress) => {
+        reportProgress({ phase: "downloading", loaded: 0, total: null });
+        const familyName = `strange-animals-font-${font.id}-${variant.id}`;
+        const context = fontReadContext();
+        const location = ref(context.storage, variant.storagePath);
+        trace.event("auth:waiting");
+        const token = await context.user?.getIdToken();
+        trace.event("download:request", { authenticated: Boolean(token) });
+        downloadSignal.throwIfAborted();
+        // Same authenticated media endpoint as the Storage SDK, with native cancellation.
+        // Do not create public download tokens for private font objects.
+        const url = `https://firebasestorage.googleapis.com/v0/b/${location.bucket}/o/${encodeURIComponent(location.fullPath)}?alt=media`;
+        const response = await fetch(url, {
+          signal: downloadSignal,
+          headers: token ? { Authorization: `Firebase ${token}` } : {},
+        });
+        trace.event("download:headers", {
+          status: response.status,
+          contentType: response.headers.get("content-type"),
+          contentLength: response.headers.get("content-length"),
+        });
+        if (!response.ok)
+          throw new Error(`Font download failed (${response.status})`);
+        trace.event("download:body");
+        const bytes = await readFontBytes(
+          response,
+          downloadSignal,
+          MAX_PREVIEW_SIZE_BYTES,
+          (progress) => {
+            reportProgress(progress);
+            const bucket = progress.total
+              ? Math.floor((progress.loaded / progress.total) * 4)
+              : -1;
+            if (bucket !== lastProgressBucket) {
+              lastProgressBucket = bucket;
+              // Keep the body-stage watchdog running; progress logs must not reset it.
+              trace.event("download:body", {
+                loadedBytes: progress.loaded,
+                totalBytes: progress.total,
+              });
+            }
+          },
+        );
+        trace.event("decode:fontface", { bytes: bytes.byteLength });
+        downloadSignal.throwIfAborted();
+        reportProgress({
+          phase: "decoding",
+          loaded: bytes.byteLength,
+          total: bytes.byteLength,
+        });
+        const fontFace = new FontFace(familyName, bytes, { display: "swap" });
 
-    await fontFace.load();
-    downloadSignal.throwIfAborted();
-    document.fonts.add(fontFace);
-    trace.event("decode:registered", { status: fontFace.status });
+        await fontFace.load();
+        downloadSignal.throwIfAborted();
+        document.fonts.add(fontFace);
+        trace.event("decode:registered", { status: fontFace.status });
 
-    return {
-      familyName,
-      supportedCodePoints: getSupportedCodePoints(bytes),
-    };
-  }, signal, onProgress, priority).then(value => {
-    trace.finish("ready");
-    return value;
-  }, error => {
-    trace.finish(signal?.aborted || (error instanceof DOMException && error.name === "AbortError") ? "cancelled" : "failed", error);
-    throw error;
-  });
+        return {
+          familyName,
+          supportedCodePoints: getSupportedCodePoints(bytes),
+        };
+      },
+      signal,
+      onProgress,
+      priority,
+    )
+    .then(
+      (value) => {
+        trace.finish("ready");
+        return value;
+      },
+      (error) => {
+        trace.finish(
+          signal?.aborted ||
+            (error instanceof DOMException && error.name === "AbortError")
+            ? "cancelled"
+            : "failed",
+          error,
+        );
+        throw error;
+      },
+    );
 }
 
 export async function downloadFontFamily(font: FontCatalogItem) {

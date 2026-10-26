@@ -1,9 +1,9 @@
-import {useEffect, useState, type ReactNode} from 'react';
-import {onAuthStateChanged, type User} from 'firebase/auth';
-import {AccountControl} from './AccountControl';
-import {accountAuth} from './account-auth';
+import { useEffect, useState, type ReactNode } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { AccountControl } from "./AccountControl";
+import { accountAuth } from "./account-auth";
 
-export function PersonalAccountGate({children}: {children: ReactNode}) {
+export function PersonalAccountGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(accountAuth.currentUser);
   const [ready, setReady] = useState(false);
 

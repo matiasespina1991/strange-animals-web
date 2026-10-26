@@ -22,9 +22,9 @@ rules_version='2'
 //
 // Collection: designUsers/{uid}/projects/{projectId}
 //   Owner-only project metadata, the latest monotonically increasing version,
-//   and front/back screenshot paths for the latest version.
+//   and Cookie/Cookie+Sleeve A/B screenshot paths for the latest version.
 // Subcollection: designUsers/{uid}/projects/{projectId}/versions/{versionId}
-//   Immutable numbered design JSON, front/back screenshots, and private GLB
+//   Immutable numbered design JSON, Cookie/Cookie+Sleeve A/B screenshots, and private GLB
 //   paths in Cloud Storage. Large files are not stored in Firestore documents.
 //
 // Collection: fonts
@@ -377,7 +377,8 @@ service cloud.firestore {
     match /sharedModels/{modelId} {
       allow get: if isSharedModelId(modelId)
         && resource.data.visibility == 'public';
-      allow list: if false;
+      allow list: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
       allow create: if request.auth != null
         && isSharedModelId(modelId)
         && isValidSharedModel(request.resource.data, modelId);
@@ -395,6 +396,8 @@ service cloud.firestore {
           'latestVersionId',
           'frontPreviewPath',
           'backPreviewPath',
+          'frontSleevePreviewPath',
+          'backSleevePreviewPath',
           'createdAt',
           'updatedAt'
         ])
@@ -404,6 +407,8 @@ service cloud.firestore {
           'latestVersionId',
           'frontPreviewPath',
           'backPreviewPath',
+          'frontSleevePreviewPath',
+          'backSleevePreviewPath',
           'createdAt',
           'updatedAt'
         ])
@@ -419,6 +424,12 @@ service cloud.firestore {
           + uid + '/' + projectId + '/' + data.latestVersionId + '/front.png'
         && data.backPreviewPath == 'media/private/design-gallery/'
           + uid + '/' + projectId + '/' + data.latestVersionId + '/back.png'
+        && (!('frontSleevePreviewPath' in data)
+          || data.frontSleevePreviewPath == 'media/private/design-gallery/'
+            + uid + '/' + projectId + '/' + data.latestVersionId + '/front-with-sleeve.png')
+        && (!('backSleevePreviewPath' in data)
+          || data.backSleevePreviewPath == 'media/private/design-gallery/'
+            + uid + '/' + projectId + '/' + data.latestVersionId + '/back-with-sleeve.png')
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
         && data.updatedAt == request.time;
@@ -431,9 +442,6 @@ service cloud.firestore {
           'designPath',
           'frontPreviewPath',
           'backPreviewPath',
-          'modelPath',
-          'modelFileName',
-          'modelSizeBytes',
           'createdAt'
         ])
         && data.keys().hasOnly([
@@ -441,6 +449,8 @@ service cloud.firestore {
           'designPath',
           'frontPreviewPath',
           'backPreviewPath',
+          'frontSleevePreviewPath',
+          'backSleevePreviewPath',
           'modelPath',
           'modelFileName',
           'modelSizeBytes',
@@ -455,13 +465,22 @@ service cloud.firestore {
           + uid + '/' + projectId + '/' + versionId + '/front.png'
         && data.backPreviewPath == 'media/private/design-gallery/'
           + uid + '/' + projectId + '/' + versionId + '/back.png'
-        && data.modelPath == 'media/private/design-gallery/'
-          + uid + '/' + projectId + '/' + versionId + '/model.glb'
-        && data.modelFileName is string
-        && data.modelFileName.matches('^[A-Za-z0-9_.-]{1,150}[.]glb$')
-        && data.modelSizeBytes is int
-        && data.modelSizeBytes > 0
-        && data.modelSizeBytes <= 104857600
+        && (!('frontSleevePreviewPath' in data)
+          || data.frontSleevePreviewPath == 'media/private/design-gallery/'
+            + uid + '/' + projectId + '/' + versionId + '/front-with-sleeve.png')
+        && (!('backSleevePreviewPath' in data)
+          || data.backSleevePreviewPath == 'media/private/design-gallery/'
+            + uid + '/' + projectId + '/' + versionId + '/back-with-sleeve.png')
+        && ((!('modelPath' in data)
+            && !('modelFileName' in data)
+            && !('modelSizeBytes' in data))
+          || (data.modelPath == 'media/private/design-gallery/'
+              + uid + '/' + projectId + '/' + versionId + '/model.glb'
+            && data.modelFileName is string
+            && data.modelFileName.matches('^[A-Za-z0-9_.-]{1,150}[.]glb$')
+            && data.modelSizeBytes is int
+            && data.modelSizeBytes > 0
+            && data.modelSizeBytes <= 104857600))
         && data.createdAt is timestamp
         && data.createdAt == request.time
         && getAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)).data.latestVersion == data.version
