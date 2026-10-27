@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -9,9 +10,11 @@ import { createModelShare } from "../ar-model/model-share-repository";
 import type { LabelSide } from "./design-configurator-model";
 import { createSleeveShell } from "./sleeve-shell";
 import { createCookieCoreGeometry } from "./cookie-core-geometry";
-import { PRESSING_PRESETS, applyPressingRelief, type PressingPreset } from "./pressing-rings";
+import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
+import { PressingPresetPicker } from "./PressingPresetPicker";
 
 type Properties = {
+  headingTarget: HTMLElement | null;
   labelCapture: string;
   labelCaptureBack: string;
   side: LabelSide;
@@ -38,6 +41,7 @@ const MAX_ZOOM_PERCENT = Math.round(
 );
 
 export function Sleeve3DPreview({
+  headingTarget,
   labelCapture,
   labelCaptureBack,
   side,
@@ -91,6 +95,13 @@ export function Sleeve3DPreview({
     const previousContainerBackground = container.style.background;
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     camera.position.copy(INITIAL_CAMERA_POSITION);
+    // A soft frontal key follows the viewer, remaining above-left even when
+    // orbiting to side B. This is preview lighting, not exported geometry.
+    const viewerLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    viewerLight.position.set(-3, 4, 3);
+    viewerLight.target.position.set(0, 0, -4);
+    camera.add(viewerLight, viewerLight.target);
+    scene.add(camera);
     cameraReference.current = camera;
 
     let renderer: THREE.WebGLRenderer;
@@ -343,8 +354,8 @@ export function Sleeve3DPreview({
       });
       labelImage.src = capture;
     };
-    addLabelFace(labelCapture, cookieDepth / 2 + 0.001);
-    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.001, true);
+    addLabelFace(labelCapture, cookieDepth / 2 + 0.0025);
+    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.0025, true);
 
     const resize = () => {
       if (!container.clientWidth || !container.clientHeight) return;
@@ -545,27 +556,11 @@ export function Sleeve3DPreview({
     pressingPresetReference.current = preset;
     setPressingPreset(preset);
     applyPressingReference.current?.(preset);
-    const radius = labelDiameterMm / 2 * WORLD_SCALE;
-    const camera = cameraReference.current;
-    const controls = controlsReference.current;
-    if (camera && controls) {
-      controls.target.set(0, 0, 0);
-      camera.position.set(radius * 1.1, radius * 0.85, radius * 3.8);
-      camera.lookAt(controls.target);
-      controls.update();
-      controls.saveState();
-    }
   };
 
   return (
     <div className="dc-3d-preview">
-      <div className="dc-pressing-controls">
-        <label htmlFor="dc-pressing-preset">Pressing rings</label>
-        <select id="dc-pressing-preset" value={pressingPreset} disabled={sharing} onChange={event => changePressingPreset(event.target.value as PressingPreset)}>
-          {PRESSING_PRESETS.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-        </select>
-        <span>Preview only · included in shared 3D model</span>
-      </div>
+      {headingTarget && createPortal(<PressingPresetPicker value={pressingPreset} onChange={changePressingPreset} disabled={sharing} />, headingTarget)}
       <div
         className="dc-3d-scene"
         ref={host}

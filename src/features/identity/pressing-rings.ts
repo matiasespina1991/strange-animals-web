@@ -22,7 +22,7 @@ export function pressingHeight(radius: number, labelRadius: number, preset: Pres
     : preset === "triple" ? -0.00045 * (ring(0.23, 0.012) + ring(0.34, 0.012) + ring(0.45, 0.012))
     : preset === "recessed" ? -0.00065 * (1 - THREE.MathUtils.smoothstep(r, 0.72, 0.79))
     : 0.00065 * (1 - THREE.MathUtils.smoothstep(r, 0.24, 0.3)) - 0.00045 * ring(0.76, 0.025);
-  return profile * edgeFade * scale;
+  return profile * edgeFade * scale * 3;
 }
 
 export function applyPressingRelief(geometry: THREE.BufferGeometry, labelRadius: number, preset: PressingPreset, face: 1 | -1 | 0) {

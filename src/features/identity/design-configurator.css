@@ -2278,32 +2278,70 @@
   min-height: 0;
   flex-direction: column;
 }
-.dc-pressing-controls {
-  display: flex;
-  flex-wrap: wrap;
+.dc-3d-preview-dialog .dc-picker-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px 12px;
-  padding: 0 0 12px;
-  color: var(--dc-text, #252620);
-  font-size: 13px;
+  gap: 12px;
 }
-.dc-pressing-controls select {
-  min-height: 36px;
-  max-width: 100%;
+.dc-3d-heading-options { min-width: 0; justify-self: start; margin-left: 24px; }
+.dc-pressing-picker { position: relative; display: flex; align-items: center; gap: 8px; }
+.dc-pressing-label { color: var(--dc-muted, #626e56); font-size: 11px; white-space: nowrap; }
+.design-configurator .dc-pressing-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 124px;
+  min-height: 30px;
+  padding: 4px 8px;
   border: 1px solid var(--dc-border, #c4cab9);
+  border-radius: 3px;
   background: var(--dc-input-bg, #fafaf7);
-  color: inherit;
-  padding: 6px 28px 6px 10px;
-  font: inherit;
+  color: var(--dc-text, #252620);
+  font-size: 11px;
+  cursor: pointer;
 }
-.design-configurator .dc-pressing-controls select:focus-visible {
+.dc-pressing-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  z-index: 5;
+  width: 180px;
+  padding: 4px;
+  border: 1px solid var(--dc-border, #c4cab9);
+  border-radius: 5px;
+  background: var(--dc-panel, #fafaf7);
+  color: var(--dc-text, #252620);
+  box-shadow: 0 6px 24px #0003;
+}
+.dc-pressing-menu [role="option"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dc-pressing-menu [role="option"][data-active="true"] { background: var(--dc-hover, #e8e9e1); }
+.dc-pressing-menu [aria-selected="true"] { font-weight: 700; }
+.design-configurator .dc-pressing-trigger:focus-visible,
+.design-configurator .dc-pressing-menu:focus-visible {
   outline: 2px solid var(--dc-accent, #64734b) !important;
   outline-offset: 2px;
 }
-.dc-pressing-controls > span { color: var(--dc-muted, #626e56); font-size: 11px; }
-@media (max-width: 800px) {
-  .dc-pressing-controls select { min-height: 44px; }
-  .dc-pressing-controls > span { flex-basis: 100%; }
+@media (pointer: coarse) {
+  .design-configurator .dc-pressing-trigger { min-height: 40px; }
+  .dc-pressing-menu [role="option"] { min-height: 44px; }
+}
+@media (max-width: 600px) {
+  .dc-pressing-label { display: none; }
+  .design-configurator .dc-pressing-trigger { min-width: 108px; }
+  .dc-3d-preview-dialog .dc-picker-heading { gap: 6px; grid-template-columns: minmax(0, 1fr) auto auto; }
+  .dc-3d-heading-options { margin-left: 6px; }
+  .dc-3d-preview-dialog .dc-picker-heading h2 { font-size: 15px; }
 }
 .dc-3d-scene {
   position: relative;

@@ -15,7 +15,7 @@ const uv = new Float32Array(geometry.getAttribute('uv').array);
 const signatures = new Set();
 for (const { id } of PRESSING_PRESETS) {
   const profile = Array.from({ length: 1000 }, (_, i) => pressingHeight(i / 2000, 0.5, id));
-  assert.ok(profile.every(value => Number.isFinite(value) && Math.abs(value) < 0.001));
+  assert.ok(profile.every(value => Number.isFinite(value) && Math.abs(value) < 0.0025));
   signatures.add(JSON.stringify(profile));
   assert.equal(pressingHeight(0.0365, 0.5, id), 0, 'No change to spindle bore');
   assert.equal(pressingHeight(0.494, 0.5, id), 0, 'No outer-edge seam');
@@ -28,6 +28,7 @@ for (const { id } of PRESSING_PRESETS) {
   assert.deepEqual(geometry.getAttribute('position').array, once, 'Repeated selection must not accumulate displacement');
 }
 assert.equal(signatures.size, 5, 'Distinct radial profiles');
+assert.ok(Math.abs(pressingHeight(0.135, 0.5, 'small') + 0.00195) < 1e-9, 'Ring depth increased to three times the original');
 applyPressingRelief(geometry, 0.5, 'flat', 1);
 assert.deepEqual(geometry.getAttribute('position').array, base, 'Flat restores exact original surface');
 const back = geometry.clone();

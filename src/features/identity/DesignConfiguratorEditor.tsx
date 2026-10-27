@@ -187,6 +187,7 @@ function Modal({
   wide = false,
   allowBackgroundScroll = false,
   className = "dc-font-picker",
+  headerAccessory,
 }: {
   title: string;
   children: ReactNode;
@@ -194,6 +195,7 @@ function Modal({
   wide?: boolean;
   allowBackgroundScroll?: boolean;
   className?: string;
+  headerAccessory?: ReactNode;
 }) {
   const reference = useRef<HTMLElement>(null),
     titleId = useId();
@@ -249,6 +251,7 @@ function Modal({
           <div>
             <h2 id={titleId}>{title}</h2>
           </div>
+          {headerAccessory}
           <button aria-label="Close dialog" onClick={close}>
             <X size={20} />
           </button>
@@ -500,6 +503,7 @@ export function DesignConfiguratorEditor({
     | "sleeve-preview"
     | null
   >(initial.showTemplateWelcome ? "new" : null);
+  const [previewHeadingTarget, setPreviewHeadingTarget] = useState<HTMLDivElement | null>(null);
   const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
     A: "",
     B: "",
@@ -3746,9 +3750,11 @@ export function DesignConfiguratorEditor({
           title="3D sleeve + label preview"
           wide
           className="dc-3d-preview-dialog"
+          headerAccessory={<div className="dc-3d-heading-options" ref={setPreviewHeadingTarget} />}
           close={() => setDialog(null)}
         >
           <Sleeve3DPreview
+            headingTarget={previewHeadingTarget}
             labelCapture={sleevePreviewLabels.A}
             labelCaptureBack={sleevePreviewLabels.B}
             side={side}
