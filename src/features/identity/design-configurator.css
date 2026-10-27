@@ -2277,6 +2277,7 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
 }
 .dc-3d-preview-dialog .dc-picker-heading {
   display: grid;

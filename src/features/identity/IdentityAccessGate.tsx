@@ -1,7 +1,5 @@
 import {
-  browserLocalPersistence,
   onAuthStateChanged,
-  setPersistence,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import {
@@ -27,29 +25,20 @@ export function IdentityAccessGate({ children }: IdentityAccessGateProperties) {
 
   useEffect(() => {
     let isActive = true;
-    let unsubscribe: ReturnType<typeof onAuthStateChanged> | undefined;
-
-    void setPersistence(firebaseAuth, browserLocalPersistence)
-      .then(() => {
-        if (!isActive) return;
-
-        unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-          if (!isActive) return;
-
-          setAuthStatus(
-            user?.email?.toLowerCase() === IDENTITY_EMAIL
-              ? "authorized"
-              : "signed-out",
-          );
-        });
-      })
-      .catch(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (!isActive) return;
+      setAuthStatus(
+        user?.email?.toLowerCase() === IDENTITY_EMAIL
+          ? "authorized"
+          : "signed-out",
+      );
+    }, () => {
         if (isActive) setAuthStatus("signed-out");
-      });
+    });
 
     return () => {
       isActive = false;
-      unsubscribe?.();
+      unsubscribe();
     };
   }, []);
 

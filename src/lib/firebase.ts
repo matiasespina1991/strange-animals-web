@@ -1,6 +1,6 @@
 import {initializeApp} from 'firebase/app';
 import {getAnalytics, isSupported, type Analytics} from 'firebase/analytics';
-import {getAuth} from 'firebase/auth';
+import {initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserPopupRedirectResolver} from 'firebase/auth';
 import {getFirestore} from 'firebase/firestore';
 import {getStorage} from 'firebase/storage';
 
@@ -15,7 +15,13 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
-export const firebaseAuth = getAuth(firebaseApp);
+// Every route (including public model tabs) must use the same persistence
+// hierarchy. Never change it inside a route: migrating storage in one tab can
+// remove the session observed by another tab and spuriously sign it out.
+export const firebaseAuth = initializeAuth(firebaseApp, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
 // eslint-disable-next-line unicorn/prevent-abbreviations -- Preserve the existing public export.
 export const firebaseDb = getFirestore(firebaseApp);
 export const firebaseStorage = getStorage(firebaseApp);

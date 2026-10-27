@@ -40,6 +40,11 @@ const preview = readFileSync('src/features/identity/Sleeve3DPreview.tsx', 'utf8'
 assert.match(preview, /createPortal\(<PressingPresetPicker/);
 assert.match(preview, /camera.add\(viewerLight, viewerLight.target\)/);
 assert.doesNotMatch(preview, /<select/);
+assert.doesNotMatch(preview, /useState<PressingPreset>/, 'Preset is not reset by dialog remount');
+assert.match(preview, /useRef<PressingPreset>\(pressingPreset\)/, 'Reopened geometry starts with retained preset');
+const editor = readFileSync('src/features/identity/DesignConfiguratorEditor.tsx', 'utf8');
+assert.match(editor, /pressingPreset=\{pressingPreset\}/);
+assert.match(editor, /onPressingPresetChange=\{setPressingPreset\}/);
 const changeHandler = preview.slice(preview.indexOf('const changePressingPreset'), preview.indexOf('\n  return (', preview.indexOf('const changePressingPreset')));
 assert.doesNotMatch(changeHandler, /camera|controls|saveState/, 'Changing preset preserves camera, target and zoom');
 postcss.parse(readFileSync('src/features/identity/design-configurator.css', 'utf8'));

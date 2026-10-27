@@ -67,6 +67,7 @@ import { readBarcodeSourcePalette } from "./barcode-source-palette";
 import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
 import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
+import type { PressingPreset } from "./pressing-rings";
 import { FontPickerPanel, isMobileFontPicker } from "./FontPickerPanel";
 import {
   GLOBAL_COLOR_PRESETS,
@@ -504,6 +505,7 @@ export function DesignConfiguratorEditor({
     | null
   >(initial.showTemplateWelcome ? "new" : null);
   const [previewHeadingTarget, setPreviewHeadingTarget] = useState<HTMLDivElement | null>(null);
+  const [pressingPreset, setPressingPreset] = useState<PressingPreset>("flat");
   const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
     A: "",
     B: "",
@@ -563,6 +565,7 @@ export function DesignConfiguratorEditor({
   );
   const [seeAllStyles, setSeeAllStyles] = useState(true);
   const fontResults = useRef<HTMLDivElement>(null);
+  const pendingFontReveal = useRef<string | null>(null);
   const fontScrollPositions = useRef(new Map<string, number>());
   const fontViewLimits = useRef(new Map<string, number>());
   const previewFont = async (
@@ -603,6 +606,7 @@ export function DesignConfiguratorEditor({
   const openFontPicker = () => {
     const target = activeLayers.find((layer) => layer.id === selected);
     if (!target || target.kind === "image") return;
+    pendingFontReveal.current = target.fontId ?? null;
     setScope("all");
     setQuery("");
     setCategoryByScope((current) => ({
@@ -619,6 +623,7 @@ export function DesignConfiguratorEditor({
   ]);
   useLayoutEffect(() => {
     if (dialog === "fonts" && fontResults.current) {
+      if (pendingFontReveal.current) return;
       const limit = fontViewLimits.current.get(fontScrollKey) ?? 40;
       if (fontLimit !== limit) {
         setFontLimit(limit);
@@ -1910,6 +1915,55 @@ export function DesignConfiguratorEditor({
         : visibleFonts,
     [visibleFonts, selectedCategory],
   );
+  useLayoutEffect(() => {
+    if (dialog !== "fonts" || query || deferredQuery || !pendingFontReveal.current) return;
+    const id = pendingFontReveal.current;
+    const index = sortedFonts.findIndex(font => font.id === id);
+    if (index < 0) {
+      if (!fontsLoading) pendingFontReveal.current = null;
+      return;
+    }
+    if (fontLimit <= index) {
+      const limit = Math.ceil((index + 1) / 40) * 40;
+      fontViewLimits.current.set(fontScrollKey, limit);
+      setFontLimit(limit);
+      return;
+    }
+    const list = fontResults.current;
+    const rows = list?.querySelectorAll<HTMLElement>("[data-font-family]");
+    const row = rows && [...rows].find(item => item.dataset.fontFamily === id);
+    if (!list || !row) return;
+    pendingFontReveal.current = null;
+    let frame = 0;
+    let stopped = false;
+    const align = () => {
+      if (stopped) return;
+      list.scrollTop += row.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientTop - 8;
+      fontScrollPositions.current.set(fontScrollKey, list.scrollTop);
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(align);
+    };
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    // Preview loading and expanded variants can resize all preceding families.
+    // Anchor by family identity rather than restoring an obsolete pixel offset.
+    observer?.observe(list);
+    rows?.forEach(item => observer?.observe(item));
+    const stop = () => {
+      stopped = true;
+      observer?.disconnect();
+      cancelAnimationFrame(frame);
+    };
+    const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    events.forEach(event => list.addEventListener(event, stop, { passive: true }));
+    align();
+    schedule();
+    return () => {
+      stop();
+      events.forEach(event => list.removeEventListener(event, stop));
+    };
+  }, [dialog, query, deferredQuery, sortedFonts, fontLimit, fontScrollKey, fontsLoading]);
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
@@ -3619,6 +3673,7 @@ export function DesignConfiguratorEditor({
           </div>
           <div
             className="dc-font-results"
+            style={{ overflowAnchor: "none" }}
             ref={fontResults}
             onScroll={(event) =>
               fontScrollPositions.current.set(
@@ -3640,7 +3695,7 @@ export function DesignConfiguratorEditor({
               <p>No fonts found. Try another search.</p>
             )}
             {sortedFonts.slice(0, fontLimit).map((font, i) => (
-              <div key={font.id}>
+              <div key={font.id} data-font-family={font.id}>
                 {(i === 0 ||
                   pickerCategory(sortedFonts[i - 1]) !==
                     pickerCategory(font)) && (
@@ -3754,6 +3809,8 @@ export function DesignConfiguratorEditor({
           close={() => setDialog(null)}
         >
           <Sleeve3DPreview
+            pressingPreset={pressingPreset}
+            onPressingPresetChange={setPressingPreset}
             headingTarget={previewHeadingTarget}
             labelCapture={sleevePreviewLabels.A}
             labelCaptureBack={sleevePreviewLabels.B}

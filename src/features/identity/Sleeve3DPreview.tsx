@@ -14,6 +14,8 @@ import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
 import { PressingPresetPicker } from "./PressingPresetPicker";
 
 type Properties = {
+  pressingPreset: PressingPreset;
+  onPressingPresetChange: (preset: PressingPreset) => void;
   headingTarget: HTMLElement | null;
   labelCapture: string;
   labelCaptureBack: string;
@@ -41,6 +43,8 @@ const MAX_ZOOM_PERCENT = Math.round(
 );
 
 export function Sleeve3DPreview({
+  pressingPreset,
+  onPressingPresetChange,
   headingTarget,
   labelCapture,
   labelCaptureBack,
@@ -71,10 +75,10 @@ export function Sleeve3DPreview({
   const [sharing, setSharing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const pendingShareWindowReference = useRef<Window | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const shareInFlight = useRef(false);
   const [shareError, setShareError] = useState("");
-  const [pressingPreset, setPressingPreset] = useState<PressingPreset>("flat");
-  const pressingPresetReference = useRef<PressingPreset>("flat");
+  const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
   const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
   useEffect(() => {
@@ -460,22 +464,17 @@ export function Sleeve3DPreview({
   };
   modelExporterReference.current = exportModel;
   const shareModel = async () => {
-    if (sharing) return;
-    const previewWindow =
-      pendingShareWindowReference.current ??
-      window.open("about:blank", "_blank");
-    if (!previewWindow) {
-      setShareError("Allow pop-ups to open the shared 3D model in a new tab.");
+    if (shareInFlight.current) return;
+    if (shareUrl) {
+      window.open(shareUrl, "_blank", "noopener,noreferrer");
       return;
     }
     if (!accountAuth.currentUser) {
       setShareError("");
-      pendingShareWindowReference.current = previewWindow;
       setSignInOpen(true);
       return;
     }
-    pendingShareWindowReference.current = null;
-    previewWindow.opener = null;
+    shareInFlight.current = true;
     setSharing(true);
     setShareError("");
     setUploadProgress(0);
@@ -502,10 +501,9 @@ export function Sleeve3DPreview({
           url,
         });
       }
-      if (!previewWindow.closed) previewWindow.location.replace(url);
+      setShareUrl(url);
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (shareFailure) {
-      if (!previewWindow.closed) previewWindow.close();
-      pendingShareWindowReference.current = null;
       if (import.meta.env.DEV) {
         console.error("[Sleeve3DPreview/share] failed", {
           error: shareFailure,
@@ -527,6 +525,7 @@ export function Sleeve3DPreview({
               : "The model could not be shared.",
       );
     } finally {
+      shareInFlight.current = false;
       setSharing(false);
     }
   };
@@ -553,8 +552,9 @@ export function Sleeve3DPreview({
   };
 
   const changePressingPreset = (preset: PressingPreset) => {
+    setShareUrl(null);
     pressingPresetReference.current = preset;
-    setPressingPreset(preset);
+    onPressingPresetChange(preset);
     applyPressingReference.current?.(preset);
   };
 
@@ -629,8 +629,6 @@ export function Sleeve3DPreview({
           signInPrompt="Sign in with Google to share this 3D model."
           onClose={() => {
             setSignInOpen(false);
-            pendingShareWindowReference.current?.close();
-            pendingShareWindowReference.current = null;
           }}
           onSignedIn={() => {
             setSignInOpen(false);
