@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -51,8 +51,7 @@ function Artwork({
   const hasSleevePreview = Boolean(images?.frontSleeve && images.backSleeve);
   const previews = images
     ? [
-        { label: "COOKIE", front: images.front, back: images.back },
-        ...(images.frontSleeve && images.backSleeve
+        ...(hasSleevePreview
           ? [
               {
                 label: "COOKIE + SLEEVE",
@@ -60,7 +59,7 @@ function Artwork({
                 back: images.backSleeve,
               },
             ]
-          : []),
+          : [{ label: "COOKIE", front: images.front, back: images.back }]),
       ]
     : [];
   return (
@@ -123,6 +122,14 @@ export function MyGalleryPage({
   const [detailLoading, setDetailLoading] = useState(false);
   const [busyModelId, setBusyModelId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const screenHeading = useRef<HTMLHeadingElement>(null);
+  const previousProjectId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousProjectId.current === selectedProjectId) return;
+    previousProjectId.current = selectedProjectId;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    screenHeading.current?.focus({ preventScroll: true });
+  }, [selectedProjectId]);
 
   useEffect(() => {
     if (!user) return;
@@ -137,12 +144,14 @@ export function MyGalleryPage({
           listSharedModels(user.uid),
         ]);
         if (!active) return;
-        setProjects(nextProjects);
+        setProjects([...nextProjects].sort((a, b) =>
+          (a.createdAt ?? a.updatedAt).toMillis() - (b.createdAt ?? b.updatedAt).toMillis() || a.id.localeCompare(b.id),
+        ));
         setSharedModels(nextModels);
         setSelectedProjectId((current) =>
           current && nextProjects.some((project) => project.id === current)
             ? current
-            : (nextProjects[0]?.id ?? null),
+            : null,
         );
         const previews = await Promise.all(
           nextProjects.map(async (project) => {
@@ -200,6 +209,8 @@ export function MyGalleryPage({
     const objectUrls: string[] = [];
     void (async () => {
       setDetailLoading(true);
+      setVersions([]);
+      setVersionImages({});
       setError("");
       try {
         const nextVersions = await listGalleryVersions(
@@ -234,7 +245,7 @@ export function MyGalleryPage({
           }),
         );
         if (active) {
-          setVersions(nextVersions);
+          setVersions([...nextVersions].sort((a, b) => a.version - b.version));
           setVersionImages(Object.fromEntries(previews));
         }
       } catch (loadError) {
@@ -311,21 +322,22 @@ export function MyGalleryPage({
             <ArrowLeft size={13} /> VINYL ARTWORK DESIGNER PRO
           </button>
           <span>/</span>
-          <b>MY GALLERY</b>
+          <button type="button" onClick={() => setSelectedProjectId(null)}>MY GALLERY</button>
+          {selectedProject && <><span>/</span><b>VERSIONS</b></>}
         </div>
         <section className="mg-heading">
           <div>
             <p>YOUR PERSONAL DESIGN STUDIO</p>
-            <h1>
-              My Gallery{" "}
-              <span>{projects.length.toString().padStart(2, "0")}</span>
+            <h1 ref={screenHeading} tabIndex={-1}>
+              {selectedProject ? selectedProject.title : "My Gallery"}{" "}
+              <span>{selectedProject ? "Versions" : projects.length.toString().padStart(2, "0")}</span>
             </h1>
           </div>
           <button type="button" onClick={onBack}>
             NEW DESIGN <FolderPlus size={15} />
           </button>
         </section>
-        <div className="mg-tabs" role="tablist" aria-label="Gallery contents">
+        {!selectedProject && <div className="mg-tabs" role="tablist" aria-label="Gallery contents">
           <button
             type="button"
             role="tab"
@@ -342,7 +354,7 @@ export function MyGalleryPage({
           >
             Shared 3D models <span>{sharedModels.length}</span>
           </button>
-        </div>
+        </div>}
         {error && (
           <p className="mg-error" role="alert">
             {error}
@@ -428,20 +440,20 @@ export function MyGalleryPage({
           </section>
         ) : (
           <>
-            <section className="mg-shelf" aria-label="Your design projects">
+            {!selectedProject && <section className="mg-shelf" aria-label="Your design projects">
               <div className="mg-shelf-heading">
-                <span>RECENTLY TOUCHED</span>
+                <span>OLDEST TO NEWEST</span>
                 <span>
                   {projects.length.toString().padStart(2, "0")} DESIGNS
                 </span>
               </div>
               <div className="mg-records">
-                {projects.map((project, index) => (
+                {projects.map((project) => (
                   <button
-                    className={`mg-record mg-record-${(index % 4) + 1}${project.id === selectedProjectId ? " is-selected" : ""}`}
+                    className="mg-record"
                     key={project.id}
                     type="button"
-                    aria-pressed={project.id === selectedProjectId}
+                    aria-label={`View versions of ${project.title}`}
                     onClick={() => setSelectedProjectId(project.id)}
                   >
                     <Artwork
@@ -458,11 +470,11 @@ export function MyGalleryPage({
               </div>
               <div className="mg-shelf-base">
                 <span>
-                  VERSION {selectedProject?.latestVersion ?? "—"} SHOWN
+                  LATEST VERSION OF EACH PROJECT
                 </span>
-                <span>HOVER TO SEE FRONT / BACK</span>
+                <span>FRONT / BACK PREVIEW</span>
               </div>
-            </section>
+            </section>}
             {selectedProject && (
               <section
                 className="mg-detail"
@@ -470,8 +482,8 @@ export function MyGalleryPage({
               >
                 <div className="mg-detail-heading">
                   <div>
-                    <span>SELECTED DESIGN</span>
-                    <h2>{selectedProject.title}</h2>
+                    <button type="button" onClick={() => setSelectedProjectId(null)}><ArrowLeft size={14} /> Back to projects</button>
+                    <h2>Choose a version</h2>
                   </div>
                   <button
                     type="button"

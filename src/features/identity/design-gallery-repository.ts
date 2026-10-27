@@ -33,6 +33,7 @@ export type GalleryProject = {
   backPreviewPath: string;
   frontSleevePreviewPath?: string;
   backSleevePreviewPath?: string;
+  createdAt?: Timestamp;
   updatedAt: Timestamp;
 };
 
@@ -109,6 +110,7 @@ function readProject(
     backPreviewPath: data.backPreviewPath,
     frontSleevePreviewPath: data.frontSleevePreviewPath as string | undefined,
     backSleevePreviewPath: data.backSleevePreviewPath as string | undefined,
+    createdAt: data.createdAt as Timestamp | undefined,
     updatedAt: data.updatedAt as Timestamp,
   };
 }

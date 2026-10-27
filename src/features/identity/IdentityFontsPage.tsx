@@ -115,7 +115,7 @@ const IDENTITY_FONTS_ONBOARDING_STORAGE_KEY =
 
 const DESKTOP_FONT_SIZE_MAX = 125;
 const FONT_TOOLBAR_GRID_CLASS =
-  "grid grid-cols-2 gap-x-2 gap-y-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]";
+  "identity-font-toolbar";
 const ACCEPTED_BACKGROUND_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -3369,7 +3369,7 @@ export function IdentityFontsPage() {
         <Minus aria-hidden="true" className="size-4" />
       </button>
 
-      <div className="col-span-2 block w-[calc(100%_-_1rem)] min-w-0 md:col-span-1">
+      <div className="identity-toolbar-field">
         <label
           htmlFor={`font-demo-text-${floating ? "floating" : "main"}`}
           className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
@@ -3407,7 +3407,7 @@ export function IdentityFontsPage() {
         </span>
       </div>
 
-      <div className="col-span-2 block w-[calc(100%_-_1rem)] min-w-0 md:col-span-1 xl:justify-self-end xl:-translate-x-6">
+      <div className="identity-toolbar-field">
         <label
           htmlFor={`font-search-${floating ? "floating" : "main"}`}
           className="mb-2 block text-[0.75rem] tracking-[0.02em] text-white/85"
@@ -3443,7 +3443,7 @@ export function IdentityFontsPage() {
         </span>
       </div>
 
-      <div className="col-span-2 flex min-w-0 flex-nowrap items-start justify-center gap-1 xl:col-span-1 xl:-translate-x-2">
+      <div className="identity-toolbar-colors flex min-w-0 flex-nowrap items-start gap-1">
         <div
           ref={
             floating === toolbarFloating
@@ -3797,7 +3797,7 @@ export function IdentityFontsPage() {
         ref={
           floating === toolbarFloating ? typographySettingsReference : undefined
         }
-        className="relative col-span-2 flex min-w-0 items-start gap-2 self-start justify-self-end xl:col-span-1"
+        className="identity-toolbar-typography relative flex min-w-0 items-start gap-2 self-start"
       >
         {isSmallViewport ? (
           <div className="flex flex-col gap-2 text-white/70">

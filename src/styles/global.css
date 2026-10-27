@@ -692,6 +692,47 @@ input {
   display: none !important;
 }
 
+/* Shared layout for the inline and floating typeface toolbars. */
+.identity-font-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px 16px;
+}
+.identity-font-toolbar > .identity-toolbar-field {
+  width: 100%;
+  min-width: 0;
+}
+.identity-font-toolbar .identity-font-text-input {
+  box-sizing: border-box;
+  min-height: 40px;
+  padding-block: 7px;
+}
+.identity-font-toolbar .identity-toolbar-colors,
+.identity-font-toolbar .identity-toolbar-typography {
+  justify-self: start;
+}
+@media (min-width: 480px) {
+  .identity-font-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .identity-font-toolbar .identity-toolbar-typography { justify-self: end; }
+}
+@media (min-width: 1100px) {
+  .identity-font-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) max-content max-content;
+    column-gap: 16px;
+  }
+}
+@media (max-width: 767px) {
+  .identity-font-toolbar .identity-font-text-input { font-size: 16px; }
+  .identity-font-toolbar[id="font-toolbar-floating"] {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 .identity-font-ghost-preview {
   display: none;
 }

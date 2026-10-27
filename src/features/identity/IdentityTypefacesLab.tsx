@@ -64,7 +64,7 @@ export function IdentityTypefacesLab() {
   const [focus, setFocus] = useState("Goth");
   useEffect(() => {
     let active = true;
-    listFontCatalog().then(data => { if (active) setFonts(data.filter(f => f.enabled)); })
+    listFontCatalog().then(data => { if (active) setFonts(data); })
       .catch(() => { if (active) setError("No se pudo cargar el catálogo. Recargá la página para reintentar."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };

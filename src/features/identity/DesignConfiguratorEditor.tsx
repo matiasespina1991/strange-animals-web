@@ -994,7 +994,7 @@ export function DesignConfiguratorEditor({
     setCatalogError("");
     listFontCatalog()
       .then((data) => {
-        if (active) setFonts(data.filter((f) => f.enabled));
+        if (active) setFonts(data);
       })
       .catch(() => {
         if (active)

@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
 import { FontLoadQueue } from "./font-load-queue";
+import { visibleFontCatalog } from "./font-catalog-visibility";
 import { logFontLoad, traceFontLoad } from "./font-load-diagnostics";
 import {
   readFontBytes,
@@ -541,7 +542,7 @@ export async function listFontCatalog() {
   const fontsReference = collection(fontReadContext().database, "fonts");
   const snapshot = await getDocs(fontsReference);
 
-  return snapshot.docs
+  return visibleFontCatalog(snapshot.docs
     .map((documentSnapshot) =>
       readFont(
         documentSnapshot.id,
@@ -553,7 +554,7 @@ export async function listFontCatalog() {
       left.sortName.localeCompare(right.sortName, undefined, {
         sensitivity: "base",
       }),
-    );
+    ), typeof window === "undefined" ? "" : window.location.hostname);
 }
 
 export async function updateFontParentCategory(
