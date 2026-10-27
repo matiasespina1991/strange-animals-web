@@ -2944,7 +2944,7 @@ export function DesignConfiguratorEditor({
                         style={{
                           left: `${layer.x / 6}%`,
                           top: `${layer.y / 6}%`,
-                          width: `${layer.width / 6}%`,
+                          width: "max-content",
                           color: layer.color,
                           fontFamily: familyFor(layer),
                           fontSize: `${layer.size}px`,
