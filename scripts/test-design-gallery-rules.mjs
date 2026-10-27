@@ -11,7 +11,22 @@ const uuid = () => crypto.randomUUID();
 async function request(url, { token, ...options } = {}) {
   const headers = new Headers(options.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(url, { ...options, headers });
+  // Firebase's upload endpoint treats application/json media bodies as
+  // metadata. Use the same multipart protocol as uploadBytes so JSON fixtures
+  // exercise Storage rules rather than hanging in the upload parser.
+  if (url.startsWith(storageBase) && options.method === 'POST' && options.body !== undefined) {
+    const target = new URL(url);
+    const contentType = headers.get('Content-Type') ?? 'application/octet-stream';
+    const boundary = 'rules-test-upload-boundary';
+    const metadata = JSON.stringify({ name: target.searchParams.get('name'), contentType });
+    options.body = `--${boundary}\r\nContent-Type: application/json; charset=utf-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: ${contentType}\r\n\r\n${options.body}\r\n--${boundary}--`;
+    headers.set('Content-Type', `multipart/related; boundary=${boundary}`);
+    headers.set('X-Goog-Upload-Protocol', 'multipart');
+    target.searchParams.delete('uploadType');
+    url = target.toString();
+  }
+  if (process.env.RULES_TRACE) console.log(options.method ?? 'GET', new URL(url).pathname);
+  const response = await fetch(url, { ...options, headers, signal: AbortSignal.timeout(20000) });
   return { response, body: await response.text() };
 }
 
@@ -328,6 +343,41 @@ assert.ok(ownerModels.body.includes(sharedModelId));
 const otherModels = await listOwnedModels(other.idToken, other.localId);
 assertStatus(otherModels, 200, "other account lists only their model shares");
 assert.ok(!otherModels.body.includes(sharedModelId));
+
+async function patchShared(token, fields, mask = Object.keys(fields)) {
+  const query = mask.map(field => `updateMask.fieldPaths=${field}`).join('&');
+  return request(`${firestoreBase}/sharedModels/${sharedModelId}?${query}`, {
+    token, method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  });
+}
+assertStatus(await patchShared(owner.idToken, {
+  title: { stringValue: 'Replacement model' }, sizeBytes: { integerValue: '25' },
+}), 200, 'owner replaces version model metadata');
+assertStatus(await patchShared(other.idToken, { title: { stringValue: 'Hijacked' } }), 403, 'another user cannot replace model');
+assertStatus(await patchShared(undefined, { title: { stringValue: 'Anonymous' } }), 403, 'anonymous cannot replace model');
+for (const [name, fields, mask] of [
+  ['owner change', { ownerUid: { stringValue: other.localId } }],
+  ['creation date change', { createdAt: { timestampValue: new Date().toISOString() } }],
+  ['invalid title', { title: { stringValue: 'x'.repeat(121) } }],
+  ['invalid size', { sizeBytes: { integerValue: '-1' } }],
+  ['wrong size type', { sizeBytes: { stringValue: '25' } }],
+  ['schema pollution', { extra: { booleanValue: true } }],
+  ['remove required field', {}, ['title']],
+  ['path change', { storagePath: { stringValue: 'media/public/shared-models/other/file.glb' } }],
+]) assertStatus(await patchShared(owner.idToken, fields, mask), 403, name);
+assertStatus(await request(`${firestoreBase}/sharedModels/${uuid()}`), 404, 'missing model can be checked before first upload');
+assertStatus(await request(`${firestoreBase}/sharedModels/${sharedModelId}`, { token: owner.idToken, method: 'DELETE' }), 403, 'model record cannot be deleted');
+const publicModelPath = `media/public/shared-models/${owner.localId}/${sharedModelId}/rules-test.glb`;
+const uploadPublicModel = (token, type = 'model/gltf-binary', body = 'replacement binary') => request(`${storageBase}?uploadType=media&name=${encodeURIComponent(publicModelPath)}`, {
+  token, method: 'POST', headers: { 'Content-Type': type }, body,
+});
+assertStatus(await uploadPublicModel(owner.idToken), 200, 'owner creates public GLB');
+assertStatus(await uploadPublicModel(owner.idToken), 200, 'owner replaces same public GLB path');
+assertStatus(await uploadPublicModel(other.idToken), 403, 'other user cannot overwrite GLB');
+assertStatus(await uploadPublicModel(undefined), 403, 'anonymous cannot overwrite GLB');
+assertStatus(await uploadPublicModel(owner.idToken, 'text/plain'), 403, 'replacement must remain a GLB');
+assertStatus(await uploadPublicModel(owner.idToken, 'model/gltf-binary', ''), 403, 'replacement cannot be empty');
 
 console.log(
   "Firebase rules smoke tests passed: authenticated font reads, owner-only gallery, immutable versions.",

@@ -17,8 +17,9 @@ rules_version='2'
 // Collection: sharedModels
 // Document ID: UUID; exact fields schemaVersion, visibility, ownerUid, title,
 //   fileName, storagePath, contentType, sizeBytes, createdAt. Shares are public
-//   by ID only; clients may create their own, get public documents, and cannot
-//   list, update, or delete shares.
+//   by ID. Gallery versions use their version UUID as the shared model ID.
+//   Owners may replace title/size metadata; owner, path and creation date stay
+//   immutable. Owners can list their own models; deletion remains disabled.
 //
 // Collection: designUsers/{uid}/projects/{projectId}
 //   Owner-only project metadata, the latest monotonically increasing version,
@@ -370,19 +371,26 @@ service cloud.firestore {
         && data.sizeBytes is int
         && data.sizeBytes > 0
         && data.sizeBytes <= 104857600
-        && data.createdAt is timestamp
-        && data.createdAt == request.time;
+        && data.createdAt is timestamp;
     }
 
     match /sharedModels/{modelId} {
       allow get: if isSharedModelId(modelId)
-        && resource.data.visibility == 'public';
+        && (!exists(/databases/$(database)/documents/sharedModels/$(modelId))
+          || resource.data.visibility == 'public');
       allow list: if request.auth != null
         && resource.data.ownerUid == request.auth.uid;
       allow create: if request.auth != null
         && isSharedModelId(modelId)
-        && isValidSharedModel(request.resource.data, modelId);
-      allow update, delete: if false;
+        && isValidSharedModel(request.resource.data, modelId)
+        && request.resource.data.createdAt == request.time;
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && isSharedModelId(modelId)
+        && isValidSharedModel(request.resource.data, modelId)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'sizeBytes']);
+      allow delete: if false;
     }
 
     function isDesignGalleryOwner(uid) {

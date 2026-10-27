@@ -14,6 +14,8 @@ import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
 import { PressingPresetPicker } from "./PressingPresetPicker";
 
 type Properties = {
+  modelShareId: string;
+  modelTitle: string;
   pressingPreset: PressingPreset;
   onPressingPresetChange: (preset: PressingPreset) => void;
   headingTarget: HTMLElement | null;
@@ -43,6 +45,8 @@ const MAX_ZOOM_PERCENT = Math.round(
 );
 
 export function Sleeve3DPreview({
+  modelShareId,
+  modelTitle,
   pressingPreset,
   onPressingPresetChange,
   headingTarget,
@@ -78,6 +82,11 @@ export function Sleeve3DPreview({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const shareInFlight = useRef(false);
   const [shareError, setShareError] = useState("");
+  useEffect(() => {
+    setShareUrl(null);
+    setShareError("");
+  }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, labelColor,
+    sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
   const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
@@ -491,8 +500,9 @@ export function Sleeve3DPreview({
       });
       const shared = await createModelShare(
         modelFile,
-        "3D sleeve + label",
+        modelTitle,
         setUploadProgress,
+        modelShareId,
       );
       const url = `${window.location.origin}/${shared.id}`;
       if (import.meta.env.DEV) {

@@ -8,6 +8,7 @@ function setup(user, failure = false) {
   const calls = [];
   const context = {
     accountAuth: { currentUser: user }, shareUrl: null, shareInFlight: { current: false },
+    modelShareId: 'version-identity', modelTitle: 'Version title',
     window: { location: { origin: 'https://example.test' }, open: (...args) => calls.push(['open', ...args]) },
     Blob, File, Error, Math, console,
     exportModel: async () => { calls.push('export'); return new Blob(['glb']); },

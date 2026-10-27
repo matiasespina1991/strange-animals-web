@@ -362,6 +362,8 @@ export function DesignConfiguratorEditor({
   const [galleryProjectId, setGalleryProjectId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get("projectId"),
   );
+  const [galleryVersionId, setGalleryVersionId] = useState<string | null>(null);
+  const [draftModelId, setDraftModelId] = useState(() => crypto.randomUUID());
   const editorRoot = useRef<HTMLElement>(null);
   const projectBarRef = useRef<HTMLDivElement>(null);
   const globalSettingsRef = useRef<HTMLElement>(null);
@@ -504,7 +506,8 @@ export function DesignConfiguratorEditor({
     | "sleeve-preview"
     | null
   >(initial.showTemplateWelcome ? "new" : null);
-  const [previewHeadingTarget, setPreviewHeadingTarget] = useState<HTMLDivElement | null>(null);
+  const [previewHeadingTarget, setPreviewHeadingTarget] =
+    useState<HTMLDivElement | null>(null);
   const [pressingPreset, setPressingPreset] = useState<PressingPreset>("flat");
   const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
     A: "",
@@ -681,6 +684,7 @@ export function DesignConfiguratorEditor({
         if (!active) return;
         dispatch({ type: "replace", design: loadedDesign });
         setGalleryProjectId(projectId);
+        setGalleryVersionId(versionId);
         setLastSaved(JSON.stringify(loadedDesign));
         setNotice(`Loaded version ${version.version} from My Gallery.`);
       } catch (cause) {
@@ -846,6 +850,8 @@ export function DesignConfiguratorEditor({
     change(() => next);
     end();
     setGalleryProjectId(null);
+    setGalleryVersionId(null);
+    setDraftModelId(crypto.randomUUID());
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("projectId");
     nextUrl.searchParams.delete("versionId");
@@ -1401,6 +1407,7 @@ export function DesignConfiguratorEditor({
         asNewProject,
       });
       setGalleryProjectId(saved.project.id);
+      setGalleryVersionId(saved.versionId);
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.set("projectId", saved.project.id);
       nextUrl.searchParams.set("versionId", saved.versionId);
@@ -1916,9 +1923,15 @@ export function DesignConfiguratorEditor({
     [visibleFonts, selectedCategory],
   );
   useLayoutEffect(() => {
-    if (dialog !== "fonts" || query || deferredQuery || !pendingFontReveal.current) return;
+    if (
+      dialog !== "fonts" ||
+      query ||
+      deferredQuery ||
+      !pendingFontReveal.current
+    )
+      return;
     const id = pendingFontReveal.current;
-    const index = sortedFonts.findIndex(font => font.id === id);
+    const index = sortedFonts.findIndex((font) => font.id === id);
     if (index < 0) {
       if (!fontsLoading) pendingFontReveal.current = null;
       return;
@@ -1931,39 +1944,57 @@ export function DesignConfiguratorEditor({
     }
     const list = fontResults.current;
     const rows = list?.querySelectorAll<HTMLElement>("[data-font-family]");
-    const row = rows && [...rows].find(item => item.dataset.fontFamily === id);
+    const row =
+      rows && [...rows].find((item) => item.dataset.fontFamily === id);
     if (!list || !row) return;
     pendingFontReveal.current = null;
     let frame = 0;
     let stopped = false;
     const align = () => {
       if (stopped) return;
-      list.scrollTop += row.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientTop - 8;
+      list.scrollTop +=
+        row.getBoundingClientRect().top -
+        list.getBoundingClientRect().top -
+        list.clientTop -
+        8;
       fontScrollPositions.current.set(fontScrollKey, list.scrollTop);
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(align);
     };
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(schedule);
     // Preview loading and expanded variants can resize all preceding families.
     // Anchor by family identity rather than restoring an obsolete pixel offset.
     observer?.observe(list);
-    rows?.forEach(item => observer?.observe(item));
+    rows?.forEach((item) => observer?.observe(item));
     const stop = () => {
       stopped = true;
       observer?.disconnect();
       cancelAnimationFrame(frame);
     };
     const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
-    events.forEach(event => list.addEventListener(event, stop, { passive: true }));
+    events.forEach((event) =>
+      list.addEventListener(event, stop, { passive: true }),
+    );
     align();
     schedule();
     return () => {
       stop();
-      events.forEach(event => list.removeEventListener(event, stop));
+      events.forEach((event) => list.removeEventListener(event, stop));
     };
-  }, [dialog, query, deferredQuery, sortedFonts, fontLimit, fontScrollKey, fontsLoading]);
+  }, [
+    dialog,
+    query,
+    deferredQuery,
+    sortedFonts,
+    fontLimit,
+    fontScrollKey,
+    fontsLoading,
+  ]);
   const index = layers.findIndex((l) => l.id === element.id),
     overflow =
       element.kind === "circular" && textLength > 2 * Math.PI * element.radius;
@@ -2872,14 +2903,14 @@ export function DesignConfiguratorEditor({
                   {
                     backgroundColor: previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
-                    maskImage:
-                      surface === "cookie"
-                        ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm)
-                        : undefined,
-                    WebkitMaskImage:
-                      surface === "cookie"
-                        ? canvasHoleMask(design.holeMm, sleeveCanvasSizeMm)
-                        : undefined,
+                    maskImage: canvasHoleMask(
+                      design.holeMm,
+                      sleeveCanvasSizeMm,
+                    ),
+                    WebkitMaskImage: canvasHoleMask(
+                      design.holeMm,
+                      sleeveCanvasSizeMm,
+                    ),
                     maskSize: "100% 100%",
                     WebkitMaskSize: "100% 100%",
                     maskRepeat: "no-repeat",
@@ -2991,7 +3022,7 @@ export function DesignConfiguratorEditor({
                   }
                   selectedIds={surface === "cookie" ? selection : undefined}
                   guides={guides}
-                  cutCenter={surface !== "cookie"}
+                  cutCenter={false}
                   innerShadow
                   onSelect={surface === "cookie" ? selectLayer : undefined}
                   onPointerDown={surface === "cookie" ? startDrag : undefined}
@@ -3554,12 +3585,11 @@ export function DesignConfiguratorEditor({
                   min={0}
                   max={40}
                   step={0.1}
-                  zeroLabel="Zero"
                   onChange={(blur) => update({ blur }, `blur-${element.id}`)}
                   onCommit={end}
                 />
                 <p className="dc-blur-hint">
-                  0 keeps edges sharp. Increase to soften this element.
+                  Zero keeps edges sharp. Increase to soften this element.
                 </p>
               </section>
             </>
@@ -3805,10 +3835,17 @@ export function DesignConfiguratorEditor({
           title="3D sleeve + label preview"
           wide
           className="dc-3d-preview-dialog"
-          headerAccessory={<div className="dc-3d-heading-options" ref={setPreviewHeadingTarget} />}
+          headerAccessory={
+            <div
+              className="dc-3d-heading-options"
+              ref={setPreviewHeadingTarget}
+            />
+          }
           close={() => setDialog(null)}
         >
           <Sleeve3DPreview
+            modelShareId={galleryVersionId ?? draftModelId}
+            modelTitle={design.title}
             pressingPreset={pressingPreset}
             onPressingPresetChange={setPressingPreset}
             headingTarget={previewHeadingTarget}

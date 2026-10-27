@@ -83,6 +83,7 @@ export async function createModelShare(
   file: File,
   title: string,
   onProgress?: (progress: number) => void,
+  modelId?: string,
 ) {
   const user = accountAuth.currentUser;
   if (!user) throw Error("Sign in before sharing a 3D model.");
@@ -91,12 +92,21 @@ export async function createModelShare(
   if (!file.size || file.size > MAX_SHARED_MODEL_BYTES)
     throw Error("GLB files must be smaller than 100 MB.");
 
-  const id = crypto.randomUUID();
-  const fileName = safeModelFileName(file.name);
+  if (modelId && !SHARE_ID_PATTERN.test(modelId)) throw Error("Invalid model version ID.");
+  const id = modelId ?? crypto.randomUUID();
+  const documentReference = doc(shareDatabase, "sharedModels", id);
+  const existing = modelId ? await getDoc(documentReference) : null;
+  const existingData = existing?.exists() ? existing.data() : null;
+  if (existingData && (existingData.ownerUid !== user.uid || !readSharedModel(id, existingData))) {
+    throw Error("This shared model cannot be replaced by your account.");
+  }
+  // Preserve the file path as well as the public ID on every replacement.
+  const fileName = existingData ? existingData.fileName as string : safeModelFileName(file.name);
   const storagePath = `media/public/shared-models/${user.uid}/${id}/${fileName}`;
   const storageReference = ref(shareStorage, storagePath);
   const upload = uploadBytesResumable(storageReference, file, {
     contentType: "model/gltf-binary",
+    cacheControl: "no-cache, max-age=0",
   });
 
   await new Promise<void>((resolve, reject) => {
@@ -111,7 +121,7 @@ export async function createModelShare(
   });
 
   try {
-    await setDoc(doc(shareDatabase, "sharedModels", id), {
+    await setDoc(documentReference, {
       schemaVersion: 1,
       visibility: "public",
       ownerUid: user.uid,
@@ -120,10 +130,12 @@ export async function createModelShare(
       storagePath,
       contentType: "model/gltf-binary",
       sizeBytes: file.size,
-      createdAt: serverTimestamp(),
+      createdAt: existingData?.createdAt ?? serverTimestamp(),
     });
   } catch (error) {
-    await deleteObject(storageReference).catch(() => undefined);
+    // Never delete a version's existing model if its metadata update fails.
+    // Stable IDs can also be shared concurrently from another tab.
+    if (!modelId) await deleteObject(storageReference).catch(() => undefined);
     throw error;
   }
 

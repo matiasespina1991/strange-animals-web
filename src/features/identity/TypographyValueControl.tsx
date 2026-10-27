@@ -9,7 +9,6 @@ export function TypographyValueControl({
   sliderMax = max,
   expandSlider = false,
   step,
-  zeroLabel,
   onChange,
   onCommit,
 }: {
@@ -21,7 +20,6 @@ export function TypographyValueControl({
   step: number;
   sliderMax?: number;
   expandSlider?: boolean;
-  zeroLabel?: string;
   onChange: (value: number) => void;
   onCommit: () => void;
 }) {
@@ -58,21 +56,19 @@ export function TypographyValueControl({
       </span>
       <input
         id={id}
-        type={zeroLabel ? "text" : "number"}
-        inputMode={zeroLabel ? "decimal" : undefined}
-        min={zeroLabel ? undefined : min}
-        max={zeroLabel ? undefined : max}
-        step={zeroLabel ? undefined : step}
-        value={inputFocused ? inputDraft : zeroLabel && value === 0 ? zeroLabel : value}
+        type={"number"}
+        inputMode={"decimal"}
+        min={min}
+        max={max}
+        step={step}
+        value={inputFocused ? inputDraft : value}
         onFocus={() => {
           setInputDraft(String(value));
           setInputFocused(true);
         }}
         onChange={(event) => {
-          if (!zeroLabel) {
-            change(event.target.value);
-            return;
-          }
+          change(event.target.value);
+          return;
           const raw = event.target.value;
           setInputDraft(raw);
           if (!raw.trim()) return;
@@ -81,7 +77,7 @@ export function TypographyValueControl({
             onChange(Math.min(max, Math.max(min, number)));
         }}
         onBlur={() => {
-          if (zeroLabel && inputFocused) {
+          if (inputFocused) {
             const number = Number(inputDraft);
             if (inputDraft.trim() && Number.isFinite(number))
               onChange(Math.min(max, Math.max(min, number)));
