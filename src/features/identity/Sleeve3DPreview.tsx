@@ -9,6 +9,7 @@ import { createModelShare } from "../ar-model/model-share-repository";
 import type { LabelSide } from "./design-configurator-model";
 import { createSleeveShell } from "./sleeve-shell";
 import { createCookieCoreGeometry } from "./cookie-core-geometry";
+import { PRESSING_PRESETS, applyPressingRelief, type PressingPreset } from "./pressing-rings";
 
 type Properties = {
   labelCapture: string;
@@ -68,6 +69,9 @@ export function Sleeve3DPreview({
   const [uploadProgress, setUploadProgress] = useState(0);
   const pendingShareWindowReference = useRef<Window | null>(null);
   const [shareError, setShareError] = useState("");
+  const [pressingPreset, setPressingPreset] = useState<PressingPreset>("flat");
+  const pressingPresetReference = useRef<PressingPreset>("flat");
+  const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
   useEffect(() => {
     const container = host.current;
@@ -138,6 +142,9 @@ export function Sleeve3DPreview({
     const fillLight = new THREE.DirectionalLight(0xbc_c9_d0, 0.25);
     fillLight.position.set(4, 1, 3);
     scene.add(fillLight);
+    const pressingLight = new THREE.DirectionalLight(0xffffff, 0);
+    pressingLight.position.set(-3, 1, 0.8);
+    scene.add(pressingLight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const baseSleeveDepth = 0.026;
@@ -149,6 +156,12 @@ export function Sleeve3DPreview({
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
+    const reliefSurfaces: { geometry: THREE.BufferGeometry; face: 1 | -1 | 0 }[] = [];
+    const applyPressing = (preset: PressingPreset) => {
+      pressingLight.intensity = preset === "flat" ? 0 : 0.8;
+      for (const surface of reliefSurfaces) applyPressingRelief(surface.geometry, labelRadius, preset, surface.face);
+    };
+    applyPressingReference.current = applyPressing;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
     const cookieRecessInnerRadius = labelRadius - cookieBevelSize - 0.0005;
     const cookieRecessLipWidth = cookieRecessDepth;
@@ -219,6 +232,8 @@ export function Sleeve3DPreview({
     drawSleeve();
     model.add(createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor));
     const cookieGeometry = createCookieCoreGeometry(labelRadius, holeRadius, cookieDepth, cookieBevelSize, cookieBevelThickness);
+    reliefSurfaces.push({ geometry: cookieGeometry, face: 0 });
+    applyPressing(pressingPresetReference.current);
     const cookie = new THREE.Mesh(cookieGeometry, [
       new THREE.MeshPhysicalMaterial({
         color: labelColor,
@@ -304,7 +319,7 @@ export function Sleeve3DPreview({
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         const label = new THREE.Mesh(
-          new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 128),
+          new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 192),
           new THREE.MeshPhysicalMaterial({
             map: labelTexture,
             roughness: 0.32,
@@ -316,6 +331,10 @@ export function Sleeve3DPreview({
           }),
         );
         label.position.z = z;
+        // Both local faces point outward; rotating the back mesh mirrors its
+        // deformation automatically and preserves the captured artwork UVs.
+        reliefSurfaces.push({ geometry: label.geometry, face: 1 });
+        applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1);
         if (back) label.rotation.y = Math.PI;
         model.add(label);
       });
@@ -343,6 +362,7 @@ export function Sleeve3DPreview({
 
     return () => {
       active = false;
+      applyPressingReference.current = null;
       observer.disconnect();
       renderer.setAnimationLoop(null);
       controls.removeEventListener("change", updateZoomPercent);
@@ -521,8 +541,31 @@ export function Sleeve3DPreview({
     controls.update();
   };
 
+  const changePressingPreset = (preset: PressingPreset) => {
+    pressingPresetReference.current = preset;
+    setPressingPreset(preset);
+    applyPressingReference.current?.(preset);
+    const radius = labelDiameterMm / 2 * WORLD_SCALE;
+    const camera = cameraReference.current;
+    const controls = controlsReference.current;
+    if (camera && controls) {
+      controls.target.set(0, 0, 0);
+      camera.position.set(radius * 1.1, radius * 0.85, radius * 3.8);
+      camera.lookAt(controls.target);
+      controls.update();
+      controls.saveState();
+    }
+  };
+
   return (
     <div className="dc-3d-preview">
+      <div className="dc-pressing-controls">
+        <label htmlFor="dc-pressing-preset">Pressing rings</label>
+        <select id="dc-pressing-preset" value={pressingPreset} disabled={sharing} onChange={event => changePressingPreset(event.target.value as PressingPreset)}>
+          {PRESSING_PRESETS.map(preset => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+        </select>
+        <span>Preview only · included in shared 3D model</span>
+      </div>
       <div
         className="dc-3d-scene"
         ref={host}

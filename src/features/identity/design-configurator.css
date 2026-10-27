@@ -2278,6 +2278,33 @@
   min-height: 0;
   flex-direction: column;
 }
+.dc-pressing-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 0 12px;
+  color: var(--dc-text, #252620);
+  font-size: 13px;
+}
+.dc-pressing-controls select {
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid var(--dc-border, #c4cab9);
+  background: var(--dc-input-bg, #fafaf7);
+  color: inherit;
+  padding: 6px 28px 6px 10px;
+  font: inherit;
+}
+.design-configurator .dc-pressing-controls select:focus-visible {
+  outline: 2px solid var(--dc-accent, #64734b) !important;
+  outline-offset: 2px;
+}
+.dc-pressing-controls > span { color: var(--dc-muted, #626e56); font-size: 11px; }
+@media (max-width: 800px) {
+  .dc-pressing-controls select { min-height: 44px; }
+  .dc-pressing-controls > span { flex-basis: 100%; }
+}
 .dc-3d-scene {
   position: relative;
   width: 100%;
