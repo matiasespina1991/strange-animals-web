@@ -98,8 +98,6 @@ const FONT_USE_CASES = [
 ] as const;
 const UNASSIGNED_USE_CASE_LABEL = "Unassigned";
 const VARIANTS_PER_PAGE = 3;
-const LOADING_CATEGORY_PLACEHOLDER_COUNT = 14;
-const LOADING_SPECIMEN_PLACEHOLDER_COUNT = 4;
 const MAX_BACKGROUND_IMAGE_SIZE = 15 * 1024 * 1024;
 const DEFAULT_LINE_HEIGHT = 1;
 const DEFAULT_LETTER_SPACING = 0;
@@ -4382,12 +4380,7 @@ export function IdentityFontsPage() {
                 />
                 <span>Categories</span>
               </button>
-              {loading ? (
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-10 animate-pulse rounded-sm bg-white/10"
-                />
-              ) : (
+              {loading ? null : (
                 <label className="flex cursor-pointer items-center gap-2 px-1 py-1 text-[0.6875rem] tracking-[0.02em] text-white hover:text-white">
                   <input
                     checked={allCategoriesSelected}
@@ -4411,15 +4404,7 @@ export function IdentityFontsPage() {
               id="font-category-filters"
             >
               {loading
-                ? Array.from({
-                    length: LOADING_CATEGORY_PLACEHOLDER_COUNT,
-                  }).map((_, index) => (
-                    <span
-                      key={`category-placeholder-${index}`}
-                      aria-hidden="true"
-                      className="h-4 w-16 animate-pulse rounded-sm bg-white/10"
-                    />
-                  ))
+                ? null
                 : categoriesInUse.map((categoryLabel) => {
                     const checked = !hiddenCategoryLabels.has(categoryLabel);
 
@@ -4546,25 +4531,10 @@ export function IdentityFontsPage() {
         ) : loading ? (
           <section
             aria-label="Loading font catalog"
-            className="min-h-[55vh] pb-20 lg:pb-0"
+            role="status"
+            className="pb-20 lg:pb-0"
           >
-            <p className="py-6 text-xs text-white/50">loading catalog...</p>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {Array.from({ length: LOADING_SPECIMEN_PLACEHOLDER_COUNT }).map(
-                (_, index) => (
-                  <article
-                    key={`specimen-placeholder-${index}`}
-                    aria-hidden="true"
-                    className="border border-white/10 p-4"
-                  >
-                    <div className="mb-4 h-3 w-40 animate-pulse rounded bg-white/12" />
-                    <div className="mb-3 h-10 w-full animate-pulse rounded bg-white/8" />
-                    <div className="mb-3 h-10 w-5/6 animate-pulse rounded bg-white/8" />
-                    <div className="h-8 w-28 animate-pulse rounded bg-white/12" />
-                  </article>
-                ),
-              )}
-            </div>
+            <p className="py-6 text-xs text-white/50">Loading…</p>
           </section>
         ) : displayedFontCount === 0 ? (
           <p className="py-6 text-xs text-white/50">
