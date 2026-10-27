@@ -171,11 +171,10 @@ export function Sleeve3DPreview({
     scene.add(pressingLight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
-    const baseSleeveDepth = 0.026;
-    const cookieRecessDepth = 0.007;
+    const cookieRecessDepth = 0.012;
     const cookieThicknessScale = 0.8;
     const cookieDepth =
-      (baseSleeveDepth - cookieRecessDepth * 2) * cookieThicknessScale;
+      0.012 * cookieThicknessScale;
     const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
@@ -279,6 +278,37 @@ export function Sleeve3DPreview({
       }),
     ]);
     model.add(cookie);
+
+    // Close the recessed shoulder on both faces. The sleeve opening is wider
+    // than the cookie; without this annulus it exposes the scene behind it.
+    for (const face of [1, -1]) {
+      const innerRadius = cookieRecessInnerRadius;
+      const outerRadius = cookieRecessOpeningRadius + 0.003;
+      const shoulderGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 256, 8);
+      const positions = shoulderGeometry.getAttribute("position");
+      const innerZ = cookieDepth / 2 + 0.0025;
+      // Tuck the overlap beneath the paperboard instead of laying a black
+      // coplanar ring over its surface (which reads as a detached outline).
+      const outerZ = sleeveDepth / 2 - 0.0015;
+      for (let i = 0; i < positions.count; i++) {
+        const radius = Math.hypot(positions.getX(i), positions.getY(i));
+        const t = THREE.MathUtils.clamp(
+          (radius - innerRadius) / (cookieRecessOpeningRadius - innerRadius),
+          0, 1,
+        );
+        positions.setZ(i, face * THREE.MathUtils.lerp(innerZ, outerZ, t));
+      }
+      positions.needsUpdate = true;
+      shoulderGeometry.computeVertexNormals();
+      const shoulder = new THREE.Mesh(shoulderGeometry, new THREE.MeshPhysicalMaterial({
+        color: 0x12_12_12,
+        roughness: 0.84,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }));
+      shoulder.name = face === 1 ? "Front cookie recess shoulder" : "Back cookie recess shoulder";
+      model.add(shoulder);
+    }
 
     if (sleeveImage) {
       sleeveImageElement = new Image();

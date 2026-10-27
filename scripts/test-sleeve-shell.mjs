@@ -36,5 +36,25 @@ for (const mesh of shell.children) {
 assert.ok(shell.children[0].material[0].roughness > 0.7);
 const component = readFileSync('src/features/identity/Sleeve3DPreview.tsx', 'utf8');
 assert.match(component, /model.add\(createSleeveShell/);
+const shoulderStart = component.indexOf('    for (const face of [1, -1])');
+const shoulderEnd = component.indexOf('\n    if (sleeveImage)', shoulderStart);
+assert.ok(shoulderStart > 0 && shoulderEnd > shoulderStart);
+const model = new THREE.Group();
+vm.runInNewContext(component.slice(shoulderStart, shoulderEnd), {
+  THREE, model, cookieRecessInnerRadius: 0.4935,
+  cookieRecessOpeningRadius: 0.5055, cookieDepth: 0.0096,
+  sleeveDepth: 0.0336, labelColor: '#dddddd',
+});
+model.updateMatrixWorld(true);
+assert.equal(model.children.length, 2, 'Seal both faces');
+for (const shoulder of model.children) {
+  assert.equal(shoulder.material.color.getHex(), 0x121212, 'Recess union represents black vinyl, not label ink');
+}
+for (const face of [1, -1]) {
+  for (const radius of [0.4938, 0.499, 0.505, 0.506]) {
+    const hits = new THREE.Raycaster(new THREE.Vector3(radius, 0, face), new THREE.Vector3(0, 0, -face)).intersectObject(model, true);
+    assert.ok(hits.length, `Recess shoulder must close the gap at radius ${radius} on face ${face}`);
+  }
+}
 assert.match(component, /new GLTFExporter\(\).parse\(\s*model,/);
 console.log('Sleeve shell: thin dimensions, open right edge, center cutout, front/back textures, matte materials and shared export model passed.');

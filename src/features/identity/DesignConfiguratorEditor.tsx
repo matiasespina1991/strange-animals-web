@@ -60,6 +60,7 @@ import {
 import { listFontCatalog } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
+import { RotationValue } from "./RotationValue";
 import { ContentTextControl } from "./ContentTextControl";
 import { ImageAppearanceControls } from "./ImageAppearanceControls";
 import { TextSurfaceControl } from "./TextSurfaceControl";
@@ -610,12 +611,7 @@ export function DesignConfiguratorEditor({
     const target = activeLayers.find((layer) => layer.id === selected);
     if (!target || target.kind === "image") return;
     pendingFontReveal.current = target.fontId ?? null;
-    setScope("all");
     setQuery("");
-    setCategoryByScope((current) => ({
-      ...current,
-      [`all:${fontContext}`]: null,
-    }));
     setDialog("fonts");
   };
   const deferredQuery = useDeferredValue(query);
@@ -1633,7 +1629,7 @@ export function DesignConfiguratorEditor({
       );
   };
   const startSleeveLayerDrag = (
-    event: ReactPointerEvent<HTMLDivElement>,
+    event: ReactPointerEvent<SVGGElement>,
     layer: LabelLayer,
   ) => {
     if (event.button !== 0) return;
@@ -1651,7 +1647,7 @@ export function DesignConfiguratorEditor({
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
-  const moveSleeveLayerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const moveSleeveLayerDrag = (event: ReactPointerEvent<SVGGElement>) => {
     const start = sleeveLayerDrag.current;
     if (
       !start ||
@@ -1687,7 +1683,7 @@ export function DesignConfiguratorEditor({
       start.surface,
     );
   };
-  const endSleeveLayerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const endSleeveLayerDrag = (event: ReactPointerEvent<SVGGElement>) => {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -2134,9 +2130,16 @@ export function DesignConfiguratorEditor({
                   <RotateCw size={12} aria-hidden="true" />
                 </button>
               </div>
-              <output>
-                {value} <small>{unit}</small>
-              </output>
+              <RotationValue
+                key={element.id}
+                value={value}
+                min={min}
+                max={max}
+                onChange={(angle) => {
+                  update({ angle }, `range-${element.id}-angle`);
+                  end();
+                }}
+              />
             </div>
           ) : (
             <output>
@@ -2934,67 +2937,22 @@ export function DesignConfiguratorEditor({
                   className={`dc-sleeve-elements${surface === "sleeve" ? " is-editing" : ""}`}
                   aria-label="Sleeve artwork layers"
                 >
-                  {sleeveLayers
-                    .filter((layer) => layer.visible)
-                    .map((layer) => (
-                      <div
-                        key={layer.id}
-                        data-layer-id={layer.id}
-                        className={`dc-sleeve-element${surface === "sleeve" && selected === layer.id ? " is-selected" : ""}`}
-                        style={{
-                          left: `${layer.x / 6}%`,
-                          top: `${layer.y / 6}%`,
-                          width: "max-content",
-                          color: layer.color,
-                          fontFamily: familyFor(layer),
-                          fontSize: `${layer.size}px`,
-                          fontWeight: 400,
-                          opacity: layer.opacity ?? 1,
-                          textAlign:
-                            layer.align === "middle" ? "center" : layer.align,
-                          transform: `translate(-50%, -50%) rotate(${layer.angle}deg)`,
-                        }}
-                        onPointerDown={
-                          surface === "sleeve"
-                            ? (event) => startSleeveLayerDrag(event, layer)
-                            : undefined
-                        }
-                        onPointerMove={
-                          surface === "sleeve" ? moveSleeveLayerDrag : undefined
-                        }
-                        onPointerUp={
-                          surface === "sleeve" ? endSleeveLayerDrag : undefined
-                        }
-                        onPointerCancel={
-                          surface === "sleeve" ? endSleeveLayerDrag : undefined
-                        }
-                        onClick={
-                          surface === "sleeve"
-                            ? () => selectLayer(layer)
-                            : undefined
-                        }
-                      >
-                        {layer.kind === "image" && layer.image ? (
-                          <img
-                            src={layer.image}
-                            alt={layer.name}
-                            draggable={false}
-                            style={
-                              layer.imageFill ||
-                              (imageRole(layer) === "brand-logo" &&
-                                layer.imageInverted) ||
-                              imageRole(layer) === "barcode"
-                                ? {
-                                    filter: `url(#${prefix}-sleeve-image-color-${layer.id})`,
-                                  }
-                                : undefined
-                            }
-                          />
-                        ) : (
-                          layer.text
-                        )}
-                      </div>
-                    ))}
+                  <LabelArtwork
+                    design={previewDesign}
+                    side={side}
+                    surface="sleeve"
+                    prefix={prefix + "-sleeve"}
+                    fontFamily={familyFor}
+                    selectedIds={surface === "sleeve" ? selection : undefined}
+                    guides={surface === "sleeve" && guides}
+                    onSelect={surface === "sleeve" ? selectLayer : undefined}
+                    onPointerDown={surface === "sleeve" ? (event) => {
+                      const layer = sleeveLayers.find((item) => item.id === event.currentTarget.dataset.layerId);
+                      if (layer) startSleeveLayerDrag(event, layer);
+                    } : undefined}
+                    onPointerMove={surface === "sleeve" ? moveSleeveLayerDrag : undefined}
+                    onPointerUp={surface === "sleeve" ? endSleeveLayerDrag : undefined}
+                  />
                 </div>
                 <LabelArtwork
                   design={previewDesign}

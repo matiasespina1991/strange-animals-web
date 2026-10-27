@@ -392,6 +392,7 @@ function ExtrudedText({
 export function LabelArtwork({
   design,
   side,
+  surface = "cookie",
   prefix,
   fontFamily,
   selected,
@@ -409,6 +410,7 @@ export function LabelArtwork({
 }: {
   design: LabelDesign;
   side: LabelSide;
+  surface?: "cookie" | "sleeve";
   prefix: string;
   fontFamily: (layer: LabelLayer) => string;
   selected?: string;
@@ -424,11 +426,13 @@ export function LabelArtwork({
   onPointerMove?: PointerEventHandler<SVGGElement>;
   onPointerUp?: PointerEventHandler<SVGGElement>;
 }) {
+  // Both surfaces share all text, image and effect rendering.
+  const artworkLayers = getSurfaceLayers(design, surface, side);
   const extra = bleed ? (design.bleedMm / design.diameterMm) * 600 : 0;
   const hole = (design.holeMm / design.diameterMm) * 300;
   const safe = 300 - (design.safeMm / design.diameterMm) * 600;
   const imageFilterEntries = [
-    ...design[side].map((layer) => ({
+    ...artworkLayers.map((layer) => ({
       layer,
       id: `${prefix}-image-color-${layer.id}`,
     })),
@@ -439,7 +443,7 @@ export function LabelArtwork({
   ];
   return (
     <svg
-      className="dc-disc"
+      className={surface === "sleeve" ? "dc-sleeve-artwork" : "dc-disc"}
       xmlns="http://www.w3.org/2000/svg"
       viewBox={`${-extra} ${-extra} ${600 + extra * 2} ${600 + extra * 2}`}
       width={`${design.diameterMm + (bleed ? design.bleedMm * 2 : 0)}mm`}
@@ -461,7 +465,7 @@ export function LabelArtwork({
             <stop offset="100%" stopColor="#161a14" stopOpacity="0.21" />
           </radialGradient>
         )}
-        {design[side].map((layer, index) =>
+        {artworkLayers.map((layer, index) =>
           layer.kind !== "image" && layer.textTexture ? (
             <pattern
               key={`${layer.id}-text-surface`}
@@ -482,7 +486,7 @@ export function LabelArtwork({
             </pattern>
           ) : null,
         )}
-        {design[side].flatMap((layer, index) =>
+        {artworkLayers.flatMap((layer, index) =>
           circularCylinderSlices(layer).map((slice, sliceIndex) => (
             <clipPath
               key={`${layer.id}-cylinder-${sliceIndex}`}
@@ -540,7 +544,7 @@ export function LabelArtwork({
               )}
             </filter>
           ))}
-        {design[side]
+        {artworkLayers
           .filter(
             (layer) =>
               layer.kind === "image" && (layer.imageCrop || layer.borderRadius),
@@ -556,7 +560,7 @@ export function LabelArtwork({
               </clipPath>
             );
           })}
-        {design[side].map(
+        {artworkLayers.map(
           (layer, index) =>
             layer.kind !== "image" &&
             !!layer.inkBleed && (
@@ -568,14 +572,14 @@ export function LabelArtwork({
             ),
         )}
         <clipPath id={`${prefix}-trim`}>
-          {cutCenter ? <path
+          {surface === "sleeve" ? <rect width="600" height="600" /> : cutCenter ? <path
             clipRule="evenodd"
             fillRule="evenodd"
             stroke="none"
             d={`M${300 - (300 + extra)} 300a${300 + extra} ${300 + extra} 0 1 0 ${2 * (300 + extra)} 0a${300 + extra} ${300 + extra} 0 1 0 ${-2 * (300 + extra)} 0Z M${300 - hole} 300a${hole} ${hole} 0 1 0 ${2 * hole} 0a${hole} ${hole} 0 1 0 ${-2 * hole} 0Z`}
           /> : <circle cx="300" cy="300" r={300 + extra} />}
         </clipPath>
-        {design[side].map(
+        {artworkLayers.map(
           (layer, index) =>
             layer.kind === "circular" && (
               <path
@@ -592,8 +596,8 @@ export function LabelArtwork({
         fontFamily="Alte DIN Input"
         fontWeight="400"
       >
-        <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />
-        {design.frame && (
+        {surface === "cookie" && <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />}
+        {surface === "cookie" && design.frame && (
           <circle
             cx="300"
             cy="300"
@@ -609,7 +613,7 @@ export function LabelArtwork({
             <circle cx="300" cy="109" r="7" />
           </g>
         )} */}
-        {design[side].map((layer, index) =>
+        {artworkLayers.map((layer, index) =>
           !layer.visible ? null : (
             <g
               key={layer.id}
@@ -749,7 +753,7 @@ export function LabelArtwork({
           />
         )}
       </g>
-      {guides && (
+      {guides && surface === "cookie" && (
         <g className="dc-print-guides">
           <circle cx="300" cy="300" r={safe} />
           <path d="M 300 282 V 318 M 282 300 H 318" />

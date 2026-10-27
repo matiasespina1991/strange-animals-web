@@ -11,6 +11,8 @@ function visit(node) {
 }
 visit(ast);
 assert.ok(callback);
+const opening = source.slice(source.indexOf('  const openFontPicker ='), source.indexOf('  const deferredQuery ='));
+assert.doesNotMatch(opening, /setScope|setCategoryByScope/, 'Reopening must preserve collection tab and category');
 const events = new Map();
 let rowY = 100, resize, disconnected = false;
 const list = { scrollTop: 900, clientTop: 0, getBoundingClientRect: () => ({ top: 0 }),

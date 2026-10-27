@@ -958,6 +958,13 @@
   );
   mask-repeat: no-repeat;
 }
+.dc-sleeve-artwork {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  touch-action: none;
+}
 .dc-sleeve-elements:not(.is-editing) {
   pointer-events: none;
 }
@@ -1233,6 +1240,18 @@
   display: flex;
   align-items: center;
   gap: 2px;
+}
+.dc-rotation-value input.dc-rotation-input {
+  flex: 0 0 8ch;
+  width: 8ch;
+  min-width: 0;
+  height: 28px;
+  padding: 2px 4px;
+  border: 1px solid var(--dc-border);
+  background: var(--dc-input-bg, var(--dc-surface));
+  color: inherit;
+  font: inherit;
+  text-align: right;
 }
 .dc-warning {
   color: var(--dc-warning-text, #8d4a20);
