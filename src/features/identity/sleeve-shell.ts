@@ -1,0 +1,77 @@
+import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+
+function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, materialIndex: number) {
+  const last = geometry.groups.at(-1);
+  if (last && last.materialIndex === materialIndex && last.start + last.count === start) last.count += 3;
+  else geometry.addGroup(start, 3, materialIndex);
+}
+
+/** Thin paperboard panels, three folded edges and an open right-hand mouth. */
+export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string) {
+  const shell = new THREE.Group();
+  shell.name = "Paperboard sleeve (open right edge)";
+  const thickness = Math.min(0.003, depth / 6);
+  const radius = thickness * 0.4;
+  const half = size / 2;
+  const faceHalf = half - radius;
+  const shape = new THREE.Shape();
+  shape.moveTo(-faceHalf, -faceHalf);
+  shape.lineTo(faceHalf, -faceHalf);
+  shape.lineTo(faceHalf, faceHalf);
+  shape.lineTo(-faceHalf, faceHalf);
+  shape.closePath();
+  const hole = new THREE.Path();
+  hole.absarc(0, 0, openingRadius, 0, Math.PI * 2, true);
+  shape.holes.push(hole);
+  const board = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0 });
+  const interior = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.55), roughness: 1, metalness: 0 });
+  const prints = [front, back].map(map => new THREE.MeshPhysicalMaterial({ map, roughness: 0.72, metalness: 0, clearcoat: 0.025, clearcoatRoughness: 0.8 }));
+  for (const isBack of [false, true]) {
+    // Sub-millimetre paper edge, not the old broad chamfer. Printed UVs continue
+    // over the outer curves; only the cut edge of the center hole stays bare.
+    const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness - 2 * radius, bevelEnabled: true, bevelSize: radius, bevelThickness: radius, bevelSegments: 5, curveSegments: 64 });
+    geometry.translate(0, 0, radius);
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    const cap = geometry.groups.find(group => group.materialIndex === 0)!;
+    const edge = geometry.groups.find(group => group.materialIndex === 1)!;
+    for (let i = 0; i < position.count; i++) {
+      uv.setXY(i, THREE.MathUtils.clamp((position.getX(i) + half) / size, 0, 1), THREE.MathUtils.clamp((position.getY(i) + half) / size, 0, 1));
+    }
+    const faceCount = cap.count / 2;
+    geometry.clearGroups();
+    geometry.addGroup(cap.start, faceCount, isBack ? 0 : 1);
+    geometry.addGroup(cap.start + faceCount, faceCount, isBack ? 1 : 0);
+    for (let i = edge.start; i < edge.start + edge.count; i += 3) {
+      const cutHole = Math.hypot(position.getX(i), position.getY(i)) < openingRadius + 2 * radius;
+      appendMaterialGroup(geometry, i, cutHole ? 2 : 0);
+    }
+    const print = prints[isBack ? 1 : 0];
+    const panel = new THREE.Mesh(geometry, [print, interior, board]);
+    panel.name = isBack ? "Back paperboard" : "Front paperboard";
+    panel.position.z = isBack ? -depth / 2 : depth / 2 - thickness;
+    shell.add(panel);
+  }
+  const fold = (name: string, width: number, height: number, x: number, y: number) => {
+    const geometry = new RoundedBoxGeometry(width, height, depth - thickness * 2, 5, radius);
+    const positions = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    geometry.clearGroups();
+    for (let i = 0; i < positions.count; i++) {
+      uv.setXY(i, THREE.MathUtils.clamp((positions.getX(i) + x + half) / size, 0, 1), THREE.MathUtils.clamp((positions.getY(i) + y + half) / size, 0, 1));
+    }
+    for (let i = 0; i < positions.count; i += 3) {
+      const z = (positions.getZ(i) + positions.getZ(i + 1) + positions.getZ(i + 2)) / 3;
+      appendMaterialGroup(geometry, i, z < 0 ? 1 : 0);
+    }
+    const mesh = new THREE.Mesh(geometry, prints);
+    mesh.name = name;
+    mesh.position.set(x, y, 0);
+    shell.add(mesh);
+  };
+  fold("Spine fold", thickness, size, -half + thickness / 2, 0);
+  fold("Top fold", size - thickness, thickness, thickness / 2, half - thickness / 2);
+  fold("Bottom fold", size - thickness, thickness, thickness / 2, -half + thickness / 2);
+  return shell;
+}

@@ -7,12 +7,15 @@ import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
 import { createModelShare } from "../ar-model/model-share-repository";
 import type { LabelSide } from "./design-configurator-model";
+import { createSleeveShell } from "./sleeve-shell";
+import { createCookieCoreGeometry } from "./cookie-core-geometry";
 
 type Properties = {
   labelCapture: string;
   labelCaptureBack: string;
   side: LabelSide;
   sleeveColor: string;
+  labelColor: string;
   sleeveImage?: string;
   sleeveCaptureFront?: string;
   sleeveCaptureBack?: string;
@@ -38,6 +41,7 @@ export function Sleeve3DPreview({
   labelCaptureBack,
   side,
   sleeveColor,
+  labelColor,
   sleeveImage,
   sleeveCaptureFront,
   sleeveCaptureBack,
@@ -136,39 +140,20 @@ export function Sleeve3DPreview({
     scene.add(fillLight);
 
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
-    const baseSleeveDepth = 0.03;
-    const cookieRecessDepth = 0.009;
+    const baseSleeveDepth = 0.026;
+    const cookieRecessDepth = 0.007;
     const cookieThicknessScale = 0.8;
     const cookieDepth =
       (baseSleeveDepth - cookieRecessDepth * 2) * cookieThicknessScale;
     const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
-    const sleeveCornerBevel = 0.006;
-    const sleeveEdgeBevelSize = 0.008;
-    const sleeveEdgeBevelThickness = 0.0025;
-    const sleeveGeometryDepth = sleeveDepth - sleeveEdgeBevelThickness * 2;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
     const cookieRecessInnerRadius = labelRadius - cookieBevelSize - 0.0005;
     const cookieRecessLipWidth = cookieRecessDepth;
-    const cookieRecessLipDepth = cookieRecessDepth;
     const cookieRecessOpeningRadius =
       cookieRecessInnerRadius + cookieRecessLipWidth;
-    const sleeveShape = new THREE.Shape();
-    const sleeveHalfSize = sleeveSize / 2;
-    sleeveShape.moveTo(-sleeveHalfSize + sleeveCornerBevel, -sleeveHalfSize);
-    sleeveShape.lineTo(sleeveHalfSize - sleeveCornerBevel, -sleeveHalfSize);
-    sleeveShape.lineTo(sleeveHalfSize, -sleeveHalfSize + sleeveCornerBevel);
-    sleeveShape.lineTo(sleeveHalfSize, sleeveHalfSize - sleeveCornerBevel);
-    sleeveShape.lineTo(sleeveHalfSize - sleeveCornerBevel, sleeveHalfSize);
-    sleeveShape.lineTo(-sleeveHalfSize + sleeveCornerBevel, sleeveHalfSize);
-    sleeveShape.lineTo(-sleeveHalfSize, sleeveHalfSize - sleeveCornerBevel);
-    sleeveShape.lineTo(-sleeveHalfSize, -sleeveHalfSize + sleeveCornerBevel);
-    sleeveShape.closePath();
-    const cookieRecess = new THREE.Path();
-    cookieRecess.absarc(0, 0, cookieRecessOpeningRadius, 0, Math.PI * 2, true);
-    sleeveShape.holes.push(cookieRecess);
 
     const createSleeveTexture = () => {
       const canvas = document.createElement("canvas");
@@ -232,128 +217,17 @@ export function Sleeve3DPreview({
       drawSleeveFace(sleeveBack, sleeveCaptureBackElement, true);
     };
     drawSleeve();
-    const sleeveGeometry = new THREE.ExtrudeGeometry(sleeveShape, {
-      depth: sleeveGeometryDepth,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: sleeveEdgeBevelSize,
-      bevelThickness: sleeveEdgeBevelThickness,
-      curveSegments: 64,
-    });
-    sleeveGeometry.translate(0, 0, -sleeveGeometryDepth / 2);
-    const sleevePosition = sleeveGeometry.getAttribute("position");
-    const sleeveUv = sleeveGeometry.getAttribute("uv");
-    const sleeveIndices = sleeveGeometry.getIndex();
-    for (const group of sleeveGeometry.groups) {
-      if (group.materialIndex !== 0) continue;
-      for (
-        let vertex = group.start;
-        vertex < group.start + group.count;
-        vertex++
-      ) {
-        const positionIndex = sleeveIndices
-          ? sleeveIndices.getX(vertex)
-          : vertex;
-        sleeveUv.setXY(
-          positionIndex,
-          (sleevePosition.getX(positionIndex) + sleeveSize / 2) / sleeveSize,
-          (sleevePosition.getY(positionIndex) + sleeveSize / 2) / sleeveSize,
-        );
-      }
-    }
-    sleeveUv.needsUpdate = true;
-    const lidGroup = sleeveGeometry.groups.find(
-      (group) => group.materialIndex === 0,
-    );
-    const sideGroup = sleeveGeometry.groups.find(
-      (group) => group.materialIndex === 1,
-    );
-    if (!lidGroup || !sideGroup || lidGroup.count % 2 !== 0)
-      throw new Error(
-        "The sleeve geometry does not have separate front and back faces.",
-      );
-    const faceCount = lidGroup.count / 2;
-    sleeveGeometry.clearGroups();
-    sleeveGeometry.addGroup(lidGroup.start, faceCount, 1);
-    sleeveGeometry.addGroup(lidGroup.start + faceCount, faceCount, 0);
-    sleeveGeometry.addGroup(sideGroup.start, sideGroup.count, 2);
-    const sleeve = new THREE.Mesh(sleeveGeometry, [
-      new THREE.MeshPhysicalMaterial({
-        map: sleeveFront.texture,
-        roughness: 0.32,
-        metalness: 0,
-        clearcoat: 0.19,
-        clearcoatRoughness: 0.22,
-      }),
-      new THREE.MeshPhysicalMaterial({
-        map: sleeveBack.texture,
-        roughness: 0.32,
-        metalness: 0,
-        clearcoat: 0.19,
-        clearcoatRoughness: 0.22,
-      }),
-      new THREE.MeshPhysicalMaterial({
-        color: sleeveColor,
-        roughness: 0.32,
-        metalness: 0,
-        clearcoat: 0.19,
-        clearcoatRoughness: 0.22,
-      }),
-    ]);
-    model.add(sleeve);
-    const addCookieRecessLip = (back = false) => {
-      const geometry = new THREE.CylinderGeometry(
-        cookieRecessOpeningRadius,
-        cookieRecessInnerRadius,
-        cookieRecessLipDepth,
-        128,
-        1,
-        true,
-      );
-      geometry.rotateX(back ? -Math.PI / 2 : Math.PI / 2);
-      const lip = new THREE.Mesh(
-        geometry,
-        new THREE.MeshPhysicalMaterial({
-          color: sleeveColor,
-          roughness: 0.32,
-          metalness: 0,
-          clearcoat: 0.19,
-          clearcoatRoughness: 0.22,
-          side: THREE.DoubleSide,
-        }),
-      );
-      lip.position.z = back
-        ? -sleeveDepth / 2 + cookieRecessLipDepth / 2
-        : sleeveDepth / 2 - cookieRecessLipDepth / 2;
-      model.add(lip);
-    };
-    addCookieRecessLip();
-    addCookieRecessLip(true);
-    const cookieShape = new THREE.Shape();
-    cookieShape.absarc(
-      0,
-      0,
-      labelRadius - cookieBevelSize,
-      0,
-      Math.PI * 2,
-      false,
-    );
-    const cookieCenterHole = new THREE.Path();
-    cookieCenterHole.absarc(0, 0, holeRadius, 0, Math.PI * 2, true);
-    cookieShape.holes.push(cookieCenterHole);
-    const cookieCoreDepth = cookieDepth - cookieBevelThickness * 2;
-    const cookieGeometry = new THREE.ExtrudeGeometry(cookieShape, {
-      depth: cookieCoreDepth,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      bevelSize: cookieBevelSize,
-      bevelThickness: cookieBevelThickness,
-      curveSegments: 128,
-    });
-    cookieGeometry.translate(0, 0, -cookieCoreDepth / 2);
+    model.add(createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor));
+    const cookieGeometry = createCookieCoreGeometry(labelRadius, holeRadius, cookieDepth, cookieBevelSize, cookieBevelThickness);
     const cookie = new THREE.Mesh(cookieGeometry, [
       new THREE.MeshPhysicalMaterial({
-        color: 0xd8_d6_cd,
+        color: labelColor,
+        roughness: 0.84,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }),
+      new THREE.MeshPhysicalMaterial({
+        color: labelColor,
         roughness: 0.84,
         metalness: 0,
         side: THREE.DoubleSide,
@@ -430,7 +304,7 @@ export function Sleeve3DPreview({
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         const label = new THREE.Mesh(
-          new THREE.CircleGeometry(labelRadius - cookieBevelSize, 128),
+          new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 128),
           new THREE.MeshPhysicalMaterial({
             map: labelTexture,
             roughness: 0.32,
@@ -502,6 +376,7 @@ export function Sleeve3DPreview({
     labelCaptureBack,
     labelDiameterMm,
     sleeveColor,
+    labelColor,
     labelHoleMm,
     sleeveImage,
     sleeveCaptureFront,

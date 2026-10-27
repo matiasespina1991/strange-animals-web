@@ -2167,7 +2167,7 @@ export function DesignConfiguratorEditor({
       <div className="dc-project-bar" ref={projectBarRef}>
         <div>
           <label className="dc-project-name">
-            <span className="dc-project-title-label">Project title</span>
+            <span className="dc-project-title-label">Project name</span>
             <input
               maxLength={120}
               value={design.title}
@@ -3753,6 +3753,7 @@ export function DesignConfiguratorEditor({
             labelCaptureBack={sleevePreviewLabels.B}
             side={side}
             sleeveColor={design.sleeveColor}
+            labelColor={design.paper}
             sleeveImage={design.sleeveImage}
             sleeveCaptureFront={sleevePreviewLabels.sleeveA}
             sleeveCaptureBack={sleevePreviewLabels.sleeveB}
