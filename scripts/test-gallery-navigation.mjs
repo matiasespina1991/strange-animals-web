@@ -32,11 +32,25 @@ assert.match(overview, /Your design projects/);
 assert.doesNotMatch(overview, /Choose a version/);
 const detail = render('project-1');
 assert.match(detail, /Choose a version/);
-assert.match(detail, /Back to projects/);
+assert.match(detail, /MY GALLERY/);
+assert.match(detail, /Delete project/);
+assert.match(detail, /Double-click to rename project/);
+assert.doesNotMatch(detail, /<span>Versions<\/span>/);
 assert.match(detail, /Edit version 1/);
 assert.doesNotMatch(detail, /Your design projects/);
 assert.doesNotMatch(source, /nextProjects\[0\]/);
-assert.match(source, /a\.version - b\.version/);
+assert.match(source, /b\.version - a\.version/);
 assert.match(source, /a\.createdAt \?\? a\.updatedAt/);
-postcss.parse(readFileSync('src/features/identity/my-gallery.css', 'utf8'));
+const css = readFileSync('src/features/identity/my-gallery.css', 'utf8');
+const stylesheet = postcss.parse(css);
+stylesheet.walkRules(rule => {
+  rule.walkDecls('animation', declaration => {
+    if (/mg-face-[ab]/.test(declaration.value) && !rule.selector.startsWith('@')) {
+      assert.match(rule.selector, /:hover/, 'Face changes must only run during hover');
+      assert.match(declaration.value, /4s ease-in-out/, 'Smooth crossfade every two seconds, four seconds per full cycle');
+    }
+  });
+});
+assert.match(css, /\.mg-model-grid\s*\{[^}]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+assert.match(css, /43\.75%/, 'Hold each face before the 250ms crossfade');
 console.log('Gallery: distinct overview/history screens, version editing, no automatic selection, chronological sorting and CSS passed.');

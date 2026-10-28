@@ -61,6 +61,7 @@ import { listFontCatalog } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
 import { RotationValue } from "./RotationValue";
+import { LayerContextMenu } from "./LayerContextMenu";
 import { ContentTextControl } from "./ContentTextControl";
 import { ImageAppearanceControls } from "./ImageAppearanceControls";
 import { TextSurfaceControl } from "./TextSurfaceControl";
@@ -474,6 +475,9 @@ export function DesignConfiguratorEditor({
   const [dragging, setDragging] = useState(false);
   const [panning, setPanning] = useState(false);
   const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
+  const [layerContextMenu, setLayerContextMenu] = useState<{
+    x: number; y: number; ids: string[]; side: LabelSide; surface: "cookie" | "sleeve";
+  } | null>(null);
   const [side, setSide] = useState<LabelSide>("A"),
     [surface, setSurface] = useState<"cookie" | "sleeve">("cookie"),
     [selected, setSelected] = useState<string | null>("legal"),
@@ -677,6 +681,7 @@ export function DesignConfiguratorEditor({
         const version = await getGalleryVersion(user.uid, projectId, versionId);
         if (!version) throw Error("This design version could not be found.");
         const loadedDesign = await loadGalleryDesign(version);
+        loadedDesign.title = project.title;
         if (!active) return;
         dispatch({ type: "replace", design: loadedDesign });
         setGalleryProjectId(projectId);
@@ -1136,6 +1141,26 @@ export function DesignConfiguratorEditor({
     setSelectedLayers([layer.id]);
     setSelected(layer.id);
     setMobileTab("properties");
+  };
+  const copyLayersToOtherSide = () => {
+    if (!layerContextMenu) return;
+    const origin = layerContextMenu;
+    const targetSide: LabelSide = origin.side === "A" ? "B" : "A";
+    const source = getSurfaceLayers(design, origin.surface, origin.side)
+      .filter(layer => origin.ids.includes(layer.id));
+    const destination = getSurfaceLayers(design, origin.surface, targetSide);
+    setLayerContextMenu(null);
+    if (!source.length) return;
+    if (destination.length + source.length > 50) {
+      setNotice(`Cannot copy: ${targetSide} side would exceed the limit of 50 layers.`);
+      return;
+    }
+    const copies = source.map(layer => ({ ...structuredClone(layer), id: crypto.randomUUID() }));
+    end();
+    change(current => updateSurfaceLayers(current, origin.surface, targetSide,
+      targetLayers => [...targetLayers, ...copies]));
+    end();
+    setNotice(`Copied ${copies.length} ${copies.length === 1 ? "layer" : "layers"} to ${targetSide} side.`);
   };
   const add = (kind: LabelLayer["kind"]) => {
     if (layers.length >= 50) {
@@ -2099,7 +2124,7 @@ export function DesignConfiguratorEditor({
       end();
     };
     return (
-      <label className="dc-field dc-slider-field">
+      <label className={`dc-field dc-slider-field${key === "angle" ? " dc-rotation-field" : ""}`}>
         <span>
           {label}
           {key === "angle" ? (
@@ -2169,6 +2194,22 @@ export function DesignConfiguratorEditor({
   return (
     <main
       ref={editorRoot}
+      onContextMenu={event => {
+        const target = event.target;
+        if (!(target instanceof Element) || target.closest("input, textarea, [contenteditable=true]")) return;
+        const id = target.closest<HTMLElement | SVGElement>("[data-layer-id]")?.dataset.layerId;
+        const layer = layers.find(item => item.id === id);
+        if (!layer) return;
+        event.preventDefault();
+        const ids = selection.has(layer.id)
+          ? layers.filter(item => selection.has(item.id)).map(item => item.id)
+          : [layer.id];
+        if (!selection.has(layer.id)) {
+          setSelected(layer.id);
+          setSelectedLayers([layer.id]);
+        }
+        setLayerContextMenu({ x: event.clientX, y: event.clientY, ids, side, surface });
+      }}
       data-theme={theme}
       className={`design-configurator${dragging ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
       data-native-cursor-surface
@@ -2567,6 +2608,7 @@ export function DesignConfiguratorEditor({
                 draggable
                 aria-grabbed={reorderingLayer === layer.id}
                 className={`dc-layer ${selection.has(layer.id) ? "is-selected" : ""} ${reorderingLayer === layer.id ? "is-dragging" : ""} ${dropIndicator?.id === layer.id ? (dropIndicator.before ? "drop-before" : "drop-after") : ""}`}
+                data-layer-id={layer.id}
                 onDragStart={(event) => {
                   const target = event.target as Element;
                   if (
@@ -3424,6 +3466,7 @@ export function DesignConfiguratorEditor({
                         )}
                       </div>
                     </div>
+                    {slider("Rotation", "angle", -180, 180, "°")}
                     <TypographyValueControl
                       label="Opacity"
                       unit="%"
@@ -3440,6 +3483,7 @@ export function DesignConfiguratorEditor({
                       onCommit={end}
                     />
                     <TextEffectControls
+                      allowCylinder={element.kind !== "circular"}
                       effect={element.textEffect}
                       settings={element.textEffectSettings}
                       onChange={(textEffect, group, textEffectSettings) => {
@@ -3454,6 +3498,22 @@ export function DesignConfiguratorEditor({
                   </section>
                 </>
               )}
+              <section className="dc-property-section dc-focus-section">
+                <div className="dc-section-caption">Focus</div>
+                <TypographyValueControl
+                  label="Blur"
+                  unit="PX"
+                  value={element.blur ?? 0}
+                  min={0}
+                  max={40}
+                  step={0.1}
+                  onChange={(blur) => update({ blur }, `blur-${element.id}`)}
+                  onCommit={end}
+                />
+                <p className="dc-blur-hint">
+                  Zero keeps edges sharp. Increase to soften this element.
+                </p>
+              </section>
               <section className="dc-property-section dc-position-section">
                 <div className="dc-section-caption">
                   {element.kind === "circular"
@@ -3463,7 +3523,6 @@ export function DesignConfiguratorEditor({
                 {element.kind === "circular" ? (
                   <>
                     {slider("Radius", "radius", 30, 295, "PX")}
-                    {slider("Rotation", "angle", -180, 180, "°")}
                     {overflow && (
                       <p className="dc-warning" role="status">
                         El texto supera la circunferencia. Aumentá el radio o
@@ -3499,6 +3558,7 @@ export function DesignConfiguratorEditor({
                         onCommit={end}
                       />
                     )}
+                    {element.kind === "image" && slider("Rotation", "angle", -180, 180, "°")}
                     {element.kind === "image" && (
                       <label className="dc-field dc-slider-field">
                         <span>
@@ -3530,25 +3590,8 @@ export function DesignConfiguratorEditor({
                       {number("Horizontal", "x", 0, 600, "PX")}
                       {number("Vertical", "y", 0, 600, "PX")}
                     </div>
-                    {slider("Rotation", "angle", -180, 180, "°")}
                   </>
                 )}
-              </section>
-              <section className="dc-property-section dc-focus-section">
-                <div className="dc-section-caption">Focus</div>
-                <TypographyValueControl
-                  label="Blur"
-                  unit="PX"
-                  value={element.blur ?? 0}
-                  min={0}
-                  max={40}
-                  step={0.1}
-                  onChange={(blur) => update({ blur }, `blur-${element.id}`)}
-                  onCommit={end}
-                />
-                <p className="dc-blur-hint">
-                  Zero keeps edges sharp. Increase to soften this element.
-                </p>
               </section>
             </>
           )}
@@ -4069,6 +4112,16 @@ export function DesignConfiguratorEditor({
             </p>
           </div>
         </Modal>
+      )}
+      {layerContextMenu && (
+        <LayerContextMenu
+          x={layerContextMenu.x}
+          y={layerContextMenu.y}
+          count={layerContextMenu.ids.length}
+          targetSide={layerContextMenu.side === "A" ? "B" : "A"}
+          onCopy={copyLayersToOtherSide}
+          onClose={() => setLayerContextMenu(null)}
+        />
       )}
       {notice && (
         <div

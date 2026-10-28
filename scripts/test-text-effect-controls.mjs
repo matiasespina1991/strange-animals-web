@@ -227,6 +227,9 @@ const closeCylinder = () =>
   elements(render())
     .find((e) => e.props?.className === "dc-cylinder-close")
     .props.onClick();
+assert.equal(effect.closed, true, "New cylinders start closed");
+closeCylinder();
+assert.equal(effect.closed, false, "User can open the cylinder");
 closeCylinder();
 assert.equal(effect.closed, true);
 assert.equal(effect.span, originalSpan);
@@ -340,7 +343,7 @@ effect = undefined;
 settings = undefined;
 toggle(0, true);
 assert.equal(effect.radius, 170);
-assert.equal(effect.closed, undefined);
+assert.equal(effect.closed, true);
 console.log(
   "Effect controls: independent toggles, combined mode, fade edits, settings preservation and performance limits passed.",
 );

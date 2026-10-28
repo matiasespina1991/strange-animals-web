@@ -24,9 +24,11 @@ rules_version='2'
 // Collection: designUsers/{uid}/projects/{projectId}
 //   Owner-only project metadata, the latest monotonically increasing version,
 //   and Cookie/Cookie+Sleeve A/B screenshot paths for the latest version.
+//   Owners may rename title without advancing the version, or delete the project.
 // Subcollection: designUsers/{uid}/projects/{projectId}/versions/{versionId}
 //   Immutable numbered design JSON, Cookie/Cookie+Sleeve A/B screenshots, and private GLB
 //   paths in Cloud Storage. Large files are not stored in Firestore documents.
+//   Version contents cannot be edited; owner deletion is allowed.
 //
 // Collection: fonts
 // Document ID: normalized font-family ID
@@ -505,7 +507,9 @@ service cloud.firestore {
       allow update: if isDesignGalleryOwner(uid)
         && isValidDesignGalleryProject(request.resource.data, uid, projectId)
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.latestVersion == resource.data.latestVersion + 1
+        && ((request.resource.data.latestVersion == resource.data.latestVersion
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'updatedAt']))
+          || request.resource.data.latestVersion == resource.data.latestVersion + 1)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'title',
           'latestVersion',
@@ -517,13 +521,14 @@ service cloud.firestore {
           'updatedAt'
         ])
         && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));
-      allow delete: if false;
+      allow delete: if isDesignGalleryOwner(uid);
 
       match /versions/{versionId} {
         allow get, list: if isDesignGalleryOwner(uid);
         allow create: if isDesignGalleryOwner(uid)
           && isValidDesignGalleryVersion(request.resource.data, uid, projectId, versionId);
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isDesignGalleryOwner(uid);
       }
     }
 

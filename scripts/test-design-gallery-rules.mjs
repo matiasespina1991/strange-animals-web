@@ -252,7 +252,7 @@ const commitSecondVersion = token => request(`${firestoreBase}:commit`, {
 });
 assertStatus(await commitSecondVersion(other.idToken), 403, 'other account cannot add a version');
 assertStatus(await commitSecondVersion(owner.idToken), 200, 'owner saves version 2 including sleeve previews');
-assertStatus(await commitSecondVersion(owner.idToken), 403, 'version replay is rejected');
+assert.ok([403, 409].includes((await commitSecondVersion(owner.idToken)).response.status), 'version replay is rejected by rules or create precondition');
 
 const galleryObjectPath = `${assetRoot}/design.json`;
 const galleryUpload = await request(
@@ -378,6 +378,31 @@ assertStatus(await uploadPublicModel(other.idToken), 403, 'other user cannot ove
 assertStatus(await uploadPublicModel(undefined), 403, 'anonymous cannot overwrite GLB');
 assertStatus(await uploadPublicModel(owner.idToken, 'text/plain'), 403, 'replacement must remain a GLB');
 assertStatus(await uploadPublicModel(owner.idToken, 'model/gltf-binary', ''), 403, 'replacement cannot be empty');
+
+const renameProject = (token, title, extra = {}) => request(`${firestoreBase}:commit`, {
+  token, method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ writes: [{
+    update: { name: `${documentRoot}/${projectPath}`, fields: { title: { stringValue: title }, ...extra } },
+    updateMask: { fieldPaths: ['title', ...Object.keys(extra)] },
+    updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
+  }] }),
+});
+assertStatus(await renameProject(owner.idToken, 'Renamed project'), 200, 'owner renames without creating a version');
+assertStatus(await renameProject(other.idToken, 'Hijacked'), 403, 'other user cannot rename');
+assertStatus(await renameProject(undefined, 'Anonymous'), 403, 'anonymous cannot rename');
+assertStatus(await renameProject(owner.idToken, ''), 403, 'empty name rejected');
+assertStatus(await renameProject(owner.idToken, 'a'.repeat(121)), 403, 'oversize name rejected');
+assertStatus(await renameProject(owner.idToken, 'Corrupt', { latestVersionId: { stringValue: uuid() } }), 403, 'rename cannot change version identity');
+assertStatus(await renameProject(owner.idToken, 'Corrupt', { extraField: { stringValue: 'bad' } }), 403, 'rename cannot pollute schema');
+for (const path of [projectPath, versionPath]) {
+  assertStatus(await request(`${firestoreBase}/${path}`, { token: other.idToken, method: 'DELETE' }), 403, 'other user cannot delete project or version');
+  assertStatus(await request(`${firestoreBase}/${path}`, { method: 'DELETE' }), 403, 'anonymous cannot delete project or version');
+}
+assertStatus(await request(`${firestoreBase}:commit`, {
+  token: owner.idToken, method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ writes: [versionPath, `${projectPath}/versions/${secondVersionId}`, projectPath]
+    .map(path => ({ delete: `${documentRoot}/${path}` })) }),
+}), 200, 'owner atomically deletes project and version history');
 
 console.log(
   "Firebase rules smoke tests passed: authenticated font reads, owner-only gallery, immutable versions.",

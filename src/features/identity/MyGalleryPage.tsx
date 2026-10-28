@@ -5,6 +5,7 @@ import {
   Download,
   FolderPlus,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   listSharedModels,
@@ -15,12 +16,15 @@ import { AccountControl } from "./AccountControl";
 import { accountAuth } from "./account-auth";
 import {
   listGalleryProjects,
+  renameGalleryProject,
+  deleteGalleryProject,
   listGalleryVersions,
   loadGalleryImage,
   type GalleryProject,
   type GalleryVersion,
 } from "./design-gallery-repository";
 import "./my-gallery.css";
+import { SharedModelThumbnail } from "./SharedModelThumbnail";
 
 type PreviewImages = {
   front: string;
@@ -122,6 +126,9 @@ export function MyGalleryPage({
   const [detailLoading, setDetailLoading] = useState(false);
   const [busyModelId, setBusyModelId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [busyProject, setBusyProject] = useState(false);
+  const cancelTitleEdit = useRef(false);
   const screenHeading = useRef<HTMLHeadingElement>(null);
   const previousProjectId = useRef<string | null>(null);
   useEffect(() => {
@@ -144,9 +151,14 @@ export function MyGalleryPage({
           listSharedModels(user.uid),
         ]);
         if (!active) return;
-        setProjects([...nextProjects].sort((a, b) =>
-          (a.createdAt ?? a.updatedAt).toMillis() - (b.createdAt ?? b.updatedAt).toMillis() || a.id.localeCompare(b.id),
-        ));
+        setProjects(
+          [...nextProjects].sort(
+            (a, b) =>
+              (b.createdAt ?? b.updatedAt).toMillis() -
+                (a.createdAt ?? a.updatedAt).toMillis() ||
+              a.id.localeCompare(b.id),
+          ),
+        );
         setSharedModels(nextModels);
         setSelectedProjectId((current) =>
           current && nextProjects.some((project) => project.id === current)
@@ -245,7 +257,7 @@ export function MyGalleryPage({
           }),
         );
         if (active) {
-          setVersions([...nextVersions].sort((a, b) => a.version - b.version));
+          setVersions([...nextVersions].sort((a, b) => b.version - a.version));
           setVersionImages(Object.fromEntries(previews));
         }
       } catch (loadError) {
@@ -269,6 +281,34 @@ export function MyGalleryPage({
   const selectedProject = projects.find(
     (project) => project.id === selectedProjectId,
   );
+  const renameProject = async (rawTitle: string) => {
+    setEditingTitle(false);
+    if (!user || !selectedProject || busyProject || cancelTitleEdit.current) return;
+    const title = rawTitle.trim();
+    if (title === selectedProject.title) return;
+    setBusyProject(true);
+    setError("");
+    try {
+      const savedTitle = await renameGalleryProject(user.uid, selectedProject.id, title);
+      setProjects(current => current.map(project => project.id === selectedProject.id ? { ...project, title: savedTitle } : project));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not rename the project.");
+    } finally { setBusyProject(false); }
+  };
+  const deleteProject = async () => {
+    if (!user || !selectedProject || busyProject) return;
+    if (!window.confirm(`Delete “${selectedProject.title}” and all its versions? This cannot be undone. Shared 3D models will be kept.`)) return;
+    setBusyProject(true);
+    setError("");
+    try {
+      const failedFiles = await deleteGalleryProject(user.uid, selectedProject.id);
+      setProjects(current => current.filter(project => project.id !== selectedProject.id));
+      setSelectedProjectId(null);
+      if (failedFiles) setError("Project deleted, but some stored files could not be cleaned up.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not delete the project.");
+    } finally { setBusyProject(false); }
+  };
   const downloadModel = async (model: SharedModel) => {
     if (busyModelId) return;
     setBusyModelId(model.id);
@@ -310,9 +350,6 @@ export function MyGalleryPage({
           <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" />
         </button>
         <div className="mg-header-actions">
-          <button type="button" onClick={onBack}>
-            <FolderPlus size={14} /> New design
-          </button>
           <AccountControl />
         </div>
       </header>
@@ -322,39 +359,104 @@ export function MyGalleryPage({
             <ArrowLeft size={13} /> VINYL ARTWORK DESIGNER PRO
           </button>
           <span>/</span>
-          <button type="button" onClick={() => setSelectedProjectId(null)}>MY GALLERY</button>
-          {selectedProject && <><span>/</span><b>VERSIONS</b></>}
+          <button type="button" onClick={() => setSelectedProjectId(null)}>
+            MY GALLERY
+          </button>
+          {selectedProject && (
+            <>
+              <span>/</span>
+              <b>VERSIONS</b>
+            </>
+          )}
         </div>
         <section className="mg-heading">
           <div>
-            <p>YOUR PERSONAL DESIGN STUDIO</p>
             <h1 ref={screenHeading} tabIndex={-1}>
-              {selectedProject ? selectedProject.title : "My Gallery"}{" "}
-              <span>{selectedProject ? "Versions" : projects.length.toString().padStart(2, "0")}</span>
+              {selectedProject ? <>
+                <span
+                  className="mg-editable-title"
+                  key={`${selectedProject.id}:${selectedProject.title}:${editingTitle}`}
+                  contentEditable={editingTitle}
+                  suppressContentEditableWarning
+                  role={editingTitle ? "textbox" : undefined}
+                  aria-label="Project name"
+                  title="Double-click to rename project"
+                  ref={node => {
+                    if (node && editingTitle) {
+                      node.focus();
+                      const range = document.createRange();
+                      range.selectNodeContents(node);
+                      const selection = window.getSelection();
+                      selection?.removeAllRanges();
+                      selection?.addRange(range);
+                    }
+                  }}
+                  onDoubleClick={() => {
+                    if (busyProject) return;
+                    cancelTitleEdit.current = false;
+                    setEditingTitle(true);
+                  }}
+                  onBlur={event => {
+                    if (editingTitle) void renameProject(event.currentTarget.textContent ?? "");
+                  }}
+                  onKeyDown={event => {
+                    if (!editingTitle) return;
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    } else if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelTitleEdit.current = true;
+                      setEditingTitle(false);
+                    }
+                    event.stopPropagation();
+                  }}
+                  onPaste={event => {
+                    event.preventDefault();
+                    const text = event.clipboardData.getData("text/plain").replace(/[\r\n]+/g, " ");
+                    const selection = window.getSelection();
+                    if (!selection?.rangeCount) return;
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    const node = document.createTextNode(text);
+                    range.insertNode(node);
+                    range.setStartAfter(node);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                  }}
+                >{selectedProject.title}</span>
+                <button type="button" className="mg-delete-project" disabled={busyProject}
+                  aria-label="Delete project" title="Delete project" onClick={() => void deleteProject()}>
+                  <Trash2 size={14} />
+                </button>
+              </> : "My Gallery"}
             </h1>
           </div>
           <button type="button" onClick={onBack}>
             NEW DESIGN <FolderPlus size={15} />
           </button>
         </section>
-        {!selectedProject && <div className="mg-tabs" role="tablist" aria-label="Gallery contents">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "designs"}
-            onClick={() => setTab("designs")}
-          >
-            Designs <span>{projects.length}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "models"}
-            onClick={() => setTab("models")}
-          >
-            Shared 3D models <span>{sharedModels.length}</span>
-          </button>
-        </div>}
+        {!selectedProject && (
+          <div className="mg-tabs" role="tablist" aria-label="Gallery contents">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "designs"}
+              onClick={() => setTab("designs")}
+            >
+              Designs
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "models"}
+              onClick={() => setTab("models")}
+            >
+              Shared 3D models <span>{sharedModels.length}</span>
+            </button>
+          </div>
+        )}
         {error && (
           <p className="mg-error" role="alert">
             {error}
@@ -378,15 +480,9 @@ export function MyGalleryPage({
               </button>
             </section>
           ) : (
-            <div className="mg-model-list" role="tabpanel">
-              <div className="mg-model-columns">
-                <span>3D MODEL</span>
-                <span>SHARED</span>
-                <span>FILE</span>
-                <span>ACTION</span>
-              </div>
+            <div className="mg-model-grid" role="tabpanel">
               {sharedModels.map((model) => (
-                <article className="mg-model-row" key={model.id}>
+                <article className="mg-model-card" key={model.id}>
                   <a
                     className="mg-model-preview"
                     href={`/${model.id}`}
@@ -394,7 +490,10 @@ export function MyGalleryPage({
                     rel="noreferrer"
                     aria-label={`Open public preview of ${model.title}`}
                   >
-                    <Artwork title={model.title} />
+                    <SharedModelThumbnail
+                      url={model.downloadUrl}
+                      title={model.title}
+                    />
                     <span>
                       <b>{model.title}</b>
                       <small>PUBLIC MODEL / GLB</small>
@@ -440,41 +539,37 @@ export function MyGalleryPage({
           </section>
         ) : (
           <>
-            {!selectedProject && <section className="mg-shelf" aria-label="Your design projects">
-              <div className="mg-shelf-heading">
-                <span>OLDEST TO NEWEST</span>
-                <span>
-                  {projects.length.toString().padStart(2, "0")} DESIGNS
-                </span>
-              </div>
-              <div className="mg-records">
-                {projects.map((project) => (
-                  <button
-                    className="mg-record"
-                    key={project.id}
-                    type="button"
-                    aria-label={`View versions of ${project.title}`}
-                    onClick={() => setSelectedProjectId(project.id)}
-                  >
-                    <Artwork
-                      images={projectImages[project.id]}
-                      title={project.title}
-                    />
-                    <b>{project.title}</b>
-                    <small>
-                      VERSION {project.latestVersion} ·{" "}
-                      {dateLabel(project.updatedAt?.toDate())}
-                    </small>
-                  </button>
-                ))}
-              </div>
-              <div className="mg-shelf-base">
-                <span>
-                  LATEST VERSION OF EACH PROJECT
-                </span>
-                <span>FRONT / BACK PREVIEW</span>
-              </div>
-            </section>}
+            {!selectedProject && (
+              <section className="mg-shelf" aria-label="Your design projects">
+                <div className="mg-shelf-heading">
+                  <span>NEWEST TO OLDEST</span>
+                </div>
+                <div className="mg-records">
+                  {projects.map((project) => (
+                    <button
+                      className="mg-record"
+                      key={project.id}
+                      type="button"
+                      aria-label={`View versions of ${project.title}`}
+                      onClick={() => setSelectedProjectId(project.id)}
+                    >
+                      <Artwork
+                        images={projectImages[project.id]}
+                        title={project.title}
+                      />
+                      <b>{project.title}</b>
+                      <small>
+                        VERSION {project.latestVersion} ·{" "}
+                        {dateLabel(project.updatedAt?.toDate())}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+                <div className="mg-shelf-base">
+                  <span>FRONT / BACK PREVIEW</span>
+                </div>
+              </section>
+            )}
             {selectedProject && (
               <section
                 className="mg-detail"
@@ -482,7 +577,6 @@ export function MyGalleryPage({
               >
                 <div className="mg-detail-heading">
                   <div>
-                    <button type="button" onClick={() => setSelectedProjectId(null)}><ArrowLeft size={14} /> Back to projects</button>
                     <h2>Choose a version</h2>
                   </div>
                   <button

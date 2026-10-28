@@ -10,6 +10,7 @@ import {
 } from "./design-configurator-model";
 
 type Props = {
+  allowCylinder?: boolean;
   effect?: StaticTextEffect;
   settings?: TextEffectSettings;
   onChange: (
@@ -32,6 +33,7 @@ const defaultCylinder = {
   segments: 24,
   tilt: 0,
   rotation: 0,
+  closed: true,
 };
 
 export function TextBlendModeControl({
@@ -60,6 +62,7 @@ export function TextBlendModeControl({
 }
 
 export function TextEffectControls({
+  allowCylinder = true,
   effect,
   settings,
   onChange,
@@ -68,7 +71,7 @@ export function TextEffectControls({
   const [activeEffect, setActiveEffect] = useState<"cylinder" | "extrusion">(
     effect?.type === "extrusion" ? "extrusion" : "cylinder",
   );
-  const cylinder = effect?.type === "cylinder" ? effect : undefined;
+  const cylinder = allowCylinder && effect?.type === "cylinder" ? effect : undefined;
   const extrusion = textExtrusion(effect);
   const maxSteps = cylinder ? cylinderExtrusionSteps(cylinder.segments) : 200;
   const { extrusion: _activeExtrusion, ...activeCylinder } = cylinder ?? {
@@ -85,6 +88,7 @@ export function TextEffectControls({
     next = remembered,
     group?: string,
   ) => {
+    cylinderEnabled = allowCylinder && cylinderEnabled;
     const restoredExtrusion = cylinderEnabled
       ? {
           ...next.extrusion,
@@ -137,8 +141,9 @@ export function TextEffectControls({
 
   return (
     <div className="dc-text-effects" role="group" aria-label="3D effects">
-      <div className="dc-effect-tabs" role="group" aria-label="Effect settings">
-        <div
+      <div className="dc-effect-tabs" role="group" aria-label="Effect settings"
+        style={!allowCylinder ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}>
+        {allowCylinder && <div
           className="dc-effect-tab"
           data-active={activeEffect === "cylinder" && Boolean(cylinder)}
         >
@@ -162,7 +167,7 @@ export function TextEffectControls({
               toggleCylinder(event.target.checked);
             }}
           />
-        </div>
+        </div>}
         <div
           className="dc-effect-tab"
           data-active={activeEffect === "extrusion" && Boolean(extrusion)}
@@ -308,7 +313,7 @@ export function TextEffectControls({
           </>
         </section>
       )}
-      {activeEffect === "extrusion" && extrusion && (
+      {(!allowCylinder || activeEffect === "extrusion") && extrusion && (
         <section
           role="tabpanel"
           id="dc-extrusion-panel"

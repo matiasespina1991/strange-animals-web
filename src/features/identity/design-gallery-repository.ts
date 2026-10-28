@@ -7,6 +7,7 @@ import {
   orderBy,
   query,
   runTransaction,
+  updateDoc,
   serverTimestamp,
   type Timestamp,
 } from "firebase/firestore";
@@ -171,6 +172,45 @@ export async function listGalleryProjects(uid: string) {
 export async function getGalleryProject(uid: string, projectId: string) {
   const snapshot = await getDoc(projectDocument(uid, projectId));
   return snapshot.exists() ? readProject(snapshot.id, snapshot.data()) : null;
+}
+
+export async function renameGalleryProject(uid: string, projectId: string, rawTitle: string) {
+  if (accountAuth.currentUser?.uid !== uid) throw Error("Sign in to edit your project.");
+  const title = rawTitle.trim();
+  if (!title || title.length > 120) throw Error("Use a project name between 1 and 120 characters.");
+  await updateDoc(projectDocument(uid, projectId), { title, updatedAt: serverTimestamp() });
+  return title;
+}
+
+export async function deleteGalleryProject(uid: string, projectId: string) {
+  if (accountAuth.currentUser?.uid !== uid) throw Error("Sign in to delete your project.");
+  const projectRef = projectDocument(uid, projectId);
+  const before = await getDoc(projectRef);
+  if (!before.exists()) return 0;
+  const versions = await getDocs(versionCollection(uid, projectId));
+  // Keep deletion atomic: never leave a half-deleted version history.
+  if (versions.size > 450) throw Error("This project has too many versions to delete safely from the browser.");
+  const paths = new Set<string>();
+  for (const version of versions.docs) {
+    const prefix = `media/private/design-gallery/${uid}/${projectId}/${version.id}/`;
+    for (const file of ['design.json', 'front.png', 'back.png', 'front-with-sleeve.png', 'back-with-sleeve.png', 'model.glb']) paths.add(prefix + file);
+  }
+  await runTransaction(galleryDatabase, async (transaction) => {
+    const current = await transaction.get(projectRef);
+    if (!current.exists()) throw Error("This project was already deleted.");
+    if (current.data().latestVersionId !== before.data().latestVersionId)
+      throw Error("A new version was saved. Please reload before deleting the project.");
+    for (const version of versions.docs) transaction.delete(version.ref);
+    transaction.delete(projectRef);
+  });
+  let failed = 0;
+  for (const path of paths) {
+    try { await deleteObject(ref(galleryStorage, path)); }
+    catch (error) {
+      if ((error as { code?: string }).code !== 'storage/object-not-found') failed++;
+    }
+  }
+  return failed;
 }
 
 export async function listGalleryVersions(uid: string, projectId: string) {

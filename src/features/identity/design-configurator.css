@@ -12,7 +12,46 @@
 .dc-text-effects {
   display: grid;
   gap: 8px;
-  margin: 0 0 14px;
+  margin: 12px 0 14px;
+}
+.dc-layer-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 190px;
+  max-width: calc(100vw - 16px);
+  padding: 5px;
+  border: 1px solid var(--dc-border, #cdd0c2);
+  border-radius: 4px;
+  background: var(--dc-panel, #fafaf7);
+  color: var(--dc-text, #252620);
+  box-shadow: 0 6px 22px rgb(0 0 0 / 20%);
+}
+.dc-layer-context-menu > small {
+  display: block;
+  padding: 5px 8px;
+  color: var(--dc-muted, #626e56);
+  font-size: 11px;
+}
+.design-configurator .dc-layer-context-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.design-configurator .dc-layer-context-menu > button:hover,
+.design-configurator .dc-layer-context-menu > button:focus-visible {
+  background: var(--dc-selected, #e0e5d5);
+  outline: 1px solid var(--dc-accent, #657248);
+  outline-offset: -1px;
 }
 .dc-content-heading {
   display: flex;
@@ -87,17 +126,18 @@
   border-color: var(--dc-accent, #657248);
   background: var(--dc-selected, #e6e9dc);
 }
-.dc-effect-tab button {
+.design-configurator .dc-effect-tab button {
   flex: 1;
   min-width: 0;
   padding: 4px 2px;
   text-align: left;
   font-size: 11px;
+  font-weight: 500;
   line-height: 1.2;
 }
-.dc-effect-tab button:disabled {
+.design-configurator .dc-effect-tab button:disabled {
   color: var(--dc-muted, #777d70);
-  cursor: not-allowed;
+  cursor: default !important;
 }
 .dc-effect-enable {
   flex: 0 0 14px;
@@ -1129,6 +1169,12 @@
 .dc-field {
   display: block;
   margin-top: 15px;
+}
+.dc-field.dc-rotation-field {
+  margin-top: 21px;
+}
+.dc-rotation-field + .dc-field {
+  margin-top: 5px;
 }
 .dc-field > span {
   display: flex;
