@@ -4,7 +4,7 @@ import { GLOBAL_COLOR_PRESETS } from "./design-configurator-colors";
 import { TextColorConfirmation } from "./TextColorConfirmation";
 
 type Props = {
-  side: "A" | "B";
+  side: "A" | "B" | "both";
   colors: string[];
   hasCustomColors: boolean;
   onApply: (color: string) => void;
@@ -38,7 +38,7 @@ export function GlobalInkControl({ side, colors, hasCustomColors, onApply, onPre
       <span>Text color</span>
       <label className="dc-custom-paper">
         <span className="sr-only">
-          Custom color for all text on side {side}
+          {side === "both" ? "Custom color for all text on sides A and B" : `Custom color for all text on side ${side}`}
         </span>
         <input
           type="color"

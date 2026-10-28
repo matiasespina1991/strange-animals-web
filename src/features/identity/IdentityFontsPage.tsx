@@ -3914,8 +3914,8 @@ export function IdentityFontsPage() {
               </button>
             </div>
 
-            <div className="md:grid md:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)] md:items-start md:gap-4">
-              <div className="min-w-0 md:order-2 [&>div]:!mb-3 [&>div:last-child]:!mb-0">
+            <div className="identity-typography-options grid grid-cols-2 items-start gap-3 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)] md:gap-4">
+              <div className="identity-typography-toggles min-w-0 order-2 [&>div]:!mb-3 [&>div:last-child]:!mb-0">
                 <div className="mb-6 flex items-center justify-between gap-2">
                   <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                     Alignment
@@ -4084,9 +4084,9 @@ export function IdentityFontsPage() {
                   ) : null}
                 </div>
               </div>
-              <div className="min-w-0 md:order-1 [&>label]:!mt-2 [&>label:first-child]:!mt-0 [&>label>span]:!mb-1.5">
+              <div className="min-w-0 order-1 [&>label]:!mt-2 [&>label:first-child]:!mt-0 [&>label>span]:!mb-1.5">
                 {isSmallViewport ? (
-                  <div className="mt-4 grid grid-cols-2 gap-3 pt-4">
+                  <div className="grid grid-cols-1 gap-3">
                     <div className="flex flex-col gap-2">
                       <span className="text-[0.625rem] tracking-[0.08em] text-white/65">
                         Line height

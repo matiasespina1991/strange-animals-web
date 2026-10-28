@@ -33,11 +33,11 @@ export function ConfirmationDialog({ title, description, onConfirm, onCancel, co
 }
 
 export function TextColorConfirmation({ side, onConfirm, onCancel }: {
-  side: "A" | "B";
+  side: "A" | "B" | "both";
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   return <ConfirmationDialog title="Replace custom text colors?"
-    description={`Some text layers have individually assigned colors. Applying this color will replace them on side ${side} only.`}
+    description={`Some text layers have individually assigned colors. Applying this color will replace them ${side === "both" ? "on both sides A and B" : `on side ${side} only`}.`}
     onConfirm={onConfirm} onCancel={onCancel} />;
 }

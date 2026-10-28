@@ -14,6 +14,21 @@ html:not([data-font-toolbar-floating]) .identity-scroll-top {
 }
 
 @media (max-width: 767px) {
+  .identity-typography-toggles > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .identity-typography-options > .identity-typography-toggles > div:not(:last-child) {
+    margin-bottom: 9px !important;
+  }
+  .identity-typography-options > .order-1 > .grid {
+    row-gap: 9px;
+  }
+  .identity-typography-options .identity-numeric-stepper {
+    width: 100%;
+    grid-template-columns: 24px minmax(0, 1fr) 24px;
+  }
   .identity-fonts-page .identity-scroll-top {
     border-color: rgb(255 255 255 / 0.15) !important;
     background-color: #000 !important;
@@ -725,11 +740,89 @@ input {
   }
 }
 @media (max-width: 767px) {
+  .identity-font-toolbar {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    max-width: 100%;
+    overflow: visible;
+    padding-bottom: 10px;
+  }
+  .identity-font-toolbar > .identity-toolbar-field {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .identity-font-toolbar .identity-toolbar-colors,
+  .identity-font-toolbar .identity-toolbar-typography {
+    grid-row: 3;
+    justify-self: start;
+  }
+  .identity-font-toolbar .identity-toolbar-colors {
+    grid-column: 1;
+    gap: 0;
+  }
+  .identity-font-toolbar .identity-toolbar-colors > div {
+    width: 2.75rem;
+  }
+  .identity-font-toolbar .identity-toolbar-colors > button {
+    margin-inline: 0;
+  }
+  .identity-font-toolbar .identity-toolbar-typography {
+    grid-column: 2;
+    gap: 6px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .identity-font-toolbar .identity-toolbar-typography .identity-numeric-stepper {
+    grid-template-columns: 24px minmax(36px, auto) 24px;
+  }
+  .identity-font-toolbar .identity-toolbar-typography [aria-label="Text casing"] > button {
+    width: 25px;
+    height: 29px;
+  }
+  .identity-font-toolbar .identity-toolbar-typography > [aria-label="Typography settings"] {
+    width: 28px;
+  }
   .identity-font-toolbar .identity-font-text-input { font-size: 16px; }
   .identity-font-toolbar[id="font-toolbar-floating"] {
-    max-height: calc(100dvh - 24px);
+    max-width: none;
+    overflow: visible;
+  }
+  /* Keep settings panels visible even on narrow control rows. */
+  .identity-font-toolbar :is(
+    #font-color-settings, #font-color-settings-floating,
+    #background-settings, #background-settings-floating,
+    #typography-settings, #typography-settings-floating
+  ) {
+    position: fixed;
+    inset: auto 16px 16px auto;
+    margin: 0;
+    max-width: calc(100vw - 32px);
+    max-height: 65dvh;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    z-index: 10001;
+  }
+  #font-toolbar-floating :is(
+    #font-color-settings-floating, #background-settings-floating,
+    #typography-settings-floating
+  ) {
+    bottom: calc(98px + env(safe-area-inset-bottom, 0px));
+  }
+  #font-toolbar-floating #typography-settings-floating {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  #typography-settings .identity-typography-options,
+  #typography-settings-floating .identity-typography-options {
+    row-gap: 8px;
+  }
+  #typography-settings .identity-typography-options > .order-1 > .grid,
+  #typography-settings-floating .identity-typography-options > .order-1 > .grid {
+    row-gap: 7px;
+  }
+  #typography-settings .identity-typography-toggles > div:not(:last-child),
+  #typography-settings-floating .identity-typography-toggles > div:not(:last-child) {
+    margin-bottom: 7px !important;
   }
 }
 

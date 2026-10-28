@@ -398,6 +398,7 @@ export function LabelArtwork({
   selected,
   selectedIds,
   hiddenTextId,
+  hiddenTextIds,
   guides = false,
   bleed = false,
   whiteCenter = false,
@@ -416,6 +417,7 @@ export function LabelArtwork({
   selected?: string;
   selectedIds?: ReadonlySet<string>;
   hiddenTextId?: string;
+  hiddenTextIds?: ReadonlySet<string>;
   guides?: boolean;
   bleed?: boolean;
   whiteCenter?: boolean;
@@ -713,7 +715,7 @@ export function LabelArtwork({
                       index={index}
                       prefix={prefix}
                       fontFamily={fontFamily}
-                      hidden={layer.id === hiddenTextId}
+                      hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id)}
                     />
                     {layer.textEffect?.type === "cylinder" ? (
                       <CylinderText
@@ -721,7 +723,7 @@ export function LabelArtwork({
                         index={index}
                         prefix={prefix}
                         fontFamily={fontFamily}
-                        hidden={layer.id === hiddenTextId}
+                        hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id)}
                       />
                     ) : (
                       <SvgLayerText
@@ -729,7 +731,7 @@ export function LabelArtwork({
                         index={index}
                         prefix={prefix}
                         fontFamily={fontFamily}
-                        opacity={layer.id === hiddenTextId ? 0 : undefined}
+                        opacity={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id) ? 0 : undefined}
                         filter={
                           layer.inkBleed
                             ? `url(#${prefix}-ink-bleed-${index})`

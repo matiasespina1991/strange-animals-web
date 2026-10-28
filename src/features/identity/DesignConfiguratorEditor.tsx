@@ -567,7 +567,7 @@ export function DesignConfiguratorEditor({
     setHoverFamily(null);
     setHoverFontLoading(false);
     setColorPreview(null);
-  }, [dialog, side, selected]);
+  }, [dialog, side, surface, selected, selectedLayers]);
   const [expandedFonts, setExpandedFonts] = useState<Set<string>>(
     () => new Set(),
   );
@@ -820,6 +820,8 @@ export function DesignConfiguratorEditor({
     element.id === "title"
       ? "Berlin Type Bold"
       : "Alte DIN 1451 Mittelschrift geprägt";
+  // Rendering stays back-to-front; the layer panel reads front-to-back.
+  const panelLayers = [...layers].reverse();
   const hasSelection =
     selected !== null && layers.some((layer) => layer.id === selected);
   const selection = new Set(
@@ -838,10 +840,12 @@ export function DesignConfiguratorEditor({
       ? { ...design, paper: colorPreview.color }
       : colorPreview.target === "sleeve"
         ? { ...design, sleeveColor: colorPreview.color }
-        : updateSurfaceLayers(design, surface, side, (layers) =>
+        : colorPreview.target === "text"
+          ? changeGlobalTextColor(design, colorPreview.color, undefined, surface)
+          : updateSurfaceLayers(design, surface, side, (layers) =>
             layers.map((layer) =>
               layer.kind !== "image" &&
-              (colorPreview.target === "text" || selection.has(layer.id))
+              selection.has(layer.id)
                 ? { ...layer, color: colorPreview.color }
                 : layer,
             ),
@@ -1004,6 +1008,10 @@ export function DesignConfiguratorEditor({
   }, [design.A, design.B, design.sleeveA, design.sleeveB]);
   const familyFor = (layer: LabelLayer) =>
     families[fontKey(layer)] ?? defaultLabelFont(layer);
+  const previewFamilyFor = (layer: LabelLayer, targetSurface: LabelSurface) =>
+    surface === targetSurface && dialog === "fonts" &&
+    layer.kind !== "image" && selection.has(layer.id) && hoverFamily
+      ? hoverFamily : familyFor(layer);
   useEffect(() => {
     let active = true;
     setFontsLoading(true);
@@ -1106,7 +1114,8 @@ export function DesignConfiguratorEditor({
   const selectFont = async (font: FontCatalogItem, variantId?: string) => {
     const targetSide = side,
       targetSurface = surface,
-      targetId = element.id;
+      targetIds = new Set(selectedTextLayers.map(layer => layer.id));
+    if (!targetIds.size) return;
     setFontBusy(true);
     try {
       const resolved = await resolveLabelFont(font, variantId);
@@ -1115,16 +1124,13 @@ export function DesignConfiguratorEditor({
         [fontKey({ fontId: font.id, variantId: resolved.variant.id })]:
           resolved.family,
       }));
-      patchLayer(
-        targetSide,
-        targetId,
-        {
-          fontId: font.id,
-          variantId: resolved.variant.id,
-        },
-        undefined,
-        targetSurface,
-      );
+      end();
+      change(current => updateSurfaceLayers(current, targetSurface, targetSide,
+        currentLayers => currentLayers.map(layer =>
+          layer.kind !== "image" && targetIds.has(layer.id)
+            ? { ...layer, fontId: font.id, variantId: resolved.variant.id }
+            : layer)));
+      end();
       hoverRequest.current += 1;
       setHoverFamily(null);
       setHoverFontLoading(false);
@@ -2454,17 +2460,17 @@ export function DesignConfiguratorEditor({
           <div className="dc-global-settings-controls">
             <GlobalInkControl
               onPreview={(color) => previewColor("text", color)}
-              key={`${surface}-${side}`}
-              side={side}
-              hasCustomColors={hasCustomTextColors(design, side, surface)}
-              colors={getSurfaceLayers(design, surface, side)
+              key={surface}
+              side="both"
+              hasCustomColors={hasCustomTextColors(design, undefined, surface)}
+              colors={[...getSurfaceLayers(design, surface, "A"), ...getSurfaceLayers(design, surface, "B")]
                 .filter((layer) => layer.kind !== "image")
                 .map((layer) => layer.color)}
               visibleCount={4}
               onApply={(color) => {
                 end();
                 change((current) =>
-                  changeGlobalTextColor(current, color, side, surface),
+                  changeGlobalTextColor(current, color, undefined, surface),
                 );
               }}
             />
@@ -2589,7 +2595,7 @@ export function DesignConfiguratorEditor({
               finishLayerDrag();
             }}
           >
-            {layers.map((layer, i) => (
+            {panelLayers.map((layer, i) => (
               <motion.div
                 key={layer.id}
                 data-layer-tile={layer.id}
@@ -2645,7 +2651,7 @@ export function DesignConfiguratorEditor({
                       ? current
                       : { id: layer.id, before },
                   );
-                  moveLayer(sourceId, layer.id, before);
+                  moveLayer(sourceId, layer.id, !before);
                 }}
                 onDrop={(event) => {
                   event.preventDefault();
@@ -2692,10 +2698,10 @@ export function DesignConfiguratorEditor({
                     aria-pressed={selection.has(layer.id)}
                     onClick={(event) => {
                       if (event.shiftKey) {
-                        const anchor = layers.findIndex(
+                        const anchor = panelLayers.findIndex(
                           (item) => item.id === element.id,
                         );
-                        const range = layers
+                        const range = panelLayers
                           .slice(Math.min(anchor, i), Math.max(anchor, i) + 1)
                           .map((item) => item.id);
                         setSelectedLayers(
@@ -2984,7 +2990,8 @@ export function DesignConfiguratorEditor({
                     side={side}
                     surface="sleeve"
                     prefix={prefix + "-sleeve"}
-                    fontFamily={familyFor}
+                    fontFamily={layer => previewFamilyFor(layer, "sleeve")}
+                    hiddenTextIds={surface === "sleeve" && dialog === "fonts" && hoverFontLoading ? selection : undefined}
                     selectedIds={surface === "sleeve" ? selection : undefined}
                     guides={surface === "sleeve" && guides}
                     onSelect={surface === "sleeve" ? selectLayer : undefined}
@@ -2998,23 +3005,16 @@ export function DesignConfiguratorEditor({
                 </div>
                 <LabelArtwork
                   design={previewDesign}
-                  hiddenTextId={
+                  hiddenTextIds={
                     surface === "cookie" &&
                     dialog === "fonts" &&
                     hoverFontLoading
-                      ? element.id
+                      ? selection
                       : undefined
                   }
                   side={side}
                   prefix={prefix}
-                  fontFamily={(layer) =>
-                    surface === "cookie" &&
-                    dialog === "fonts" &&
-                    layer.id === element.id &&
-                    hoverFamily
-                      ? hoverFamily
-                      : familyFor(layer)
-                  }
+                  fontFamily={layer => previewFamilyFor(layer, "cookie")}
                   selected={
                     surface === "cookie" && hasSelection
                       ? element.id
@@ -3646,7 +3646,7 @@ export function DesignConfiguratorEditor({
       />
       {dialog === "fonts" && (
         <FontPickerPanel
-          targetName={element.name}
+          targetName={selectedTextLayers.length > 1 ? `${selectedTextLayers.length} text layers` : element.name}
           close={() => setDialog(null)}
         >
           <label className="dc-font-search">
