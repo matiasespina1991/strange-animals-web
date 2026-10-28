@@ -78,7 +78,8 @@ Cloud Functions puede mantener la API y la orquestación en ambos casos. No bloq
 
 ### B00 · P0 · Contratos, tests y base de despliegue
 
-- [ ] Reparar el gate TypeScript y la prueba `test-configurator-preview-auth.mjs` antes de compartir módulos con backend.
+- [x] Reparar el gate TypeScript (A01, 2026-10-28): app y Vite config explícitos, errores actuales corregidos, prueba negativa y gate de CI configurado.
+- [ ] Reparar la prueba `test-configurator-preview-auth.mjs` (A06) antes de compartir módulos con backend.
 - [ ] Extraer schema/migraciones y límites: grupos Cookie/Sleeve A/B, máximo por grupo/documento, bytes, dimensiones/píxeles, texto, segmentos y recursos de fuentes.
 - [ ] Separar validación estricta de normalización permisiva del importador: el servidor no debe convertir silenciosamente un payload inválido en “válido”.
 - [ ] Definir `operationId`, revisión esperada y hash canónico de diseño+assets+configuración de render. Preset de pressing está hoy fuera del JSON del diseño: incluirlo explícitamente.

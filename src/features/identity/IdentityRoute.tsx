@@ -4,7 +4,6 @@ import { IdentityFontsPage } from "./IdentityFontsPage";
 import { IdentityTypefacesLab } from "./IdentityTypefacesLab";
 import { IdentityDesignConfigurator } from "./IdentityDesignConfigurator";
 import { PersonalAccountGate } from "./PersonalAccountGate";
-import MyGalleryPage from "./MyGalleryPage";
 import {
   LEGACY_DESIGN_CONFIGURATOR_PATH,
   PREVIOUS_VINYL_DESIGNER_CONFIGURATOR_PATH,

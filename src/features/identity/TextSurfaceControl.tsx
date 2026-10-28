@@ -16,7 +16,7 @@ export function TextSurfaceControl({
   opacity?: number;
   scale?: number;
   onChange: (
-    patch: { textTexture?: string; textTextureOpacity?: number },
+    patch: { textTexture?: string; textTextureOpacity?: number; textTextureScale?: number },
     group?: string,
   ) => void;
   onCommit: () => void;

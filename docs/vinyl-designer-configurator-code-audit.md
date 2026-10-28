@@ -4,7 +4,7 @@ Actualizada: **2026-10-28**. Reemplaza la revisión del 2026-10-26.
 
 Alcance: editor, modelo, controles, render SVG/Three.js, exportadores, galería, publicación de modelos, repositorios, Rules, Functions y pruebas asociadas. La colección de tipografías como producto queda fuera de alcance; sí se revisan sus contratos consumidos por el editor.
 
-**Esta entrega modifica documentación, no implementa refactors ni migra operaciones.** Las observaciones se contrastaron con el árbol local. No se inspeccionaron documentos de producción, permisos IAM desplegados ni métricas de uso/coste.
+La revisión inicial fue documental. **A01 y el runner/gate de regresión de A06 ya se implementaron localmente el 2026-10-28**; el resto conserva su estado indicado. No se migraron operaciones ni se inspeccionaron documentos de producción, permisos IAM desplegados o métricas de uso/coste.
 
 Plan de backend: [Migración a Cloud Functions y trabajos de render](vinyl-designer-backend-migration.md).
 
@@ -13,20 +13,20 @@ Plan de backend: [Migración a Cloud Functions y trabajos de render](vinyl-desig
 1. El guardado/versionado, renombrado y borrado de proyectos y la publicación de GLB siguen ejecutándose desde el SDK del navegador.
 2. Eso **no demuestra una vulnerabilidad**: Firestore/Storage aplican Rules en el servidor. La razón principal para centralizar estos flujos es validar contratos complejos, garantizar autorización por operación y hacer recuperación/reintentos independientes de una pestaña.
 3. Existe infraestructura Functions en [functions/src/index.ts](../functions/src/index.ts), pero solo exporta `health`, privada; no contiene lógica del configurador. Usa Node 22, región `europe-west3` y `maxInstances: 10`.
-4. La auditoría anterior omitía una comprobación crucial: `tsc --noEmit` desde la raíz no analiza la app. El typecheck explícito falla también en el configurador, no solo en otras áreas.
+4. Se corrigió el falso gate: build y CI ahora verifican explícitamente app y configuración Node. Los errores detectados por el chequeo real se corrigieron; A01 incluye la prueba de cobertura/fallo.
 5. El editor creció a 4.146 líneas. Persisten riesgos async, serialización completa en el reducer y binarios embebidos. Hay mejoras reales: renderer compartido Cookie/Sleeve y módulos específicos de geometría, menús y controles.
 
 “Confirmado” indica evidencia directa de código/comando; “riesgo” no equivale a fallo reproducido en navegador. Prioridades: P0 gate engañoso; P1 integridad/fiabilidad; P2 arquitectura/rendimiento; P3 higiene.
 
 ## Hallazgos priorizados
 
-### A01 · P0 · El typecheck del build da una falsa señal de cobertura — confirmado
+### A01 · P0 · El typecheck del build daba una falsa señal de cobertura — resuelto localmente
 
-[package.json](../package.json) usa `tsc --noEmit && vite build`. [tsconfig.json](../tsconfig.json) tiene `files: []` y referencias; `tsc --noEmit --listFiles` produjo **0 líneas**. Las referencias no hacen que ese comando analice automáticamente los proyectos referenciados.
+[package.json](../package.json) usaba `tsc --noEmit && vite build`. [tsconfig.json](../tsconfig.json) tiene `files: []` y referencias; el comando raíz directo produjo **0 líneas**. Las referencias no hacen que ese comando analice automáticamente los proyectos referenciados: debe usarse `npm run typecheck`, no ese atajo raíz.
 
-`npx tsc --noEmit -p tsconfig.app.json --pretty false` devuelve código 2. Hay errores fuera y dentro del alcance: `DRAFT_KEY` y `FontCatalogItem` no resueltos en el editor; casts DOM→SVG en exportación; contratos de `TextSurfaceControl`; tipos de Three.js y errores asociados en geometría/miniaturas. No atribuir toda la deuda a librerías externas.
+El chequeo explícito inicial fallaba tanto dentro como fuera del configurador. Se corrigieron imports/identificadores, narrowing de archivos/modelos, contrato de textTextureScale, flags opcionales y tipos de eventos de drag; se quitaron casts DOM→SVG innecesarios. Se declararon dependencias reales de tipos `@types/three@0.171.0` y `@types/matter-js@0.20.2`, se completó el contrato local de Webamp contra su método existente y se corrigieron claves del verificador de releases. No se añadieron `any`, `ts-ignore` ni exclusiones para ocultar errores.
 
-**Tarea:** comando explícito para app y configuración Node, base de errores clasificada y gate que falle ante un error deliberado nuevo. No considerar “Vite construye” equivalente a “TypeScript verificó la app”.
+**Implementado:** `typecheck:app` usa tsconfig.app.json; `typecheck:node` usa tsconfig.node.json con target/lib ES2022. `npm run build` exige `npm run typecheck` antes de Vite. `npm run test:typecheck` comprueba que se incluyan el editor y vite.config.ts y que una fuente temporal con error TS2322 haga fallar el comando real. El workflow ejecuta esa prueba antes del build. La ejecución remota de GitHub Actions queda pendiente del próximo push; no se desplegó nada en esta tarea.
 
 ### A02 · P1 · La edición numérica tiene código inalcanzable — confirmado
 
@@ -63,13 +63,15 @@ La transacción protege la eliminación de esos documentos, **no incluye Storage
 
 **Tarea:** staging privado, idempotency key, objetos inmutables por generación y un puntero publicado solo al finalizar. No afirmar que una transacción Firestore hace atómico un upload a Storage.
 
-### A06 · P1 · La suite no bloquea CI y una prueba no arranca — confirmado
+### A06 · P1 · Suite de regresión y CI — gate local implementado; cobertura de navegador pendiente
 
-[deploy-hosting.yml](../.github/workflows/deploy-hosting.yml) construye y despliega Hosting; no ejecuta tests/lint ni despliega Functions/Rules. No hay comando agregador `test` en package.json.
+[deploy-hosting.yml](../.github/workflows/deploy-hosting.yml) construye y despliega Hosting. Tras A01 ejecuta la prueba del gate TypeScript, pero todavía no la suite de regresión ni lint, ni despliega Functions/Rules. No hay comando agregador `test` para esa suite en package.json.
 
 En esta revisión se ejecutaron **18 scripts locales: 17 pasan y 1 falla**. `test-configurator-preview-auth.mjs` falla al resolver `./color-swatch-capacity` desde un módulo `data:`. Es un problema del harness de imports, no prueba de un fallo de autenticación real.
 
-**Tarea:** runner estable, pruebas por responsabilidad, gate CI y tests de navegador. Separar pipelines de frontend y backend con compatibilidad de contratos y Rules.
+**Implementado el 2026-10-28:** se reparó el harness de `test-configurator-preview-auth.mjs`, resolviendo su dependencia real `color-swatch-capacity.ts` antes de importar el módulo transpileado. No se sustituyó esa lógica por un mock. `npm test` / `npm run test:configurator` ejecutan un runner explícito de 22 scripts, aislados por proceso, con timeout y salida no cero si cualquiera falla. Los 22 pasan localmente. El workflow de Hosting ejecuta esta suite antes del build y antes de autenticarse para desplegar.
+
+**Pendiente:** verificar la ejecución remota tras push, añadir pruebas reales de navegador, establecer el gate de lint y separar pipelines frontend/backend con pruebas de contratos/Rules. Esta suite usa pruebas puras, mocks y verificaciones estructurales; no demuestra cobertura visual ni sustituye emuladores. No se desplegó nada durante esta sesión.
 
 ### A07 · P1 · Hot path serializa el diseño completo — confirmado; impacto sin medir
 
@@ -145,7 +147,7 @@ Líneas físicas, no medida automática de calidad:
 | design-configurator.css | 3.809 |
 | design-configurator-mobile.css | 553 |
 | design-configurator-model.ts | 954 |
-| LabelArtwork.tsx | 764 |
+| LabelArtwork.tsx | 766 |
 | Sleeve3DPreview.tsx | 686 |
 | design-configurator-export.tsx | 509 |
 | design-configurator-psd.ts | 420 |
@@ -155,7 +157,7 @@ Líneas físicas, no medida automática de calidad:
 
 Editor: 58 apariciones de useState/useEffect. Script principal: 320 llamadas assert. Estos conteos no representan cobertura de comportamiento.
 
-## Verificación realizada
+## Verificación de la revisión inicial
 
 - Lectura del código citado, Rules y configuración de Functions/CI.
 - `npx tsc --noEmit --listFiles`: 0 archivos listados.
@@ -167,10 +169,18 @@ Editor: 58 apariciones de useState/useEffect. Script principal: 320 llamadas ass
 
 ## Orden recomendado
 
-1. Reparar el gate TypeScript y el harness roto; integrar tests en CI.
+1. A01 y el runner/gate de regresión de A06 completados localmente. Quedan navegador, lint y verificación remota de CI en A06.
 2. Cubrir y corregir el draft numérico y las operaciones async obsoletas.
 3. Introducir contratos/asset manifest e idempotencia; migrar borrado, guardado y publicación según el [plan de backend](vinyl-designer-backend-migration.md).
 4. Persistir miniaturas y medir/pilotear render autoritativo de GLB.
 5. Refactorizar reducer, assets locales, tipos/servicios y CSS con regresión cubierta.
 
 El plan no exige mover el canvas, undo/redo o cada lectura a una Function: conservar interacción local y lecturas autorizadas evita latencia sin debilitar el control del backend.
+
+## Verificación de A01 — 2026-10-28
+
+- `npm run typecheck`: pasa para app y configuración Node.
+- `node scripts/test-typecheck-gate.mjs`: pasa; incluye fuentes reales y confirma rechazo del error deliberado TS2322. La fixture se genera fuera del worktree y se limpia al terminar.
+- 21 scripts de regresión pasan: los 17 positivos de la revisión inicial, más layer-panel-order, multi-font-selection, font-toolbar-casing y font-catalog-visibility.
+- `test-configurator-preview-auth.mjs` sigue fuera de estos resultados; su harness corresponde a A06, no se presenta como arreglado por A01.
+- `npm run build`: pasa ejecutando primero el typecheck real de app/Node y luego Vite. Conserva avisos existentes de fuentes estáticas no resueltas y bundles grandes; no se añadieron excepciones para ignorarlos. No se ejecutó deploy ni se cambiaron Rules.

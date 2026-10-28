@@ -139,6 +139,7 @@ export function LogoPhysicsDrop({active, trigger}: LogoPhysicsDropProperties) {
         floor,
         Matter.Vertices.fromPath(
           '0 0 ' + (window.innerWidth + 400) + ' 0 ' + (window.innerWidth + 400) + ' 36 0 36',
+          floor,
         ),
       );
       Matter.Body.setPosition(rightWall, {

@@ -715,7 +715,7 @@ export function LabelArtwork({
                       index={index}
                       prefix={prefix}
                       fontFamily={fontFamily}
-                      hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id)}
+                      hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id) === true}
                     />
                     {layer.textEffect?.type === "cylinder" ? (
                       <CylinderText
@@ -723,7 +723,7 @@ export function LabelArtwork({
                         index={index}
                         prefix={prefix}
                         fontFamily={fontFamily}
-                        hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id)}
+                        hidden={layer.id === hiddenTextId || hiddenTextIds?.has(layer.id) === true}
                       />
                     ) : (
                       <SvgLayerText

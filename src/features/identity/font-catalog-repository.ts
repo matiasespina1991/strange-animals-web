@@ -801,7 +801,7 @@ export async function downloadFontFamily(font: FontCatalogItem) {
   const files = snapshot.docs
     .map((documentSnapshot) => documentSnapshot.data() as FontFileDocument)
     .filter(
-      (file) =>
+      (file): file is FontFileDocument & { relativePath: string; storagePath: string } =>
         typeof file.relativePath === "string" &&
         !file.relativePath.startsWith("/") &&
         !file.relativePath.split("/").includes("..") &&

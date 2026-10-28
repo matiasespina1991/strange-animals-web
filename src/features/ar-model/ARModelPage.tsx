@@ -43,7 +43,7 @@ function ensureModelViewer() {
     }
     const handleLoad = () => {
       script.dataset.loaded = "true";
-      void customElements.whenDefined("model-viewer").then(resolve, reject);
+      void customElements.whenDefined("model-viewer").then(() => resolve(), reject);
     };
     const handleError = () => {
       modelViewerPromise = null;
@@ -142,7 +142,7 @@ export default function ARModelPage({
             galleryModel.versionId,
           ),
         ]);
-        if (!project || !version)
+        if (!project || !version?.modelPath)
           throw Error("This model version could not be found in your gallery.");
         const blob = await downloadGalleryModel(version.modelPath);
         if (!active) return;

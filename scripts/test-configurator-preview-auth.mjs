@@ -12,6 +12,7 @@ const icons = url(`export const Check=()=>null;export const Plus=()=>null;`);
 const code = compile(await source("ColorSwatches.tsx"))
   .replace('"react"', JSON.stringify(hooks))
   .replace('"lucide-react"', JSON.stringify(icons))
+  .replace('"./color-swatch-capacity"', JSON.stringify(url(compile(await source("color-swatch-capacity.ts")))))
   .replaceAll('"react/jsx-runtime"', JSON.stringify(import.meta.resolve("react/jsx-runtime")));
 const { ColorSwatches } = await import(url(code));
 const previews = [], choices = [];

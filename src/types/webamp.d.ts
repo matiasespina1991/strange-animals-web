@@ -13,5 +13,6 @@ declare module 'webamp/butterchurn' {
     reopen(): void;
     setTracksToPlay(tracks: WebampTrack[]): void;
     setSkinFromUrl(url: string): void;
+    skinIsLoaded(): Promise<void>;
   }
 }

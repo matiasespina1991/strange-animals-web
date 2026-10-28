@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { fontPickerPanelLayout } from "./font-picker-panel-layout";
+import { fontPickerPanelLayout, clampFontPickerWidth, fontPickerWidthLimits } from "./font-picker-panel-layout";
 import "./font-picker-panel.css";
 
 export const FONT_PICKER_MOBILE_QUERY = "(max-width: 800px)";
@@ -9,8 +9,9 @@ export function isMobileFontPicker() {
 }
 
 /** One catalog tree: desktop drawer or a mobile sheet above a live canvas. */
-export function FontPickerPanel({ children, close, targetName }: {
+export function FontPickerPanel({ children, close, targetName, width = 345, onWidthChange }: {
   children: ReactNode; close: () => void; targetName: string;
+  width?: number; onWidthChange?: (width: number) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const section = useRef<HTMLElement>(null);
@@ -22,6 +23,15 @@ export function FontPickerPanel({ children, close, targetName }: {
   const [expanded, setExpanded] = useState(false);
   const [keyboard, setKeyboard] = useState(false);
   const fullViewport = useRef({ width: typeof window === "undefined" ? 0 : window.innerWidth, height: typeof window === "undefined" ? 0 : window.innerHeight });
+  const resize = useRef<{ pointerId: number; x: number; width: number } | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window === "undefined" ? 1280 : window.innerWidth);
+  const widthLimits = fontPickerWidthLimits(viewportWidth);
+  const desktopWidth = clampFontPickerWidth(width, viewportWidth);
+  useEffect(() => {
+    const update = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
   useEffect(() => {
     const media = window.matchMedia(FONT_PICKER_MOBILE_QUERY);
     const update = () => setMobile(media.matches);
@@ -94,7 +104,42 @@ export function FontPickerPanel({ children, close, targetName }: {
   }, []);
 
   return <div ref={root} className="dc-picker-overlay dc-picker-nonmodal dc-font-picker-panel" data-expanded={expanded} data-keyboard-open={keyboard}>
-    <section ref={section} id={id} role="dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} className="dc-font-picker">
+    <section ref={section} id={id} role="dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} className="dc-font-picker"
+      style={mobile ? undefined : { width: desktopWidth }}>
+      {!mobile && <div className="dc-font-picker-resize" role="separator" tabIndex={0}
+        aria-label="Resize fonts panel" aria-orientation="vertical" aria-controls={id}
+        aria-valuemin={widthLimits.min} aria-valuemax={widthLimits.max} aria-valuenow={desktopWidth}
+        title="Drag to resize fonts panel"
+        onPointerDown={event => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          event.currentTarget.focus({ preventScroll: true });
+          resize.current = { pointerId: event.pointerId, x: event.clientX, width: desktopWidth };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={event => {
+          const start = resize.current;
+          if (!start || start.pointerId !== event.pointerId) return;
+          onWidthChange?.(clampFontPickerWidth(start.width + start.x - event.clientX, viewportWidth));
+        }}
+        onPointerUp={event => {
+          if (resize.current?.pointerId !== event.pointerId) return;
+          resize.current = null;
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        onPointerCancel={() => { resize.current = null; }}
+        onLostPointerCapture={() => { resize.current = null; }}
+        onDoubleClick={() => onWidthChange?.(345)}
+        onKeyDown={event => {
+          const step = event.shiftKey ? 32 : 16;
+          const next = event.key === "ArrowLeft" ? desktopWidth + step
+            : event.key === "ArrowRight" ? desktopWidth - step
+            : event.key === "Home" ? widthLimits.min : event.key === "End" ? widthLimits.max : null;
+          if (next === null) return;
+          event.preventDefault();
+          event.stopPropagation();
+          onWidthChange?.(clampFontPickerWidth(next, viewportWidth));
+        }}><span aria-hidden="true" /></div>}
       <div className="dc-picker-heading">
         <div><h2 id={`${id}-title`}>Fonts</h2><p id={`${id}-description`} className="dc-font-picker-target">{targetName}</p></div>
         <div className="dc-font-picker-panel-actions">

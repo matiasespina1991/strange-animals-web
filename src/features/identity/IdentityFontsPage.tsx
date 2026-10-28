@@ -1005,7 +1005,7 @@ function useFloatingToolbar() {
 
     updateHeight();
 
-    if (!("ResizeObserver" in window)) {
+    if (typeof ResizeObserver === "undefined") {
       window.addEventListener("resize", updateHeight);
       return () => {
         window.removeEventListener("resize", updateHeight);

@@ -335,7 +335,7 @@ export async function createSleeveLabelSvg(
     const sleeveArtwork = document.importNode(
       sleeveDocument.documentElement,
       true,
-    ) as SVGSVGElement;
+    );
     sleeveArtwork.setAttribute("x", "0");
     sleeveArtwork.setAttribute("y", "0");
     sleeveArtwork.setAttribute("width", String(sleeveSizeMm));
@@ -345,7 +345,7 @@ export async function createSleeveLabelSvg(
     const label = document.importNode(
       labelDocument.documentElement,
       true,
-    ) as SVGSVGElement;
+    );
     label.setAttribute("x", String((sleeveSizeMm - labelSizeMm) / 2));
     label.setAttribute("y", String((sleeveSizeMm - labelSizeMm) / 2));
     label.setAttribute("width", String(labelSizeMm));
@@ -411,7 +411,7 @@ export async function createSleeveLabelSvg(
   const label = document.importNode(
     labelDocument.documentElement,
     true,
-  ) as SVGSVGElement;
+  );
   label.setAttribute("x", String((sleeveSizeMm - labelSizeMm) / 2));
   label.setAttribute("y", String((sleeveSizeMm - labelSizeMm) / 2));
   label.setAttribute("width", String(labelSizeMm));

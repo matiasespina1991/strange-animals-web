@@ -1,12 +1,12 @@
 const releaseTypes = {
-  100: 'Official',
+  '100': 'Official',
   '000': 'Promo',
 } as const;
 
 const releaseSubtypes = {
-  8: 'Compilation',
-  2: 'Release',
-  3: 'Split',
+  '8': 'Compilation',
+  '2': 'Release',
+  '3': 'Split',
 } as const;
 
 const invalidReleaseIdMessage = 'Invalid Strange Animals release ID.';

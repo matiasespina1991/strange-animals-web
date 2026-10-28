@@ -57,7 +57,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { listFontCatalog } from "./font-catalog-repository";
+import { listFontCatalog, type FontCatalogItem } from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
 import { RotationValue } from "./RotationValue";
@@ -177,7 +177,7 @@ function seed() {
   try {
     showTemplateWelcome =
       !localStorage.getItem(TEMPLATE_WELCOME_KEY) &&
-      !localStorage.getItem(DRAFT_KEY);
+      !localStorage.getItem(RECOVERY_KEY);
   } catch {
     // The welcome can still open when browser storage is unavailable.
   }
@@ -438,6 +438,7 @@ export function DesignConfiguratorEditor({
   );
   const [renameDraft, setRenameDraft] = useState("");
   const [layerPanelWidth, setLayerPanelWidth] = useState(184);
+  const [fontPanelWidth, setFontPanelWidth] = useState(345);
   const [propertiesPanelWidth, setPropertiesPanelWidth] = useState(() =>
     window.innerWidth <= 1100 ? 260 : window.innerWidth >= 1600 ? 320 : 300,
   );
@@ -2217,7 +2218,7 @@ export function DesignConfiguratorEditor({
         setLayerContextMenu({ x: event.clientX, y: event.clientY, ids, side, surface });
       }}
       data-theme={theme}
-      className={`design-configurator${dragging ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
+      className={`design-configurator${dragging || reorderingLayer ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
       data-native-cursor-surface
       onKeyDown={(e) => {
         const editable =
@@ -2615,7 +2616,7 @@ export function DesignConfiguratorEditor({
                 aria-grabbed={reorderingLayer === layer.id}
                 className={`dc-layer ${selection.has(layer.id) ? "is-selected" : ""} ${reorderingLayer === layer.id ? "is-dragging" : ""} ${dropIndicator?.id === layer.id ? (dropIndicator.before ? "drop-before" : "drop-after") : ""}`}
                 data-layer-id={layer.id}
-                onDragStart={(event) => {
+                onDragStartCapture={(event) => {
                   const target = event.target as Element;
                   if (
                     target.closest(
@@ -3646,6 +3647,8 @@ export function DesignConfiguratorEditor({
       />
       {dialog === "fonts" && (
         <FontPickerPanel
+          width={fontPanelWidth}
+          onWidthChange={setFontPanelWidth}
           targetName={selectedTextLayers.length > 1 ? `${selectedTextLayers.length} text layers` : element.name}
           close={() => setDialog(null)}
         >
