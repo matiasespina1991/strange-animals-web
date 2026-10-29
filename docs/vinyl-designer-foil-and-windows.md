@@ -10,14 +10,16 @@ Sleeve view, export SVG/PNG/PDF/PSD y geometría GLB respetan cada lado. En PSD,
 
 ## Acabado de capas
 
+Project settings → Sleeve material conserva `Matte` como valor por defecto (incluidos proyectos antiguos) y permite `Printed cardboard — soft sheen`: cartón impreso con reflejo amplio/difuso y grano procedural fino mediante normal map. Se aplica a ambas caras y pliegues, no al foil ni a la galleta. Se guarda en JSON/versiones/undo y en el material del GLB; no modifica las separaciones de impresión ni el arte plano. Textura compartida y liberada con el preview; entorno de estudio habilitado para percibir el acabado. La apariencia exacta requiere revisión visual.
+
 Seleccionar texto, texto arqueado, imagen o asset → Print finish:
 
 - Ink Matte.
 - Hot Foil Silver.
 
-La selección múltiple aplica el acabado a todos los textos seleccionados. En imágenes y assets, el foil sustituye los colores originales usando exclusivamente el canal alfa: un PNG transparente conserva su silueta y una imagen opaca genera un rectángulo completo. Crop, esquinas redondeadas, opacidad y blur siguen aplicándose. Los controles de color de imagen se ocultan mientras hay foil; Blur aparece debajo de Opacity. Al volver a Ink se recuperan los colores y texturas originales. Las siluetas de imágenes también se incluyen en las máscaras de material 3D y las separaciones para imprenta.
+La selección múltiple aplica el acabado a todos los textos seleccionados. En imágenes y assets, el foil sustituye los colores originales usando exclusivamente el canal alfa: un PNG transparente conserva su silueta y una imagen opaca genera un rectángulo completo. Crop y esquinas redondeadas siguen aplicándose. Opacidad, blur, contraste y textura se ignoran y se ocultan mientras hay foil; sus valores se conservan para volver a Ink. En imágenes mate, Blur aparece debajo de Opacity. Las siluetas de imágenes también se incluyen en las máscaras de material 3D y las separaciones para imprenta.
 
-2D muestra un degradado metálico estático. 3D usa una captura de color plano más máscaras lineales de metalness/roughness y un entorno de estudio; solo las letras son metálicas. Roughness de foil: 0.035. Papel/tinta conservan su rugosidad. Los elementos delante del foil lo ocultan en la máscara. Máscaras y materiales viajan en el GLB; la iluminación/reflejos exactos dependen del entorno del visor. Las miniaturas de GLB reflectantes añaden un entorno de estudio y liberan sus recursos tras la captura.
+2D muestra un degradado metálico estático. En 3D, la captura base excluye las capas foil. Una superficie metálica independiente usa una máscara de cobertura de 2048 px como alfa de su textura RGBA, con metalness constante 1 y roughness 0.035. Los píxeles parcialmente cubiertos mezclan metal y fondo real, sin interpolar entre papel y metal (lo que provocaba un halo blanco). No se umbraliza ni expande la silueta. La superficie comparte geometría con la galleta para seguir los pressing rings; en el sleeve se limita a los grupos de geometría impresa. Un pequeño polygon offset evita z-fighting sin separar físicamente el acabado. Los elementos delante del foil lo ocultan en la máscara. La textura RGBA y el material viajan en el GLB estándar (sin depender de alphaMap, que GLTFExporter no exporta). Las miniaturas de GLB reflectantes añaden un entorno de estudio y liberan sus recursos tras la captura. Falta comprobar visualmente este ajuste: no hay navegador disponible en la sesión.
 
 Las opciones se conservan en JSON, guardado de versiones, recuperación local, copiar capas y undo/redo. Cambiar las ventanas o las máscaras invalida el enlace compartido en caché para volver a exportar el modelo actualizado con el mismo ID por versión.
 

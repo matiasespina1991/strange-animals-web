@@ -439,6 +439,7 @@ export function LabelArtwork({
     .map(layer => textFoilColor(layer) ? {...layer, textTexture: undefined,
       blendMode: "normal" as const,
       opacity: 1, blur: 0,
+      textEffect: undefined,
       color: finishMode === "mask" ? "#ffffff" :
         finishMode === "flat" ? textFoilColor(layer)! : `url(#${prefix}-foil-${layer.id})`,
     } : layer);

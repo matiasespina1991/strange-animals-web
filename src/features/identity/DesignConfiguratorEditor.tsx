@@ -1897,7 +1897,7 @@ export function DesignConfiguratorEditor({
           continue;
         }
         diagnostics.stage("create-svg", { side: s });
-        const labelSvg = await createLabelSvg(design, s, fonts, includeBleed);
+        const labelSvg = await createLabelSvg(design, s, fonts, includeBleed, "preview", false);
         const sleeveArtwork = includeSleeve
           ? await createSleeveArtworkSvg(design, fonts, s)
           : undefined;
@@ -3558,7 +3558,7 @@ export function DesignConfiguratorEditor({
                       }
                       onCommit={end}
                     />}
-                    <TextEffectControls
+                    {!element.finish && <TextEffectControls
                       allowCylinder={element.kind !== "circular"}
                       effect={element.textEffect}
                       settings={element.textEffectSettings}
@@ -3570,7 +3570,7 @@ export function DesignConfiguratorEditor({
                         );
                       }}
                       onCommit={end}
-                    />
+                    />}
                   </section>
                 </>
               )}
@@ -3949,6 +3949,7 @@ export function DesignConfiguratorEditor({
             windows={{A: hasSleeveWindow(design, "A"), B: hasSleeveWindow(design, "B")}}
             side={side}
             sleeveColor={design.sleeveColor}
+            sleeveMaterial={design.sleeveMaterial}
             labelColor={design.paper}
             sleeveImage={design.sleeveImage}
             sleeveCaptureFront={sleevePreviewLabels.sleeveA}
@@ -4050,6 +4051,19 @@ export function DesignConfiguratorEditor({
               ))}
             </section>
             <section className="dc-property-section">
+              <label className="dc-field">
+                <span>Sleeve material</span>
+                <select aria-label="Sleeve material" value={design.sleeveMaterial ?? "printed-board"}
+                  onChange={event => {
+                    const sleeveMaterial = event.target.value === "printed-board" ? "printed-board" : "matte";
+                    end(); change(current => ({...current, sleeveMaterial})); end();
+                  }}>
+                  <option value="printed-board">Printed Cardboard</option>
+                  <option value="matte">Matte</option>
+                </select>
+              </label>
+            </section>
+            <section className="dc-property-section">
               <div className="dc-section-caption">Template details</div>
               <label className="dc-check">
                 <input
@@ -4062,7 +4076,7 @@ export function DesignConfiguratorEditor({
                 Studio symbol
               </label>
               <p className="dc-font-explanation">
-                Guides never export. The center hole stays transparent. Colors
+                Guides never export. Print files keep the center filled. Colors
                 are RGB, not a CMYK press proof.
               </p>
             </section>

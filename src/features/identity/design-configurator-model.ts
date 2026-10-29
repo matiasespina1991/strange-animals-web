@@ -118,6 +118,7 @@ export type LabelDesign = {
   sleeveColor: string;
   sleeveWindowA?: boolean;
   sleeveWindowB?: boolean;
+  sleeveMaterial?: "matte" | "printed-board";
   sleeveImage?: string;
   sleeveZoom: number;
   sleeveImageOffsetX: number;
@@ -351,6 +352,7 @@ export const initialDesign: LabelDesign = {
   sleeveB: [],
   sleeveWindowA: true,
   sleeveWindowB: true,
+  sleeveMaterial: "printed-board",
   sleeveLayers: [],
   paper: "#e5e8d9",
   sleeveColor: "#000000",
@@ -947,6 +949,7 @@ export function parseDesign(input: unknown): LabelDesign {
     sleeveColor: hex(input.sleeveColor, "#000000"),
     sleeveWindowA: input.sleeveWindowA !== false,
     sleeveWindowB: input.sleeveWindowB !== false,
+    sleeveMaterial: input.sleeveMaterial === "matte" ? "matte" : "printed-board",
     sleeveImage,
     sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
     sleeveImageOffsetX: numeric(input.sleeveImageOffsetX, 0, -600, 600),

@@ -108,7 +108,7 @@ export async function createLabelPsd(
     [side]: design[side].map((layer) => ({ ...layer, visible: true })),
   };
   onProgress?.("psd:embed-fonts");
-  const markup = await createLabelSvg(allVisible, side, fonts, bleed);
+  const markup = await createLabelSvg(allVisible, side, fonts, bleed, "preview", false);
   const host = document.createElement("div");
   host.style.cssText =
     "position:fixed;left:-10000px;top:0;opacity:0;pointer-events:none";
@@ -238,7 +238,7 @@ export async function createLabelPsd(
       }
       children.push(output);
     }
-    // All editable layers share the physical trim/hole mask, including vector shapes.
+    // Print files retain artwork through the spindle center; trim only the outside.
     const mask = document.createElement("canvas");
     mask.width = pixels;
     mask.height = pixels;
@@ -248,16 +248,6 @@ export async function createLabelPsd(
     context.fillStyle = "#fff";
     context.beginPath();
     context.arc(pixels / 2, pixels / 2, (300 + extra) * scale, 0, Math.PI * 2);
-    context.fill();
-    context.fillStyle = "#000";
-    context.beginPath();
-    context.arc(
-      pixels / 2,
-      pixels / 2,
-      (design.holeMm / design.diameterMm) * 300 * scale,
-      0,
-      Math.PI * 2,
-    );
     context.fill();
     for (const node of paperNodes) node.removeAttribute("display");
     for (const layer of design[side]) {
@@ -314,7 +304,7 @@ export async function createSleeveLabelPsd(
   const labelPixels = printPixelSize(labelSizeMm, ppi);
   onProgress?.("psd:sleeve-composite", { side, ppi, width: pixels });
 
-  const labelSvg = await createLabelSvg(design, side, fonts, bleed);
+  const labelSvg = await createLabelSvg(design, side, fonts, bleed, "preview", false);
   const labelPng = await exportLabelPng(labelSvg, labelSizeMm, ppi);
   const labelUrl = URL.createObjectURL(labelPng);
   const labelImage = new Image();

@@ -72,6 +72,7 @@ export async function createLabelSvg(
   fonts: FontCatalogItem[],
   includeBleed: boolean,
   finishMode: "preview" | "flat" | "mask" | "base" = "preview",
+  cutCenter = true,
 ) {
   const resolved = new Map<string, ResolvedLabelFont>();
   for (const layer of design[side].filter(
@@ -138,6 +139,7 @@ export async function createLabelSvg(
       prefix="label-export"
       bleed={includeBleed}
       finishMode={finishMode}
+      cutCenter={cutCenter}
       fontFamily={(layer) =>
         resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer)
       }
@@ -320,7 +322,7 @@ export async function createFoilPlateSvg(
 ) {
   const plate = updateSurfaceLayers(design, surface, side, layers => layers.map(layer =>
     textFoilColor(layer) === color ? layer : {...layer, finish: undefined}));
-  const source = surface === "cookie" ? await createLabelSvg(plate, side, fonts, includeBleed, "mask") :
+  const source = surface === "cookie" ? await createLabelSvg(plate, side, fonts, includeBleed, "mask", false) :
     await createSleeveArtworkSvg(plate, fonts, side, "mask");
   const ns = "http://www.w3.org/2000/svg";
   const root = new DOMParser().parseFromString(source, "image/svg+xml").documentElement;

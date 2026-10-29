@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { createPrintedBoardGrain } from "./sleeve-material";
 
 function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, materialIndex: number) {
   const last = geometry.groups.at(-1);
@@ -8,7 +9,7 @@ function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, mate
 }
 
 /** Thin paperboard panels, three folded edges and an open right-hand mouth. */
-export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}) {
+export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}, material: "matte" | "printed-board" = "matte") {
   const shell = new THREE.Group();
   shell.name = "Paperboard sleeve (open right edge)";
   const thickness = Math.min(0.003, depth / 6);
@@ -27,6 +28,17 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
   const board = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0 });
   const interior = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.55), roughness: 1, metalness: 0 });
   const prints = [front, back].map(map => new THREE.MeshPhysicalMaterial({ map, roughness: 0.72, metalness: 0, clearcoat: 0.025, clearcoatRoughness: 0.8 }));
+  if (material === "printed-board") {
+    const grain = createPrintedBoardGrain();
+    for (const print of prints) {
+      print.roughness = 0.48;
+      print.clearcoat = 0.12;
+      print.clearcoatRoughness = 0.5;
+      print.envMapIntensity = 0.65;
+      print.normalMap = grain;
+      print.normalScale.set(0.18, 0.18);
+    }
+  }
   for (const isBack of [false, true]) {
     shape.holes = (isBack ? windows.B : windows.A) ? [hole] : [];
     // Sub-millimetre paper edge, not the old broad chamfer. Printed UVs continue

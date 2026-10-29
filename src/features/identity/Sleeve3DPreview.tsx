@@ -25,6 +25,7 @@ type Properties = {
   labelCaptureBack: string;
   side: LabelSide;
   sleeveColor: string;
+  sleeveMaterial?: "matte" | "printed-board";
   labelColor: string;
   sleeveImage?: string;
   sleeveCaptureFront?: string;
@@ -58,6 +59,7 @@ export function Sleeve3DPreview({
   labelCaptureBack,
   side,
   sleeveColor,
+  sleeveMaterial = "printed-board",
   labelColor,
   sleeveImage,
   sleeveCaptureFront,
@@ -91,7 +93,7 @@ export function Sleeve3DPreview({
   useEffect(() => {
     setShareUrl(null);
     setShareError("");
-  }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, labelColor,
+  }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, sleeveMaterial, labelColor,
     sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY,
     windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
@@ -139,7 +141,7 @@ export function Sleeve3DPreview({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     let environment: THREE.WebGLRenderTarget | undefined;
-    if (foilMasks && Object.values(foilMasks).some(Boolean)) {
+    if (sleeveMaterial === "printed-board" || (foilMasks && Object.values(foilMasks).some(Boolean))) {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const studio = new RoomEnvironment();
       environment = pmrem.fromScene(studio);
@@ -269,7 +271,7 @@ export function Sleeve3DPreview({
       drawSleeveFace(sleeveBack, sleeveCaptureBackElement, true);
     };
     drawSleeve();
-    const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows);
+    const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows, sleeveMaterial);
     model.add(shell);
     const applyCapturedFoil = (surface: THREE.Mesh, capture?: string, flip = false, printGroupsOnly = false) => {
       if (!capture) return;
@@ -286,7 +288,7 @@ export function Sleeve3DPreview({
         }
         const material = new THREE.MeshPhysicalMaterial({side: THREE.DoubleSide});
         applyFoilMask(material, image, flip);
-        if (material.alphaMap) material.alphaMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        if (material.map) material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
         const foil = new THREE.Mesh(geometry, printGroupsOnly ? [material] : material);
         foil.name = "Hot Foil Silver";
         foil.renderOrder = 1;
@@ -475,6 +477,7 @@ export function Sleeve3DPreview({
           material.metalnessMap?.dispose();
           material.roughnessMap?.dispose();
           material.alphaMap?.dispose();
+          material.normalMap?.dispose();
           material.dispose();
         }
       });
@@ -491,6 +494,7 @@ export function Sleeve3DPreview({
     labelCaptureBack,
     labelDiameterMm,
     sleeveColor,
+    sleeveMaterial,
     labelColor,
     labelHoleMm,
     sleeveImage,

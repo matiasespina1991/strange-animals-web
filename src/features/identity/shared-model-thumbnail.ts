@@ -38,7 +38,7 @@ async function renderThumbnail(url: string) {
     let reflective = false;
     model.traverse(object => {
       if (object instanceof THREE.Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-        if (material.metalness > 0 || material.metalnessMap) reflective = true;
+        if (material.metalness > 0 || material.metalnessMap || material.clearcoat >= 0.1) reflective = true;
       }
     });
     if (reflective) {

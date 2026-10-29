@@ -5,8 +5,9 @@ export function foilCoveragePixels(mask: Uint8ClampedArray) {
   const pixels = new Uint8ClampedArray(mask.length);
   for (let i = 0; i < mask.length; i += 4) {
     const coverage = Math.round(mask[i] * mask[i + 3] / 255);
-    pixels[i] = pixels[i + 1] = pixels[i + 2] = coverage;
-    pixels[i + 3] = 255;
+    // Constant RGB even outside the silhouette avoids white/dark matte fringes.
+    pixels[i] = pixels[i + 1] = pixels[i + 2] = 255;
+    pixels[i + 3] = coverage;
   }
   return pixels;
 }
@@ -21,10 +22,12 @@ export function applyFoilMask(material: THREE.MeshPhysicalMaterial, image: HTMLI
   const data = context.getImageData(0, 0, canvas.width, canvas.height);
   data.data.set(foilCoveragePixels(data.data));
   context.putImageData(data, 0, 0);
-  const alphaMap = new THREE.CanvasTexture(canvas);
-  alphaMap.name = "Foil silhouette alpha";
-  alphaMap.colorSpace = THREE.NoColorSpace;
-  material.alphaMap = alphaMap;
+  // glTF carries base-color alpha, not Three's standalone alphaMap. A white
+  // RGBA map preserves the same coverage in preview AND exported/shared GLBs.
+  const silhouette = new THREE.CanvasTexture(canvas);
+  silhouette.name = "Foil silhouette alpha";
+  silhouette.colorSpace = THREE.SRGBColorSpace;
+  material.map = silhouette;
   material.color.set("#d6d9df");
   material.metalness = 1;
   material.roughness = 0.035;
