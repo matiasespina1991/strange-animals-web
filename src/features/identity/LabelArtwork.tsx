@@ -21,6 +21,7 @@ import {
   imageCropBounds,
   barcodeSourceMatrix,
   getSurfaceLayers,
+  textFoilColor,
 } from "./design-configurator-model";
 
 function SvgLayerText({
@@ -130,6 +131,7 @@ function SvgLayerText({
 }
 
 function shadeText(color: string, amount: number) {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return color;
   const channels = color.match(/[\da-f]{2}/gi);
   if (!channels || channels.length !== 3) return color;
   return `#${channels
@@ -404,6 +406,7 @@ export function LabelArtwork({
   whiteCenter = false,
   cutCenter = true,
   innerShadow = false,
+  finishMode = "preview",
   onSelect,
   onPointerDown,
   onPointerMove,
@@ -423,13 +426,22 @@ export function LabelArtwork({
   whiteCenter?: boolean;
   cutCenter?: boolean;
   innerShadow?: boolean;
+  finishMode?: "preview" | "flat" | "mask" | "base";
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
   onPointerUp?: PointerEventHandler<SVGGElement>;
 }) {
   // Both surfaces share all text, image and effect rendering.
-  const artworkLayers = getSurfaceLayers(design, surface, side);
+  const finishMask = finishMode === "mask";
+  const artworkLayers = getSurfaceLayers(design, surface, side)
+    .filter(layer => finishMode !== "base" || !textFoilColor(layer))
+    .map(layer => textFoilColor(layer) ? {...layer, textTexture: undefined,
+      blendMode: "normal" as const,
+      opacity: 1, blur: 0,
+      color: finishMode === "mask" ? "#ffffff" :
+        finishMode === "flat" ? textFoilColor(layer)! : `url(#${prefix}-foil-${layer.id})`,
+    } : layer);
   const extra = bleed ? (design.bleedMm / design.diameterMm) * 600 : 0;
   const hole = (design.holeMm / design.diameterMm) * 300;
   const safe = 300 - (design.safeMm / design.diameterMm) * 600;
@@ -454,6 +466,34 @@ export function LabelArtwork({
       aria-label={`${design.title}, side ${side}`}
     >
       <defs>
+        {artworkLayers.filter(layer => layer.kind === "image" && textFoilColor(layer) && layer.image).map(layer => (
+          <mask key={`foil-image-${layer.id}`} id={`${prefix}-foil-image-${layer.id}`} maskUnits="userSpaceOnUse"
+            x={layer.x - layer.width / 2} y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
+            width={layer.width} height={layer.width / (layer.imageRatio ?? 1)} style={{maskType: "alpha"}}>
+            <image href={layer.image} x={layer.x - layer.width / 2} y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
+              width={layer.width} height={layer.width / (layer.imageRatio ?? 1)} preserveAspectRatio="xMidYMid meet" />
+          </mask>
+        ))}
+        {finishMode === "mask" && <>
+          <filter id={`${prefix}-foil-white`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" /></filter>
+          <filter id={`${prefix}-foil-black`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" /></filter>
+        </>}
+        {finishMode === "preview" && getSurfaceLayers(design, surface, side).filter(layer => textFoilColor(layer)).map(layer => (
+          <linearGradient key={layer.id} id={`${prefix}-foil-${layer.id}`} x1="0" y1="0" x2=".8" y2="1">
+            <stop offset="0%" stopColor={textFoilColor(layer)!} />
+            <stop offset="18%" stopColor="#ffffff" />
+            <stop offset="28%" stopColor={textFoilColor(layer)!} />
+            <stop offset="34%" stopColor="#979ba3" />
+            <stop offset="40%" stopColor={textFoilColor(layer)!} />
+            <stop offset="48%" stopColor="#ffffff" />
+            <stop offset="56%" stopColor={textFoilColor(layer)!} />
+            <stop offset="63%" stopColor="#979ba3" />
+            <stop offset="70%" stopColor={textFoilColor(layer)!} />
+            <stop offset="82%" stopColor="#ffffff" />
+            <stop offset="90%" stopColor={textFoilColor(layer)!} />
+            <stop offset="100%" stopColor={textFoilColor(layer)!} />
+          </linearGradient>
+        ))}
         {innerShadow && (
           <radialGradient
             id={`${prefix}-cookie-inner-shadow`}
@@ -598,8 +638,8 @@ export function LabelArtwork({
         fontFamily="Alte DIN Input"
         fontWeight="400"
       >
-        {surface === "cookie" && <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />}
-        {surface === "cookie" && design.frame && (
+        {surface === "cookie" && !finishMask && <circle cx="300" cy="300" r={300 + extra} fill={design.paper} />}
+        {surface === "cookie" && !finishMask && design.frame && (
           <circle
             cx="300"
             cy="300"
@@ -620,6 +660,7 @@ export function LabelArtwork({
             <g
               key={layer.id}
               data-layer-id={layer.id}
+              filter={finishMode === "mask" ? `url(#${prefix}-foil-${textFoilColor(layer) ? "white" : "black"})` : undefined}
               className={onSelect ? "dc-svg-element" : undefined}
               role={onSelect ? "button" : undefined}
               tabIndex={onSelect ? 0 : undefined}
@@ -690,7 +731,12 @@ export function LabelArtwork({
                           : undefined
                       }
                     >
-                      <image
+                      {textFoilColor(layer) ? <rect
+                        x={layer.x - layer.width / 2}
+                        y={layer.y - layer.width / (layer.imageRatio ?? 1) / 2}
+                        width={layer.width} height={layer.width / (layer.imageRatio ?? 1)}
+                        fill={layer.color} mask={`url(#${prefix}-foil-image-${layer.id})`}
+                      /> : <image
                         filter={
                           layer.imageFill ||
                           (imageRole(layer) === "brand-logo" &&
@@ -705,7 +751,7 @@ export function LabelArtwork({
                         width={layer.width}
                         height={layer.width / (layer.imageRatio ?? 1)}
                         preserveAspectRatio="xMidYMid meet"
-                      />
+                      />}
                     </g>
                   )
                 ) : (

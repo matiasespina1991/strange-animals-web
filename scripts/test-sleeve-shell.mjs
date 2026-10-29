@@ -35,7 +35,8 @@ for (const mesh of shell.children) {
 }
 assert.ok(shell.children[0].material[0].roughness > 0.7);
 const component = readFileSync('src/features/identity/Sleeve3DPreview.tsx', 'utf8');
-assert.match(component, /model.add\(createSleeveShell/);
+assert.match(component, /const shell = createSleeveShell/);
+assert.match(component, /model.add\(shell\)/);
 const shoulderStart = component.indexOf('    for (const face of [1, -1])');
 const shoulderEnd = component.indexOf('\n    if (sleeveImage)', shoulderStart);
 assert.ok(shoulderStart > 0 && shoulderEnd > shoulderStart);

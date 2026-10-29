@@ -39,6 +39,7 @@ import {
   Maximize,
   Minimize,
   ImagePlus,
+  Info,
   Layers,
   Spline,
   Minus,
@@ -121,6 +122,8 @@ import {
   safeFilename,
   imageRole,
   getSurfaceLayers,
+  hasSleeveWindow,
+  textFoilColor,
   updateSurfaceLayers,
   initialImageLayerPosition,
   SLEEVE_SIZE_MM,
@@ -138,6 +141,7 @@ import {
 import {
   captureLabelPreview,
   createSleeveArtworkSvg,
+  createFoilPlateSvg,
   createSleeveLabelSvg,
   createLabelSvg,
   defaultLabelFont,
@@ -523,6 +527,7 @@ export function DesignConfiguratorEditor({
     B: "",
     sleeveA: "",
     sleeveB: "",
+    foilA: "", foilB: "", foilSleeveA: "", foilSleeveB: "",
   });
   const [sleevePreviewBusy, setSleevePreviewBusy] = useState(false);
   const [gallerySaving, setGallerySaving] = useState(false);
@@ -1414,8 +1419,8 @@ export function DesignConfiguratorEditor({
         createSleeveArtworkSvg(design, fonts, "B"),
       ]);
       const [sleeveMarkupA, sleeveMarkupB] = await Promise.all([
-        createSleeveLabelSvg(markupA, design, false, sleeveArtworkA),
-        createSleeveLabelSvg(markupB, design, false, sleeveArtworkB),
+        createSleeveLabelSvg(markupA, design, false, sleeveArtworkA, "A"),
+        createSleeveLabelSvg(markupB, design, false, sleeveArtworkB, "B"),
       ]);
       const [captureA, captureB, captureSleeveA, captureSleeveB] =
         await Promise.all([
@@ -1772,10 +1777,10 @@ export function DesignConfiguratorEditor({
     try {
       const [markupA, markupB, sleeveMarkupA, sleeveMarkupB] =
         await Promise.all([
-          createLabelSvg(previewDesign, "A", fonts, false),
-          createLabelSvg(previewDesign, "B", fonts, false),
-          createSleeveArtworkSvg(previewDesign, fonts, "A"),
-          createSleeveArtworkSvg(previewDesign, fonts, "B"),
+          createLabelSvg(previewDesign, "A", fonts, false, "base"),
+          createLabelSvg(previewDesign, "B", fonts, false, "base"),
+          createSleeveArtworkSvg(previewDesign, fonts, "A", "base"),
+          createSleeveArtworkSvg(previewDesign, fonts, "B", "base"),
         ]);
       const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] =
         await Promise.all([
@@ -1784,11 +1789,20 @@ export function DesignConfiguratorEditor({
           captureLabelPreview(sleeveMarkupA),
           captureLabelPreview(sleeveMarkupB),
         ]);
+      const maskCapture = async (maskSide: LabelSide, maskSurface: LabelSurface) => {
+        if (!getSurfaceLayers(previewDesign, maskSurface, maskSide).some(layer => layer.visible && layer.finish)) return "";
+        return captureLabelPreview(maskSurface === "cookie" ? await createLabelSvg(previewDesign, maskSide, fonts, false, "mask") :
+          await createSleeveArtworkSvg(previewDesign, fonts, maskSide, "mask"), 2048);
+      };
+      const [foilA, foilB, foilSleeveA, foilSleeveB] = await Promise.all([
+        maskCapture("A", "cookie"), maskCapture("B", "cookie"), maskCapture("A", "sleeve"), maskCapture("B", "sleeve"),
+      ]);
       setSleevePreviewLabels({
         A: captureA,
         B: captureB,
         sleeveA: sleeveCaptureA,
         sleeveB: sleeveCaptureB,
+        foilA, foilB, foilSleeveA, foilSleeveB,
       });
       setDialog("sleeve-preview");
     } catch (error) {
@@ -1843,7 +1857,23 @@ export function DesignConfiguratorEditor({
       const sides: LabelSide[] = exportSides === "both" ? ["A", "B"] : [side],
         labelMm = design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0),
         outputMm = includeSleeve ? 315 : labelMm;
+      if (exportFormat === "foil" && !sides.some(s =>
+        (includeSleeve ? ["cookie", "sleeve"] as const : ["cookie"] as const).some(target =>
+          getSurfaceLayers(design, target, s).some(layer => layer.visible && layer.finish)))) {
+        throw Error("No foil layers on the selected sides/surfaces. Choose a Hot foil finish first.");
+      }
+      const foilArchive = exportFormat === "foil" ? new (await import("jszip")).default() : null;
       for (const s of sides) {
+        if (exportFormat === "foil") {
+          for (const targetSurface of (includeSleeve ? ["cookie", "sleeve"] : ["cookie"]) as LabelSurface[]) {
+            const colors = new Set(getSurfaceLayers(design, targetSurface, s).filter(layer => layer.visible).map(textFoilColor).filter((color): color is string => Boolean(color)));
+            for (const color of colors) {
+              const svg = await createFoilPlateSvg(design, s, fonts, targetSurface, color, includeBleed);
+              foilArchive!.file(labelExportName(design, s, "svg", `${targetSurface}-foil-${color.slice(1)}`), svg);
+            }
+          }
+          continue;
+        }
         if (exportFormat === "psd") {
           diagnostics.stage("load-psd-module", { side: s });
           const psdModule = await import("./design-configurator-psd");
@@ -1877,6 +1907,7 @@ export function DesignConfiguratorEditor({
               design,
               includeBleed,
               sleeveArtwork,
+              s,
             )
           : labelSvg;
         if (exportFormat === "pdf" && printWindow) {
@@ -1902,6 +1933,10 @@ export function DesignConfiguratorEditor({
             includeSleeve ? "with-sleeve" : undefined,
           ),
         );
+      }
+      if (foilArchive) {
+        foilArchive.file("README.txt", "FOIL SEPARATIONS\nBlack = foil coverage. One SVG per color, side and surface. Fonts are embedded, not outlined. Confirm outlines, spot-color, minimum line widths and separation requirements with your printer. These are not certified press PDFs. Gradients/blur/transparency in the design can produce partial mask coverage.\n");
+        downloadDesignFile(await foilArchive.generateAsync({type: "blob"}), `${safeFilename(design.title)}-foil-masks.zip`);
       }
       diagnostics.complete();
       setNotice(
@@ -2969,15 +3004,16 @@ export function DesignConfiguratorEditor({
               <div
                 className="dc-sleeve-canvas dc-sleeve-design-canvas"
                 data-editing-surface={surface}
+                data-window-open={hasSleeveWindow(design, side)}
                 style={
                   {
                     backgroundColor: previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
-                    maskImage: canvasHoleMask(
+                    maskImage: !hasSleeveWindow(design, side) && surface === "sleeve" ? "none" : canvasHoleMask(
                       design.holeMm,
                       sleeveCanvasSizeMm,
                     ),
-                    WebkitMaskImage: canvasHoleMask(
+                    WebkitMaskImage: !hasSleeveWindow(design, side) && surface === "sleeve" ? "none" : canvasHoleMask(
                       design.holeMm,
                       sleeveCanvasSizeMm,
                     ),
@@ -3307,7 +3343,26 @@ export function DesignConfiguratorEditor({
                         {fontErrors[fontKey(element)]}
                       </p>
                     )}
-                    {selectedTextLayers.length > 0 && (
+                    {selectedTextLayers.length > 0 && <div className="dc-foil-controls">
+                      <div className="dc-field">
+                        <span className="dc-finish-heading">Print finish
+                          <span className="dc-finish-info" tabIndex={0} aria-label="About print finish" aria-describedby={`${prefix}-finish-info`}>
+                            <Info size={14} aria-hidden="true" />
+                            <span id={`${prefix}-finish-info`} role="tooltip">Choose how this part of your design will be printed. Ink Matte uses regular ink without a metallic shine. Hot Foil Silver uses a thin silver foil pressed onto the surface with heat, creating a shiny, mirror-like finish. This preview simulates the finish; ask your printer about foil printing before production.</span>
+                          </span>
+                        </span>
+                        <select aria-label="Text print finish" value={selectedTextLayers[0].finish ? "silver" : "ink"}
+                          onChange={event => {
+                            const finish = event.target.value === "ink" ? undefined : event.target.value as LabelLayer["finish"];
+                            const ids = new Set(selectedTextLayers.map(layer => layer.id));
+                            end(); change(current => updateSurfaceLayers(current, surface, side, layers => layers.map(layer => ids.has(layer.id) ? {...layer, finish} : layer))); end();
+                          }}>
+                          <option value="ink">Ink Matte</option>
+                          <option value="silver">Hot Foil Silver</option>
+                        </select>
+                      </div>
+                    </div>}
+                    {selectedTextLayers.length > 0 && !selectedTextLayers.some(layer => layer.finish) && (
                       <div className="dc-ink dc-ink-priority">
                         <span>
                           Ink color
@@ -3374,28 +3429,6 @@ export function DesignConfiguratorEditor({
                       </div>
                     )}
                     <div className="dc-compact-text-controls">
-                      <TextBlendModeControl
-                        value={element.blendMode}
-                        onChange={(blendMode) => {
-                          end();
-                          update({ blendMode });
-                        }}
-                      />
-                      <TextSurfaceControl
-                        layerId={element.id}
-                        image={element.textTexture}
-                        opacity={element.textTextureOpacity}
-                        scale={element.textTextureScale}
-                        onChange={(patch, group) => {
-                          if (!group) end();
-                          update(
-                            patch,
-                            group ? `${group}-${element.id}` : undefined,
-                          );
-                        }}
-                        onCommit={end}
-                        onError={setNotice}
-                      />
                       <div className="dc-field-pair dc-compact-text-fields">
                         <TypographyValueControl
                           label="Size"
@@ -3485,8 +3518,32 @@ export function DesignConfiguratorEditor({
                         )}
                       </div>
                     </div>
+                    {!element.finish && <div className="dc-compact-text-controls">
+                      <TextBlendModeControl
+                        value={element.blendMode}
+                        onChange={(blendMode) => {
+                          end();
+                          update({ blendMode });
+                        }}
+                      />
+                      <TextSurfaceControl
+                        layerId={element.id}
+                        image={element.textTexture}
+                        opacity={element.textTextureOpacity}
+                        scale={element.textTextureScale}
+                        onChange={(patch, group) => {
+                          if (!group) end();
+                          update(
+                            patch,
+                            group ? `${group}-${element.id}` : undefined,
+                          );
+                        }}
+                        onCommit={end}
+                        onError={setNotice}
+                      />
+                    </div>}
                     {slider("Rotation", "angle", -180, 180, "°")}
-                    <TypographyValueControl
+                    {!element.finish && <TypographyValueControl
                       label="Opacity"
                       unit="%"
                       value={Math.round((element.opacity ?? 1) * 100)}
@@ -3500,7 +3557,7 @@ export function DesignConfiguratorEditor({
                         )
                       }
                       onCommit={end}
-                    />
+                    />}
                     <TextEffectControls
                       allowCylinder={element.kind !== "circular"}
                       effect={element.textEffect}
@@ -3517,7 +3574,7 @@ export function DesignConfiguratorEditor({
                   </section>
                 </>
               )}
-              <section className="dc-property-section dc-focus-section">
+              {element.kind !== "image" && !element.finish && <section className="dc-property-section dc-focus-section">
                 <div className="dc-section-caption">Focus</div>
                 <TypographyValueControl
                   label="Blur"
@@ -3532,7 +3589,7 @@ export function DesignConfiguratorEditor({
                 <p className="dc-blur-hint">
                   Zero keeps edges sharp. Increase to soften this element.
                 </p>
-              </section>
+              </section>}
               <section className="dc-property-section dc-position-section">
                 <div className="dc-section-caption">
                   {element.kind === "circular"
@@ -3553,6 +3610,16 @@ export function DesignConfiguratorEditor({
                   <>
                     {element.kind === "image" &&
                       slider("Width", "width", 10, 500, "PX")}
+                    {element.kind === "image" && (
+                      <label className="dc-field">
+                        <span>Print finish</span>
+                        <select aria-label="Image print finish" value={element.finish ? "silver" : "ink"}
+                          onChange={event => { end(); update({finish: event.target.value === "silver" ? "silver" : undefined}); end(); }}>
+                          <option value="ink">Ink Matte</option>
+                          <option value="silver">Hot Foil Silver</option>
+                        </select>
+                      </label>
+                    )}
                     {element.kind === "image" && (
                       <ImageAppearanceControls
                         layer={element}
@@ -3578,7 +3645,7 @@ export function DesignConfiguratorEditor({
                       />
                     )}
                     {element.kind === "image" && slider("Rotation", "angle", -180, 180, "°")}
-                    {element.kind === "image" && (
+                    {element.kind === "image" && !element.finish && (
                       <label className="dc-field dc-slider-field">
                         <span>
                           Opacity
@@ -3605,6 +3672,10 @@ export function DesignConfiguratorEditor({
                         />
                       </label>
                     )}
+                    {element.kind === "image" && !element.finish && <TypographyValueControl
+                      label="Blur" unit="PX" value={element.blur ?? 0} min={0} max={40} step={0.1}
+                      onChange={blur => update({blur}, `blur-${element.id}`)} onCommit={end}
+                    />}
                     <div className="dc-field-pair">
                       {number("Horizontal", "x", 0, 600, "PX")}
                       {number("Vertical", "y", 0, 600, "PX")}
@@ -3873,6 +3944,9 @@ export function DesignConfiguratorEditor({
             headingTarget={previewHeadingTarget}
             labelCapture={sleevePreviewLabels.A}
             labelCaptureBack={sleevePreviewLabels.B}
+            foilMasks={{A: sleevePreviewLabels.foilA, B: sleevePreviewLabels.foilB,
+              sleeveA: sleevePreviewLabels.foilSleeveA, sleeveB: sleevePreviewLabels.foilSleeveB}}
+            windows={{A: hasSleeveWindow(design, "A"), B: hasSleeveWindow(design, "B")}}
             side={side}
             sleeveColor={design.sleeveColor}
             labelColor={design.paper}
@@ -3927,6 +4001,17 @@ export function DesignConfiguratorEditor({
       {dialog === "settings" && (
         <Modal title="Project settings" close={() => setDialog(null)}>
           <div className="dc-dialog-scroll">
+            <section className="dc-property-section">
+              <div className="dc-section-caption">Sleeve windows</div>
+              <p className="dc-font-explanation">Choose which sides reveal the record label. Sleeve view and exports show the closed cover; Cookie view still lets you edit the concealed label. The record’s spindle hole is unchanged.</p>
+              <div className="dc-effect-grid">
+                {(["A", "B"] as const).map(windowSide => <label className="dc-check" key={windowSide}>
+                  <input type="checkbox" checked={hasSleeveWindow(design, windowSide)} onChange={event => {
+                    const open = event.target.checked; end(); change(current => ({...current, [windowSide === "A" ? "sleeveWindowA" : "sleeveWindowB"]: open})); end();
+                  }} />{windowSide} side window
+                </label>)}
+              </div>
+            </section>
             <section className="dc-property-section">
               <div className="dc-section-caption">
                 Print dimensions<span>MM</span>
@@ -4046,12 +4131,14 @@ export function DesignConfiguratorEditor({
                   SVG — editable vector, embedded fonts
                 </option>
                 <option value="png">PNG — 600 ppi</option>
+                <option value="foil">Foil masks — ZIP of black SVG plates</option>
                 <option value="psd">
                   Photoshop PSD — 600 ppi, layers, outlined text
                 </option>
                 <option value="pdf">Print / Save as PDF — current side</option>
               </select>
             </label>
+            {exportFormat === "foil" && <p className="dc-font-explanation">A ZIP with one black mask per foil color, side and surface, with embedded fonts. No metallic gradients. Include sleeve to also export its plates separately. Convert type to outlines and confirm spot-color/separation requirements with your printer; this is not a certified press PDF.</p>}
             {exportFormat === "psd" && (
               <p className="dc-font-explanation">
                 Text without 3D effects or blur is converted to editable vector

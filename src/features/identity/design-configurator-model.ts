@@ -78,6 +78,8 @@ export type LabelLayer = {
   x: number;
   y: number;
   color: string;
+  finish?: "gold" | "silver" | "copper" | "custom";
+  foilColor?: string;
   customTextColor?: boolean;
   align: "start" | "middle" | "end";
   visible: boolean;
@@ -114,6 +116,8 @@ export type LabelDesign = {
   sleeveLayers: LabelLayer[];
   paper: string;
   sleeveColor: string;
+  sleeveWindowA?: boolean;
+  sleeveWindowB?: boolean;
   sleeveImage?: string;
   sleeveZoom: number;
   sleeveImageOffsetX: number;
@@ -130,6 +134,13 @@ export function layerGroupForSurface(
   side: LabelSide,
 ): LabelLayerGroup {
   return surface === "sleeve" ? `sleeve${side}` : side;
+}
+export function hasSleeveWindow(design: LabelDesign, side: LabelSide) {
+  return (side === "A" ? design.sleeveWindowA : design.sleeveWindowB) !== false;
+}
+export function textFoilColor(layer: LabelLayer) {
+  return layer.finish === "gold" ? "#d6ad60" : layer.finish === "silver" ? "#d6d9df" :
+    layer.finish === "copper" ? "#c58160" : layer.finish === "custom" ? (layer.foilColor ?? "#d6ad60") : null;
 }
 export function getSurfaceLayers(
   design: LabelDesign,
@@ -338,6 +349,8 @@ export const initialDesign: LabelDesign = {
   })),
   sleeveA: [],
   sleeveB: [],
+  sleeveWindowA: true,
+  sleeveWindowB: true,
   sleeveLayers: [],
   paper: "#e5e8d9",
   sleeveColor: "#000000",
@@ -818,6 +831,8 @@ export function parseDesign(input: unknown): LabelDesign {
         y: numeric(item.y, 190, 0, 600),
         width: numeric(item.width, 150, 10, 500),
         color: hex(item.color, base.color),
+        ...(["gold", "silver", "copper", "custom"].includes(String(item.finish))
+          ? {finish: item.finish as LabelLayer["finish"], foilColor: hex(item.foilColor, "#d6ad60")} : {}),
         customTextColor: kind !== "image" && item.customTextColor === true,
         align:
           item.align === "start" || item.align === "end"
@@ -930,6 +945,8 @@ export function parseDesign(input: unknown): LabelDesign {
     sleeveLayers: [],
     paper: hex(input.paper, "#e5e8d9"),
     sleeveColor: hex(input.sleeveColor, "#000000"),
+    sleeveWindowA: input.sleeveWindowA !== false,
+    sleeveWindowB: input.sleeveWindowB !== false,
     sleeveImage,
     sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
     sleeveImageOffsetX: numeric(input.sleeveImageOffsetX, 0, -600, 600),

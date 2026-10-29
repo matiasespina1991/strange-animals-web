@@ -9,7 +9,7 @@ const suites = [
   "layer-context-menu", "layer-panel-order", "multi-font-selection",
   "gallery-navigation", "font-picker", "font-picker-panel", "font-picker-reveal",
   "font-picker-catalog", "configurator-theme", "font-toolbar-casing",
-  "font-catalog-visibility", "configurator-preview-auth", "typography-value-control", "async-image-import", "settle-uploads",
+  "font-catalog-visibility", "configurator-preview-auth", "typography-value-control", "async-image-import", "settle-uploads", "foil-windows",
 ];
 const failures = [];
 for (const suite of suites) {

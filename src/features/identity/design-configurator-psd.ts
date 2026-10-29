@@ -7,6 +7,7 @@ import {
 import type { FontCatalogItem } from "./font-catalog-repository";
 import {
   getSurfaceLayers,
+  hasSleeveWindow,
   type LabelDesign,
   type LabelSide,
 } from "./design-configurator-model";
@@ -131,7 +132,7 @@ export async function createLabelPsd(
         .closest("[data-layer-id]")
         ?.getAttribute("data-layer-id");
       const layer = design[side].find((layer) => layer.id === layerId);
-      if (layer?.textEffect || layer?.blur || layer?.textTexture) continue;
+      if (layer?.textEffect || layer?.blur || layer?.textTexture || layer?.finish) continue;
       onProgress?.("psd:outline-text", {
         layerId: layerId ?? undefined,
         fontFamily: text.getAttribute("font-family") ?? undefined,
@@ -203,7 +204,7 @@ export async function createLabelPsd(
       const output: Layer = {
         name: layer.name,
         hidden: !layer.visible,
-        opacity: layer.opacity ?? 1,
+        opacity: layer.finish ? 1 : layer.opacity ?? 1,
         canvas,
         ...(layer.blendMode === "difference"
           ? { blendMode: "difference" }
@@ -385,13 +386,13 @@ export async function createSleeveLabelPsd(
     if (!compositeContext) throw new Error("Canvas unavailable.");
     compositeContext.drawImage(sleeveCanvas, 0, 0);
     if (sleeveLayers) compositeContext.drawImage(sleeveLayers, 0, 0);
-    compositeContext.drawImage(labelCanvas, 0, 0);
+    if (hasSleeveWindow(design, side)) compositeContext.drawImage(labelCanvas, 0, 0);
     const children: Layer[] = [
       { name: "Sleeve", canvas: sleeveCanvas },
       ...(sleeveLayers
         ? [{ name: "Sleeve artwork", canvas: sleeveLayers }]
         : []),
-      { name: `Record label · ${side}`, canvas: labelCanvas },
+      { name: `Record label · ${side}`, canvas: labelCanvas, hidden: !hasSleeveWindow(design, side) },
     ];
     return new Blob(
       [

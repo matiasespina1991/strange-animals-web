@@ -202,7 +202,7 @@
 .design-configurator .dc-properties-resize::before,
 .design-configurator .dc-font-picker-resize,
 .design-configurator .dc-font-picker-resize > span {
-  cursor: ew-resize !important;
+  cursor: col-resize !important;
 }
 .design-configurator
   input:not([type="range"]):not([type="color"]):not([type="checkbox"]),
@@ -510,7 +510,7 @@
   align-items: center;
   justify-content: center;
   background: var(--dc-surface-muted, #e1e4db);
-  cursor: ew-resize;
+  cursor: col-resize;
   touch-action: none;
   user-select: none;
 }
@@ -522,7 +522,7 @@
     4px 6px repeat-y;
   content: "";
   opacity: 1;
-  cursor: ew-resize;
+  cursor: col-resize;
 }
 .dc-layer-resize:hover,
 .dc-layer-resize:focus-visible,
@@ -540,7 +540,7 @@
   align-items: center;
   justify-content: center;
   background: var(--dc-surface-muted, #e1e4db);
-  cursor: ew-resize;
+  cursor: col-resize;
   touch-action: none;
   user-select: none;
 }
@@ -552,7 +552,7 @@
     4px 6px repeat-y;
   content: "";
   opacity: 1;
-  cursor: ew-resize;
+  cursor: col-resize;
 }
 .dc-properties-resize:hover,
 .dc-properties-resize:focus-visible,
@@ -1011,6 +1011,21 @@
 .dc-sleeve-elements:not(.is-editing) {
   pointer-events: none;
 }
+.dc-sleeve-design-canvas[data-window-open="false"] .dc-sleeve-elements {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+.dc-sleeve-design-canvas[data-window-open="false"][data-editing-surface="sleeve"] > .dc-disc {
+  display: none;
+}
+.dc-foil-controls { margin-top: 12px; margin-bottom: 16px; }
+.dc-foil-controls .dc-field { margin-bottom: 8px; }
+.dc-properties .dc-foil-controls .dc-field > .dc-finish-heading { margin-bottom: 2px; }
+.dc-field > .dc-finish-heading { display: flex; justify-content: flex-start; align-items: center; gap: 6px; }
+.dc-finish-info { position: relative; display: inline-flex; align-items: center; cursor: help; }
+.dc-finish-info > [role="tooltip"] { visibility: hidden; opacity: 0; pointer-events: none; position: absolute; bottom: calc(100% + 8px); left: -70px; z-index: 10; width: min(220px, 55vw); padding: 10px; background: var(--dc-bg, #fafaf7); color: var(--dc-text, #252620); border: 1px solid var(--dc-divider, #d9ddcd); font-size: 12px; line-height: 1.45; font-weight: 400; }
+.dc-finish-info:hover > [role="tooltip"],
+.dc-finish-info:focus-visible > [role="tooltip"] { visibility: visible; opacity: 1; }
 .dc-sleeve-element {
   position: absolute;
   z-index: 2;

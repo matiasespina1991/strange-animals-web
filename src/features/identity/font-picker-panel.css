@@ -8,12 +8,12 @@
     display:flex; align-items:center; justify-content:center;
     position:absolute; left:-10px; top:0; bottom:0; width:10px;
     background:var(--dc-surface-muted, #e1e4db);
-    z-index:2; cursor:ew-resize; touch-action:none; user-select:none;
+    z-index:2; cursor:col-resize; touch-action:none; user-select:none;
   }
   .dc-font-picker-resize > span {
     width:4px; height:30px; border-radius:3px;
     background:radial-gradient(circle, var(--dc-resize-grip-color, var(--dc-resize-grip, #657248)) 1.5px, transparent 1.8px) center / 4px 6px repeat-y;
-    cursor:ew-resize;
+    cursor:col-resize;
   }
   .design-configurator .dc-font-picker-resize:hover,
   .design-configurator .dc-font-picker-resize:focus-visible,

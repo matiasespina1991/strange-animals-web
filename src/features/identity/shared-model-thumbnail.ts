@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 // Only one offscreen renderer/download at a time, even with many visible rows.
 let queue: Promise<unknown> = Promise.resolve();
@@ -10,6 +11,7 @@ async function renderThumbnail(url: string) {
   if (!response.ok) throw Error("Could not load the model thumbnail.");
   const gltf = await new GLTFLoader().parseAsync(await response.arrayBuffer(), "");
   let renderer: THREE.WebGLRenderer | undefined;
+  let environment: THREE.WebGLRenderTarget | undefined;
   try {
     const model = gltf.scene;
     model.updateMatrixWorld(true);
@@ -33,6 +35,19 @@ async function renderThumbnail(url: string) {
     renderer.setPixelRatio(1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setClearColor(0x000000, 0);
+    let reflective = false;
+    model.traverse(object => {
+      if (object instanceof THREE.Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        if (material.metalness > 0 || material.metalnessMap) reflective = true;
+      }
+    });
+    if (reflective) {
+      const studio = new RoomEnvironment();
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      environment = pmrem.fromScene(studio);
+      scene.environment = environment.texture;
+      studio.dispose(); pmrem.dispose();
+    }
     renderer.render(scene, camera);
     return renderer.domElement.toDataURL("image/png");
   } finally {
@@ -52,6 +67,7 @@ async function renderThumbnail(url: string) {
       }
     });
     renderer?.dispose();
+    environment?.dispose();
     renderer?.forceContextLoss();
   }
 }

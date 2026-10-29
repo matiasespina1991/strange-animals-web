@@ -15,6 +15,10 @@ import {
   safeFilename,
   SLEEVE_SIZE_MM,
   sleeveLabelGeometry,
+  hasSleeveWindow,
+  updateSurfaceLayers,
+  textFoilColor,
+  type LabelSurface,
   type LabelDesign,
   type LabelLayer,
   type LabelSide,
@@ -67,6 +71,7 @@ export async function createLabelSvg(
   side: LabelSide,
   fonts: FontCatalogItem[],
   includeBleed: boolean,
+  finishMode: "preview" | "flat" | "mask" | "base" = "preview",
 ) {
   const resolved = new Map<string, ResolvedLabelFont>();
   for (const layer of design[side].filter(
@@ -132,6 +137,7 @@ export async function createLabelSvg(
       side={side}
       prefix="label-export"
       bleed={includeBleed}
+      finishMode={finishMode}
       fontFamily={(layer) =>
         resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer)
       }
@@ -153,6 +159,7 @@ export async function createSleeveArtworkSvg(
   design: LabelDesign,
   fonts: FontCatalogItem[],
   side: LabelSide,
+  finishMode: "preview" | "flat" | "mask" | "base" = "preview",
 ) {
   const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter(
     (layer) => layer.visible,
@@ -239,7 +246,8 @@ export async function createSleeveArtworkSvg(
   cookieCutout.setAttribute("cy", String(labelGeometry.center));
   cookieCutout.setAttribute("r", String(labelGeometry.radius));
   cookieCutout.setAttribute("fill", "black");
-  cardboardMask.append(cardboardArea, cookieCutout);
+  cardboardMask.append(cardboardArea);
+  if (hasSleeveWindow(design, side)) cardboardMask.append(cookieCutout);
   const style = document.createElementNS(svgNamespace, "style");
   style.textContent = rules.join("\n");
   defs.append(clip, cardboardMask, style);
@@ -249,9 +257,9 @@ export async function createSleeveArtworkSvg(
   background.setAttribute("width", "600");
   background.setAttribute("height", "600");
   background.setAttribute("fill", design.sleeveColor);
-  root.append(background);
+  if (finishMode !== "mask") root.append(background);
 
-  if (design.sleeveImage) {
+  if (design.sleeveImage && finishMode !== "mask") {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
@@ -289,6 +297,7 @@ export async function createSleeveArtworkSvg(
         design={design}
         side={side}
         surface="sleeve"
+        finishMode={finishMode}
         prefix="sleeve-export"
         fontFamily={(layer) => resolved.get(fontKey(layer))?.family ?? defaultLabelFont(layer)}
       />,
@@ -304,11 +313,41 @@ export async function createSleeveArtworkSvg(
   return new XMLSerializer().serializeToString(root);
 }
 
+/** One black separation, with foreground ink/images knocking out covered foil. */
+export async function createFoilPlateSvg(
+  design: LabelDesign, side: LabelSide, fonts: FontCatalogItem[],
+  surface: LabelSurface, color: string, includeBleed: boolean,
+) {
+  const plate = updateSurfaceLayers(design, surface, side, layers => layers.map(layer =>
+    textFoilColor(layer) === color ? layer : {...layer, finish: undefined}));
+  const source = surface === "cookie" ? await createLabelSvg(plate, side, fonts, includeBleed, "mask") :
+    await createSleeveArtworkSvg(plate, fonts, side, "mask");
+  const ns = "http://www.w3.org/2000/svg";
+  const root = new DOMParser().parseFromString(source, "image/svg+xml").documentElement;
+  const defs = root.querySelector("defs");
+  if (!defs) throw Error("Could not prepare foil separation.");
+  const mask = document.createElementNS(ns, "mask");
+  mask.setAttribute("id", "foil-separation");
+  mask.setAttribute("maskUnits", "userSpaceOnUse");
+  mask.setAttribute("style", "mask-type:luminance");
+  const [x, y, width, height] = root.getAttribute("viewBox")!.split(/\s+/).map(Number);
+  for (const [key, value] of Object.entries({x, y, width, height})) mask.setAttribute(key, String(value));
+  for (const child of Array.from(root.children)) if (child !== defs) mask.append(child);
+  defs.append(mask);
+  const ink = document.createElementNS(ns, "rect");
+  for (const [key, value] of Object.entries({x, y, width, height})) ink.setAttribute(key, String(value));
+  ink.setAttribute("fill", "#000000");
+  ink.setAttribute("mask", "url(#foil-separation)");
+  root.append(ink);
+  return new XMLSerializer().serializeToString(root);
+}
+
 export async function createSleeveLabelSvg(
   labelMarkup: string,
   design: LabelDesign,
   includeBleed: boolean,
   sleeveArtworkMarkup?: string,
+  side: LabelSide = "A",
 ) {
   const svgNamespace = "http://www.w3.org/2000/svg";
   const sleeveSizeMm = SLEEVE_SIZE_MM;
@@ -351,7 +390,7 @@ export async function createSleeveLabelSvg(
     label.setAttribute("width", String(labelSizeMm));
     label.setAttribute("height", String(labelSizeMm));
     label.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    root.append(label);
+    if (hasSleeveWindow(design, side)) root.append(label);
     return new XMLSerializer().serializeToString(root);
   }
 
@@ -417,7 +456,7 @@ export async function createSleeveLabelSvg(
   label.setAttribute("width", String(labelSizeMm));
   label.setAttribute("height", String(labelSizeMm));
   label.setAttribute("preserveAspectRatio", "xMidYMid meet");
-  root.append(label);
+  if (hasSleeveWindow(design, side)) root.append(label);
   return new XMLSerializer().serializeToString(root);
 }
 

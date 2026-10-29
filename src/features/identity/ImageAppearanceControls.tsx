@@ -31,7 +31,7 @@ export function ImageAppearanceControls({
   );
   return (
     <div className="dc-image-appearance">
-      {role === "barcode" && (
+      {!layer.finish && role === "barcode" && (
         <div className="dc-image-color-grid">
           {color(
             "Bars & text",
@@ -59,7 +59,7 @@ export function ImageAppearanceControls({
           )}
         </div>
       )}
-      {role !== "brand-logo" &&
+      {!layer.finish && role !== "brand-logo" &&
         role !== "barcode" &&
         layer.image?.startsWith("data:image/svg+xml") && (
           <>
@@ -71,7 +71,7 @@ export function ImageAppearanceControls({
             )}
           </>
         )}
-      {role === "brand-logo" && (
+      {!layer.finish && role === "brand-logo" && (
         <label className="dc-image-invert">
           <input
             type="checkbox"

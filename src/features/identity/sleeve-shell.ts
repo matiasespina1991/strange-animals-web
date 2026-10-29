@@ -8,7 +8,7 @@ function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, mate
 }
 
 /** Thin paperboard panels, three folded edges and an open right-hand mouth. */
-export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string) {
+export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}) {
   const shell = new THREE.Group();
   shell.name = "Paperboard sleeve (open right edge)";
   const thickness = Math.min(0.003, depth / 6);
@@ -28,6 +28,7 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
   const interior = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.55), roughness: 1, metalness: 0 });
   const prints = [front, back].map(map => new THREE.MeshPhysicalMaterial({ map, roughness: 0.72, metalness: 0, clearcoat: 0.025, clearcoatRoughness: 0.8 }));
   for (const isBack of [false, true]) {
+    shape.holes = (isBack ? windows.B : windows.A) ? [hole] : [];
     // Sub-millimetre paper edge, not the old broad chamfer. Printed UVs continue
     // over the outer curves; only the cut edge of the center hole stays bare.
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness - 2 * radius, bevelEnabled: true, bevelSize: radius, bevelThickness: radius, bevelSegments: 5, curveSegments: 64 });

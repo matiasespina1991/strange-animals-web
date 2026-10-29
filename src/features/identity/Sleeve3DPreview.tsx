@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { Minus, Plus, RotateCcw, Share2 } from "lucide-react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { applyFoilMask } from "./foil-material";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
@@ -32,6 +34,8 @@ type Properties = {
   sleeveImageOffsetY: number;
   labelDiameterMm: number;
   labelHoleMm: number;
+  windows?: {A: boolean; B: boolean};
+  foilMasks?: {A: string; B: string; sleeveA: string; sleeveB: string};
 };
 
 const SLEEVE_SIZE_MM = 315;
@@ -63,6 +67,8 @@ export function Sleeve3DPreview({
   sleeveImageOffsetY,
   labelDiameterMm,
   labelHoleMm,
+  windows,
+  foilMasks,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
   const modelExporterReference = useRef<() => Promise<Blob>>(() =>
@@ -86,7 +92,8 @@ export function Sleeve3DPreview({
     setShareUrl(null);
     setShareError("");
   }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, labelColor,
-    sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY]);
+    sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY,
+    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
   const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
@@ -131,6 +138,15 @@ export function Sleeve3DPreview({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
+    let environment: THREE.WebGLRenderTarget | undefined;
+    if (foilMasks && Object.values(foilMasks).some(Boolean)) {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const studio = new RoomEnvironment();
+      environment = pmrem.fromScene(studio);
+      scene.environment = environment.texture;
+      studio.dispose();
+      pmrem.dispose();
+    }
     container.style.background = `#e5e7e1 url("${previewBackgroundUrl}") center / cover no-repeat`;
     container.append(renderer.domElement);
 
@@ -253,7 +269,34 @@ export function Sleeve3DPreview({
       drawSleeveFace(sleeveBack, sleeveCaptureBackElement, true);
     };
     drawSleeve();
-    model.add(createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor));
+    const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows);
+    model.add(shell);
+    const applyCapturedFoil = (surface: THREE.Mesh, capture?: string, flip = false, printGroupsOnly = false) => {
+      if (!capture) return;
+      const image = new Image(); labelImages.push(image);
+      image.addEventListener("load", () => {
+        if (!active) return;
+        // A separate transparent metal surface blends edge coverage with the
+        // actual printed background, not with a partly metallic paper shader.
+        const geometry = printGroupsOnly ? surface.geometry.clone() : surface.geometry;
+        if (printGroupsOnly) {
+          const printGroups = geometry.groups.filter(group => group.materialIndex === 0);
+          geometry.clearGroups();
+          for (const group of printGroups) geometry.addGroup(group.start, group.count, 0);
+        }
+        const material = new THREE.MeshPhysicalMaterial({side: THREE.DoubleSide});
+        applyFoilMask(material, image, flip);
+        if (material.alphaMap) material.alphaMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const foil = new THREE.Mesh(geometry, printGroupsOnly ? [material] : material);
+        foil.name = "Hot Foil Silver";
+        foil.renderOrder = 1;
+        surface.add(foil);
+      });
+      image.addEventListener("error", () => { if (active) setError("The foil material mask could not be loaded."); });
+      image.src = capture;
+    };
+    applyCapturedFoil(shell.children[0] as THREE.Mesh, foilMasks?.sleeveA, false, true);
+    applyCapturedFoil(shell.children[1] as THREE.Mesh, foilMasks?.sleeveB, true, true);
     const cookieGeometry = createCookieCoreGeometry(labelRadius, holeRadius, cookieDepth, cookieBevelSize, cookieBevelThickness);
     reliefSurfaces.push({ geometry: cookieGeometry, face: 0 });
     applyPressing(pressingPresetReference.current);
@@ -330,6 +373,15 @@ export function Sleeve3DPreview({
     }
 
     const addLabelFace = (capture: string, z: number, back = false) => {
+      const material = new THREE.MeshPhysicalMaterial({roughness: 0.32, metalness: 0, clearcoat: 0.19, clearcoatRoughness: 0.22, transparent: true, side: THREE.DoubleSide});
+      const label = new THREE.Mesh(
+        new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 192), material,
+      );
+      label.position.z = z;
+      if (back) label.rotation.y = Math.PI;
+      reliefSurfaces.push({ geometry: label.geometry, face: 1 });
+      applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1);
+      applyCapturedFoil(label, back ? foilMasks?.B : foilMasks?.A);
       const labelImage = new Image();
       labelImages.push(labelImage);
       labelImage.addEventListener("load", () => {
@@ -372,24 +424,9 @@ export function Sleeve3DPreview({
         const labelTexture = new THREE.CanvasTexture(labelCanvas);
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        const label = new THREE.Mesh(
-          new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 192),
-          new THREE.MeshPhysicalMaterial({
-            map: labelTexture,
-            roughness: 0.32,
-            metalness: 0,
-            clearcoat: 0.19,
-            clearcoatRoughness: 0.22,
-            transparent: true,
-            side: THREE.DoubleSide,
-          }),
-        );
-        label.position.z = z;
+        material.map = labelTexture; material.needsUpdate = true;
         // Both local faces point outward; rotating the back mesh mirrors its
         // deformation automatically and preserves the captured artwork UVs.
-        reliefSurfaces.push({ geometry: label.geometry, face: 1 });
-        applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1);
-        if (back) label.rotation.y = Math.PI;
         model.add(label);
       });
       labelImage.addEventListener("error", () => {
@@ -435,6 +472,9 @@ export function Sleeve3DPreview({
           : [object.material];
         for (const material of materials) {
           material.map?.dispose();
+          material.metalnessMap?.dispose();
+          material.roughnessMap?.dispose();
+          material.alphaMap?.dispose();
           material.dispose();
         }
       });
@@ -442,6 +482,7 @@ export function Sleeve3DPreview({
       sleeveCaptureImages.forEach((image) => image.removeAttribute("src"));
       labelImages.forEach((image) => image.removeAttribute("src"));
       renderer.dispose();
+      environment?.dispose();
       renderer.domElement.remove();
       container.style.background = previousContainerBackground;
     };
@@ -458,6 +499,7 @@ export function Sleeve3DPreview({
     sleeveZoom,
     sleeveImageOffsetX,
     sleeveImageOffsetY,
+    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB,
   ]);
 
   const exportModel = async () => {
