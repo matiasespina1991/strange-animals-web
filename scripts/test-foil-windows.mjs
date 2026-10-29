@@ -147,7 +147,27 @@ assert.match(preview,/clip-rule="evenodd"/,'Preview retains the physical spindle
 assert.match(exporter,/cutCenter=\{cutCenter\}/);
 assert.match(exporter,/includeBleed, "mask", false/,'Foil print plates also retain center artwork');
 const editor=readFileSync(base+'/DesignConfiguratorEditor.tsx','utf8');
-assert.match(editor,/createLabelSvg\(design, s, fonts, includeBleed, "preview", false\)/);
+// Check the arguments, not whether the formatter kept the call on one line.
+function hasFilledCenterPrintCall(source) {
+  const file=ts.createSourceFile('editor.tsx',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  let found=false;
+  const visit=node=>{
+    if(ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text==='createLabelSvg') {
+      const args=node.arguments;
+      found ||= args.length===6 && ['design','s','fonts','includeBleed'].every((name,index)=>
+        ts.isIdentifier(args[index]) && args[index].text===name) &&
+        ts.isStringLiteral(args[4]) && args[4].text==='preview' && args[5].kind===ts.SyntaxKind.FalseKeyword;
+    }
+    ts.forEachChild(node,visit);
+  };
+  visit(file);
+  return found;
+}
+assert.ok(hasFilledCenterPrintCall(editor),'Print export must explicitly keep the spindle center filled');
+assert.ok(hasFilledCenterPrintCall('createLabelSvg(design, s, fonts, includeBleed, "preview", false)'));
+assert.ok(hasFilledCenterPrintCall("createLabelSvg(\n design,\n s,\n fonts,\n includeBleed,\n 'preview',\n false,\n)"));
+assert.equal(hasFilledCenterPrintCall('createLabelSvg(design, s, fonts, includeBleed, "preview", true)'),false);
+assert.equal(hasFilledCenterPrintCall('createLabelSvg(design, s, fonts, includeBleed, "preview")'),false);
 const psd=readFileSync(base+'/design-configurator-psd.ts','utf8');
 assert.doesNotMatch(psd,/design.holeMm/,'PSD print layers must not punch out the spindle hole');
 assert.equal((exporter.match(/if \(hasSleeveWindow\(design, side\)\) root.append\(label\)/g)||[]).length,2);
