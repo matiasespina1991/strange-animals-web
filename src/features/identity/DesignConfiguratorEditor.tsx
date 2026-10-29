@@ -54,7 +54,10 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { listFontCatalog, type FontCatalogItem } from "./font-catalog-repository";
+import {
+  listFontCatalog,
+  type FontCatalogItem,
+} from "./font-catalog-repository";
 import { LabelArtwork } from "./LabelArtwork";
 import { TypographyValueControl } from "./TypographyValueControl";
 import { RotationValue } from "./RotationValue";
@@ -304,7 +307,10 @@ function FontRow({
         onFocus={() => preview(font)}
         onBlur={() => preview(null)}
       >
-        <strong className="dc-font-title">{font.name}{active && <Check size={15} aria-label="Selected font" />}</strong>
+        <strong className="dc-font-title">
+          {font.name}
+          {active && <Check size={15} aria-label="Selected font" />}
+        </strong>
         <FontSpecimen font={font} sample={sample} />
         <small>
           {getFontCategoryDisplayName(pickerCategory(font))}
@@ -360,13 +366,23 @@ export function DesignConfiguratorEditor({
   });
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.isComposing || event.altKey ||
-        !(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return;
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.altKey ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "z"
+      )
+        return;
       const target = event.target;
       // Preserve native text editing and modal keyboard behaviour.
-      if (target instanceof Element && target.closest(
-        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="dialog"]',
-      )) return;
+      if (
+        target instanceof Element &&
+        target.closest(
+          'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="dialog"]',
+        )
+      )
+        return;
       event.preventDefault();
       dispatch({ type: event.shiftKey ? "redo" : "undo" });
     };
@@ -376,7 +392,13 @@ export function DesignConfiguratorEditor({
   const design = history.present;
   const documentEpoch = useRef(0);
   const fontRequest = useRef(0);
-  useEffect(() => () => { documentEpoch.current++; fontRequest.current++; }, []);
+  useEffect(
+    () => () => {
+      documentEpoch.current++;
+      fontRequest.current++;
+    },
+    [],
+  );
   const [galleryProjectId, setGalleryProjectId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get("projectId"),
   );
@@ -493,7 +515,11 @@ export function DesignConfiguratorEditor({
   const [panning, setPanning] = useState(false);
   const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
   const [layerContextMenu, setLayerContextMenu] = useState<{
-    x: number; y: number; ids: string[]; side: LabelSide; surface: "cookie" | "sleeve";
+    x: number;
+    y: number;
+    ids: string[];
+    side: LabelSide;
+    surface: "cookie" | "sleeve";
   } | null>(null);
   const [side, setSide] = useState<LabelSide>("A"),
     [surface, setSurface] = useState<"cookie" | "sleeve">("cookie"),
@@ -536,10 +562,15 @@ export function DesignConfiguratorEditor({
     B: "",
     sleeveA: "",
     sleeveB: "",
-    foilA: "", foilB: "", foilSleeveA: "", foilSleeveB: "",
+    foilA: "",
+    foilB: "",
+    foilSleeveA: "",
+    foilSleeveB: "",
   });
   const [sleevePreviewBusy, setSleevePreviewBusy] = useState(false);
-  const [reliefPreviewMasks, setReliefPreviewMasks] = useState<SurfaceReliefMasks | undefined>();
+  const [reliefPreviewMasks, setReliefPreviewMasks] = useState<
+    SurfaceReliefMasks | undefined
+  >();
   const [gallerySaving, setGallerySaving] = useState(false);
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuReference = useRef<HTMLDivElement>(null);
@@ -863,15 +894,19 @@ export function DesignConfiguratorEditor({
       : colorPreview.target === "sleeve"
         ? { ...design, sleeveColor: colorPreview.color }
         : colorPreview.target === "text"
-          ? changeGlobalTextColor(design, colorPreview.color, undefined, surface)
+          ? changeGlobalTextColor(
+              design,
+              colorPreview.color,
+              undefined,
+              surface,
+            )
           : updateSurfaceLayers(design, surface, side, (layers) =>
-            layers.map((layer) =>
-              layer.kind !== "image" &&
-              selection.has(layer.id)
-                ? { ...layer, color: colorPreview.color }
-                : layer,
-            ),
-          );
+              layers.map((layer) =>
+                layer.kind !== "image" && selection.has(layer.id)
+                  ? { ...layer, color: colorPreview.color }
+                  : layer,
+              ),
+            );
   const applyTemplate = (next: LabelDesign) => {
     documentEpoch.current++;
     fontRequest.current++;
@@ -1034,9 +1069,13 @@ export function DesignConfiguratorEditor({
   const familyFor = (layer: LabelLayer) =>
     families[fontKey(layer)] ?? defaultLabelFont(layer);
   const previewFamilyFor = (layer: LabelLayer, targetSurface: LabelSurface) =>
-    surface === targetSurface && dialog === "fonts" &&
-    layer.kind !== "image" && selection.has(layer.id) && hoverFamily
-      ? hoverFamily : familyFor(layer);
+    surface === targetSurface &&
+    dialog === "fonts" &&
+    layer.kind !== "image" &&
+    selection.has(layer.id) &&
+    hoverFamily
+      ? hoverFamily
+      : familyFor(layer);
   useEffect(() => {
     let active = true;
     setFontsLoading(true);
@@ -1139,10 +1178,11 @@ export function DesignConfiguratorEditor({
   const selectFont = async (font: FontCatalogItem, variantId?: string) => {
     const epoch = documentEpoch.current;
     const request = ++fontRequest.current;
-    const active = () => epoch === documentEpoch.current && request === fontRequest.current;
+    const active = () =>
+      epoch === documentEpoch.current && request === fontRequest.current;
     const targetSide = side,
       targetSurface = surface,
-      targetIds = new Set(selectedTextLayers.map(layer => layer.id));
+      targetIds = new Set(selectedTextLayers.map((layer) => layer.id));
     if (!targetIds.size) return;
     setFontBusy(true);
     try {
@@ -1154,11 +1194,25 @@ export function DesignConfiguratorEditor({
           resolved.family,
       }));
       end();
-      change(current => !active() ? current : updateSurfaceLayers(current, targetSurface, targetSide,
-        currentLayers => currentLayers.map(layer =>
-          layer.kind !== "image" && targetIds.has(layer.id)
-            ? { ...layer, fontId: font.id, variantId: resolved.variant.id }
-            : layer)));
+      change((current) =>
+        !active()
+          ? current
+          : updateSurfaceLayers(
+              current,
+              targetSurface,
+              targetSide,
+              (currentLayers) =>
+                currentLayers.map((layer) =>
+                  layer.kind !== "image" && targetIds.has(layer.id)
+                    ? {
+                        ...layer,
+                        fontId: font.id,
+                        variantId: resolved.variant.id,
+                      }
+                    : layer,
+                ),
+            ),
+      );
       end();
       hoverRequest.current += 1;
       setHoverFamily(null);
@@ -1182,21 +1236,35 @@ export function DesignConfiguratorEditor({
     if (!layerContextMenu) return;
     const origin = layerContextMenu;
     const targetSide: LabelSide = origin.side === "A" ? "B" : "A";
-    const source = getSurfaceLayers(design, origin.surface, origin.side)
-      .filter(layer => origin.ids.includes(layer.id));
+    const source = getSurfaceLayers(design, origin.surface, origin.side).filter(
+      (layer) => origin.ids.includes(layer.id),
+    );
     const destination = getSurfaceLayers(design, origin.surface, targetSide);
     setLayerContextMenu(null);
     if (!source.length) return;
     if (destination.length + source.length > 50) {
-      setNotice(`Cannot copy: ${targetSide} side would exceed the limit of 50 layers.`);
+      setNotice(
+        `Cannot copy: ${targetSide} side would exceed the limit of 50 layers.`,
+      );
       return;
     }
-    const copies = source.map(layer => ({ ...structuredClone(layer), id: crypto.randomUUID() }));
+    const copies = source.map((layer) => ({
+      ...structuredClone(layer),
+      id: crypto.randomUUID(),
+    }));
     end();
-    change(current => updateSurfaceLayers(current, origin.surface, targetSide,
-      targetLayers => [...targetLayers, ...copies]));
+    change((current) =>
+      updateSurfaceLayers(
+        current,
+        origin.surface,
+        targetSide,
+        (targetLayers) => [...targetLayers, ...copies],
+      ),
+    );
     end();
-    setNotice(`Copied ${copies.length} ${copies.length === 1 ? "layer" : "layers"} to ${targetSide} side.`);
+    setNotice(
+      `Copied ${copies.length} ${copies.length === 1 ? "layer" : "layers"} to ${targetSide} side.`,
+    );
   };
   const add = (kind: LabelLayer["kind"]) => {
     if (layers.length >= 50) {
@@ -1411,7 +1479,10 @@ export function DesignConfiguratorEditor({
     if (import.meta.env.DEV) {
       console.info("[StudioShelf/save] started", {
         asNewProject,
-        expectedProjectTitle: galleryProjectId && lastSaved ? (JSON.parse(lastSaved) as LabelDesign).title : undefined,
+        expectedProjectTitle:
+          galleryProjectId && lastSaved
+            ? (JSON.parse(lastSaved) as LabelDesign).title
+            : undefined,
         hasProject: Boolean(galleryProjectId),
       });
     }
@@ -1617,12 +1688,17 @@ export function DesignConfiguratorEditor({
           initialImageLayerPosition(targetSurface, imageLayer)),
       };
       change((current) =>
-        epoch !== documentEpoch.current ? current : updateSurfaceLayers(
-          current,
-          targetSurface,
-          targetSide,
-          (currentLayers) => currentLayers.length >= 50 ? currentLayers : [...currentLayers, layer],
-        ),
+        epoch !== documentEpoch.current
+          ? current
+          : updateSurfaceLayers(
+              current,
+              targetSurface,
+              targetSide,
+              (currentLayers) =>
+                currentLayers.length >= 50
+                  ? currentLayers
+                  : [...currentLayers, layer],
+            ),
       );
       selectLayer(layer);
     } catch {
@@ -1799,37 +1875,118 @@ export function DesignConfiguratorEditor({
           captureLabelPreview(sleeveMarkupA, 2048),
           captureLabelPreview(sleeveMarkupB, 2048),
         ]);
-      const maskCapture = async (maskSide: LabelSide, maskSurface: LabelSurface) => {
-        if (!getSurfaceLayers(previewDesign, maskSurface, maskSide).some(layer => layer.visible && textFoilColor(layer))) return "";
-        return captureLabelPreview(maskSurface === "cookie" ? await createLabelSvg(previewDesign, maskSide, fonts, false, "mask") :
-          await createSleeveArtworkSvg(previewDesign, fonts, maskSide, "mask"), 2048);
+      const maskCapture = async (
+        maskSide: LabelSide,
+        maskSurface: LabelSurface,
+      ) => {
+        if (
+          !getSurfaceLayers(previewDesign, maskSurface, maskSide).some(
+            (layer) => layer.visible && textFoilColor(layer),
+          )
+        )
+          return "";
+        return captureLabelPreview(
+          maskSurface === "cookie"
+            ? await createLabelSvg(
+                previewDesign,
+                maskSide,
+                fonts,
+                false,
+                "mask",
+              )
+            : await createSleeveArtworkSvg(
+                previewDesign,
+                fonts,
+                maskSide,
+                "mask",
+              ),
+          2048,
+        );
       };
       const [foilA, foilB, foilSleeveA, foilSleeveB] = await Promise.all([
-        maskCapture("A", "cookie"), maskCapture("B", "cookie"), maskCapture("A", "sleeve"), maskCapture("B", "sleeve"),
+        maskCapture("A", "cookie"),
+        maskCapture("B", "cookie"),
+        maskCapture("A", "sleeve"),
+        maskCapture("B", "sleeve"),
       ]);
-      const reliefCapture = async (maskSide: LabelSide, maskSurface: LabelSurface): Promise<ReliefMasks> => {
-        const result: ReliefMasks = {uv:"",emboss:"",deboss:""};
-        for (const [key,finish] of [["uv","raised-uv"],["emboss","emboss"],["deboss","deboss"]] as const) {
-          if (!getSurfaceLayers(previewDesign,maskSurface,maskSide).some(layer=>layer.visible && layer.finish===finish)) continue;
-          const maskDesign=updateSurfaceLayers(previewDesign,maskSurface,maskSide,layers=>layers.map(layer=>({
-            ...layer, finish: layer.finish===finish ? "silver" as const : undefined,
-            ...(layer.finish ? {opacity:1,blur:0,blendMode:"normal" as const,textEffect:undefined,textTexture:undefined} : {}),
-          })));
-          result[key]=await captureLabelPreview(maskSurface==="cookie" ? await createLabelSvg(maskDesign,maskSide,fonts,false,"height-mask") :
-            await createSleeveArtworkSvg(maskDesign,fonts,maskSide,"height-mask"),2048);
+      const reliefCapture = async (
+        maskSide: LabelSide,
+        maskSurface: LabelSurface,
+      ): Promise<ReliefMasks> => {
+        const result: ReliefMasks = { uv: "", emboss: "", deboss: "" };
+        for (const [key, finish] of [
+          ["uv", "raised-uv"],
+          ["emboss", "emboss"],
+          ["deboss", "deboss"],
+        ] as const) {
+          if (
+            !getSurfaceLayers(previewDesign, maskSurface, maskSide).some(
+              (layer) => layer.visible && layer.finish === finish,
+            )
+          )
+            continue;
+          const maskDesign = updateSurfaceLayers(
+            previewDesign,
+            maskSurface,
+            maskSide,
+            (layers) =>
+              layers.map((layer) => ({
+                ...layer,
+                finish:
+                  layer.finish === finish ? ("silver" as const) : undefined,
+                ...(layer.finish
+                  ? {
+                      opacity: 1,
+                      blur: 0,
+                      blendMode: "normal" as const,
+                      textEffect: undefined,
+                      textTexture: undefined,
+                    }
+                  : {}),
+              })),
+          );
+          result[key] = await captureLabelPreview(
+            maskSurface === "cookie"
+              ? await createLabelSvg(
+                  maskDesign,
+                  maskSide,
+                  fonts,
+                  false,
+                  "height-mask",
+                )
+              : await createSleeveArtworkSvg(
+                  maskDesign,
+                  fonts,
+                  maskSide,
+                  "height-mask",
+                ),
+            2048,
+          );
         }
         return result;
       };
-      const [reliefA,reliefB,reliefSleeveA,reliefSleeveB] = await Promise.all([
-        reliefCapture("A","cookie"),reliefCapture("B","cookie"),reliefCapture("A","sleeve"),reliefCapture("B","sleeve"),
-      ]);
-      setReliefPreviewMasks({A:reliefA,B:reliefB,sleeveA:reliefSleeveA,sleeveB:reliefSleeveB});
+      const [reliefA, reliefB, reliefSleeveA, reliefSleeveB] =
+        await Promise.all([
+          reliefCapture("A", "cookie"),
+          reliefCapture("B", "cookie"),
+          reliefCapture("A", "sleeve"),
+          reliefCapture("B", "sleeve"),
+        ]);
+      setReliefPreviewMasks({
+        A: reliefA,
+        B: reliefB,
+        sleeveA: reliefSleeveA,
+        sleeveB: reliefSleeveB,
+      });
       setSleevePreviewLabels({
         A: captureA,
         B: captureB,
         sleeveA: sleeveCaptureA,
         sleeveB: sleeveCaptureB,
-        foilA, foilB, foilSleeveA, foilSleeveB,
+        foilA,
+        foilB,
+        foilSleeveA,
+        foilSleeveB,
       });
       setDialog("sleeve-preview");
     } catch (error) {
@@ -1884,24 +2041,75 @@ export function DesignConfiguratorEditor({
       const sides: LabelSide[] = exportSides === "both" ? ["A", "B"] : [side],
         labelMm = design.diameterMm + (includeBleed ? design.bleedMm * 2 : 0),
         outputMm = includeSleeve ? 315 : labelMm;
-      if (exportFormat === "foil" && !sides.some(s =>
-        (includeSleeve ? ["cookie", "sleeve"] as const : ["cookie"] as const).some(target =>
-          getSurfaceLayers(design, target, s).some(layer => layer.visible && layer.finish)))) {
-        throw Error("No print finishes on the selected sides/surfaces. Choose a print finish first.");
+      if (
+        exportFormat === "foil" &&
+        !sides.some((s) =>
+          (includeSleeve
+            ? (["cookie", "sleeve"] as const)
+            : (["cookie"] as const)
+          ).some((target) =>
+            getSurfaceLayers(design, target, s).some(
+              (layer) => layer.visible && layer.finish,
+            ),
+          ),
+        )
+      ) {
+        throw Error(
+          "No print finishes on the selected sides/surfaces. Choose a print finish first.",
+        );
       }
-      const foilArchive = exportFormat === "foil" ? new (await import("jszip")).default() : null;
+      const foilArchive =
+        exportFormat === "foil" ? new (await import("jszip")).default() : null;
       for (const s of sides) {
         if (exportFormat === "foil") {
-          for (const targetSurface of (includeSleeve ? ["cookie", "sleeve"] : ["cookie"]) as LabelSurface[]) {
-            const colors = new Set(getSurfaceLayers(design, targetSurface, s).filter(layer => layer.visible).map(textFoilColor).filter((color): color is string => Boolean(color)));
+          for (const targetSurface of (includeSleeve
+            ? ["cookie", "sleeve"]
+            : ["cookie"]) as LabelSurface[]) {
+            const colors = new Set(
+              getSurfaceLayers(design, targetSurface, s)
+                .filter((layer) => layer.visible)
+                .map(textFoilColor)
+                .filter((color): color is string => Boolean(color)),
+            );
             for (const color of colors) {
-              const svg = await createFoilPlateSvg(design, s, fonts, targetSurface, color, includeBleed);
-              foilArchive!.file(labelExportName(design, s, "svg", `${targetSurface}-foil-${color.slice(1)}`), svg);
+              const svg = await createFoilPlateSvg(
+                design,
+                s,
+                fonts,
+                targetSurface,
+                color,
+                includeBleed,
+              );
+              foilArchive!.file(
+                labelExportName(
+                  design,
+                  s,
+                  "svg",
+                  `${targetSurface}-foil-${color.slice(1)}`,
+                ),
+                svg,
+              );
             }
-            for (const finish of ["raised-uv","emboss","deboss"] as const) {
-              if (!getSurfaceLayers(design,targetSurface,s).some(layer=>layer.visible && layer.finish===finish)) continue;
-              const svg=await createFoilPlateSvg(design,s,fonts,targetSurface,"#d6d9df",includeBleed,finish);
-              foilArchive!.file(labelExportName(design,s,"svg",`${targetSurface}-${finish}`),svg);
+            for (const finish of ["raised-uv", "emboss", "deboss"] as const) {
+              if (
+                !getSurfaceLayers(design, targetSurface, s).some(
+                  (layer) => layer.visible && layer.finish === finish,
+                )
+              )
+                continue;
+              const svg = await createFoilPlateSvg(
+                design,
+                s,
+                fonts,
+                targetSurface,
+                "#d6d9df",
+                includeBleed,
+                finish,
+              );
+              foilArchive!.file(
+                labelExportName(design, s, "svg", `${targetSurface}-${finish}`),
+                svg,
+              );
             }
           }
           continue;
@@ -1929,7 +2137,14 @@ export function DesignConfiguratorEditor({
           continue;
         }
         diagnostics.stage("create-svg", { side: s });
-        const labelSvg = await createLabelSvg(design, s, fonts, includeBleed, "preview", false);
+        const labelSvg = await createLabelSvg(
+          design,
+          s,
+          fonts,
+          includeBleed,
+          "preview",
+          false,
+        );
         const sleeveArtwork = includeSleeve
           ? await createSleeveArtworkSvg(design, fonts, s)
           : undefined;
@@ -1967,8 +2182,14 @@ export function DesignConfiguratorEditor({
         );
       }
       if (foilArchive) {
-        foilArchive.file("README.txt", "PRINT FINISH SEPARATIONS\nBlack = finish coverage. Separate SVGs for foil, raised UV, embossing and debossing per side and surface. Fonts are embedded, not outlined. Preview height/depth is illustrative, not a manufacturing specification. Confirm tooling, stock, outlines, spot-color and minimum line widths with your printer. These are not certified press PDFs. Source image transparency can produce partial mask coverage.\n");
-        downloadDesignFile(await foilArchive.generateAsync({type: "blob"}), `${safeFilename(design.title)}-finish-masks.zip`);
+        foilArchive.file(
+          "README.txt",
+          "PRINT FINISH SEPARATIONS\nBlack = finish coverage. Separate SVGs for foil, raised UV, embossing and debossing per side and surface. Fonts are embedded, not outlined. Preview height/depth is illustrative, not a manufacturing specification. Confirm tooling, stock, outlines, spot-color and minimum line widths with your printer. These are not certified press PDFs. Source image transparency can produce partial mask coverage.\n",
+        );
+        downloadDesignFile(
+          await foilArchive.generateAsync({ type: "blob" }),
+          `${safeFilename(design.title)}-finish-masks.zip`,
+        );
       }
       diagnostics.complete();
       setNotice(
@@ -2216,7 +2437,9 @@ export function DesignConfiguratorEditor({
       end();
     };
     return (
-      <label className={`dc-field dc-slider-field${key === "angle" ? " dc-rotation-field" : ""}`}>
+      <label
+        className={`dc-field dc-slider-field${key === "angle" ? " dc-rotation-field" : ""}`}
+      >
         <span>
           {label}
           {key === "angle" ? (
@@ -2286,21 +2509,34 @@ export function DesignConfiguratorEditor({
   return (
     <main
       ref={editorRoot}
-      onContextMenu={event => {
+      onContextMenu={(event) => {
         const target = event.target;
-        if (!(target instanceof Element) || target.closest("input, textarea, [contenteditable=true]")) return;
-        const id = target.closest<HTMLElement | SVGElement>("[data-layer-id]")?.dataset.layerId;
-        const layer = layers.find(item => item.id === id);
+        if (
+          !(target instanceof Element) ||
+          target.closest("input, textarea, [contenteditable=true]")
+        )
+          return;
+        const id = target.closest<HTMLElement | SVGElement>("[data-layer-id]")
+          ?.dataset.layerId;
+        const layer = layers.find((item) => item.id === id);
         if (!layer) return;
         event.preventDefault();
         const ids = selection.has(layer.id)
-          ? layers.filter(item => selection.has(item.id)).map(item => item.id)
+          ? layers
+              .filter((item) => selection.has(item.id))
+              .map((item) => item.id)
           : [layer.id];
         if (!selection.has(layer.id)) {
           setSelected(layer.id);
           setSelectedLayers([layer.id]);
         }
-        setLayerContextMenu({ x: event.clientX, y: event.clientY, ids, side, surface });
+        setLayerContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          ids,
+          side,
+          surface,
+        });
       }}
       data-theme={theme}
       className={`design-configurator${dragging || reorderingLayer ? " dc-is-dragging" : ""}${panning ? " dc-is-panning" : ""}${fullscreenFallback ? " dc-fullscreen-fallback" : ""}`}
@@ -2540,7 +2776,10 @@ export function DesignConfiguratorEditor({
               key={surface}
               side="both"
               hasCustomColors={hasCustomTextColors(design, undefined, surface)}
-              colors={[...getSurfaceLayers(design, surface, "A"), ...getSurfaceLayers(design, surface, "B")]
+              colors={[
+                ...getSurfaceLayers(design, surface, "A"),
+                ...getSurfaceLayers(design, surface, "B"),
+              ]
                 .filter((layer) => layer.kind !== "image")
                 .map((layer) => layer.color)}
               visibleCount={4}
@@ -3032,14 +3271,14 @@ export function DesignConfiguratorEditor({
                   {
                     backgroundColor: previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
-                    maskImage: !hasSleeveWindow(design, side) && surface === "sleeve" ? "none" : canvasHoleMask(
-                      design.holeMm,
-                      sleeveCanvasSizeMm,
-                    ),
-                    WebkitMaskImage: !hasSleeveWindow(design, side) && surface === "sleeve" ? "none" : canvasHoleMask(
-                      design.holeMm,
-                      sleeveCanvasSizeMm,
-                    ),
+                    maskImage:
+                      !hasSleeveWindow(design, side) && surface === "sleeve"
+                        ? "none"
+                        : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
+                    WebkitMaskImage:
+                      !hasSleeveWindow(design, side) && surface === "sleeve"
+                        ? "none"
+                        : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
                     maskSize: "100% 100%",
                     WebkitMaskSize: "100% 100%",
                     maskRepeat: "no-repeat",
@@ -3068,17 +3307,34 @@ export function DesignConfiguratorEditor({
                     side={side}
                     surface="sleeve"
                     prefix={prefix + "-sleeve"}
-                    fontFamily={layer => previewFamilyFor(layer, "sleeve")}
-                    hiddenTextIds={surface === "sleeve" && dialog === "fonts" && hoverFontLoading ? selection : undefined}
+                    fontFamily={(layer) => previewFamilyFor(layer, "sleeve")}
+                    hiddenTextIds={
+                      surface === "sleeve" &&
+                      dialog === "fonts" &&
+                      hoverFontLoading
+                        ? selection
+                        : undefined
+                    }
                     selectedIds={surface === "sleeve" ? selection : undefined}
                     guides={surface === "sleeve" && guides}
                     onSelect={surface === "sleeve" ? selectLayer : undefined}
-                    onPointerDown={surface === "sleeve" ? (event) => {
-                      const layer = sleeveLayers.find((item) => item.id === event.currentTarget.dataset.layerId);
-                      if (layer) startSleeveLayerDrag(event, layer);
-                    } : undefined}
-                    onPointerMove={surface === "sleeve" ? moveSleeveLayerDrag : undefined}
-                    onPointerUp={surface === "sleeve" ? endSleeveLayerDrag : undefined}
+                    onPointerDown={
+                      surface === "sleeve"
+                        ? (event) => {
+                            const layer = sleeveLayers.find(
+                              (item) =>
+                                item.id === event.currentTarget.dataset.layerId,
+                            );
+                            if (layer) startSleeveLayerDrag(event, layer);
+                          }
+                        : undefined
+                    }
+                    onPointerMove={
+                      surface === "sleeve" ? moveSleeveLayerDrag : undefined
+                    }
+                    onPointerUp={
+                      surface === "sleeve" ? endSleeveLayerDrag : undefined
+                    }
                   />
                 </div>
                 <LabelArtwork
@@ -3092,7 +3348,7 @@ export function DesignConfiguratorEditor({
                   }
                   side={side}
                   prefix={prefix}
-                  fontFamily={layer => previewFamilyFor(layer, "cookie")}
+                  fontFamily={(layer) => previewFamilyFor(layer, "cookie")}
                   selected={
                     surface === "cookie" && hasSelection
                       ? element.id
@@ -3331,7 +3587,11 @@ export function DesignConfiguratorEditor({
                   <ContentTextControl
                     text={element.text}
                     align={element.align}
-                    onAlignChange={(align) => { end(); update({ align }); end(); }}
+                    onAlignChange={(align) => {
+                      end();
+                      update({ align });
+                      end();
+                    }}
                     onChange={(text) => update({ text }, `text-${element.id}`)}
                     onTransform={(text) => {
                       end();
@@ -3341,8 +3601,7 @@ export function DesignConfiguratorEditor({
                     onCommit={end}
                   />
                   <section className="dc-property-section dc-typography-section">
-                    <div className="dc-section-caption">Typography</div>
-                    <label className="dc-field">
+                    <label className="dc-field !mt-0">
                       <span>Font family</span>
                       <button
                         className="dc-font-trigger"
@@ -3368,99 +3627,163 @@ export function DesignConfiguratorEditor({
                         {fontErrors[fontKey(element)]}
                       </p>
                     )}
-                    {selectedTextLayers.length > 0 && <div className="dc-foil-controls">
-                      <div className="dc-field">
-                        <span className="dc-finish-heading">Print finish
-                          <PrintFinishInfo />
-                        </span>
-                        <select aria-label="Text print finish" value={textFoilColor(selectedTextLayers[0]) ? "silver" : selectedTextLayers[0].finish ?? "ink"}
-                          onChange={event => {
-                            const finish = event.target.value === "ink" ? undefined : event.target.value as LabelLayer["finish"];
-                            const ids = new Set(selectedTextLayers.map(layer => layer.id));
-                            end(); change(current => updateSurfaceLayers(current, surface, side, layers => layers.map(layer => ids.has(layer.id) ? {...layer, finish} : layer))); end();
-                          }}>
-                          <option value="ink">Ink Matte</option>
-                          <option value="silver">Hot Foil Silver</option>
-                          <option value="raised-uv">Raised Spot UV / 3D UV</option>
-                          <option value="emboss">Embossing</option>
-                          <option value="deboss">Debossing</option>
-                        </select>
-                      </div>
-                      {["raised-uv","emboss","deboss"].includes(selectedTextLayers[0].finish ?? "") && <TypographyValueControl
-                        label={selectedTextLayers[0].finish === "deboss" ? "Depth" : "Height"} unit="MM"
-                        value={selectedTextLayers[0].finishDepth ?? 0.2} min={0.02} max={0.8} step={0.02}
-                        onChange={finishDepth => {
-                          const ids=new Set(selectedTextLayers.map(layer=>layer.id));
-                          change(current=>updateSurfaceLayers(current,surface,side,layers=>layers.map(layer=>ids.has(layer.id)?{...layer,finishDepth}:layer)),`finish-depth-${element.id}`);
-                        }} onCommit={end}
-                      />}
-                    </div>}
-                    {selectedTextLayers.length > 0 && !selectedTextLayers.some(layer => textFoilColor(layer)) && (
-                      <div className="dc-ink dc-ink-priority">
-                        <span>
-                          Ink color
-                          {selectedTextLayers.length > 1
-                            ? ` · ${selectedTextLayers.length} text layers`
-                            : ""}
-                        </span>
-                        <div className="dc-preview-stock dc-layer-ink-controls">
-                          <label className="dc-custom-paper">
-                            <input
-                              aria-label="Selected text ink color"
-                              type="color"
-                              value={selectedTextLayers[0].color}
-                              onChange={(event) => {
-                                const color = event.target.value;
-                                const ids = new Set(
-                                  selectedTextLayers.map((layer) => layer.id),
-                                );
-                                change(
-                                  (current) =>
-                                    changeLayerTextColors(
-                                      current,
-                                      side,
-                                      ids,
-                                      color,
-                                      surface,
-                                    ),
-                                  `ink-${[...ids].join("-")}`,
-                                );
-                              }}
-                              onBlur={end}
-                            />
-                          </label>
-                          <ColorSwatches
-                            colors={INK_COLOR_PRESETS}
-                            visibleCount={propertiesPanelWidth <= 300 ? 4 : 5}
-                            label="Ink color"
-                            onPreview={(color) => previewColor("ink", color)}
+                    {selectedTextLayers.length > 0 && (
+                      <div className="dc-foil-controls">
+                        <div className="dc-field">
+                          <span className="dc-finish-heading">
+                            Print finish
+                            <PrintFinishInfo />
+                          </span>
+                          <select
+                            aria-label="Text print finish"
                             value={
-                              selectedTextLayers.some(
-                                (layer) =>
-                                  layer.color !== selectedTextLayers[0].color,
-                              )
-                                ? undefined
-                                : selectedTextLayers[0].color
+                              textFoilColor(selectedTextLayers[0])
+                                ? "silver"
+                                : (selectedTextLayers[0].finish ?? "ink")
                             }
-                            onChoose={(color) => {
-                              end();
+                            onChange={(event) => {
+                              const finish =
+                                event.target.value === "ink"
+                                  ? undefined
+                                  : (event.target
+                                      .value as LabelLayer["finish"]);
                               const ids = new Set(
                                 selectedTextLayers.map((layer) => layer.id),
                               );
+                              end();
                               change((current) =>
-                                changeLayerTextColors(
+                                updateSurfaceLayers(
                                   current,
-                                  side,
-                                  ids,
-                                  color,
                                   surface,
+                                  side,
+                                  (layers) =>
+                                    layers.map((layer) =>
+                                      ids.has(layer.id)
+                                        ? { ...layer, finish }
+                                        : layer,
+                                    ),
                                 ),
                               );
+                              end();
                             }}
-                          />
+                          >
+                            <option value="ink">Ink Matte</option>
+                            <option value="silver">Hot Foil Silver</option>
+                            <option value="raised-uv">
+                              Raised Spot UV / 3D UV
+                            </option>
+                            <option value="emboss">Embossing</option>
+                            <option value="deboss">Debossing</option>
+                          </select>
                         </div>
+                        {["raised-uv", "emboss", "deboss"].includes(
+                          selectedTextLayers[0].finish ?? "",
+                        ) && (
+                          <TypographyValueControl
+                            label={
+                              selectedTextLayers[0].finish === "deboss"
+                                ? "Depth"
+                                : "Height"
+                            }
+                            unit="MM"
+                            value={selectedTextLayers[0].finishDepth ?? 0.2}
+                            min={0.02}
+                            max={0.8}
+                            step={0.02}
+                            onChange={(finishDepth) => {
+                              const ids = new Set(
+                                selectedTextLayers.map((layer) => layer.id),
+                              );
+                              change(
+                                (current) =>
+                                  updateSurfaceLayers(
+                                    current,
+                                    surface,
+                                    side,
+                                    (layers) =>
+                                      layers.map((layer) =>
+                                        ids.has(layer.id)
+                                          ? { ...layer, finishDepth }
+                                          : layer,
+                                      ),
+                                  ),
+                                `finish-depth-${element.id}`,
+                              );
+                            }}
+                            onCommit={end}
+                          />
+                        )}
                       </div>
                     )}
+                    {selectedTextLayers.length > 0 &&
+                      !selectedTextLayers.some((layer) =>
+                        textFoilColor(layer),
+                      ) && (
+                        <div className="dc-ink dc-ink-priority">
+                          <span>
+                            Ink color
+                            {selectedTextLayers.length > 1
+                              ? ` · ${selectedTextLayers.length} text layers`
+                              : ""}
+                          </span>
+                          <div className="dc-preview-stock dc-layer-ink-controls">
+                            <label className="dc-custom-paper">
+                              <input
+                                aria-label="Selected text ink color"
+                                type="color"
+                                value={selectedTextLayers[0].color}
+                                onChange={(event) => {
+                                  const color = event.target.value;
+                                  const ids = new Set(
+                                    selectedTextLayers.map((layer) => layer.id),
+                                  );
+                                  change(
+                                    (current) =>
+                                      changeLayerTextColors(
+                                        current,
+                                        side,
+                                        ids,
+                                        color,
+                                        surface,
+                                      ),
+                                    `ink-${[...ids].join("-")}`,
+                                  );
+                                }}
+                                onBlur={end}
+                              />
+                            </label>
+                            <ColorSwatches
+                              colors={INK_COLOR_PRESETS}
+                              visibleCount={propertiesPanelWidth <= 300 ? 4 : 5}
+                              label="Ink color"
+                              onPreview={(color) => previewColor("ink", color)}
+                              value={
+                                selectedTextLayers.some(
+                                  (layer) =>
+                                    layer.color !== selectedTextLayers[0].color,
+                                )
+                                  ? undefined
+                                  : selectedTextLayers[0].color
+                              }
+                              onChoose={(color) => {
+                                end();
+                                const ids = new Set(
+                                  selectedTextLayers.map((layer) => layer.id),
+                                );
+                                change((current) =>
+                                  changeLayerTextColors(
+                                    current,
+                                    side,
+                                    ids,
+                                    color,
+                                    surface,
+                                  ),
+                                );
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     <div className="dc-compact-text-controls">
                       <div className="dc-field-pair dc-compact-text-fields">
                         <TypographyValueControl
@@ -3523,78 +3846,86 @@ export function DesignConfiguratorEditor({
                         />
                       </div>
                     </div>
-                    {!element.finish && <div className="dc-compact-text-controls">
-                      <TextBlendModeControl
-                        value={element.blendMode}
-                        onChange={(blendMode) => {
-                          end();
-                          update({ blendMode });
-                        }}
+                    {!element.finish && (
+                      <div className="dc-compact-text-controls">
+                        <TextBlendModeControl
+                          value={element.blendMode}
+                          onChange={(blendMode) => {
+                            end();
+                            update({ blendMode });
+                          }}
+                        />
+                        <TextSurfaceControl
+                          layerId={element.id}
+                          image={element.textTexture}
+                          opacity={element.textTextureOpacity}
+                          scale={element.textTextureScale}
+                          onChange={(patch, group) => {
+                            if (!group) end();
+                            update(
+                              patch,
+                              group ? `${group}-${element.id}` : undefined,
+                            );
+                          }}
+                          onCommit={end}
+                          onError={setNotice}
+                        />
+                      </div>
+                    )}
+                    {slider("Rotation", "angle", -180, 180, "°")}
+                    {!element.finish && (
+                      <TypographyValueControl
+                        label="Opacity"
+                        unit="%"
+                        value={Math.round((element.opacity ?? 1) * 100)}
+                        min={0}
+                        max={100}
+                        step={1}
+                        onChange={(opacity) =>
+                          update(
+                            { opacity: opacity / 100 },
+                            `opacity-${element.id}`,
+                          )
+                        }
+                        onCommit={end}
                       />
-                      <TextSurfaceControl
-                        layerId={element.id}
-                        image={element.textTexture}
-                        opacity={element.textTextureOpacity}
-                        scale={element.textTextureScale}
-                        onChange={(patch, group) => {
+                    )}
+                    {!element.finish && (
+                      <TextEffectControls
+                        allowCylinder={element.kind !== "circular"}
+                        effect={element.textEffect}
+                        settings={element.textEffectSettings}
+                        onChange={(textEffect, group, textEffectSettings) => {
                           if (!group) end();
                           update(
-                            patch,
+                            { textEffect, textEffectSettings },
                             group ? `${group}-${element.id}` : undefined,
                           );
                         }}
                         onCommit={end}
-                        onError={setNotice}
                       />
-                    </div>}
-                    {slider("Rotation", "angle", -180, 180, "°")}
-                    {!element.finish && <TypographyValueControl
-                      label="Opacity"
-                      unit="%"
-                      value={Math.round((element.opacity ?? 1) * 100)}
-                      min={0}
-                      max={100}
-                      step={1}
-                      onChange={(opacity) =>
-                        update(
-                          { opacity: opacity / 100 },
-                          `opacity-${element.id}`,
-                        )
-                      }
-                      onCommit={end}
-                    />}
-                    {!element.finish && <TextEffectControls
-                      allowCylinder={element.kind !== "circular"}
-                      effect={element.textEffect}
-                      settings={element.textEffectSettings}
-                      onChange={(textEffect, group, textEffectSettings) => {
-                        if (!group) end();
-                        update(
-                          { textEffect, textEffectSettings },
-                          group ? `${group}-${element.id}` : undefined,
-                        );
-                      }}
-                      onCommit={end}
-                    />}
+                    )}
                   </section>
                 </>
               )}
-              {element.kind !== "image" && !element.finish && <section className="dc-property-section dc-focus-section">
-                <div className="dc-section-caption">Focus</div>
-                <TypographyValueControl
-                  label="Blur"
-                  unit="PX"
-                  value={element.blur ?? 0}
-                  min={0}
-                  max={40}
-                  step={0.1}
-                  onChange={(blur) => update({ blur }, `blur-${element.id}`)}
-                  onCommit={end}
-                />
-                <p className="dc-blur-hint">
-                  Zero keeps edges sharp. Increase to soften this element.
-                </p>
-              </section>}
+              {element.kind !== "image" && !element.finish && (
+                <section className="dc-property-section dc-focus-section">
+                  <div className="dc-section-caption">Focus</div>
+                  <TypographyValueControl
+                    label="Blur"
+                    unit="PX"
+                    value={element.blur ?? 0}
+                    min={0}
+                    max={40}
+                    step={0.1}
+                    onChange={(blur) => update({ blur }, `blur-${element.id}`)}
+                    onCommit={end}
+                  />
+                  <p className="dc-blur-hint">
+                    Zero keeps edges sharp. Increase to soften this element.
+                  </p>
+                </section>
+              )}
               <section className="dc-property-section dc-position-section">
                 <div className="dc-section-caption">
                   {element.kind === "circular"
@@ -3617,22 +3948,60 @@ export function DesignConfiguratorEditor({
                       slider("Width", "width", 10, 500, "PX")}
                     {element.kind === "image" && (
                       <label className="dc-field">
-                        <span className="dc-finish-heading">Print finish <PrintFinishInfo /></span>
-                        <select aria-label="Image print finish" value={textFoilColor(element) ? "silver" : element.finish ?? "ink"}
-                          onChange={event => { end(); update({finish: event.target.value === "ink" ? undefined : event.target.value as LabelLayer["finish"]}); end(); }}>
+                        <span className="dc-finish-heading">
+                          Print finish <PrintFinishInfo />
+                        </span>
+                        <select
+                          aria-label="Image print finish"
+                          value={
+                            textFoilColor(element)
+                              ? "silver"
+                              : (element.finish ?? "ink")
+                          }
+                          onChange={(event) => {
+                            end();
+                            update({
+                              finish:
+                                event.target.value === "ink"
+                                  ? undefined
+                                  : (event.target
+                                      .value as LabelLayer["finish"]),
+                            });
+                            end();
+                          }}
+                        >
                           <option value="ink">Ink Matte</option>
                           <option value="silver">Hot Foil Silver</option>
-                          <option value="raised-uv">Raised Spot UV / 3D UV</option>
+                          <option value="raised-uv">
+                            Raised Spot UV / 3D UV
+                          </option>
                           <option value="emboss">Embossing</option>
                           <option value="deboss">Debossing</option>
                         </select>
                       </label>
                     )}
-                    {element.kind === "image" && ["raised-uv","emboss","deboss"].includes(element.finish ?? "") && <TypographyValueControl
-                      label={element.finish === "deboss" ? "Depth" : "Height"} unit="MM"
-                      value={element.finishDepth ?? 0.2} min={0.02} max={0.8} step={0.02}
-                      onChange={finishDepth => update({finishDepth},`finish-depth-${element.id}`)} onCommit={end}
-                    />}
+                    {element.kind === "image" &&
+                      ["raised-uv", "emboss", "deboss"].includes(
+                        element.finish ?? "",
+                      ) && (
+                        <TypographyValueControl
+                          label={
+                            element.finish === "deboss" ? "Depth" : "Height"
+                          }
+                          unit="MM"
+                          value={element.finishDepth ?? 0.2}
+                          min={0.02}
+                          max={0.8}
+                          step={0.02}
+                          onChange={(finishDepth) =>
+                            update(
+                              { finishDepth },
+                              `finish-depth-${element.id}`,
+                            )
+                          }
+                          onCommit={end}
+                        />
+                      )}
                     {element.kind === "image" && (
                       <ImageAppearanceControls
                         layer={element}
@@ -3657,7 +4026,8 @@ export function DesignConfiguratorEditor({
                         onCommit={end}
                       />
                     )}
-                    {element.kind === "image" && slider("Rotation", "angle", -180, 180, "°")}
+                    {element.kind === "image" &&
+                      slider("Rotation", "angle", -180, 180, "°")}
                     {element.kind === "image" && !element.finish && (
                       <label className="dc-field dc-slider-field">
                         <span>
@@ -3685,10 +4055,20 @@ export function DesignConfiguratorEditor({
                         />
                       </label>
                     )}
-                    {element.kind === "image" && !element.finish && <TypographyValueControl
-                      label="Blur" unit="PX" value={element.blur ?? 0} min={0} max={40} step={0.1}
-                      onChange={blur => update({blur}, `blur-${element.id}`)} onCommit={end}
-                    />}
+                    {element.kind === "image" && !element.finish && (
+                      <TypographyValueControl
+                        label="Blur"
+                        unit="PX"
+                        value={element.blur ?? 0}
+                        min={0}
+                        max={40}
+                        step={0.1}
+                        onChange={(blur) =>
+                          update({ blur }, `blur-${element.id}`)
+                        }
+                        onCommit={end}
+                      />
+                    )}
                     <div className="dc-field-pair">
                       {number("Horizontal", "x", 0, 600, "PX")}
                       {number("Vertical", "y", 0, 600, "PX")}
@@ -3751,7 +4131,11 @@ export function DesignConfiguratorEditor({
         <FontPickerPanel
           width={fontPanelWidth}
           onWidthChange={setFontPanelWidth}
-          targetName={selectedTextLayers.length > 1 ? `${selectedTextLayers.length} text layers` : element.name}
+          targetName={
+            selectedTextLayers.length > 1
+              ? `${selectedTextLayers.length} text layers`
+              : element.name
+          }
           close={() => setDialog(null)}
         >
           <label className="dc-font-search">
@@ -3957,10 +4341,17 @@ export function DesignConfiguratorEditor({
             headingTarget={previewHeadingTarget}
             labelCapture={sleevePreviewLabels.A}
             labelCaptureBack={sleevePreviewLabels.B}
-            foilMasks={{A: sleevePreviewLabels.foilA, B: sleevePreviewLabels.foilB,
-              sleeveA: sleevePreviewLabels.foilSleeveA, sleeveB: sleevePreviewLabels.foilSleeveB}}
+            foilMasks={{
+              A: sleevePreviewLabels.foilA,
+              B: sleevePreviewLabels.foilB,
+              sleeveA: sleevePreviewLabels.foilSleeveA,
+              sleeveB: sleevePreviewLabels.foilSleeveB,
+            }}
             reliefMasks={reliefPreviewMasks}
-            windows={{A: hasSleeveWindow(design, "A"), B: hasSleeveWindow(design, "B")}}
+            windows={{
+              A: hasSleeveWindow(design, "A"),
+              B: hasSleeveWindow(design, "B"),
+            }}
             side={side}
             sleeveColor={design.sleeveColor}
             sleeveMaterial={design.sleeveMaterial}
@@ -4018,21 +4409,39 @@ export function DesignConfiguratorEditor({
           <div className="dc-dialog-scroll dc-settings-content">
             <section className="dc-property-section">
               <div className="dc-section-caption">Sleeve windows</div>
-              <p className="dc-font-explanation">Choose which sides reveal the record label. Changes are shown in Sleeve view.</p>
+              <p className="dc-font-explanation">
+                Choose which sides reveal the record label. Changes are shown in
+                Sleeve view.
+              </p>
               <div className="dc-effect-grid">
-                {(["A", "B"] as const).map(windowSide => <label className="dc-check" key={windowSide}>
-                  <input type="checkbox" checked={hasSleeveWindow(design, windowSide)} onChange={event => {
-                    const open = event.target.checked;
-                    end();
-                    change(current => ({...current, [windowSide === "A" ? "sleeveWindowA" : "sleeveWindowB"]: open}));
-                    end();
-                    // Show the physical cover, not the concealed label editor.
-                    setSurface("sleeve");
-                    setSide(windowSide);
-                    setSelected(getSurfaceLayers(design, "sleeve", windowSide)[0]?.id ?? null);
-                    setSelectedLayers([]);
-                  }} />{windowSide} side window
-                </label>)}
+                {(["A", "B"] as const).map((windowSide) => (
+                  <label className="dc-check" key={windowSide}>
+                    <input
+                      type="checkbox"
+                      checked={hasSleeveWindow(design, windowSide)}
+                      onChange={(event) => {
+                        const open = event.target.checked;
+                        end();
+                        change((current) => ({
+                          ...current,
+                          [windowSide === "A"
+                            ? "sleeveWindowA"
+                            : "sleeveWindowB"]: open,
+                        }));
+                        end();
+                        // Show the physical cover, not the concealed label editor.
+                        setSurface("sleeve");
+                        setSide(windowSide);
+                        setSelected(
+                          getSurfaceLayers(design, "sleeve", windowSide)[0]
+                            ?.id ?? null,
+                        );
+                        setSelectedLayers([]);
+                      }}
+                    />
+                    {windowSide} side window
+                  </label>
+                ))}
               </div>
             </section>
             <section className="dc-property-section">
@@ -4075,32 +4484,23 @@ export function DesignConfiguratorEditor({
             <section className="dc-property-section">
               <label className="dc-field">
                 <span>Sleeve material</span>
-                <select aria-label="Sleeve material" value={design.sleeveMaterial ?? "printed-board"}
-                  onChange={event => {
-                    const sleeveMaterial = event.target.value === "printed-board" ? "printed-board" : "matte";
-                    end(); change(current => ({...current, sleeveMaterial})); end();
-                  }}>
+                <select
+                  aria-label="Sleeve material"
+                  value={design.sleeveMaterial ?? "printed-board"}
+                  onChange={(event) => {
+                    const sleeveMaterial =
+                      event.target.value === "printed-board"
+                        ? "printed-board"
+                        : "matte";
+                    end();
+                    change((current) => ({ ...current, sleeveMaterial }));
+                    end();
+                  }}
+                >
                   <option value="printed-board">Printed Cardboard</option>
                   <option value="matte">Matte</option>
                 </select>
               </label>
-            </section>
-            <section className="dc-property-section">
-              <div className="dc-section-caption">Template details</div>
-              <label className="dc-check">
-                <input
-                  type="checkbox"
-                  checked={design.mark}
-                  onChange={(e) =>
-                    change((c) => ({ ...c, mark: e.target.checked }))
-                  }
-                />
-                Studio symbol
-              </label>
-              <p className="dc-font-explanation">
-                Guides never export. Print files keep the center filled. Colors
-                are RGB, not a CMYK press proof.
-              </p>
             </section>
           </div>
         </Modal>
@@ -4174,7 +4574,12 @@ export function DesignConfiguratorEditor({
                 <option value="pdf">Print / Save as PDF — current side</option>
               </select>
             </label>
-            {exportFormat === "foil" && <p className="dc-font-explanation">Separate black masks for each print finish, side and surface. Confirm production requirements with your printer.</p>}
+            {exportFormat === "foil" && (
+              <p className="dc-font-explanation">
+                Separate black masks for each print finish, side and surface.
+                Confirm production requirements with your printer.
+              </p>
+            )}
             {exportFormat === "psd" && (
               <p className="dc-font-explanation">
                 Text without 3D effects or blur is converted to editable vector
