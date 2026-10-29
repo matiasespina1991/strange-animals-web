@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { applyFoilMask } from "./foil-material";
+import { createCookiePaperTexture } from "./cookie-paper-texture";
 import { applyPrintRelief, type ReliefMasks, type SurfaceReliefMasks } from "./print-relief-material";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { accountAuth } from "./account-auth";
@@ -26,7 +27,7 @@ type Properties = {
   labelCaptureBack: string;
   side: LabelSide;
   sleeveColor: string;
-  sleeveMaterial?: "matte" | "printed-board";
+  sleeveMaterial?: "matte" | "printed-board" | "printed-board-glossy";
   labelColor: string;
   sleeveImage?: string;
   sleeveCaptureFront?: string;
@@ -144,7 +145,7 @@ export function Sleeve3DPreview({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     let environment: THREE.WebGLRenderTarget | undefined;
-    if (sleeveMaterial === "printed-board" || (reliefMasks && Object.values(reliefMasks).some(masks=>Object.values(masks).some(Boolean))) || (foilMasks && Object.values(foilMasks).some(Boolean))) {
+    if (sleeveMaterial !== "matte" || (reliefMasks && Object.values(reliefMasks).some(masks=>Object.values(masks).some(Boolean))) || (foilMasks && Object.values(foilMasks).some(Boolean))) {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const studio = new RoomEnvironment();
       environment = pmrem.fromScene(studio);
@@ -276,6 +277,12 @@ export function Sleeve3DPreview({
     };
     drawSleeve();
     const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows, sleeveMaterial);
+    shell.traverse(object=>{
+      if (!(object instanceof THREE.Mesh)) return;
+      for(const material of Array.isArray(object.material)?object.material:[object.material]) {
+        if(material.normalMap) material.normalMap.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      }
+    });
     model.add(shell);
     const retiredPrintTextures = new Set<THREE.Texture>();
     const applyCapturedRelief = (material: THREE.MeshPhysicalMaterial, masks: ReliefMasks | undefined, mm: number, flip = false) => {
@@ -403,7 +410,10 @@ export function Sleeve3DPreview({
     }
 
     const addLabelFace = (capture: string, z: number, back = false) => {
-      const material = new THREE.MeshPhysicalMaterial({roughness: 0.32, metalness: 0, clearcoat: 0.19, clearcoatRoughness: 0.22, transparent: true, side: THREE.DoubleSide});
+      const material = new THREE.MeshPhysicalMaterial({roughness: 0.42, metalness: 0, clearcoat: 0.1, clearcoatRoughness: 0.38, transparent: true, side: THREE.DoubleSide});
+      material.normalMap = createCookiePaperTexture();
+      material.normalMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      material.normalScale.set(0.5,0.5);
       const label = new THREE.Mesh(
         new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 192), material,
       );

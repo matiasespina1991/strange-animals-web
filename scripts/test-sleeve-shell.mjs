@@ -5,9 +5,13 @@ import ts from 'typescript';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 const exports = {};
+const materials = {};
+vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/sleeve-material.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, {exports:materials,require:()=>THREE});
 vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/sleeve-shell.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText, { exports, require: name => name.includes('RoundedBoxGeometry') ? { RoundedBoxGeometry } : THREE });
+}).outputText, { exports, require: name => name.includes('RoundedBoxGeometry') ? { RoundedBoxGeometry } : name === './sleeve-material' ? materials : THREE });
 const front = new THREE.Texture(), back = new THREE.Texture();
 const shell = exports.createSleeveShell(3.15, 0.0236, 0.48, front, back, '#dddddd');
 shell.updateMatrixWorld(true);

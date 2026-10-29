@@ -3,9 +3,10 @@ import * as THREE from "three";
 export const PRESSING_PRESETS = [
   { id: "flat", label: "Flat" },
   { id: "small", label: "Small ring" },
+  { id: "raised-hub", label: "Raised hub" },
   { id: "triple", label: "Triple ring" },
   { id: "recessed", label: "Wide recessed" },
-  { id: "raised", label: "Raised center" },
+  { id: "raised", label: "Raised hub + outer ring" },
 ] as const;
 export type PressingPreset = typeof PRESSING_PRESETS[number]["id"];
 // Keep restoration data out of geometry.userData: GLTFExporter serializes it.
@@ -14,6 +15,11 @@ const baselines = new WeakMap<THREE.BufferGeometry, Float32Array>();
 /** Radial relief in model units; ink UVs remain unchanged. */
 export function pressingHeight(radius: number, labelRadius: number, preset: PressingPreset) {
   const r = radius / labelRadius;
+  // A continuous raised centre, not a narrow groove or a torus. Keep the
+  // plateau all the way to the bore; only the outer shoulder changes height.
+  if (preset === "raised-hub") {
+    return 0.001155 * (1 - THREE.MathUtils.smoothstep(r, 0.305 * 0.765, 0.32 * 0.765)) * Math.min(1, labelRadius / 0.5);
+  }
   if (r < 0.1 || r > 0.94 || preset === "flat") return 0;
   const ring = (center: number, width: number) => Math.exp(-(((r - center) / width) ** 2));
   const edgeFade = THREE.MathUtils.smoothstep(r, 0.1, 0.15) * (1 - THREE.MathUtils.smoothstep(r, 0.88, 0.94));

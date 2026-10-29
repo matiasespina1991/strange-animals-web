@@ -119,7 +119,7 @@ export type LabelDesign = {
   sleeveColor: string;
   sleeveWindowA?: boolean;
   sleeveWindowB?: boolean;
-  sleeveMaterial?: "matte" | "printed-board";
+  sleeveMaterial?: "matte" | "printed-board" | "printed-board-glossy";
   sleeveImage?: string;
   sleeveZoom: number;
   sleeveImageOffsetX: number;
@@ -628,6 +628,24 @@ export type HistoryAction =
       group?: string;
     }
   | { type: "undo" | "redo" | "end" };
+
+/** Compare immutable document branches without serializing embedded assets.
+ * Shared arrays/objects stop at identity; absent optional fields equal undefined,
+ * matching the previous JSON comparison for valid design documents.
+ */
+function sameDesignValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+      left.every((value, index) => sameDesignValue(value, right[index]));
+  }
+  const a = left as Record<string, unknown>, b = right as Record<string, unknown>;
+  const keys = Object.keys(a).filter(key => a[key] !== undefined);
+  const otherKeys = Object.keys(b).filter(key => b[key] !== undefined);
+  return keys.length === otherKeys.length && keys.every(key =>
+    Object.prototype.hasOwnProperty.call(b, key) && sameDesignValue(a[key], b[key]));
+}
 export function designReducer(state: History, action: HistoryAction): History {
   if (action.type === "replace")
     return { past: [], present: action.design, future: [] };
@@ -638,7 +656,7 @@ export function designReducer(state: History, action: HistoryAction): History {
       past: state.past.map(action.change),
       future: state.future.map(action.change),
     };
-  if (action.type === "end") return { ...state, group: undefined };
+  if (action.type === "end") return state.group === undefined ? state : { ...state, group: undefined };
   if (action.type === "undo") {
     if (!state.past.length) return state;
     return {
@@ -657,7 +675,7 @@ export function designReducer(state: History, action: HistoryAction): History {
   }
   if (action.type !== "change") return state;
   const present = action.change(state.present);
-  if (JSON.stringify(present) === JSON.stringify(state.present)) return state;
+  if (sameDesignValue(present, state.present)) return state;
   const grouped = !!action.group && state.group === action.group;
   return {
     past: grouped ? state.past : [...state.past, state.present].slice(-100),
@@ -951,7 +969,7 @@ export function parseDesign(input: unknown): LabelDesign {
     sleeveColor: hex(input.sleeveColor, "#000000"),
     sleeveWindowA: input.sleeveWindowA !== false,
     sleeveWindowB: input.sleeveWindowB !== false,
-    sleeveMaterial: input.sleeveMaterial === "matte" ? "matte" : "printed-board",
+    sleeveMaterial: input.sleeveMaterial === "matte" ? "matte" : input.sleeveMaterial === "printed-board-glossy" ? "printed-board-glossy" : "printed-board",
     sleeveImage,
     sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
     sleeveImageOffsetX: numeric(input.sleeveImageOffsetX, 0, -600, 600),

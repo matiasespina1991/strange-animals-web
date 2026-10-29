@@ -4489,7 +4489,9 @@ export function DesignConfiguratorEditor({
                   value={design.sleeveMaterial ?? "printed-board"}
                   onChange={(event) => {
                     const sleeveMaterial =
-                      event.target.value === "printed-board"
+                      event.target.value === "printed-board-glossy"
+                        ? "printed-board-glossy"
+                        : event.target.value === "printed-board"
                         ? "printed-board"
                         : "matte";
                     end();
@@ -4498,6 +4500,7 @@ export function DesignConfiguratorEditor({
                   }}
                 >
                   <option value="printed-board">Printed Cardboard</option>
+                  <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
                   <option value="matte">Matte</option>
                 </select>
               </label>

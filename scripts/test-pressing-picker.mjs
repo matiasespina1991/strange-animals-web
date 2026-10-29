@@ -12,7 +12,7 @@ vm.runInNewContext(compile('src/features/identity/pressing-rings.ts'), { exports
 function tree(open, disabled = false) {
   const calls = [];
   let state = 0;
-  const hooks = { useState: () => [state++ === 0 ? open : 2, value => calls.push(value)], useEffect() {}, useId: () => 'preset', useRef: () => ({ current: { focus() {} } }) };
+  const hooks = { useState: () => [state++ === 0 ? open : presets.PRESSING_PRESETS.findIndex(item=>item.id==='triple'), value => calls.push(value)], useEffect() {}, useId: () => 'preset', useRef: () => ({ current: { focus() {} } }) };
   const exports = {};
   vm.runInNewContext(compile('src/features/identity/PressingPresetPicker.tsx'), { exports, require: name => name === 'react' ? hooks : name === 'react/jsx-runtime' ? jsx : name === 'lucide-react' ? icons : presets });
   const element = exports.PressingPresetPicker({ value: 'triple', disabled, onChange: value => calls.push(value) });
@@ -28,8 +28,8 @@ assert.equal(closed.calls.at(-1), true);
 const opened = tree(true);
 const list = opened.element.props.children[2];
 assert.equal(list.props.role, 'listbox');
-assert.equal(list.props.children.length, 5);
-assert.equal(list.props.children[2].props['aria-selected'], true);
+assert.equal(list.props.children.length, 6);
+assert.equal(list.props.children[presets.PRESSING_PRESETS.findIndex(item=>item.id==='triple')].props['aria-selected'], true);
 list.props.onKeyDown({ key: 'Enter', preventDefault() {} });
 assert.equal(opened.calls[0], 'triple');
 let stopped = false;

@@ -3176,20 +3176,15 @@
   scrollbar-width: thin;
 }
 .dc-category-chips--classic {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: none;
-  grid-auto-flow: row;
-  grid-auto-rows: 34px;
-  grid-auto-columns: auto;
+  display: flex;
+  flex-wrap: wrap;
   overflow-x: hidden;
 }
-.dc-category-chips--classic button {
-  width: 100%;
+.design-configurator .dc-category-chips--classic button {
+  flex: 1 0 auto;
+  width: auto;
   min-width: 0;
-  white-space: normal;
-}
-.dc-category-chips--classic > button:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
+  min-height: 34px;
 }
 .dc-category-chips--favorites[data-count="1"],
 .dc-category-chips--favorites[data-count="2"],

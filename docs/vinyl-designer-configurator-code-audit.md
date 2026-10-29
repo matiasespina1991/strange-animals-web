@@ -1,6 +1,6 @@
 # Auditoría de calidad — Vinyl Artwork Designer Pro
 
-Actualizada: **2026-10-28**. Reemplaza la revisión del 2026-10-26.
+Actualizada: **2026-10-29** (seguimiento de A07; revisión general del 2026-10-28). Reemplaza la revisión del 2026-10-26.
 
 Alcance: editor, modelo, controles, render SVG/Three.js, exportadores, galería, publicación de modelos, repositorios, Rules, Functions y pruebas asociadas. La colección de tipografías como producto queda fuera de alcance; sí se revisan sus contratos consumidos por el editor.
 
@@ -76,13 +76,17 @@ En esta revisión se ejecutaron **18 scripts locales: 17 pasan y 1 falla**. `tes
 
 **Pendiente:** verificar la ejecución remota tras push, añadir pruebas reales de navegador, establecer el gate de lint y separar pipelines frontend/backend con pruebas de contratos/Rules. Esta suite usa pruebas puras, mocks y verificaciones estructurales; no demuestra cobertura visual ni sustituye emuladores. No se desplegó nada durante esta sesión.
 
-### A07 · P1 · Hot path serializa el diseño completo — confirmado; impacto sin medir
+### A07 · P1 · Hot path serializa el diseño completo — corrección parcial implementada
 
 [design-configurator-model.ts](../src/features/identity/design-configurator-model.ts), `designReducer`, compara dos `JSON.stringify` en cada cambio. Historial: hasta 100 snapshots. El editor serializa además para recovery/dirty/save y guarda recuperación en localStorage.
 
 Las imágenes pueden ser data URLs de hasta 5 MiB por archivo; el límite por archivo/capa no es un presupuesto de documento. Los snapshots pueden compartir referencias: **no se midió ni se afirma que cada uno duplique todos los binarios**; sí hay serializaciones completas repetidas.
 
 **Tarea:** no-op por referencia, revisión del documento, assets separados/IndexedDB, cuota por proyecto y mediciones reales de memoria/drag.
+
+**Implementado el 2026-10-29:** el reducer dejó de usar `JSON.stringify` para detectar cambios. La comparación recorre únicamente ramas con distinta referencia y compara sus valores sin copiar ni codificar los assets embebidos. Conserva la detección de no-ops aunque el comando produzca objetos nuevos equivalentes; campos opcionales ausentes/undefined son equivalentes. `end` sin grupo activo devuelve el mismo estado. No se cambió el formato JSON ni el límite de 100 pasos de historial.
+
+`test-design-history.mjs`, integrado en `test:configurator`, ejecuta el reducer real con un asset de 4 MiB y hace fallar cualquier intento de serialización JSON. Comprueba identidad/no-op, copias anidadas equivalentes, edición de acabados/ventanas, orden y eliminación de capas, agrupación de drag, undo/redo y preservación de redo ante no-op. **Pendiente:** revisión/dirty-state, extracción de assets/IndexedDB, presupuesto global y profiling real del navegador. No se afirma que esta corrección resuelva toda la memoria ni todas las serializaciones del editor; no hubo despliegue.
 
 ### A08 · P1 · El documento de diseño no tiene validación autoritativa de contenido en backend — confirmado
 
