@@ -361,6 +361,9 @@ export function DesignConfiguratorEditor({
     future: [],
   });
   const design = history.present;
+  const documentEpoch = useRef(0);
+  const fontRequest = useRef(0);
+  useEffect(() => () => { documentEpoch.current++; fontRequest.current++; }, []);
   const [galleryProjectId, setGalleryProjectId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get("projectId"),
   );
@@ -684,6 +687,9 @@ export function DesignConfiguratorEditor({
         const loadedDesign = await loadGalleryDesign(version);
         loadedDesign.title = project.title;
         if (!active) return;
+        documentEpoch.current++;
+        fontRequest.current++;
+        setFontBusy(false);
         dispatch({ type: "replace", design: loadedDesign });
         setGalleryProjectId(projectId);
         setGalleryVersionId(versionId);
@@ -852,6 +858,9 @@ export function DesignConfiguratorEditor({
             ),
           );
   const applyTemplate = (next: LabelDesign) => {
+    documentEpoch.current++;
+    fontRequest.current++;
+    setFontBusy(false);
     end();
     change(() => next);
     end();
@@ -1113,6 +1122,9 @@ export function DesignConfiguratorEditor({
     }
   }, [element, families]);
   const selectFont = async (font: FontCatalogItem, variantId?: string) => {
+    const epoch = documentEpoch.current;
+    const request = ++fontRequest.current;
+    const active = () => epoch === documentEpoch.current && request === fontRequest.current;
     const targetSide = side,
       targetSurface = surface,
       targetIds = new Set(selectedTextLayers.map(layer => layer.id));
@@ -1120,13 +1132,14 @@ export function DesignConfiguratorEditor({
     setFontBusy(true);
     try {
       const resolved = await resolveLabelFont(font, variantId);
+      if (!active()) return;
       setFamilies((c) => ({
         ...c,
         [fontKey({ fontId: font.id, variantId: resolved.variant.id })]:
           resolved.family,
       }));
       end();
-      change(current => updateSurfaceLayers(current, targetSurface, targetSide,
+      change(current => !active() ? current : updateSurfaceLayers(current, targetSurface, targetSide,
         currentLayers => currentLayers.map(layer =>
           layer.kind !== "image" && targetIds.has(layer.id)
             ? { ...layer, fontId: font.id, variantId: resolved.variant.id }
@@ -1137,11 +1150,12 @@ export function DesignConfiguratorEditor({
       setHoverFontLoading(false);
       if (!isMobileFontPicker()) setDialog(null);
     } catch (error) {
+      if (!active()) return;
       setNotice(
         error instanceof Error ? error.message : "No se pudo cargar la fuente.",
       );
     } finally {
-      setFontBusy(false);
+      if (active()) setFontBusy(false);
     }
   };
   const selectLayer = (layer: LabelLayer) => {
@@ -1382,6 +1396,7 @@ export function DesignConfiguratorEditor({
     if (import.meta.env.DEV) {
       console.info("[StudioShelf/save] started", {
         asNewProject,
+        expectedProjectTitle: galleryProjectId && lastSaved ? (JSON.parse(lastSaved) as LabelDesign).title : undefined,
         hasProject: Boolean(galleryProjectId),
       });
     }
@@ -1540,6 +1555,7 @@ export function DesignConfiguratorEditor({
     dropPosition?: { x: number; y: number },
   ) => {
     if (!file) return;
+    const epoch = documentEpoch.current;
     if (layers.length >= 50) {
       setNotice("Máximo de 50 elementos por lado.");
       return;
@@ -1573,6 +1589,7 @@ export function DesignConfiguratorEditor({
         image.onerror = reject;
         image.src = data;
       });
+      if (epoch !== documentEpoch.current) return;
       const imageLayer = {
         ...makeLayer("image"),
         name: file.name.slice(0, 80),
@@ -1585,15 +1602,16 @@ export function DesignConfiguratorEditor({
           initialImageLayerPosition(targetSurface, imageLayer)),
       };
       change((current) =>
-        updateSurfaceLayers(
+        epoch !== documentEpoch.current ? current : updateSurfaceLayers(
           current,
           targetSurface,
           targetSide,
-          (currentLayers) => [...currentLayers, layer],
+          (currentLayers) => currentLayers.length >= 50 ? currentLayers : [...currentLayers, layer],
         ),
       );
       selectLayer(layer);
     } catch {
+      if (epoch !== documentEpoch.current) return;
       setNotice("No se pudo leer la imagen.");
     }
   };

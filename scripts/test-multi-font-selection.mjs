@@ -14,6 +14,7 @@ function visit(node) {
 visit(ast);
 let state, changes, commits, closed;
 const context = {
+  documentEpoch: { current: 0 }, fontRequest: { current: 0 },
   resolveLabelFont: async () => ({ family: 'New Family', variant: { id: 'new-variant' } }),
   setFamilies: () => {}, fontKey: () => 'key', setFontBusy: () => {},
   hoverRequest: { current: 0 }, setHoverFamily: () => {}, setHoverFontLoading: () => {},
@@ -58,4 +59,12 @@ for (const surface of ['cookie', 'sleeve']) for (const side of ['A', 'B']) {
   assert.equal(commits, 2);
   assert.equal(closed, null);
 }
+let resolvePending;
+context.resolveLabelFont = () => new Promise(resolve => { resolvePending = resolve; });
+const before = state;
+const pending = context.selectFont({ id: 'stale-font' });
+context.documentEpoch.current++;
+resolvePending({ family: 'Stale Family', variant: { id: 'stale' } });
+await pending;
+assert.equal(state, before, 'A font resolving after project replacement must not change the new document');
 console.log('Multi-font selection: simultaneous preview/commit, restoration, image exclusion, both surfaces/sides and one undo step passed.');

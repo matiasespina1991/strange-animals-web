@@ -29,6 +29,7 @@ export function TypographyValueControl({
   const [inputDraft, setInputDraft] = useState("");
   const effectiveSliderMax = sliderMax * (sliderExpanded ? 3 : 1);
   const change = (raw: string) => {
+    if (!raw.trim()) return;
     const number = Number(raw);
     if (Number.isFinite(number)) onChange(Math.min(max, Math.max(min, number)));
   };
@@ -67,23 +68,19 @@ export function TypographyValueControl({
           setInputFocused(true);
         }}
         onChange={(event) => {
-          change(event.target.value);
-          return;
           const raw = event.target.value;
           setInputDraft(raw);
-          if (!raw.trim()) return;
-          const number = Number(raw);
-          if (Number.isFinite(number))
-            onChange(Math.min(max, Math.max(min, number)));
+          change(raw);
         }}
         onBlur={() => {
-          if (inputFocused) {
-            const number = Number(inputDraft);
-            if (inputDraft.trim() && Number.isFinite(number))
-              onChange(Math.min(max, Math.max(min, number)));
-            setInputFocused(false);
-          }
+          setInputFocused(false);
           onCommit();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+          }
         }}
       />
       <input

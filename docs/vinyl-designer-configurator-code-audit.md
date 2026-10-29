@@ -4,15 +4,15 @@ Actualizada: **2026-10-28**. Reemplaza la revisión del 2026-10-26.
 
 Alcance: editor, modelo, controles, render SVG/Three.js, exportadores, galería, publicación de modelos, repositorios, Rules, Functions y pruebas asociadas. La colección de tipografías como producto queda fuera de alcance; sí se revisan sus contratos consumidos por el editor.
 
-La revisión inicial fue documental. **A01 y el runner/gate de regresión de A06 ya se implementaron localmente el 2026-10-28**; el resto conserva su estado indicado. No se migraron operaciones ni se inspeccionaron documentos de producción, permisos IAM desplegados o métricas de uso/coste.
+La revisión inicial fue documental. **A01, A02, A03, runner/gate de A06, parte de A05 y backend de A04/B04 se implementaron el 2026-10-28**; el resto conserva su estado indicado. Functions, Hosting y Rules se desplegaron coordinadamente después de resolver IAM con autorización explícita y roles limitados; no se borraron datos reales como prueba. Ver [estado operativo](vinyl-designer-backend-operations.md#estado-real-de-despliegue).
 
 Plan de backend: [Migración a Cloud Functions y trabajos de render](vinyl-designer-backend-migration.md).
 
 ## Resumen ejecutivo
 
-1. El guardado/versionado, renombrado y borrado de proyectos y la publicación de GLB siguen ejecutándose desde el SDK del navegador.
+1. El guardado/versionado y publicación de GLB siguen en el navegador. Borrado y renombrado tienen ahora callables de backend, con worker durable y pruebas en emuladores (A04/B03/B04).
 2. Eso **no demuestra una vulnerabilidad**: Firestore/Storage aplican Rules en el servidor. La razón principal para centralizar estos flujos es validar contratos complejos, garantizar autorización por operación y hacer recuperación/reintentos independientes de una pestaña.
-3. Existe infraestructura Functions en [functions/src/index.ts](../functions/src/index.ts), pero solo exporta `health`, privada; no contiene lógica del configurador. Usa Node 22, región `europe-west3` y `maxInstances: 10`.
+3. Functions usa Node 22 y región `europe-west3`. Además de `health`, incorpora `requestProjectDeletion`, `renameDesignProject`, el scheduler `processDesignDeletions` y `cleanupLateDesignUploads`. El worker tiene una instancia máxima y los endpoints/trigger tres.
 4. Se corrigió el falso gate: build y CI ahora verifican explícitamente app y configuración Node. Los errores detectados por el chequeo real se corrigieron; A01 incluye la prueba de cobertura/fallo.
 5. El editor creció a 4.146 líneas. Persisten riesgos async, serialización completa en el reducer y binarios embebidos. Hay mejoras reales: renderer compartido Cookie/Sleeve y módulos específicos de geometría, menús y controles.
 
@@ -28,36 +28,39 @@ El chequeo explícito inicial fallaba tanto dentro como fuera del configurador. 
 
 **Implementado:** `typecheck:app` usa tsconfig.app.json; `typecheck:node` usa tsconfig.node.json con target/lib ES2022. `npm run build` exige `npm run typecheck` antes de Vite. `npm run test:typecheck` comprueba que se incluyan el editor y vite.config.ts y que una fuente temporal con error TS2322 haga fallar el comando real. El workflow ejecuta esa prueba antes del build. La ejecución remota de GitHub Actions queda pendiente del próximo push; no se desplegó nada en esta tarea.
 
-### A02 · P1 · La edición numérica tiene código inalcanzable — confirmado
+### A02 · P1 · La edición numérica tiene código inalcanzable — corregido localmente
 
 [TypographyValueControl.tsx](../src/features/identity/TypographyValueControl.tsx), `onChange`: llama a `change(event.target.value)` y retorna antes de `setInputDraft`. Mientras hay foco, el valor mostrado depende de `inputDraft`; al perderlo se vuelve a aplicar ese draft.
 
 **Consecuencia deducida:** la edición puede mostrar el valor anterior y restaurarlo en blur. Falta una prueba DOM que lo reproduzca.
 
-**Tarea:** un único flujo de draft/validación/commit, con tests de negativos, decimales, vacío transitorio, Enter, blur y undo. No se corrigió en esta auditoría.
+**Implementado el 2026-10-28:** eliminado el retorno prematuro; el input conserva el draft mientras tiene foco y aplica solo valores finitos no vacíos, limitados al rango. Blur finaliza la edición sin reaplicar un draft obsoleto; Enter usa ese mismo commit mediante blur. Un vacío transitorio no se convierte en cero y al salir se muestra el último valor válido. Los cambios externos/undo se reflejan fuera de edición.
 
-### A03 · P1 · Operaciones async sin identidad de documento — riesgo vigente
+`test-typography-value-control.mjs` ejercita los handlers reales con estado de hooks persistente: negativos, decimales, borrado transitorio, límites, Enter/blur y valor externo. Integrado en `npm test` (23 scripts). Es un harness de componente, no una prueba DOM en navegador; esa cobertura sigue pendiente en A06.
+
+### A03 · P1 · Operaciones async sin identidad de documento — protección local implementada
 
 [DesignConfiguratorEditor.tsx](../src/features/identity/DesignConfiguratorEditor.tsx), `importImage` y `selectFont`, conservan lado/superficie/id, pero no una identidad/revisión del proyecto que invalide el resultado después de un `await`. La importación comprueba el límite de 50 antes de leer/decodificar, no otra vez dentro del commit.
 
-**Tarea:** token de documento/operación, cancelación o descarte obsoleto y límite validado al insertar. Probar cambiar de proyecto durante lectura/carga y dos importaciones concurrentes desde 49 capas. Migrar persistencia al servidor no arregla este estado local.
+**Implementado el 2026-10-28:** epoch de documento invalidada al reemplazar desde galería, aplicar plantilla/importación de diseño y desmontar. `importImage` descarta resultados/errores obsoletos y vuelve a validar identidad y límite de 50 dentro del updater. `selectFont` valida documento y número de petición: una resolución antigua no sobrescribe la última elección ni modifica avisos/busy de otra petición. Se conservan lado/superficie/IDs de destino.
 
-### A04 · P1 · Borrado distribuido dependiente del navegador — confirmado
+Pruebas de handlers reales extraídos del editor: fuente pendiente al reemplazar documento, imagen pendiente invalidada y dos imágenes concurrentes desde 49 capas (resultado: 50). Incluidas en `npm test`. No se cancelan físicamente las descargas/decodificaciones; se descartan sus resultados. Cobertura DOM/navegador pendiente en A06. Migrar persistencia al servidor no sustituye esta protección local.
 
-[design-gallery-repository.ts](../src/features/identity/design-gallery-repository.ts), `deleteGalleryProject`:
+### A04 · P1 · Borrado distribuido dependiente del navegador — implementado en backend
 
-- Lee proyecto e historial; rechaza más de 450 versiones.
-- Borra metadatos en una transacción y compara `latestVersionId` para detectar un guardado concurrente.
-- Después borra secuencialmente hasta seis archivos conocidos por versión.
-- Devuelve el número de archivos cuya limpieza falló, pero no guarda un job durable de reintento.
+`deleteGalleryProject` ahora solicita `requestProjectDeletion` usando Functions de `accountAuth.app`, región `europe-west3`. UID del token; payload estricto, UUID y versión esperada validados. Transacción marca el proyecto `deleting` y crea un job determinista privado en `designDeletionJobs/{sha256(uid/projectId)}`. Repetir la solicitud devuelve/reanuda el mismo trabajo.
 
-La transacción protege la eliminación de esos documentos, **no incluye Storage**. Cerrar la pestaña tras el commit puede dejar archivos sin metadatos. Las Rules permiten al dueño borrar versiones sueltas; no fuerzan el workflow completo de la UI.
+`processDesignDeletions` ejecuta cada minuto, selecciona hasta 20 trabajos vencidos y procesa una página de 100 objetos o 200 versiones por trabajo, con lease de 10 minutos y backoff hasta una hora. No depende de que continúe el navegador. No hay límite de 450 versiones. La ausencia de un objeto/documento no impide continuar. UI observa los proyectos `deleting`, explica que se puede cerrar y ofrece reintento cuando falla la limpieza.
 
-**Tarea prioritaria de backend:** job idempotente de eliminación, estado `deleting`, bloqueo de nuevos commits y limpieza paginada con reanudación. Mantener separados los modelos públicos compartidos salvo decisión explícita. Ver B03 del plan.
+Rules impiden deletes directos de proyecto/versiones, nuevos commits y nuevas subidas sobre el lock. Al finalizar quedan únicamente `status: deleted` y `deletedAt` como tombstone permanente para evitar recreación del UUID; no se conserva el título. Un trigger Storage elimina por generación las subidas aceptadas antes del lock que finalizan tarde. Solo se enumera el prefijo privado exacto derivado por servidor; no se tocan modelos públicos.
+
+**Verificado en emuladores:** 501 versiones, dos solicitudes y workers duplicados, fallo transitorio/reanudación, payload mal formado, usuario ajeno/sin Auth, prefijo vecino y shares preservados, upload tardío, bloqueo de uploads y bypass de deletes por Rules. No se ejecutaron borrados sobre proyectos reales. Detalles, rollout y límites: [operaciones backend](vinyl-designer-backend-operations.md). No existe una transacción única Firestore+Storage; la durabilidad viene del job y sus reintentos.
 
 ### A05 · P1 · Guardado/publicación cruzan servicios sin commit conjunto — confirmado
 
-`saveGalleryVersion` sube JSON y cuatro PNG, y luego realiza la transacción de proyecto/versión. Tiene control de versión concurrente y limpieza best-effort si falla; eso es una protección existente, no ausencia de control. El `Promise.all` de subidas puede fallar antes de que terminen otras subidas: la limpieza puede competir con ellas.
+`saveGalleryVersion` sube JSON y cuatro PNG, y luego realiza la transacción de proyecto/versión. Tiene control de versión concurrente y limpieza best-effort si falla; eso es una protección existente, no ausencia de control.
+
+**Corrección local del 2026-10-28:** `settleUploads` espera todos los resultados con `Promise.allSettled` antes de propagar el error original. La limpieza ya no compite con otras subidas aún pendientes del mismo guardado. `test-settle-uploads.mjs` reproduce rechazo temprano, escritura tardía y segundo rechazo; comprueba que la limpieza espere y que no se confirme el guardado fallido. Incluido en `npm test`. No convierte el flujo en durable: cerrar la pestaña o fallar la limpieza sigue siendo un riesgo hasta migrar a jobs de backend.
 
 [model-share-repository.ts](../src/features/ar-model/model-share-repository.ts), `createModelShare`, sube/sustituye el GLB y después escribe el documento público. Conserva ID/path/createdAt y no borra un binario existente cuando falla su actualización de metadatos. Sigue habiendo estados parciales y last-writer-wins entre publicaciones concurrentes.
 
@@ -127,7 +130,7 @@ Cylinder está oculto para Arc text mediante `allowCylinder`, pero parser y rend
 
 | Hallazgo anterior | Estado verificado al 28/10 |
 | --- | --- |
-| Importación async/contexto y límites | Sigue abierto: A03 |
+| Importación async/contexto y límites | Protección local implementada: A03; navegador pendiente |
 | Stringify del reducer y memoria | Sigue abierto: A07 |
 | CI | Sigue abierto y se añade el falso gate de TypeScript: A01/A06 |
 | Editor/modelo/tipos/selección/fuentes | Sigue abierto: A10 |

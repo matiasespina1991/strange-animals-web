@@ -18,6 +18,8 @@ import {
   listGalleryProjects,
   renameGalleryProject,
   deleteGalleryProject,
+  watchGalleryDeletions,
+  type GalleryDeletion,
   listGalleryVersions,
   loadGalleryImage,
   type GalleryProject,
@@ -110,6 +112,16 @@ export function MyGalleryPage({
 }) {
   const user = accountAuth.currentUser;
   const [projects, setProjects] = useState<GalleryProject[]>([]);
+  const [deletions, setDeletions] = useState<GalleryDeletion[]>([]);
+  useEffect(() => {
+    if (!user) { setDeletions([]); return; }
+    return watchGalleryDeletions(user.uid, jobs => {
+      setDeletions(jobs);
+      const deleting = new Set(jobs.map(job => job.id));
+      setProjects(current => current.filter(project => !deleting.has(project.id)));
+      setSelectedProjectId(current => current && deleting.has(current) ? null : current);
+    }, error => setError(error.message));
+  }, [user]);
   const [sharedModels, setSharedModels] = useState<SharedModel[]>([]);
   const [projectImages, setProjectImages] = useState<
     Record<string, PreviewImages>
@@ -289,7 +301,7 @@ export function MyGalleryPage({
     setBusyProject(true);
     setError("");
     try {
-      const savedTitle = await renameGalleryProject(user.uid, selectedProject.id, title);
+      const savedTitle = await renameGalleryProject(user.uid, selectedProject.id, title, selectedProject.title);
       setProjects(current => current.map(project => project.id === selectedProject.id ? { ...project, title: savedTitle } : project));
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not rename the project.");
@@ -301,10 +313,9 @@ export function MyGalleryPage({
     setBusyProject(true);
     setError("");
     try {
-      const failedFiles = await deleteGalleryProject(user.uid, selectedProject.id);
+      await deleteGalleryProject(user.uid, selectedProject.id, selectedProject.latestVersionId);
       setProjects(current => current.filter(project => project.id !== selectedProject.id));
       setSelectedProjectId(null);
-      if (failedFiles) setError("Project deleted, but some stored files could not be cleaned up.");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not delete the project.");
     } finally { setBusyProject(false); }
@@ -455,6 +466,20 @@ export function MyGalleryPage({
             >
               Shared 3D models <span>{sharedModels.length}</span>
             </button>
+          </div>
+        )}
+        {deletions.length > 0 && (
+          <div className="mg-message" role="status">
+            {deletions.map(job => <p key={job.id}>
+              Deleting “{job.title}”… You can close this page. Shared 3D models are kept.
+              {job.error && <> {job.error} <button type="button" disabled={busyProject} onClick={async () => {
+                if (!user) return;
+                setBusyProject(true);
+                try { await deleteGalleryProject(user.uid, job.id, job.latestVersionId); }
+                catch (error) { setError(error instanceof Error ? error.message : "Could not retry deletion."); }
+                finally { setBusyProject(false); }
+              }}>Retry deletion</button></>}
+            </p>)}
           </div>
         )}
         {error && (

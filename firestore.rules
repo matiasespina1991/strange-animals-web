@@ -399,6 +399,17 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Backend-owned deletion lock/tombstone. Clients cannot remove or undo it.
+    function isActiveDesignProject(uid, projectId) {
+      let path = /databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId);
+      return !exists(path) || !('status' in get(path).data);
+    }
+
+    match /designDeletionJobs/{jobId} {
+      allow read: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
+    }
+
     function isValidDesignGalleryProject(data, uid, projectId) {
       return data.keys().hasAll([
           'title',
@@ -500,16 +511,16 @@ service cloud.firestore {
     match /designUsers/{uid}/projects/{projectId} {
       allow get, list: if isDesignGalleryOwner(uid);
       allow create: if isDesignGalleryOwner(uid)
+        && isSharedModelId(projectId)
         && isValidDesignGalleryProject(request.resource.data, uid, projectId)
         && request.resource.data.latestVersion == 1
         && request.resource.data.createdAt == request.time
         && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));
       allow update: if isDesignGalleryOwner(uid)
+        && isActiveDesignProject(uid, projectId)
         && isValidDesignGalleryProject(request.resource.data, uid, projectId)
         && request.resource.data.createdAt == resource.data.createdAt
-        && ((request.resource.data.latestVersion == resource.data.latestVersion
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'updatedAt']))
-          || request.resource.data.latestVersion == resource.data.latestVersion + 1)
+        && request.resource.data.latestVersion == resource.data.latestVersion + 1
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'title',
           'latestVersion',
@@ -521,14 +532,15 @@ service cloud.firestore {
           'updatedAt'
         ])
         && existsAfter(/databases/$(database)/documents/designUsers/$(uid)/projects/$(projectId)/versions/$(request.resource.data.latestVersionId));
-      allow delete: if isDesignGalleryOwner(uid);
+      allow delete: if false;
 
       match /versions/{versionId} {
         allow get, list: if isDesignGalleryOwner(uid);
         allow create: if isDesignGalleryOwner(uid)
+          && isActiveDesignProject(uid, projectId)
           && isValidDesignGalleryVersion(request.resource.data, uid, projectId, versionId);
         allow update: if false;
-        allow delete: if isDesignGalleryOwner(uid);
+        allow delete: if false;
       }
     }
 

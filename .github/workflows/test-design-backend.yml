@@ -1,0 +1,25 @@
+name: Test design backend contracts
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  gallery-emulators:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci --prefix functions
+      - run: npm --prefix functions run lint
+      - name: Build backend and test owner-only deletion/rename with Rules
+        run: npx --yes firebase-tools@15.34.1 emulators:exec --config firebase.emulators.json --project strange-animals-web --only auth,firestore,storage 'npm --prefix functions run test:gallery && node scripts/test-design-gallery-rules.mjs'

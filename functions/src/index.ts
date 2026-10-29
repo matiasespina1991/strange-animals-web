@@ -1,5 +1,11 @@
-import { setGlobalOptions } from "firebase-functions";
-import { onRequest } from "firebase-functions/https";
+import {setGlobalOptions} from "firebase-functions";
+import {onRequest} from "firebase-functions/https";
+export {
+  requestProjectDeletion,
+  renameDesignProject,
+  processDesignDeletions,
+  cleanupLateDesignUploads,
+} from "./design-gallery-functions";
 
 // For cost control, you can set the maximum number of containers that can be
 // running at the same time. This helps mitigate the impact of unexpected
@@ -11,8 +17,8 @@ import { onRequest } from "firebase-functions/https";
 // functions should each use functions.runWith({ maxInstances: 10 }) instead.
 // In the v1 API, each function can only serve one request per container, so
 // this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10, region: "europe-west3" });
+setGlobalOptions({maxInstances: 10, region: "europe-west3"});
 
-export const health = onRequest({ invoker: "private" }, (request, response) => {
-  response.json({ ok: true });
+export const health = onRequest({invoker: "private"}, (request, response) => {
+  response.json({ok: true});
 });

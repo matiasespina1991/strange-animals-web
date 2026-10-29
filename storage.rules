@@ -82,6 +82,8 @@ service firebase.storage {
       allow read: if ownsGalleryAsset() && validGalleryAssetPath();
       allow create: if ownsGalleryAsset()
         && validGalleryAssetPath()
+        && (!firestore.exists(/databases/(default)/documents/designUsers/$(uid)/projects/$(projectId))
+          || !('status' in firestore.get(/databases/(default)/documents/designUsers/$(uid)/projects/$(projectId)).data))
         && request.resource != null
         && request.resource.size > 0
         && request.resource.size <= 104857600

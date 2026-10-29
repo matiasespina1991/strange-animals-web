@@ -1,8 +1,8 @@
 # Plan de migración — Backend del Vinyl Artwork Designer Pro
 
-Fecha: **2026-10-28**. Estado: **backlog propuesto; no implementado**.
+Fecha: **2026-10-28**. Estado: **B03 implementado y B04 parcial; resto según checklist**.
 
-Complementa la [auditoría de código](vinyl-designer-configurator-code-audit.md). Esta entrega no cambia código de ejecución, Rules ni datos desplegados.
+Complementa la [auditoría de código](vinyl-designer-configurator-code-audit.md). La implementación de borrado durable y renombrado, sus pruebas y rollout se detallan en [operaciones backend](vinyl-designer-backend-operations.md).
 
 ## 1. Objetivo y frontera de confianza
 
@@ -22,8 +22,8 @@ La prioridad no es “ocultar funciones JavaScript”: es que un cliente modific
 | SVG, rasterizaciones PNG y composición Sleeve/Cookie | LabelArtwork + DOMParser/Canvas/Image | Mantener preview; generación oficial en worker compartiendo contratos |
 | Preparar y subir JSON + cuatro PNG | Editor + saveGalleryVersion, SDK Storage | Sesión de subida privada; servidor valida/finaliza |
 | Asignar número de versión y escribir proyecto/historial | runTransaction en design-gallery-repository.ts | Function transaccional e idempotente |
-| Renombrar | renameGalleryProject → updateDoc web | Callable owner-only |
-| Borrar proyecto e historial, luego archivos | deleteGalleryProject, transacción + bucle web | Job durable de backend |
+| Renombrar | renameGalleryProject → renameDesignProject callable | Implementado; CAS de título |
+| Borrar proyecto e historial, luego archivos | requestProjectDeletion + scheduler y trigger Storage | Implementado; job durable |
 | Leer galería/versiones/modelos propios | getDocs/getDoc web | Puede seguir directo con Rules y paginación |
 | Escena Three.js y cámara interactiva | Sleeve3DPreview.tsx | Mantener local |
 | Exportar GLB compartido | GLTFExporter sobre la escena del preview | Worker de generación/validación; no una simple mudanza de imports |
@@ -31,7 +31,7 @@ La prioridad no es “ocultar funciones JavaScript”: es que un cliente modific
 | Miniaturas de modelos | GLTFLoader + WebGL offscreen local, PNG 256×256 en memoria | Generar y persistir una vez por generación |
 | Descargar SVG/PNG/PDF/PSD para uso local | Exportadores del navegador | Puede seguir local; generación remota opcional por coste/calidad |
 
-Infraestructura existente: `functions/src/index.ts` solo exporta `health`, `onRequest` privada. Configuración Node 22, región `europe-west3`, máximo global de 10 instancias. No hay callables/jobs del configurador ni inicialización App Check encontrada en el código revisado. Esto describe el repositorio, no prueba qué servicios estén desplegados.
+Infraestructura actual: `functions/src/index.ts` exporta `health`, dos callables de galería, un scheduler durable y un trigger de uploads tardíos. Node 22, región `europe-west3`; App Check aún pendiente. Functions, web y Rules activadas en producción; ver [estado real de despliegue e IAM](vinyl-designer-backend-operations.md#estado-real-de-despliegue).
 
 Rutas actuales:
 
@@ -79,7 +79,7 @@ Cloud Functions puede mantener la API y la orquestación en ambos casos. No bloq
 ### B00 · P0 · Contratos, tests y base de despliegue
 
 - [x] Reparar el gate TypeScript (A01, 2026-10-28): app y Vite config explícitos, errores actuales corregidos, prueba negativa y gate de CI configurado.
-- [ ] Reparar la prueba `test-configurator-preview-auth.mjs` (A06) antes de compartir módulos con backend.
+- [x] Reparar la prueba `test-configurator-preview-auth.mjs` (A06); integrada en el runner de regresión y gate de Hosting.
 - [ ] Extraer schema/migraciones y límites: grupos Cookie/Sleeve A/B, máximo por grupo/documento, bytes, dimensiones/píxeles, texto, segmentos y recursos de fuentes.
 - [ ] Separar validación estricta de normalización permisiva del importador: el servidor no debe convertir silenciosamente un payload inválido en “válido”.
 - [ ] Definir `operationId`, revisión esperada y hash canónico de diseño+assets+configuración de render. Preset de pressing está hoy fuera del JSON del diseño: incluirlo explícitamente.
@@ -90,11 +90,12 @@ Cloud Functions puede mantener la API y la orquestación en ambos casos. No bloq
 
 ### B01 · P1 · Callables y seguridad transversal
 
-- [ ] Inicializar cliente Functions desde `accountAuth.app` y región correcta; no confundir esa cuenta con el gate de acceso de Identity.
+- [x] Inicializar cliente Functions desde `accountAuth.app` y región correcta para borrado/rename; no confundir esa cuenta con el gate de Identity.
 - [ ] Exigir `request.auth`; UID derivado del token, nunca confiar en `uid`, owner, path, número de versión ni título sin validar.
 - [ ] Comprobar pertenencia del proyecto y de su versión, no solo que el modelo tenga formato UUID.
 - [ ] Activar App Check por etapas, con métricas y configuración de desarrollo; después enforcement. No considerarlo sustituto de Auth/ownership ni de cuotas. [Enforcement App Check](https://firebase.google.com/docs/app-check/cloud-functions).
-- [ ] Cuenta de servicio con IAM mínimo; secrets fuera del frontend; separar permisos del worker de render de la API CRUD.
+- [x] Cuenta dedicada para galería con roles custom de datos Firestore en `(default)`, limpieza del prefijo privado y recepción de eventos. Sin credenciales en frontend ni archivos de claves nuevos.
+- [ ] Separar permisos del futuro worker de render de la API CRUD; revisar el alcance de Admin SDK por colección (IAM no aplica Security Rules).
 - [ ] Cuotas por usuario/operación: bytes, almacenamiento total, jobs simultáneos, frecuencia y coste. `maxInstances` limita escala global, no es cuota por usuario ni garantía de presupuesto.
 - [ ] Errores estructurados y logs con operationId; no registrar tokens, JSON privado, data URLs ni URLs de descarga con token.
 
@@ -109,7 +110,8 @@ Callables propuestas: `beginDesignSave` y `finalizeDesignSave`.
 - [ ] Verificar existencia/contenido real de JSON/assets. MIME/extensión no validan PNG/SVG/GLB.
 - [ ] Asignar versión en transacción y comprobar revisión/estado del proyecto; definir cuándo pasa a visible como lista para editar.
 - [ ] Idempotencia: reintento de la misma operación devuelve mismo proyecto/versión. Resolver el caso “commit exitoso, respuesta perdida”.
-- [ ] No borrar assets de otra operación al limpiar un fallo; esperar/finalizar subidas en curso y registrar cleanup durable.
+- [x] Esperar que terminen todas las subidas del guardado antes de limpiar un fallo (A05, corrección local con regresión).
+- [ ] Registrar cleanup durable y garantizar aislamiento de assets por operación en el protocolo backend. La corrección local anterior no sobrevive al cierre de la pestaña.
 - [ ] Bloquear commits sobre proyectos `deleting`/borrados. No recrear un proyecto eliminado por un guardado tardío.
 - [ ] UI de estados y recuperación al recargar, sin depender de que siga montado el editor que inició la operación.
 
@@ -119,13 +121,14 @@ Callables propuestas: `beginDesignSave` y `finalizeDesignSave`.
 
 Callable propuesta: `requestProjectDeletion`; tarea privada: `deleteProjectArtifacts`.
 
-- [ ] Mantener confirmación en UI; servidor valida owner y marca `deleting` transaccionalmente con una política de concurrencia frente a guardados.
-- [ ] Enumerar versiones y archivos paginados del prefijo privado validado; eliminar únicamente ese proyecto. No aceptar una URL/prefijo libre para borrar.
-- [ ] Reintentos idempotentes: objeto/documento ya ausente cuenta como progreso, no fallo fatal.
-- [ ] Guardar cursor/contadores; procesar en lotes, sin el límite artificial de 450 versiones del cliente.
-- [ ] Finalizar borrando metadatos o dejando tombstone acotado para impedir commits tardíos; definir retención del tombstone.
-- [ ] Si falla, mostrar estado de eliminación y permitir reintentar. Evitar declarar éxito completo mientras queda limpieza pendiente.
-- [ ] Mantener por defecto los modelos públicos compartidos, como hace el comportamiento actual; documentar que borrar un proyecto no revoca sus enlaces.
+- [x] Mantener confirmación en UI; servidor valida owner y marca `deleting` transaccionalmente, comprobando versión esperada.
+- [x] Enumerar versiones y archivos por páginas del prefijo privado derivado; eliminar únicamente ese proyecto.
+- [x] Reintentos idempotentes: objeto/documento ausente cuenta como progreso.
+- [x] Persistir fase/lease/contadores y reanudar por primeras páginas restantes, sin límite de 450 versiones. Los contadores son operativos, no contabilidad exacta ante crash entre servicios.
+- [x] Tombstone mínimo permanente (`status`, `deletedAt`) impide reutilizar el UUID. Título y metadata anterior eliminados.
+- [x] UI observa eliminación y ofrece reintento; no anuncia éxito completo mientras queda limpieza.
+- [x] Conservar modelos públicos compartidos; no se revocan sus enlaces.
+- [x] Trigger por generación limpia uploads aceptados antes del lock que terminan después del borrado.
 - [ ] Si se quiere revocación futura, crear operación explícita con política para cachés, tokens y objetos públicos; no prometer borrar copias ya descargadas.
 
 **Terminado cuando:** cerrar la pestaña no frena la eliminación; pruebas con más de 450 versiones, archivos faltantes, error transitorio, llamadas duplicadas y guardado concurrente terminan de forma consistente.
@@ -134,10 +137,11 @@ Callable propuesta: `requestProjectDeletion`; tarea privada: `deleteProjectArtif
 
 Callable propuesta: `renameDesignProject`.
 
-- [ ] Owner-only, nombre no vacío ≤120 caracteres y revisión esperada/opId.
-- [ ] Cambiar solo título/updatedAt; no alterar numeración ni datos de las versiones.
-- [ ] Definir conflicto entre renombrar en galería y guardar un editor antiguo: hoy el siguiente save puede volver a escribir `design.title` y deshacer el nombre nuevo.
-- [ ] Mantener edición inline, estado de guardado y rollback visual ante error; el servidor es el dueño del título canónico.
+- [x] Callable owner-only, payload estricto, nombre no vacío ≤120 caracteres y CAS `expectedTitle`.
+- [x] Cambiar solo título/updatedAt, sin tocar numeración/versiones; rechazar proyectos bloqueados.
+- [x] Cliente actual envía título base al guardar; transacción detecta rename durante el save. Un editor desactualizado muestra conflicto y pide recargar.
+- [x] Mantener edición inline y rollback visual ante error.
+- [ ] Revisión monotónica/opId para resolver ABA y respuesta perdida; protocolo autoritativo de save B02 para clientes antiguos/modificados. CAS por título protege clientes actuales, no sustituye B02.
 
 **Terminado cuando:** un save de una pestaña antigua no sobrescribe silenciosamente un rename posterior.
 

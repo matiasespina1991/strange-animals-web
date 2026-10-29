@@ -13,7 +13,7 @@ const project = { id: 'project-1', title: 'Test artwork', latestVersion: 2, late
 const source = readFileSync('src/features/identity/MyGalleryPage.tsx', 'utf8');
 function render(selected) {
   let index = 0;
-  const state = [[project], [], {}, selected, [{ id: 'v1', version: 1, createdAt: stamp }], {}, 'designs', false, false, null, ''];
+  const state = [[project], [], [], {}, selected, [{ id: 'v1', version: 1, createdAt: stamp }], {}, 'designs', false, false, null, ''];
   const hooks = { useState: () => [state[index++], () => {}], useEffect: () => {}, useRef: value => ({ current: value }) };
   const exports = {};
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;

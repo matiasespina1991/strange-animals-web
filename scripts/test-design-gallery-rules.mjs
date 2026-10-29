@@ -387,7 +387,7 @@ const renameProject = (token, title, extra = {}) => request(`${firestoreBase}:co
     updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
   }] }),
 });
-assertStatus(await renameProject(owner.idToken, 'Renamed project'), 200, 'owner renames without creating a version');
+assertStatus(await renameProject(owner.idToken, 'Renamed project'), 403, 'rename must use the authorized backend');
 assertStatus(await renameProject(other.idToken, 'Hijacked'), 403, 'other user cannot rename');
 assertStatus(await renameProject(undefined, 'Anonymous'), 403, 'anonymous cannot rename');
 assertStatus(await renameProject(owner.idToken, ''), 403, 'empty name rejected');
@@ -402,7 +402,21 @@ assertStatus(await request(`${firestoreBase}:commit`, {
   token: owner.idToken, method: 'POST', headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ writes: [versionPath, `${projectPath}/versions/${secondVersionId}`, projectPath]
     .map(path => ({ delete: `${documentRoot}/${path}` })) }),
-}), 200, 'owner atomically deletes project and version history');
+}), 403, 'owner cannot bypass the durable deletion workflow');
+
+const lockedProjectId = uuid();
+const lockedPath = `designUsers/${owner.localId}/projects/${lockedProjectId}`;
+await seedDocument(lockedPath, {
+  status: {stringValue: 'deleting'}, title: {stringValue: 'Locked'}, latestVersionId: {stringValue: uuid()},
+});
+assertStatus(await request(`${firestoreBase}/${lockedPath}`, {token: owner.idToken, method: 'DELETE'}), 403, 'owner cannot remove deletion lock');
+assertStatus(await request(`${storageBase}?uploadType=media&name=${encodeURIComponent(`media/private/design-gallery/${owner.localId}/${lockedProjectId}/${uuid()}/front.png`)}`, {
+  token: owner.idToken, method: 'POST', headers: {'Content-Type': 'image/png'}, body: 'late',
+}), 403, 'new uploads blocked while deleting');
+await seedDocument('designDeletionJobs/private-test', {ownerUid: {stringValue: owner.localId}, status: {stringValue: 'pending'}});
+assertStatus(await request(`${firestoreBase}/designDeletionJobs/private-test`, {token: owner.idToken}), 200, 'owner can inspect own job');
+assertStatus(await request(`${firestoreBase}/designDeletionJobs/private-test`, {token: other.idToken}), 403, 'other user cannot inspect job');
+assertStatus(await request(`${firestoreBase}/designDeletionJobs/private-test`, {token: owner.idToken, method: 'DELETE'}), 403, 'owner cannot remove job');
 
 console.log(
   "Firebase rules smoke tests passed: authenticated font reads, owner-only gallery, immutable versions.",
