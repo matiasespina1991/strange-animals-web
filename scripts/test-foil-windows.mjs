@@ -26,7 +26,7 @@ const {LabelArtwork}=load(base+'/LabelArtwork.tsx');
 const {createSleeveShell}=load(base+'/sleeve-shell.ts');
 const {createPrintedBoardGrain}=load(base+'/sleeve-material.ts');
 const {foilCoveragePixels}=load(base+'/foil-material.ts');
-const {reliefNormalPixels}=load(base+'/print-relief-material.ts');
+const {reliefNormalPixels,smoothReliefHeight}=load(base+'/print-relief-material.ts');
 const layer={...initialDesign.A[0],id:'foil',text:'FOIL',finish:'gold',visible:true};
 assert.equal(initialDesign.sleeveMaterial,'printed-board');
 assert.equal(parseDesign({...initialDesign,sleeveMaterial:undefined}).sleeveMaterial,'printed-board');
@@ -65,6 +65,10 @@ const heightArt=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,
 assert.match(heightArt,/0 0 0 0 0.5/,'Mask encodes depth, not arbitrary opacity');
 assert.doesNotMatch(heightArt,/linearGradient/);
 const heights=new Float32Array([0,0,0,0,0.4,0,0,0,0]);
+const smoothed=smoothReliefHeight(heights,3);
+assert.ok(smoothed[4]>0 && smoothed[4]<heights[4]);
+assert.ok(smoothed[1]>0,'Height is reconstructed before computing edge normals');
+assert.ok(Math.abs([...smoothed].reduce((sum,value)=>sum+value,0)-.4)<1e-6,'Preserve integrated relief height');
 const raisedNormals=reliefNormalPixels(heights,3,100);
 const pressedNormals=reliefNormalPixels(Float32Array.from(heights,v=>-v),3,100);
 assert.ok(raisedNormals[0]!==pressedNormals[0],'Emboss and deboss have opposite normal slopes');
@@ -72,15 +76,15 @@ const flatNormals=reliefNormalPixels(new Float32Array(9),3,100);
 assert.deepEqual([...flatNormals.slice(0,4)],[128,128,255,255]);
 // Exercise actual material construction with a deterministic canvas readback.
 const reliefModule={exports:{}};
-const uvPixels=new Uint8ClampedArray(1024*1024*4);
-for(let p=0;p<1024*1024;p++) uvPixels.set([64,64,64,255],p*4);
+const uvPixels=new Uint8ClampedArray(32*32*4);
+for(let p=0;p<32*32;p++) uvPixels.set([64,64,64,255],p*4);
 let flipped=false;
 vm.runInNewContext(ts.transpileModule(readFileSync(base+'/print-relief-material.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{
   module:reliefModule,exports:reliefModule.exports,require:()=>THREE,
   document:{createElement:()=>({getContext:()=>({clearRect(){},save(){},restore(){},translate(){flipped=true;},scale(){},drawImage(){},getImageData:()=>({data:uvPixels})})})},
 });
 const uvMaterial=new THREE.MeshPhysicalMaterial({roughness:.48,metalness:0,color:'#123456'});
-reliefModule.exports.applyPrintRelief(uvMaterial,{uv:{}},315,true);
+reliefModule.exports.applyPrintRelief(uvMaterial,{uv:{naturalWidth:32}},315,true);
 assert.equal(uvMaterial.color.getHexString(),'123456','UV does not recolor ink');
 assert.equal(uvMaterial.metalness,0,'Varnish is not metal');
 assert.ok(uvMaterial.normalMap?.isDataTexture && uvMaterial.roughnessMap?.isDataTexture && uvMaterial.clearcoatMap?.isDataTexture);

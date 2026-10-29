@@ -1419,10 +1419,10 @@ export function DesignConfiguratorEditor({
       ]);
       const [captureA, captureB, captureSleeveA, captureSleeveB] =
         await Promise.all([
-          captureLabelPreview(markupA, 2048),
-          captureLabelPreview(markupB, 2048),
-          captureLabelPreview(sleeveMarkupA, 2048),
-          captureLabelPreview(sleeveMarkupB, 2048),
+          captureLabelPreview(markupA),
+          captureLabelPreview(markupB),
+          captureLabelPreview(sleeveMarkupA),
+          captureLabelPreview(sleeveMarkupB),
         ]);
       const [frontPreview, backPreview, frontSleevePreview, backSleevePreview] =
         await Promise.all([
@@ -1779,10 +1779,10 @@ export function DesignConfiguratorEditor({
         ]);
       const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] =
         await Promise.all([
-          captureLabelPreview(markupA),
-          captureLabelPreview(markupB),
-          captureLabelPreview(sleeveMarkupA),
-          captureLabelPreview(sleeveMarkupB),
+          captureLabelPreview(markupA, 2048),
+          captureLabelPreview(markupB, 2048),
+          captureLabelPreview(sleeveMarkupA, 2048),
+          captureLabelPreview(sleeveMarkupB, 2048),
         ]);
       const maskCapture = async (maskSide: LabelSide, maskSurface: LabelSurface) => {
         if (!getSurfaceLayers(previewDesign, maskSurface, maskSide).some(layer => layer.visible && textFoilColor(layer))) return "";
