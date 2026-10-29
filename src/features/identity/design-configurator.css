@@ -1038,6 +1038,10 @@
 .dc-field > .dc-finish-heading { display: flex; justify-content: flex-start; align-items: center; gap: 6px; }
 .dc-finish-info { position: relative; display: inline-flex; align-items: center; cursor: help; }
 .dc-finish-tooltip { pointer-events: none; position: fixed; z-index: 1000; padding: 12px; background: var(--dc-bg, #fafaf7); color: var(--dc-text, #252620); border: 1px solid var(--dc-divider, #d9ddcd); font-size: 12px; line-height: 1.45; font-weight: 400; }
+.dc-finish-tooltip p { margin: 0; font-weight: 400; }
+.dc-finish-tooltip ul { margin: 8px 0; padding-left: 18px; list-style: disc; }
+.dc-finish-tooltip li { margin-block: 5px; font-weight: 400; }
+.dc-finish-tooltip strong { font-weight: 700; }
 .dc-sleeve-element {
   position: absolute;
   z-index: 2;
@@ -1982,6 +1986,19 @@
   overscroll-behavior: contain;
   padding: 0 3px 15px;
 }
+.dc-settings-content > .dc-property-section {
+  margin-top: 0;
+  padding-block: 18px;
+}
+.dc-settings-content > .dc-property-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.dc-settings-content > .dc-property-section:last-child { padding-bottom: 0; }
+.dc-settings-content .dc-field { margin-top: 13px; }
+.dc-settings-content .dc-field:first-child { margin-top: 0; }
+.dc-settings-content .dc-font-explanation { margin-block: 13px; }
+.dc-settings-content .dc-property-section > :last-child { margin-bottom: 0; }
 .dc-project-files {
   display: flex;
   flex-direction: column;

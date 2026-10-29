@@ -11,7 +11,7 @@ export function PrintFinishInfo() {
     if (!node) return;
     const rect = node.getBoundingClientRect();
     const width = Math.min(360, window.innerWidth - 24);
-    setPopup({left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)),
+    setPopup({left: Math.max(12, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 12)),
       bottom: window.innerHeight - rect.top + 8, width,
       host: node.closest(".design-configurator") ?? document.body});
   };
@@ -28,9 +28,17 @@ export function PrintFinishInfo() {
       onKeyDown={event => { if (event.key === "Escape") setPopup(null); }}>
       <Info size={14} aria-hidden="true" />
     </span>
-    {popup && createPortal(<span id={id} role="tooltip" className="dc-finish-tooltip"
+    {popup && createPortal(<div id={id} role="tooltip" className="dc-finish-tooltip"
       style={{left: popup.left, bottom: popup.bottom, width: popup.width}}>
-      Choose how this part of your design will be printed. Ink Matte uses regular ink. Hot Foil Silver adds a shiny silver foil pressed onto the surface with heat. Raised Spot UV adds a clear, glossy varnish you can feel. Embossing raises the paper; Debossing presses it inward. Height and depth show an approximate result: confirm the finish and suitable paper with your printer before production.
-    </span>, popup.host)}
+      <p>Choose how this part of your design will be printed.</p>
+      <ul>
+        <li><strong>Ink Matte:</strong> regular ink without a metallic shine.</li>
+        <li><strong>Hot Foil Silver:</strong> shiny silver foil pressed onto the surface with heat.</li>
+        <li><strong>Raised Spot UV / 3D UV:</strong> a clear, glossy varnish you can feel.</li>
+        <li><strong>Embossing:</strong> raises the paper outward.</li>
+        <li><strong>Debossing:</strong> presses the paper inward.</li>
+      </ul>
+      <p>Height and depth are approximate. Confirm the finish and suitable paper with your printer before production.</p>
+    </div>, popup.host)}
   </>;
 }

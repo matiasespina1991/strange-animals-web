@@ -358,6 +358,21 @@ export function DesignConfiguratorEditor({
     present: initial.design,
     future: [],
   });
+  useEffect(() => {
+    const handleHistoryShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.altKey ||
+        !(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return;
+      const target = event.target;
+      // Preserve native text editing and modal keyboard behaviour.
+      if (target instanceof Element && target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="dialog"]',
+      )) return;
+      event.preventDefault();
+      dispatch({ type: event.shiftKey ? "redo" : "undo" });
+    };
+    window.addEventListener("keydown", handleHistoryShortcut);
+    return () => window.removeEventListener("keydown", handleHistoryShortcut);
+  }, []);
   const design = history.present;
   const documentEpoch = useRef(0);
   const fontRequest = useRef(0);
@@ -2305,15 +2320,6 @@ export function DesignConfiguratorEditor({
           return;
         }
         if (
-          !editable &&
-          (e.metaKey || e.ctrlKey) &&
-          e.key.toLowerCase() === "z"
-        ) {
-          e.preventDefault();
-          dispatch({ type: e.shiftKey ? "redo" : "undo" });
-          return;
-        }
-        if (
           editable ||
           (e.target instanceof HTMLElement && e.target.closest("button,a"))
         )
@@ -4009,14 +4015,22 @@ export function DesignConfiguratorEditor({
       )}
       {dialog === "settings" && (
         <Modal title="Settings" close={() => setDialog(null)}>
-          <div className="dc-dialog-scroll">
+          <div className="dc-dialog-scroll dc-settings-content">
             <section className="dc-property-section">
               <div className="dc-section-caption">Sleeve windows</div>
-              <p className="dc-font-explanation">Choose which sides reveal the record label. Sleeve view and exports show the closed cover; Cookie view still lets you edit the concealed label. The record’s spindle hole is unchanged.</p>
+              <p className="dc-font-explanation">Choose which sides reveal the record label. Changes are shown in Sleeve view.</p>
               <div className="dc-effect-grid">
                 {(["A", "B"] as const).map(windowSide => <label className="dc-check" key={windowSide}>
                   <input type="checkbox" checked={hasSleeveWindow(design, windowSide)} onChange={event => {
-                    const open = event.target.checked; end(); change(current => ({...current, [windowSide === "A" ? "sleeveWindowA" : "sleeveWindowB"]: open})); end();
+                    const open = event.target.checked;
+                    end();
+                    change(current => ({...current, [windowSide === "A" ? "sleeveWindowA" : "sleeveWindowB"]: open}));
+                    end();
+                    // Show the physical cover, not the concealed label editor.
+                    setSurface("sleeve");
+                    setSide(windowSide);
+                    setSelected(getSurfaceLayers(design, "sleeve", windowSide)[0]?.id ?? null);
+                    setSelectedLayers([]);
                   }} />{windowSide} side window
                 </label>)}
               </div>
