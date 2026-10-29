@@ -80,7 +80,7 @@ const props={design,side:'A',prefix:'foil-test',fontFamily:()=> 'Test'};
 for (const finish of ['raised-uv','emboss','deboss']) for (const kind of ['text','circular','image']) {
   const reliefLayer={...layer,kind,finish,finishDepth:0.4,color:'#123456',image:'data:image/png;base64,AA=='};
   assert.equal(parseDesign({...design,A:[reliefLayer]}).A[0].finish,finish);
-  assert.equal(parseDesign({...design,A:[{...reliefLayer,finishDepth:100}]}).A[0].finishDepth,.8);
+  assert.equal(parseDesign({...design,A:[{...reliefLayer,finishDepth:100}]}).A[0].finishDepth,finish==='raised-uv'?.8:1.6);
   assert.equal(parseDesign({...design,A:[{...reliefLayer,finishDepth:-3}]}).A[0].finishDepth,.02);
   const reliefArt=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,design:{...design,A:[reliefLayer]}}));
   assert.match(reliefArt,/relief-foil/);
@@ -90,7 +90,7 @@ for (const finish of ['raised-uv','emboss','deboss']) for (const kind of ['text'
   assert.doesNotMatch(captured,/feDropShadow/,'Do not bake relief shadows into the 3D albedo');
 }
 const heightArt=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'height-mask',design:{...design,A:[{...layer,finishDepth:.4}]}}));
-assert.match(heightArt,/0 0 0 0 0.5/,'Mask encodes depth, not arbitrary opacity');
+assert.match(heightArt,/0 0 0 0 0.25/,'Mask encodes depth with the expanded 1.6 mm range');
 assert.doesNotMatch(heightArt,/linearGradient/);
 const heights=new Float32Array([0,0,0,0,0.4,0,0,0,0]);
 const smoothed=smoothReliefHeight(heights,3);

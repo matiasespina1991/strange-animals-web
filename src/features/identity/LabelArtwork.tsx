@@ -480,13 +480,13 @@ export function LabelArtwork({
           <filter id={`${prefix}-foil-black`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" /></filter>
         </>}
         {finishMode === "height-mask" && artworkLayers.filter(layer => textFoilColor(layer)).map(layer => {
-          const level = Math.max(0.025, Math.min(1, (layer.finishDepth ?? 0.2) / 0.8));
+          const level = Math.max(0.0125, Math.min(1, (layer.finishDepth ?? 0.2) / 1.6));
           return <filter key={layer.id} id={`${prefix}-height-${layer.id}`} colorInterpolationFilters="sRGB">
             <feColorMatrix type="matrix" values={`0 0 0 0 ${level} 0 0 0 0 ${level} 0 0 0 0 ${level} 0 0 0 1 0`} />
           </filter>;
         })}
         {finishMode === "preview" && artworkLayers.filter(layer => ["raised-uv", "emboss", "deboss"].includes(layer.finish ?? "")).map(layer => {
-          const depth = Math.max(0.25, Math.min(2, (layer.finishDepth ?? 0.2) * 3));
+          const depth = Math.max(0.25, Math.min(layer.finish === "raised-uv" ? 2 : 4, (layer.finishDepth ?? 0.2) * 3));
           const direction = layer.finish === "deboss" ? -1 : 1;
           return <filter key={layer.id} id={`${prefix}-relief-${layer.id}`} x="-15%" y="-15%" width="130%" height="130%" colorInterpolationFilters="sRGB">
             <feDropShadow dx={depth * direction} dy={depth * direction} stdDeviation={depth * 0.45} floodColor="#000000" floodOpacity="0.4" />

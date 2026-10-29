@@ -3688,7 +3688,7 @@ export function DesignConfiguratorEditor({
                             unit="MM"
                             value={selectedTextLayers[0].finishDepth ?? 0.2}
                             min={0.02}
-                            max={0.8}
+                            max={selectedTextLayers[0].finish === "raised-uv" ? 0.8 : 1.6}
                             step={0.02}
                             onChange={(finishDepth) => {
                               const ids = new Set(
@@ -3991,7 +3991,7 @@ export function DesignConfiguratorEditor({
                           unit="MM"
                           value={element.finishDepth ?? 0.2}
                           min={0.02}
-                          max={0.8}
+                          max={element.finish === "raised-uv" ? 0.8 : 1.6}
                           step={0.02}
                           onChange={(finishDepth) =>
                             update(

@@ -695,6 +695,8 @@ export function Sleeve3DPreview({
         ref={host}
         aria-label="Interactive 3D sleeve with captured front and back labels"
       >
+        <img className="dc-3d-watermark" src="/media/images/logos/sa-logo.png"
+          alt="" aria-hidden="true" draggable={false} />
         {error && (
           <p className="dc-3d-error" role="alert">
             {error}

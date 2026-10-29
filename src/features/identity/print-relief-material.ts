@@ -53,7 +53,7 @@ export function applyPrintRelief(material: THREE.MeshPhysicalMaterial, images: P
     const data = context.getImageData(0,0,size,size).data;
     for (let p=0;p<height.length;p++) {
       const coverage = data[p*4]/255 * data[p*4+3]/255;
-      height[p] += coverage * 0.8 * (key === "deboss" ? -1 : 1);
+      height[p] += coverage * 1.6 * (key === "deboss" ? -1 : 1);
       if (key === "uv") uv[p] = Math.min(1, coverage * 20);
     }
   }

@@ -854,7 +854,7 @@ export function parseDesign(input: unknown): LabelDesign {
         color: hex(item.color, base.color),
         ...(["gold", "silver", "copper", "custom", "raised-uv", "emboss", "deboss"].includes(String(item.finish))
           ? {finish: item.finish as LabelLayer["finish"], foilColor: hex(item.foilColor, "#d6ad60"),
-            finishDepth: clamp(Number.isFinite(item.finishDepth) ? Number(item.finishDepth) : 0.2, 0.02, 0.8)} : {}),
+            finishDepth: clamp(Number.isFinite(item.finishDepth) ? Number(item.finishDepth) : 0.2, 0.02, item.finish === "emboss" || item.finish === "deboss" ? 1.6 : 0.8)} : {}),
         customTextColor: kind !== "image" && item.customTextColor === true,
         align:
           item.align === "start" || item.align === "end"
