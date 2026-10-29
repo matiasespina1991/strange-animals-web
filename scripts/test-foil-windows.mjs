@@ -77,6 +77,25 @@ assert.equal(textFoilColor({...layer,kind:'image'}),'#d6ad60');
 assert.equal(parseDesign({...design,A:[{...layer,kind:'image',finish:'silver'}]}).A[0].finish,'silver');
 for(const finish of ['gold','silver','copper','custom']) assert.match(textFoilColor({...layer,finish}),/^#[a-f0-9]{6}$/);
 const props={design,side:'A',prefix:'foil-test',fontFamily:()=> 'Test'};
+function findArtworkNode(node,id) {
+  if(Array.isArray(node)) { for(const child of node) {const match=findArtworkNode(child,id);if(match)return match;} return; }
+  if(!node || typeof node!=='object' || !node.props)return;
+  if(node.props['data-layer-id']===id)return node;
+  return findArtworkNode(node.props.children,id);
+}
+for(const surface of ['cookie','sleeve']) for(const kind of ['text','circular','image']) {
+  let edited;
+  const layerForEdit={...layer,kind};
+  const artwork=LabelArtwork({...props,surface,design:{...design,A:[layerForEdit],sleeveA:[layerForEdit]},onEditText:value=>{edited=value;},onSelect(){}});
+  const node=findArtworkNode(artwork,layerForEdit.id);
+  assert.ok(node);
+  if(kind==='image') assert.equal(node.props.onDoubleClick,undefined);
+  else {
+    let prevented=false,stopped=false;
+    node.props.onDoubleClick({preventDefault(){prevented=true;},stopPropagation(){stopped=true;}});
+    assert.equal(edited.id,layerForEdit.id); assert.ok(prevented && stopped);
+  }
+}
 for (const finish of ['raised-uv','emboss','deboss']) for (const kind of ['text','circular','image']) {
   const reliefLayer={...layer,kind,finish,finishDepth:0.4,color:'#123456',image:'data:image/png;base64,AA=='};
   assert.equal(parseDesign({...design,A:[reliefLayer]}).A[0].finish,finish);
@@ -109,14 +128,25 @@ for(let p=0;p<32*32;p++) uvPixels.set([64,64,64,255],p*4);
 let flipped=false;
 vm.runInNewContext(ts.transpileModule(readFileSync(base+'/print-relief-material.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{
   module:reliefModule,exports:reliefModule.exports,require:()=>THREE,
-  document:{createElement:()=>({getContext:()=>({clearRect(){},save(){},restore(){},translate(){flipped=true;},scale(){},drawImage(){},getImageData:()=>({data:uvPixels})})})},
+  document:{createElement:()=>{
+    const canvas={};
+    canvas.getContext=()=>({clearRect(){},save(){},restore(){},translate(){flipped=true;},scale(){},drawImage(){},
+      getImageData:()=>({data:canvas.pixels ?? uvPixels}),
+      createImageData:(width,height)=>({data:new Uint8ClampedArray(width*height*4)}),
+      putImageData:image=>{canvas.pixels=image.data;},
+    });
+    return canvas;
+  }},
 });
 const uvMaterial=new THREE.MeshPhysicalMaterial({roughness:.48,metalness:0,color:'#123456'});
 reliefModule.exports.applyPrintRelief(uvMaterial,{uv:{naturalWidth:32}},315,true);
 assert.equal(uvMaterial.color.getHexString(),'123456','UV does not recolor ink');
 assert.equal(uvMaterial.metalness,0,'Varnish is not metal');
-assert.ok(uvMaterial.normalMap?.isDataTexture && uvMaterial.roughnessMap?.isDataTexture && uvMaterial.clearcoatMap?.isDataTexture);
-assert.equal(uvMaterial.clearcoat,1);assert.equal(uvMaterial.roughnessMap.image.data[0],18);
+assert.ok(uvMaterial.normalMap?.isDataTexture && uvMaterial.roughnessMap?.isCanvasTexture && uvMaterial.clearcoatMap?.isDataTexture);
+assert.equal(uvMaterial.roughnessMap.image.data,undefined,'GLTF drawImage must receive a canvas, not a raw pixel descriptor');
+assert.equal(typeof uvMaterial.roughnessMap.image.getContext,'function');
+assert.equal(uvMaterial.clearcoat,1);assert.equal(uvMaterial.roughnessMap.image.getContext('2d').getImageData().data[0],18);
+assert.equal(uvMaterial.roughnessMap.colorSpace,THREE.NoColorSpace,'Roughness remains linear data');
 assert.ok(flipped,'Back sleeve masks follow the mirrored artwork');
 uvMaterial.normalMap.dispose();uvMaterial.roughnessMap.dispose();uvMaterial.clearcoatMap.dispose();uvMaterial.dispose();
 const preview=renderToStaticMarkup(React.createElement(LabelArtwork,props));

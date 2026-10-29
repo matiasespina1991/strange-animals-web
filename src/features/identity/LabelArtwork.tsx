@@ -408,6 +408,7 @@ export function LabelArtwork({
   innerShadow = false,
   finishMode = "preview",
   onSelect,
+  onEditText,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -428,6 +429,7 @@ export function LabelArtwork({
   innerShadow?: boolean;
   finishMode?: "preview" | "flat" | "mask" | "base" | "height-mask";
   onSelect?: (layer: LabelLayer) => void;
+  onEditText?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
   onPointerUp?: PointerEventHandler<SVGGElement>;
@@ -682,6 +684,9 @@ export function LabelArtwork({
               tabIndex={onSelect ? 0 : undefined}
               aria-label={onSelect ? `Edit ${layer.name}` : undefined}
               onClick={() => onSelect?.(layer)}
+              onDoubleClick={layer.kind !== "image" && onEditText ? event => {
+                event.preventDefault(); event.stopPropagation(); onEditText(layer);
+              } : undefined}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();

@@ -1227,6 +1227,21 @@ export function DesignConfiguratorEditor({
       if (active()) setFontBusy(false);
     }
   };
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [contentFocusRequest, setContentFocusRequest] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (!contentFocusRequest || element.id !== contentFocusRequest || !contentTextareaRef.current) return;
+    contentTextareaRef.current.focus({preventScroll: true});
+    const endPosition = contentTextareaRef.current.value.length;
+    contentTextareaRef.current.setSelectionRange(endPosition, endPosition);
+    contentTextareaRef.current.scrollIntoView({block: "nearest", inline: "nearest"});
+    setContentFocusRequest(null);
+  }, [contentFocusRequest, element.id, mobileTab]);
+  const editCanvasText = (layer: LabelLayer) => {
+    if (layer.kind === "image") return;
+    selectLayer(layer);
+    setContentFocusRequest(layer.id);
+  };
   const selectLayer = (layer: LabelLayer) => {
     setSelectedLayers([layer.id]);
     setSelected(layer.id);
@@ -1596,7 +1611,6 @@ export function DesignConfiguratorEditor({
     if (accountUser) void saveToGallery();
     else saveLocally();
   };
-  const load = () => onOpenGallery();
   const exportProject = () =>
     downloadDesignFile(
       new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }),
@@ -3318,6 +3332,7 @@ export function DesignConfiguratorEditor({
                     selectedIds={surface === "sleeve" ? selection : undefined}
                     guides={surface === "sleeve" && guides}
                     onSelect={surface === "sleeve" ? selectLayer : undefined}
+                    onEditText={surface === "sleeve" ? editCanvasText : undefined}
                     onPointerDown={
                       surface === "sleeve"
                         ? (event) => {
@@ -3359,6 +3374,7 @@ export function DesignConfiguratorEditor({
                   cutCenter={false}
                   innerShadow
                   onSelect={surface === "cookie" ? selectLayer : undefined}
+                  onEditText={surface === "cookie" ? editCanvasText : undefined}
                   onPointerDown={surface === "cookie" ? startDrag : undefined}
                   onPointerMove={surface === "cookie" ? moveDrag : undefined}
                   onPointerUp={surface === "cookie" ? endDrag : undefined}
@@ -3585,6 +3601,7 @@ export function DesignConfiguratorEditor({
               {element.kind !== "image" && (
                 <>
                   <ContentTextControl
+                    textareaRef={contentTextareaRef}
                     text={element.text}
                     align={element.align}
                     onAlignChange={(align) => {
@@ -3944,8 +3961,11 @@ export function DesignConfiguratorEditor({
                   </>
                 ) : (
                   <>
-                    {element.kind === "image" &&
-                      slider("Width", "width", 10, 500, "PX")}
+                    {element.kind === "image" && <TypographyValueControl
+                      label="Width" unit="PX" value={element.width} min={10} max={1500}
+                      sliderMax={500} expandSlider step={1}
+                      onChange={width => update({width}, `width-${element.id}`)} onCommit={end}
+                    />}
                     {element.kind === "image" && (
                       <label className="dc-field">
                         <span className="dc-finish-heading">
@@ -4378,10 +4398,6 @@ export function DesignConfiguratorEditor({
               <button onClick={() => setDialog("new")}>
                 <Plus size={16} />
                 New project
-              </button>
-              <button onClick={load}>
-                <FileText size={16} />
-                Open My Gallery
               </button>
               <button onClick={exportProject}>
                 <ArrowDownToLine size={16} />

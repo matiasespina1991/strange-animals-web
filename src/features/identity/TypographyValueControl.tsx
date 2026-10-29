@@ -43,8 +43,8 @@ export function TypographyValueControl({
             className="dc-typography-expand"
             aria-label={
               sliderExpanded
-                ? "Use standard size slider range"
-                : "Expand size slider range 3x"
+                ? `Use standard ${label.toLowerCase()} slider range`
+                : `Expand ${label.toLowerCase()} slider range 3x`
             }
             aria-pressed={sliderExpanded}
             title={sliderExpanded ? "Use standard range" : "Expand range 3x"}

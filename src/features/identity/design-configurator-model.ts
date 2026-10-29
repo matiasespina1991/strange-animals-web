@@ -850,7 +850,7 @@ export function parseDesign(input: unknown): LabelDesign {
         angle: numeric(item.angle, 0, -180, 180),
         x: numeric(item.x, 300, 0, 600),
         y: numeric(item.y, 190, 0, 600),
-        width: numeric(item.width, 150, 10, 500),
+        width: numeric(item.width, 150, 10, 1500),
         color: hex(item.color, base.color),
         ...(["gold", "silver", "copper", "custom", "raised-uv", "emboss", "deboss"].includes(String(item.finish))
           ? {finish: item.finish as LabelLayer["finish"], foilColor: hex(item.foilColor, "#d6ad60"),

@@ -1,14 +1,15 @@
-import { useId } from "react";
+import { useId, type Ref } from "react";
 import { AlignLeft, AlignCenter, AlignRight } from "lucide-react";
 import { capitalizeWords } from "./design-configurator-model";
 
-export function ContentTextControl({ text, onChange, onTransform, onCommit, align, onAlignChange }: {
+export function ContentTextControl({ text, onChange, onTransform, onCommit, align, onAlignChange, textareaRef }: {
   text: string;
   onChange: (text: string) => void;
   onTransform: (text: string) => void;
   onCommit: () => void;
   align?: "start" | "middle" | "end";
   onAlignChange?: (align: "start" | "middle" | "end") => void;
+  textareaRef?: Ref<HTMLTextAreaElement>;
 }) {
   const id = useId();
   // These buttons transform the actual content, so derive their state from it.
@@ -39,6 +40,6 @@ export function ContentTextControl({ text, onChange, onTransform, onCommit, alig
       </div>
       </div>
     </div>
-    <textarea id={id} maxLength={3000} rows={4} value={text} onChange={event => onChange(event.target.value)} onBlur={onCommit} />
+    <textarea ref={textareaRef} id={id} maxLength={3000} rows={4} value={text} onChange={event => onChange(event.target.value)} onBlur={onCommit} />
   </div>;
 }

@@ -57,8 +57,18 @@ export function applyPrintRelief(material: THREE.MeshPhysicalMaterial, images: P
       if (key === "uv") uv[p] = Math.min(1, coverage * 20);
     }
   }
-  const texture = (data: Uint8Array, name: string) => {
-    const map = new THREE.DataTexture(new Uint8Array(data),size,size,THREE.RGBAFormat);
+  const texture = (data: Uint8Array, name: string, canvasBacked = false): THREE.Texture => {
+    let map: THREE.Texture;
+    if (canvasBacked) {
+      // GLTFExporter merges roughness/metalness via drawImage, which cannot
+      // consume a DataTexture's {data,width,height} image descriptor.
+      const target=document.createElement("canvas");target.width=target.height=size;
+      const targetContext=target.getContext("2d");
+      if(!targetContext)throw Error("Canvas unavailable for exportable roughness.");
+      const pixels=targetContext.createImageData(size,size);pixels.data.set(data);
+      targetContext.putImageData(pixels,0,0);
+      map=new THREE.CanvasTexture(target);
+    } else map = new THREE.DataTexture(new Uint8Array(data),size,size,THREE.RGBAFormat);
     map.name=name;map.flipY=true;map.magFilter=THREE.LinearFilter;
     map.minFilter=THREE.LinearMipmapLinearFilter;map.generateMipmaps=true;map.needsUpdate=true;
     return map;
@@ -85,7 +95,7 @@ export function applyPrintRelief(material: THREE.MeshPhysicalMaterial, images: P
       const r=Math.round((material.roughness*(1-uv[p])+.07*uv[p])*255), c=Math.round(uv[p]*255);
       roughness.set([r,r,r,255],p*4);coat.set([c,c,c,255],p*4);
     }
-    material.roughnessMap = texture(roughness,"Spot UV gloss mask");material.roughness=1;
+    material.roughnessMap = texture(roughness,"Spot UV gloss mask",true);material.roughness=1;
     material.clearcoatMap = texture(coat,"Spot UV clear varnish");material.clearcoat=1;
     material.clearcoatRoughness=.07;
   }
