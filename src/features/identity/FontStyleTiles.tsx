@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { listFontVariants, type FontCatalogItem, type FontVariant } from "./font-catalog-repository";
 import { FontSpecimen } from "./FontSpecimen";
 
@@ -38,7 +39,7 @@ export function FontStyleTiles({ font, sample, selected, busy, preview, choose, 
           onPointerEnter={(event) => { if (event.pointerType === "mouse") hover(variant); }}
           onPointerLeave={() => preview(null)} onFocus={() => hover(variant)} onBlur={() => preview(null)}
           onClick={() => choose(variant.id)}>
-          <strong>{variant.fileName.replace(/\.(otf|ttf|woff2?)$/i, "")}</strong>
+          <strong className="dc-font-title">{variant.fileName.replace(/\.(otf|ttf|woff2?)$/i, "")}{selected === variant.id && <Check size={15} aria-label="Selected style" />}</strong>
           <FontSpecimen font={font} variantId={variant.id} sample={sample} />
         </button>
       ))}

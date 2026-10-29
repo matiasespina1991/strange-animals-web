@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { applyFoilMask } from "./foil-material";
+import { applyPrintRelief, type ReliefMasks, type SurfaceReliefMasks } from "./print-relief-material";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
@@ -37,6 +38,7 @@ type Properties = {
   labelHoleMm: number;
   windows?: {A: boolean; B: boolean};
   foilMasks?: {A: string; B: string; sleeveA: string; sleeveB: string};
+  reliefMasks?: SurfaceReliefMasks;
 };
 
 const SLEEVE_SIZE_MM = 315;
@@ -71,6 +73,7 @@ export function Sleeve3DPreview({
   labelHoleMm,
   windows,
   foilMasks,
+  reliefMasks,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
   const modelExporterReference = useRef<() => Promise<Blob>>(() =>
@@ -95,7 +98,7 @@ export function Sleeve3DPreview({
     setShareError("");
   }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, sleeveMaterial, labelColor,
     sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY,
-    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB]);
+    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB, reliefMasks]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
   const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
@@ -141,7 +144,7 @@ export function Sleeve3DPreview({
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     let environment: THREE.WebGLRenderTarget | undefined;
-    if (sleeveMaterial === "printed-board" || (foilMasks && Object.values(foilMasks).some(Boolean))) {
+    if (sleeveMaterial === "printed-board" || (reliefMasks && Object.values(reliefMasks).some(masks=>Object.values(masks).some(Boolean))) || (foilMasks && Object.values(foilMasks).some(Boolean))) {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const studio = new RoomEnvironment();
       environment = pmrem.fromScene(studio);
@@ -273,6 +276,27 @@ export function Sleeve3DPreview({
     drawSleeve();
     const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows, sleeveMaterial);
     model.add(shell);
+    const retiredPrintTextures = new Set<THREE.Texture>();
+    const applyCapturedRelief = (material: THREE.MeshPhysicalMaterial, masks: ReliefMasks | undefined, mm: number, flip = false) => {
+      if (!masks) return;
+      const entries = Object.entries(masks).filter(([,url]) => url) as [keyof ReliefMasks,string][];
+      if (!entries.length) return;
+      const images: Partial<Record<keyof ReliefMasks,HTMLImageElement>> = {};
+      let remaining = entries.length, failed = false;
+      for (const [key,url] of entries) {
+        const image = new Image(); images[key]=image; labelImages.push(image);
+        image.addEventListener("load", () => {
+          if (--remaining === 0 && active && !failed) {
+            const old = applyPrintRelief(material,images,mm,flip);
+            if (old) retiredPrintTextures.add(old);
+          }
+        });
+        image.addEventListener("error", () => {failed=true;if(active)setError("The print finish mask could not be loaded.");});
+        image.src=url;
+      }
+    };
+    applyCapturedRelief((shell.children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],reliefMasks?.sleeveA,SLEEVE_SIZE_MM);
+    applyCapturedRelief((shell.children[1] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],reliefMasks?.sleeveB,SLEEVE_SIZE_MM,true);
     const applyCapturedFoil = (surface: THREE.Mesh, capture?: string, flip = false, printGroupsOnly = false) => {
       if (!capture) return;
       const image = new Image(); labelImages.push(image);
@@ -384,6 +408,7 @@ export function Sleeve3DPreview({
       reliefSurfaces.push({ geometry: label.geometry, face: 1 });
       applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1);
       applyCapturedFoil(label, back ? foilMasks?.B : foilMasks?.A);
+      applyCapturedRelief(material, back ? reliefMasks?.B : reliefMasks?.A, labelDiameterMm);
       const labelImage = new Image();
       labelImages.push(labelImage);
       labelImage.addEventListener("load", () => {
@@ -478,12 +503,14 @@ export function Sleeve3DPreview({
           material.roughnessMap?.dispose();
           material.alphaMap?.dispose();
           material.normalMap?.dispose();
+          material.clearcoatMap?.dispose();
           material.dispose();
         }
       });
       sleeveImageElement?.removeAttribute("src");
       sleeveCaptureImages.forEach((image) => image.removeAttribute("src"));
       labelImages.forEach((image) => image.removeAttribute("src"));
+      for (const texture of retiredPrintTextures) texture.dispose();
       renderer.dispose();
       environment?.dispose();
       renderer.domElement.remove();
@@ -503,7 +530,7 @@ export function Sleeve3DPreview({
     sleeveZoom,
     sleeveImageOffsetX,
     sleeveImageOffsetY,
-    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB,
+    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB, reliefMasks,
   ]);
 
   const exportModel = async () => {

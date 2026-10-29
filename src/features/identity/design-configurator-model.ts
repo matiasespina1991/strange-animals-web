@@ -78,7 +78,8 @@ export type LabelLayer = {
   x: number;
   y: number;
   color: string;
-  finish?: "gold" | "silver" | "copper" | "custom";
+  finish?: "gold" | "silver" | "copper" | "custom" | "raised-uv" | "emboss" | "deboss";
+  finishDepth?: number;
   foilColor?: string;
   customTextColor?: boolean;
   align: "start" | "middle" | "end";
@@ -833,8 +834,9 @@ export function parseDesign(input: unknown): LabelDesign {
         y: numeric(item.y, 190, 0, 600),
         width: numeric(item.width, 150, 10, 500),
         color: hex(item.color, base.color),
-        ...(["gold", "silver", "copper", "custom"].includes(String(item.finish))
-          ? {finish: item.finish as LabelLayer["finish"], foilColor: hex(item.foilColor, "#d6ad60")} : {}),
+        ...(["gold", "silver", "copper", "custom", "raised-uv", "emboss", "deboss"].includes(String(item.finish))
+          ? {finish: item.finish as LabelLayer["finish"], foilColor: hex(item.foilColor, "#d6ad60"),
+            finishDepth: clamp(Number.isFinite(item.finishDepth) ? Number(item.finishDepth) : 0.2, 0.02, 0.8)} : {}),
         customTextColor: kind !== "image" && item.customTextColor === true,
         align:
           item.align === "start" || item.align === "end"

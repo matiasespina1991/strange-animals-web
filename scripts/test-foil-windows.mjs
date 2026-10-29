@@ -26,6 +26,7 @@ const {LabelArtwork}=load(base+'/LabelArtwork.tsx');
 const {createSleeveShell}=load(base+'/sleeve-shell.ts');
 const {createPrintedBoardGrain}=load(base+'/sleeve-material.ts');
 const {foilCoveragePixels}=load(base+'/foil-material.ts');
+const {reliefNormalPixels}=load(base+'/print-relief-material.ts');
 const layer={...initialDesign.A[0],id:'foil',text:'FOIL',finish:'gold',visible:true};
 assert.equal(initialDesign.sleeveMaterial,'printed-board');
 assert.equal(parseDesign({...initialDesign,sleeveMaterial:undefined}).sleeveMaterial,'printed-board');
@@ -48,6 +49,44 @@ assert.equal(textFoilColor({...layer,kind:'image'}),'#d6ad60');
 assert.equal(parseDesign({...design,A:[{...layer,kind:'image',finish:'silver'}]}).A[0].finish,'silver');
 for(const finish of ['gold','silver','copper','custom']) assert.match(textFoilColor({...layer,finish}),/^#[a-f0-9]{6}$/);
 const props={design,side:'A',prefix:'foil-test',fontFamily:()=> 'Test'};
+for (const finish of ['raised-uv','emboss','deboss']) for (const kind of ['text','circular','image']) {
+  const reliefLayer={...layer,kind,finish,finishDepth:0.4,color:'#123456',image:'data:image/png;base64,AA=='};
+  assert.equal(parseDesign({...design,A:[reliefLayer]}).A[0].finish,finish);
+  assert.equal(parseDesign({...design,A:[{...reliefLayer,finishDepth:100}]}).A[0].finishDepth,.8);
+  assert.equal(parseDesign({...design,A:[{...reliefLayer,finishDepth:-3}]}).A[0].finishDepth,.02);
+  const reliefArt=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,design:{...design,A:[reliefLayer]}}));
+  assert.match(reliefArt,/relief-foil/);
+  if(kind === 'image') assert.match(reliefArt,/href="data:image\/png;base64,AA=="/,'UV/relief retains original image, including its alpha silhouette');
+  else assert.match(reliefArt,/fill="#123456"/,'Clear UV/relief preserves ink color');
+  const captured=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'base',design:{...design,A:[reliefLayer]}}));
+  assert.doesNotMatch(captured,/feDropShadow/,'Do not bake relief shadows into the 3D albedo');
+}
+const heightArt=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'height-mask',design:{...design,A:[{...layer,finishDepth:.4}]}}));
+assert.match(heightArt,/0 0 0 0 0.5/,'Mask encodes depth, not arbitrary opacity');
+assert.doesNotMatch(heightArt,/linearGradient/);
+const heights=new Float32Array([0,0,0,0,0.4,0,0,0,0]);
+const raisedNormals=reliefNormalPixels(heights,3,100);
+const pressedNormals=reliefNormalPixels(Float32Array.from(heights,v=>-v),3,100);
+assert.ok(raisedNormals[0]!==pressedNormals[0],'Emboss and deboss have opposite normal slopes');
+const flatNormals=reliefNormalPixels(new Float32Array(9),3,100);
+assert.deepEqual([...flatNormals.slice(0,4)],[128,128,255,255]);
+// Exercise actual material construction with a deterministic canvas readback.
+const reliefModule={exports:{}};
+const uvPixels=new Uint8ClampedArray(1024*1024*4);
+for(let p=0;p<1024*1024;p++) uvPixels.set([64,64,64,255],p*4);
+let flipped=false;
+vm.runInNewContext(ts.transpileModule(readFileSync(base+'/print-relief-material.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{
+  module:reliefModule,exports:reliefModule.exports,require:()=>THREE,
+  document:{createElement:()=>({getContext:()=>({clearRect(){},save(){},restore(){},translate(){flipped=true;},scale(){},drawImage(){},getImageData:()=>({data:uvPixels})})})},
+});
+const uvMaterial=new THREE.MeshPhysicalMaterial({roughness:.48,metalness:0,color:'#123456'});
+reliefModule.exports.applyPrintRelief(uvMaterial,{uv:{}},315,true);
+assert.equal(uvMaterial.color.getHexString(),'123456','UV does not recolor ink');
+assert.equal(uvMaterial.metalness,0,'Varnish is not metal');
+assert.ok(uvMaterial.normalMap?.isDataTexture && uvMaterial.roughnessMap?.isDataTexture && uvMaterial.clearcoatMap?.isDataTexture);
+assert.equal(uvMaterial.clearcoat,1);assert.equal(uvMaterial.roughnessMap.image.data[0],18);
+assert.ok(flipped,'Back sleeve masks follow the mirrored artwork');
+uvMaterial.normalMap.dispose();uvMaterial.roughnessMap.dispose();uvMaterial.clearcoatMap.dispose();uvMaterial.dispose();
 const preview=renderToStaticMarkup(React.createElement(LabelArtwork,props));
 assert.match(preview,/linearGradient/);assert.match(preview,/fill="url\(#foil-test-foil-foil\)"/);
 const mask=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'mask'}));

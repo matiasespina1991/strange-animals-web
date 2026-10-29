@@ -1,4 +1,4 @@
-import { imageRole, type LabelLayer } from "./design-configurator-model";
+import { imageRole, textFoilColor, type LabelLayer } from "./design-configurator-model";
 
 export function ImageAppearanceControls({
   layer,
@@ -31,7 +31,7 @@ export function ImageAppearanceControls({
   );
   return (
     <div className="dc-image-appearance">
-      {!layer.finish && role === "barcode" && (
+      {!textFoilColor(layer) && role === "barcode" && (
         <div className="dc-image-color-grid">
           {color(
             "Bars & text",
@@ -59,7 +59,7 @@ export function ImageAppearanceControls({
           )}
         </div>
       )}
-      {!layer.finish && role !== "brand-logo" &&
+      {!textFoilColor(layer) && role !== "brand-logo" &&
         role !== "barcode" &&
         layer.image?.startsWith("data:image/svg+xml") && (
           <>
@@ -71,7 +71,7 @@ export function ImageAppearanceControls({
             )}
           </>
         )}
-      {!layer.finish && role === "brand-logo" && (
+      {!textFoilColor(layer) && role === "brand-logo" && (
         <label className="dc-image-invert">
           <input
             type="checkbox"

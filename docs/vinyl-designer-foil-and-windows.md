@@ -16,6 +16,15 @@ Seleccionar texto, texto arqueado, imagen o asset → Print finish:
 
 - Ink Matte.
 - Hot Foil Silver.
+- Raised Spot UV / 3D UV.
+- Embossing.
+- Debossing.
+
+Los tres acabados nuevos se ofrecen para texto normal, arqueado, imágenes y assets, uno por capa. Se muestra un único control Height/Depth (0.02–0.8 mm, predeterminado 0.2), agrupado en un paso de undo durante el arrastre. La selección múltiple aplica acabado/profundidad a todos los textos seleccionados. Tinta y colores de imagen permanecen editables para UV/relieve; opacidad/blur/text surface/contrast y los efectos de texto se omiten mientras hay un acabado físico. En imágenes se utiliza el alfa original y se conservan crop y esquinas redondeadas: una imagen opaca cubre el rectángulo entero.
+
+El canvas usa iluminación/sombras sutiles, sin contaminar las capturas de albedo para el modelo. En 3D, máscaras por acabado/superficie/cara codifican altura; se combinan en un campo firmado (emboss y UV positivos, deboss negativo) que genera normales Sobel. Este microrelieve cambia con luces/cámara y se exporta como normal map estándar en el GLB; **no desplaza la malla ni constituye geometría de fabricación**. UV conserva el color impreso y añade máscaras de roughness y clearcoat para barniz transparente localizado. Se conserva el grano fino del cartón. No cambia el contorno exterior de la malla. La profundidad física definitiva debe acordarse con la imprenta. Falta inspección visual en navegador de esta sesión.
+
+Export → Print finish masks — ZIP contiene separaciones negras independientes para UV, emboss, deboss y foil por lado/superficie; no lleva luces, sombras ni profundidad de preview. El centro del cookie queda lleno en estas separaciones, igual que en los archivos de impresión. No son PDFs de prensa certificados.
 
 La selección múltiple aplica el acabado a todos los textos seleccionados. En imágenes y assets, el foil sustituye los colores originales usando exclusivamente el canal alfa: un PNG transparente conserva su silueta y una imagen opaca genera un rectángulo completo. Crop y esquinas redondeadas siguen aplicándose. Opacidad, blur, contraste y textura se ignoran y se ocultan mientras hay foil; sus valores se conservan para volver a Ink. En imágenes mate, Blur aparece debajo de Opacity. Las siluetas de imágenes también se incluyen en las máscaras de material 3D y las separaciones para imprenta.
 

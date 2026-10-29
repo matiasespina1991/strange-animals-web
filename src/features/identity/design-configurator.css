@@ -60,11 +60,16 @@
   margin-bottom: 7px;
   font-size: 12px;
 }
+.dc-content-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
 .dc-content-casing {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  margin-left: auto;
 }
 .dc-content-casing .dc-capitalize + .dc-capitalize {
   margin-left: -1px;
@@ -87,6 +92,15 @@
 .design-configurator .dc-capitalize:hover:not(:disabled) {
   background: var(--dc-hover, #e5ebdd);
   border-color: var(--dc-accent, #64734b);
+}
+.design-configurator .dc-capitalize[aria-pressed="true"],
+.design-configurator .dc-capitalize[aria-pressed="true"]:hover {
+  position: relative;
+  z-index: 1;
+  background: var(--dc-action-bg, #252620);
+  color: var(--dc-on-action, #ffffff);
+  border-color: var(--dc-accent, #64734b);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.25);
 }
 .design-configurator .dc-capitalize:focus-visible {
   outline: 2px solid var(--dc-accent, #64734b);
@@ -1023,9 +1037,7 @@
 .dc-properties .dc-foil-controls .dc-field > .dc-finish-heading { margin-bottom: 2px; }
 .dc-field > .dc-finish-heading { display: flex; justify-content: flex-start; align-items: center; gap: 6px; }
 .dc-finish-info { position: relative; display: inline-flex; align-items: center; cursor: help; }
-.dc-finish-info > [role="tooltip"] { visibility: hidden; opacity: 0; pointer-events: none; position: absolute; bottom: calc(100% + 8px); left: -70px; z-index: 10; width: min(220px, 55vw); padding: 10px; background: var(--dc-bg, #fafaf7); color: var(--dc-text, #252620); border: 1px solid var(--dc-divider, #d9ddcd); font-size: 12px; line-height: 1.45; font-weight: 400; }
-.dc-finish-info:hover > [role="tooltip"],
-.dc-finish-info:focus-visible > [role="tooltip"] { visibility: visible; opacity: 1; }
+.dc-finish-tooltip { pointer-events: none; position: fixed; z-index: 1000; padding: 12px; background: var(--dc-bg, #fafaf7); color: var(--dc-text, #252620); border: 1px solid var(--dc-divider, #d9ddcd); font-size: 12px; line-height: 1.45; font-weight: 400; }
 .dc-sleeve-element {
   position: absolute;
   z-index: 2;
@@ -1915,6 +1927,13 @@
   font-size: 14px;
   overflow-wrap: anywhere;
 }
+.dc-font-row .dc-font-title,
+.dc-font-styles .dc-font-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dc-font-title > svg { flex-shrink: 0; }
 .dc-font-specimen {
   display: block;
   overflow: hidden;

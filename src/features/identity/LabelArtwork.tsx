@@ -426,23 +426,23 @@ export function LabelArtwork({
   whiteCenter?: boolean;
   cutCenter?: boolean;
   innerShadow?: boolean;
-  finishMode?: "preview" | "flat" | "mask" | "base";
+  finishMode?: "preview" | "flat" | "mask" | "base" | "height-mask";
   onSelect?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
   onPointerUp?: PointerEventHandler<SVGGElement>;
 }) {
   // Both surfaces share all text, image and effect rendering.
-  const finishMask = finishMode === "mask";
+  const finishMask = finishMode === "mask" || finishMode === "height-mask";
   const artworkLayers = getSurfaceLayers(design, surface, side)
     .filter(layer => finishMode !== "base" || !textFoilColor(layer))
     .map(layer => textFoilColor(layer) ? {...layer, textTexture: undefined,
       blendMode: "normal" as const,
       opacity: 1, blur: 0,
       textEffect: undefined,
-      color: finishMode === "mask" ? "#ffffff" :
+      color: finishMask ? "#ffffff" :
         finishMode === "flat" ? textFoilColor(layer)! : `url(#${prefix}-foil-${layer.id})`,
-    } : layer);
+    } : layer.finish ? {...layer, opacity: 1, blur: 0, blendMode: "normal" as const, textTexture: undefined, textEffect: undefined} : layer);
   const extra = bleed ? (design.bleedMm / design.diameterMm) * 600 : 0;
   const hole = (design.holeMm / design.diameterMm) * 300;
   const safe = 300 - (design.safeMm / design.diameterMm) * 600;
@@ -475,10 +475,24 @@ export function LabelArtwork({
               width={layer.width} height={layer.width / (layer.imageRatio ?? 1)} preserveAspectRatio="xMidYMid meet" />
           </mask>
         ))}
-        {finishMode === "mask" && <>
+        {finishMask && <>
           <filter id={`${prefix}-foil-white`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0" /></filter>
           <filter id={`${prefix}-foil-black`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" /></filter>
         </>}
+        {finishMode === "height-mask" && artworkLayers.filter(layer => textFoilColor(layer)).map(layer => {
+          const level = Math.max(0.025, Math.min(1, (layer.finishDepth ?? 0.2) / 0.8));
+          return <filter key={layer.id} id={`${prefix}-height-${layer.id}`} colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values={`0 0 0 0 ${level} 0 0 0 0 ${level} 0 0 0 0 ${level} 0 0 0 1 0`} />
+          </filter>;
+        })}
+        {finishMode === "preview" && artworkLayers.filter(layer => ["raised-uv", "emboss", "deboss"].includes(layer.finish ?? "")).map(layer => {
+          const depth = Math.max(0.25, Math.min(2, (layer.finishDepth ?? 0.2) * 3));
+          const direction = layer.finish === "deboss" ? -1 : 1;
+          return <filter key={layer.id} id={`${prefix}-relief-${layer.id}`} x="-15%" y="-15%" width="130%" height="130%" colorInterpolationFilters="sRGB">
+            <feDropShadow dx={depth * direction} dy={depth * direction} stdDeviation={depth * 0.45} floodColor="#000000" floodOpacity="0.4" />
+            <feDropShadow dx={-depth * direction} dy={-depth * direction} stdDeviation={depth * 0.3} floodColor="#ffffff" floodOpacity={layer.finish === "raised-uv" ? 0.65 : 0.45} />
+          </filter>;
+        })}
         {finishMode === "preview" && getSurfaceLayers(design, surface, side).filter(layer => textFoilColor(layer)).map(layer => (
           <linearGradient key={layer.id} id={`${prefix}-foil-${layer.id}`} x1="0" y1="0" x2=".8" y2="1">
             <stop offset="0%" stopColor={textFoilColor(layer)!} />
@@ -661,7 +675,8 @@ export function LabelArtwork({
             <g
               key={layer.id}
               data-layer-id={layer.id}
-              filter={finishMode === "mask" ? `url(#${prefix}-foil-${textFoilColor(layer) ? "white" : "black"})` : undefined}
+              filter={finishMask ? (finishMode === "height-mask" && textFoilColor(layer) ? `url(#${prefix}-height-${layer.id})` : `url(#${prefix}-foil-${textFoilColor(layer) ? "white" : "black"})`) :
+                finishMode === "preview" && ["raised-uv", "emboss", "deboss"].includes(layer.finish ?? "") ? `url(#${prefix}-relief-${layer.id})` : undefined}
               className={onSelect ? "dc-svg-element" : undefined}
               role={onSelect ? "button" : undefined}
               tabIndex={onSelect ? 0 : undefined}

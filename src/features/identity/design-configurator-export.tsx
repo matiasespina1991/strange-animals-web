@@ -71,7 +71,7 @@ export async function createLabelSvg(
   side: LabelSide,
   fonts: FontCatalogItem[],
   includeBleed: boolean,
-  finishMode: "preview" | "flat" | "mask" | "base" = "preview",
+  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" = "preview",
   cutCenter = true,
 ) {
   const resolved = new Map<string, ResolvedLabelFont>();
@@ -161,7 +161,7 @@ export async function createSleeveArtworkSvg(
   design: LabelDesign,
   fonts: FontCatalogItem[],
   side: LabelSide,
-  finishMode: "preview" | "flat" | "mask" | "base" = "preview",
+  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" = "preview",
 ) {
   const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter(
     (layer) => layer.visible,
@@ -259,9 +259,9 @@ export async function createSleeveArtworkSvg(
   background.setAttribute("width", "600");
   background.setAttribute("height", "600");
   background.setAttribute("fill", design.sleeveColor);
-  if (finishMode !== "mask") root.append(background);
+  if (finishMode !== "mask" && finishMode !== "height-mask") root.append(background);
 
-  if (design.sleeveImage && finishMode !== "mask") {
+  if (design.sleeveImage && finishMode !== "mask" && finishMode !== "height-mask") {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
@@ -318,9 +318,11 @@ export async function createSleeveArtworkSvg(
 /** One black separation, with foreground ink/images knocking out covered foil. */
 export async function createFoilPlateSvg(
   design: LabelDesign, side: LabelSide, fonts: FontCatalogItem[],
-  surface: LabelSurface, color: string, includeBleed: boolean,
+  surface: LabelSurface, color: string, includeBleed: boolean, finish?: "raised-uv" | "emboss" | "deboss",
 ) {
   const plate = updateSurfaceLayers(design, surface, side, layers => layers.map(layer =>
+    finish ? {...layer, finish: layer.finish === finish ? "silver" as const : undefined,
+      ...(layer.finish ? {opacity:1,blur:0,blendMode:"normal" as const,textTexture:undefined,textEffect:undefined} : {})} :
     textFoilColor(layer) === color ? layer : {...layer, finish: undefined}));
   const source = surface === "cookie" ? await createLabelSvg(plate, side, fonts, includeBleed, "mask", false) :
     await createSleeveArtworkSvg(plate, fonts, side, "mask");

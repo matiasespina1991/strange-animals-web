@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
 const page = readFileSync('src/features/identity/IdentityFontsPage.tsx', 'utf8');
 const start = page.indexOf('        <div className="ml-px flex min-w-0 shrink-0 flex-col items-start gap-1 md:gap-2">');
 const end = page.indexOf('\n\n        <button\n          ref={', start);
@@ -39,3 +40,27 @@ for (const value of ['lower', 'mixed', 'upper']) {
   }
 }
 console.log('Toolbar: casing outside popover, three accessible states and working casing actions passed.');
+const require = createRequire(import.meta.url);
+const modelSource=readFileSync('src/features/identity/design-configurator-model.ts','utf8');
+const capitalStart=modelSource.indexOf('export function capitalizeWords(');
+const capitalEnd=modelSource.indexOf('\n}',capitalStart)+2;
+const capitalExports={};
+vm.runInNewContext(ts.transpileModule(modelSource.slice(capitalStart,capitalEnd),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:capitalExports});
+const contentExports={};
+vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/ContentTextControl.tsx','utf8'),{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022},
+}).outputText,{exports:contentExports,require:name=>name==='./design-configurator-model'?capitalExports:require(name)});
+for(const [text,active] of [['immersion','All lowercase'],['IMMERSION','All uppercase'],['Hello World','Capitalize each word'],['hELLo wORLD',undefined],['123',undefined],['',undefined]]) {
+  for(const [align,title] of [['start','Start anchor'],['middle','Center anchor'],['end','End anchor']]) {
+    const markup=renderToStaticMarkup(React.createElement(contentExports.ContentTextControl,{text,align,onAlignChange(){},onChange(){},onTransform(){},onCommit(){}}));
+    const buttons=[...markup.matchAll(/<button\b([^>]*)>/g)].map(match=>match[1]);
+    assert.equal(buttons.length,6);
+    const selected=buttons.filter(attributes=>attributes.includes('aria-pressed="true"'));
+    assert.equal(selected.length,active?2:1);
+    assert.ok(selected.some(attributes=>attributes.includes(`aria-label="${title}"`)));
+    if(active) assert.ok(selected.some(attributes=>attributes.includes(`aria-label="${active}"`)));
+  }
+}
+const css=readFileSync('src/features/identity/design-configurator.css','utf8');
+assert.match(css,/\.dc-capitalize\[aria-pressed="true"\][\s\S]*?background: var\(--dc-action-bg/);
+console.log('Content controls: selected anchor and casing reflect actual text, including manual edits, empty and mixed-case content.');
