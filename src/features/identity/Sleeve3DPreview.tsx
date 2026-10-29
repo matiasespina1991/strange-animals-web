@@ -214,11 +214,12 @@ export function Sleeve3DPreview({
 
     const createSleeveTexture = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 1024;
-      canvas.height = 1024;
+      canvas.width = 2048;
+      canvas.height = 2048;
       const context = canvas.getContext("2d");
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       return { canvas, context, texture };
     };
     const sleeveFront = createSleeveTexture();
@@ -288,6 +289,9 @@ export function Sleeve3DPreview({
         image.addEventListener("load", () => {
           if (--remaining === 0 && active && !failed) {
             const old = applyPrintRelief(material,images,mm,flip);
+            for (const map of [material.normalMap,material.roughnessMap,material.clearcoatMap]) {
+              if (map) { map.anisotropy=renderer.capabilities.getMaxAnisotropy(); map.needsUpdate=true; }
+            }
             if (old) retiredPrintTextures.add(old);
           }
         });
@@ -414,11 +418,13 @@ export function Sleeve3DPreview({
       labelImage.addEventListener("load", () => {
         if (!active) return;
         const labelCanvas = document.createElement("canvas");
-        labelCanvas.width = 1024;
-        labelCanvas.height = 1024;
+        labelCanvas.width = 2048;
+        labelCanvas.height = 2048;
         const context = labelCanvas.getContext("2d");
         if (!context) return;
-        context.drawImage(labelImage, 0, 0, 1024, 1024);
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
+        context.drawImage(labelImage, 0, 0, labelCanvas.width, labelCanvas.height);
         const center = labelCanvas.width / 2;
         const focalOffset = center * 0.005;
         const innerShadow = context.createRadialGradient(

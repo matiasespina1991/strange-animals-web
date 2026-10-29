@@ -3,8 +3,23 @@ import * as THREE from "three";
 export type ReliefMasks = {uv: string; emboss: string; deboss: string};
 export type SurfaceReliefMasks = {A: ReliefMasks; B: ReliefMasks; sleeveA: ReliefMasks; sleeveB: ReliefMasks};
 
+/** One-texel Gaussian reconstruction before differentiating, not artwork blur. */
+export function smoothReliefHeight(height: Float32Array, size: number) {
+  const horizontal = new Float32Array(height.length), result = new Float32Array(height.length);
+  for (let y=0;y<size;y++) for(let x=0;x<size;x++) {
+    const i=y*size+x;
+    horizontal[i]=(height[y*size+Math.max(0,x-1)]+2*height[i]+height[y*size+Math.min(size-1,x+1)])/4;
+  }
+  for (let y=0;y<size;y++) for(let x=0;x<size;x++) {
+    const i=y*size+x;
+    result[i]=(horizontal[Math.max(0,y-1)*size+x]+2*horizontal[i]+horizontal[Math.min(size-1,y+1)*size+x])/4;
+  }
+  return result;
+}
+
 /** Shallow paper relief in millimetres; normals remain portable in standard GLB. */
 export function reliefNormalPixels(height: Float32Array, size: number, surfaceMm: number) {
+  height = smoothReliefHeight(height,size);
   const pixels = new Uint8Array(size * size * 4);
   const at = (x: number, y: number) => height[Math.max(0, Math.min(size - 1, y)) * size + Math.max(0, Math.min(size - 1, x))];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -23,10 +38,13 @@ export function reliefNormalPixels(height: Float32Array, size: number, surfaceMm
 
 export function applyPrintRelief(material: THREE.MeshPhysicalMaterial, images: Partial<Record<keyof ReliefMasks, HTMLImageElement>>, surfaceMm: number, flip = false) {
   const previousNormalMap = material.normalMap;
-  const size = 1024, height = new Float32Array(size * size), uv = new Float32Array(size * size);
+  const size = Math.min(2048, Math.max(...Object.values(images).map(image=>image.naturalWidth || 2048), 1));
+  const height = new Float32Array(size * size), uv = new Float32Array(size * size);
   const canvas = document.createElement("canvas"); canvas.width = canvas.height = size;
   const context = canvas.getContext("2d", {willReadFrequently: true});
   if (!context) throw Error("Canvas unavailable for print relief.");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   for (const key of ["uv", "emboss", "deboss"] as const) {
     const image = images[key]; if (!image) continue;
     context.clearRect(0,0,size,size); context.save();

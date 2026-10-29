@@ -1419,10 +1419,10 @@ export function DesignConfiguratorEditor({
       ]);
       const [captureA, captureB, captureSleeveA, captureSleeveB] =
         await Promise.all([
-          captureLabelPreview(markupA),
-          captureLabelPreview(markupB),
-          captureLabelPreview(sleeveMarkupA),
-          captureLabelPreview(sleeveMarkupB),
+          captureLabelPreview(markupA, 2048),
+          captureLabelPreview(markupB, 2048),
+          captureLabelPreview(sleeveMarkupA, 2048),
+          captureLabelPreview(sleeveMarkupB, 2048),
         ]);
       const [frontPreview, backPreview, frontSleevePreview, backSleevePreview] =
         await Promise.all([
@@ -1801,7 +1801,7 @@ export function DesignConfiguratorEditor({
             ...(layer.finish ? {opacity:1,blur:0,blendMode:"normal" as const,textEffect:undefined,textTexture:undefined} : {}),
           })));
           result[key]=await captureLabelPreview(maskSurface==="cookie" ? await createLabelSvg(maskDesign,maskSide,fonts,false,"height-mask") :
-            await createSleeveArtworkSvg(maskDesign,fonts,maskSide,"height-mask"),1024);
+            await createSleeveArtworkSvg(maskDesign,fonts,maskSide,"height-mask"),2048);
         }
         return result;
       };
