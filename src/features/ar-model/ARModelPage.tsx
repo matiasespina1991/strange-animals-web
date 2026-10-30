@@ -181,9 +181,9 @@ export default function ARModelPage({
         if (!active) return;
         const viewer = document.createElement("model-viewer");
         viewer.setAttribute("src", modelSource);
-        if (/\b(?:sleeve|vinyl|vinilo|vinilos)\b/i.test(modelTitle)) {
-          viewer.setAttribute("scale", "0.1 0.1 0.1");
-        }
+        // Vinyl exports already contain their physical scale. Applying it
+        // here again would shrink them twice, and Scene Viewer loads the GLB
+        // directly, bypassing transforms set only on this web component.
         viewer.setAttribute("camera-controls", "");
         viewer.setAttribute("auto-rotate", "");
         viewer.setAttribute("autoplay", "");

@@ -71,7 +71,7 @@ export async function createLabelSvg(
   side: LabelSide,
   fonts: FontCatalogItem[],
   includeBleed: boolean,
-  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" = "preview",
+  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" | "ink-mask" = "preview",
   cutCenter = true,
 ) {
   const resolved = new Map<string, ResolvedLabelFont>();
@@ -161,7 +161,7 @@ export async function createSleeveArtworkSvg(
   design: LabelDesign,
   fonts: FontCatalogItem[],
   side: LabelSide,
-  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" = "preview",
+  finishMode: "preview" | "flat" | "mask" | "base" | "height-mask" | "ink-mask" = "preview",
 ) {
   const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter(
     (layer) => layer.visible,
@@ -259,9 +259,9 @@ export async function createSleeveArtworkSvg(
   background.setAttribute("width", "600");
   background.setAttribute("height", "600");
   background.setAttribute("fill", design.sleeveColor);
-  if (finishMode !== "mask" && finishMode !== "height-mask") root.append(background);
+  if (finishMode !== "mask" && finishMode !== "height-mask" && finishMode !== "ink-mask") root.append(background);
 
-  if (design.sleeveImage && finishMode !== "mask" && finishMode !== "height-mask") {
+  if (design.sleeveImage && finishMode !== "mask" && finishMode !== "height-mask" && finishMode !== "ink-mask") {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();

@@ -49,17 +49,29 @@ vm.runInNewContext(component.slice(shoulderStart, shoulderEnd), {
   THREE, model, cookieRecessInnerRadius: 0.4935,
   cookieRecessOpeningRadius: 0.5055, cookieDepth: 0.0096,
   sleeveDepth: 0.0336, labelColor: '#dddddd',
+  VINYL_DIAMETER_MM: 304.8, WORLD_SCALE: .01,
 });
 model.updateMatrixWorld(true);
-assert.equal(model.children.length, 2, 'Seal both faces');
-for (const shoulder of model.children) {
+assert.equal(model.children.length, 3, 'Two planar faces and a closed record edge');
+for (const shoulder of model.children.slice(0,2)) {
   assert.equal(shoulder.material.color.getHex(), 0x121212, 'Recess union represents black vinyl, not label ink');
+  const positions=shoulder.geometry.getAttribute('position');
+  const normals=shoulder.geometry.getAttribute('normal');
+  const z=positions.getZ(0);
+  for(let i=0;i<positions.count;i++) {
+    assert.equal(positions.getZ(i),z,'Vinyl stays planar from the label to beneath the sleeve');
+    assert.ok(Math.abs(normals.getX(i))<1e-6&&Math.abs(normals.getY(i))<1e-6,'No bevel normals produce a silver band');
+  }
+  assert.ok(Math.abs(Math.abs(z)-.0071)<1e-8,'Vinyl sits just below the label, not at sleeve height');
+  assert.ok(shoulder.material.roughness<.25&&shoulder.material.metalness===0,'Glossy vinyl remains nonmetallic');
 }
+const edgeBounds=new THREE.Box3().setFromObject(model.children[2]);
+assert.ok(Math.abs(edgeBounds.max.z-.0071)<1e-7&&Math.abs(edgeBounds.min.z+.0071)<1e-7,'Record edge joins the flat faces at the same thickness');
 for (const face of [1, -1]) {
-  for (const radius of [0.4938, 0.499, 0.505, 0.506]) {
+  for (const radius of [0.4938, 0.499, 0.505, 0.506, 1, 1.52]) {
     const hits = new THREE.Raycaster(new THREE.Vector3(radius, 0, face), new THREE.Vector3(0, 0, -face)).intersectObject(model, true);
     assert.ok(hits.length, `Recess shoulder must close the gap at radius ${radius} on face ${face}`);
   }
 }
-assert.match(component, /new GLTFExporter\(\).parse\(\s*model,/);
+assert.match(component, /new GLTFExporter\(\).parse\(\s*prepareVinylModelExport\(model\),/);
 console.log('Sleeve shell: thin dimensions, open right edge, center cutout, front/back textures, matte materials and shared export model passed.');

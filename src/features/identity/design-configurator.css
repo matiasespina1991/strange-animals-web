@@ -2492,6 +2492,7 @@
 .dc-pressing-picker {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -2500,14 +2501,19 @@
   font-size: 11px;
   white-space: nowrap;
 }
-.design-configurator .dc-pressing-trigger {
+.dc-pressing-select {
+  position: relative;
+  flex: 0 0 auto;
+}
+.design-configurator .dc-3d-preview-dialog .dc-pressing-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   min-width: 124px;
-  min-height: 30px;
-  padding: 4px 8px;
+  min-height: 24px;
+  height: 24px;
+  padding: 2px 8px;
   border: 1px solid var(--dc-border, #c4cab9);
   border-radius: 3px;
   background: var(--dc-input-bg, #fafaf7);
@@ -2518,15 +2524,72 @@
 .dc-pressing-menu {
   position: absolute;
   top: calc(100% + 5px);
-  right: 0;
+  left: 0;
   z-index: 5;
-  width: 180px;
+  width: max(100%, 180px);
+  max-width: calc(100vw - 48px);
   padding: 4px;
   border: 1px solid var(--dc-border, #c4cab9);
   border-radius: 5px;
   background: var(--dc-panel, #fafaf7);
   color: var(--dc-text, #252620);
   box-shadow: 0 6px 24px #0003;
+}
+.dc-pressing-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--dc-muted, #626e56);
+  cursor: pointer;
+}
+.dc-paper-texture {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  white-space: nowrap;
+  color: var(--dc-muted, #626e56);
+  font-size: 11px;
+}
+.design-configurator .dc-paper-texture select {
+  width: auto;
+  min-height: 24px;
+  height: 24px;
+  padding: 2px 5px;
+  border: 1px solid var(--dc-border, #c4cab9);
+  border-radius: 3px;
+  background: var(--dc-input-bg, #fafaf7);
+  color: var(--dc-text, #252620);
+  font: inherit;
+  cursor: pointer;
+}
+.dc-paper-loading {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1;
+  padding: 5px 8px;
+  background: var(--dc-panel, #fafaf7);
+  color: var(--dc-text, #252620);
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .dc-3d-heading-options {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-left: 0;
+  }
+}
+.design-configurator .dc-pressing-marks input {
+  width: 13px;
+  height: 13px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--dc-accent, #64734b);
+  cursor: pointer;
 }
 .dc-pressing-menu [role="option"] {
   display: flex;
@@ -2550,8 +2613,9 @@
   outline-offset: 2px;
 }
 @media (pointer: coarse) {
-  .design-configurator .dc-pressing-trigger {
-    min-height: 40px;
+  .design-configurator .dc-3d-preview-dialog .dc-pressing-trigger {
+    min-height: 32px;
+    height: 32px;
   }
   .dc-pressing-menu [role="option"] {
     min-height: 44px;
@@ -2561,7 +2625,7 @@
   .dc-pressing-label {
     display: none;
   }
-  .design-configurator .dc-pressing-trigger {
+  .design-configurator .dc-3d-preview-dialog .dc-pressing-trigger {
     min-width: 108px;
   }
   .dc-3d-preview-dialog .dc-picker-heading {
@@ -2569,7 +2633,9 @@
     grid-template-columns: minmax(0, 1fr) auto auto;
   }
   .dc-3d-heading-options {
-    margin-left: 6px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-left: 0;
   }
   .dc-3d-preview-dialog .dc-picker-heading h2 {
     font-size: 15px;
@@ -2593,12 +2659,21 @@
   left: 1rem;
   bottom: 1rem;
   z-index: 1;
-  width: 4rem;
+  width: 5.6rem;
   height: auto;
   opacity: 0.7;
-  pointer-events: none;
+  cursor: pointer;
   user-select: none;
   filter: none;
+}
+.dc-3d-scene .dc-3d-watermark:hover,
+.dc-3d-scene .dc-3d-watermark:focus-visible {
+  opacity: 1;
+}
+.dc-3d-watermark img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 .dc-3d-error {
   position: absolute;

@@ -427,7 +427,7 @@ export function LabelArtwork({
   whiteCenter?: boolean;
   cutCenter?: boolean;
   innerShadow?: boolean;
-  finishMode?: "preview" | "flat" | "mask" | "base" | "height-mask";
+  finishMode?: "preview" | "flat" | "mask" | "base" | "height-mask" | "ink-mask";
   onSelect?: (layer: LabelLayer) => void;
   onEditText?: (layer: LabelLayer) => void;
   onPointerDown?: PointerEventHandler<SVGGElement>;
@@ -435,7 +435,7 @@ export function LabelArtwork({
   onPointerUp?: PointerEventHandler<SVGGElement>;
 }) {
   // Both surfaces share all text, image and effect rendering.
-  const finishMask = finishMode === "mask" || finishMode === "height-mask";
+  const finishMask = finishMode === "mask" || finishMode === "height-mask" || finishMode === "ink-mask";
   const artworkLayers = getSurfaceLayers(design, surface, side)
     .filter(layer => finishMode !== "base" || !textFoilColor(layer))
     .map(layer => textFoilColor(layer) ? {...layer, textTexture: undefined,
@@ -677,7 +677,7 @@ export function LabelArtwork({
             <g
               key={layer.id}
               data-layer-id={layer.id}
-              filter={finishMask ? (finishMode === "height-mask" && textFoilColor(layer) ? `url(#${prefix}-height-${layer.id})` : `url(#${prefix}-foil-${textFoilColor(layer) ? "white" : "black"})`) :
+              filter={finishMode === "ink-mask" ? `url(#${prefix}-foil-${layer.kind !== "image" && !layer.finish ? "white" : "black"})` : finishMask ? (finishMode === "height-mask" && textFoilColor(layer) ? `url(#${prefix}-height-${layer.id})` : `url(#${prefix}-foil-${textFoilColor(layer) ? "white" : "black"})`) :
                 finishMode === "preview" && ["raised-uv", "emboss", "deboss"].includes(layer.finish ?? "") ? `url(#${prefix}-relief-${layer.id})` : undefined}
               className={onSelect ? "dc-svg-element" : undefined}
               role={onSelect ? "button" : undefined}

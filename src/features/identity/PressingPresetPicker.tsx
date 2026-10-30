@@ -1,9 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { PRESSING_PRESETS, type PressingPreset } from "./pressing-rings";
+import type { LabelDesign } from "./design-configurator-model";
 
-export function PressingPresetPicker({ value, onChange, disabled = false }: {
+export function PressingPresetPicker({ value, onChange, disabled = false, marksEnabled = true, onMarksChange, sleeveMaterial = "printed-board", onSleeveMaterialChange }: {
   value: PressingPreset; onChange: (value: PressingPreset) => void; disabled?: boolean;
+  marksEnabled?: boolean; onMarksChange?: (enabled: boolean) => void;
+  sleeveMaterial?: NonNullable<LabelDesign["sleeveMaterial"]>; onSleeveMaterialChange?: (value: NonNullable<LabelDesign["sleeveMaterial"]>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -34,6 +37,7 @@ export function PressingPresetPicker({ value, onChange, disabled = false }: {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
   }}>
     <span id={`${id}-label`} className="dc-pressing-label">Pressing rings</span>
+    <div className="dc-pressing-select">
     <button ref={trigger} type="button" className="dc-pressing-trigger" disabled={disabled}
       aria-haspopup="listbox" aria-expanded={open && !disabled} aria-controls={`${id}-list`}
       aria-label={`Pressing rings: ${selected.label}`} title="Preview only; included in shared 3D model"
@@ -61,5 +65,20 @@ export function PressingPresetPicker({ value, onChange, disabled = false }: {
         <span>{preset.label}</span>{preset.id === value && <Check size={13} aria-hidden="true" />}
       </div>)}
     </div>}
+    </div>
+    <label className="dc-pressing-marks">
+      <input type="checkbox" checked={marksEnabled} disabled={disabled}
+        onChange={event => onMarksChange?.(event.target.checked)} />
+      Pressing marks
+    </label>
+    <label className="dc-paper-texture">
+      Sleeve Material
+      <select value={sleeveMaterial} disabled={disabled}
+        onChange={event => onSleeveMaterialChange?.(event.target.value as NonNullable<LabelDesign["sleeveMaterial"]>)}>
+        <option value="printed-board">Printed Cardboard</option>
+        <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
+        <option value="matte">Matte</option>
+      </select>
+    </label>
   </div>;
 }

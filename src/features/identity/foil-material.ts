@@ -14,7 +14,7 @@ export function foilCoveragePixels(mask: Uint8ClampedArray) {
 
 export function applyFoilMask(material: THREE.MeshPhysicalMaterial, image: HTMLImageElement, flip = false) {
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 2048;
+  canvas.width = canvas.height = Math.min(4096, image.naturalWidth || 2048);
   const context = canvas.getContext("2d", {willReadFrequently: true});
   if (!context) throw Error("Canvas unavailable for foil material.");
   if (flip) { context.translate(canvas.width, 0); context.scale(-1, 1); }

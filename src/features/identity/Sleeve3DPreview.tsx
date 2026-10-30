@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { applyFoilMask } from "./foil-material";
-import { createCookiePaperTexture } from "./cookie-paper-texture";
+import { createCookiePaperTexture, createCookiePaperRoughnessTexture } from "./cookie-paper-texture";
 import { applyPrintRelief, type ReliefMasks, type SurfaceReliefMasks } from "./print-relief-material";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { accountAuth } from "./account-auth";
@@ -16,12 +16,17 @@ import { createSleeveShell } from "./sleeve-shell";
 import { createCookieCoreGeometry } from "./cookie-core-geometry";
 import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
 import { PressingPresetPicker } from "./PressingPresetPicker";
+import { prepareVinylModelExport } from "./vinyl-model-export";
+import { loadClassicSleevePaper } from "./sleeve-pbr-paper";
 
 type Properties = {
   modelShareId: string;
   modelTitle: string;
   pressingPreset: PressingPreset;
   onPressingPresetChange: (preset: PressingPreset) => void;
+  pressingMarks: boolean;
+  onPressingMarksChange: (enabled: boolean) => void;
+  onSleeveMaterialChange: (value: "matte" | "printed-board" | "printed-board-glossy") => void;
   headingTarget: HTMLElement | null;
   labelCapture: string;
   labelCaptureBack: string;
@@ -43,20 +48,22 @@ type Properties = {
 };
 
 const SLEEVE_SIZE_MM = 315;
+const VINYL_DIAMETER_MM = 304.8;
 const WORLD_SCALE = 1 / 100;
 const previewBackgroundUrl = "/media/images/pexels-photo-6131931.avif";
-const INITIAL_CAMERA_POSITION = new THREE.Vector3(3.7, 2.8, 5.6);
-const INITIAL_CAMERA_DISTANCE = INITIAL_CAMERA_POSITION.length();
-const PREVIOUS_MIN_CAMERA_DISTANCE = 1.5;
-const MAX_ZOOM_PERCENT = Math.round(
-  (INITIAL_CAMERA_DISTANCE / PREVIOUS_MIN_CAMERA_DISTANCE) * 4 * 100,
-);
+const INITIAL_CAMERA_POSITION = new THREE.Vector3(1, 0.35, 5.55);
+const INITIAL_CAMERA_DISTANCE = new THREE.Vector3(3.7, 2.8, 5.6).length();
+const INITIAL_ZOOM_PERCENT = Math.round(INITIAL_CAMERA_DISTANCE / INITIAL_CAMERA_POSITION.length() * 100);
+const MAX_ZOOM_PERCENT = 4000;
 
 export function Sleeve3DPreview({
   modelShareId,
   modelTitle,
   pressingPreset,
   onPressingPresetChange,
+  pressingMarks,
+  onPressingMarksChange,
+  onSleeveMaterialChange,
   headingTarget,
   labelCapture,
   labelCaptureBack,
@@ -86,8 +93,11 @@ export function Sleeve3DPreview({
   const sleeveCaptureImagesReference = useRef<HTMLImageElement[]>([]);
   const cameraReference = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsReference = useRef<OrbitControls | null>(null);
+  const viewReference = useRef<{position: THREE.Vector3; target: THREE.Vector3} | null>(null);
+  const paperReadyReference = useRef<Promise<unknown>>(Promise.resolve());
+  const [paperLoading, setPaperLoading] = useState(false);
   const [error, setError] = useState("");
-  const [zoomPercent, setZoomPercent] = useState(100);
+  const [zoomPercent, setZoomPercent] = useState(INITIAL_ZOOM_PERCENT);
   const [sharing, setSharing] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -101,6 +111,7 @@ export function Sleeve3DPreview({
     sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY,
     windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB, reliefMasks]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
+  const pressingMarksReference = useRef(pressingMarks);
   const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
 
   useEffect(() => {
@@ -108,6 +119,7 @@ export function Sleeve3DPreview({
     if (!container) return;
 
     let active = true;
+    setError("");
     let sleeveImageElement: HTMLImageElement | null = null;
     const sleeveCaptureImages: HTMLImageElement[] = [];
     const labelImages: HTMLImageElement[] = [];
@@ -119,8 +131,8 @@ export function Sleeve3DPreview({
     modelReference.current = model;
     scene.background = null;
     const previousContainerBackground = container.style.background;
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-    camera.position.copy(INITIAL_CAMERA_POSITION);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.01, 100);
+    camera.position.copy(viewReference.current?.position ?? INITIAL_CAMERA_POSITION);
     // A soft frontal key follows the viewer, remaining above-left even when
     // orbiting to side B. This is preview lighting, not exported geometry.
     const viewerLight = new THREE.DirectionalLight(0xffffff, 1.8);
@@ -144,8 +156,10 @@ export function Sleeve3DPreview({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
+    const artworkTextureSize = Math.min(4096, renderer.capabilities.maxTextureSize);
     let environment: THREE.WebGLRenderTarget | undefined;
-    if (sleeveMaterial !== "matte" || (reliefMasks && Object.values(reliefMasks).some(masks=>Object.values(masks).some(Boolean))) || (foilMasks && Object.values(foilMasks).some(Boolean))) {
+    // The exposed vinyl needs studio reflections even with an entirely matte sleeve.
+    {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const studio = new RoomEnvironment();
       environment = pmrem.fromScene(studio);
@@ -161,8 +175,8 @@ export function Sleeve3DPreview({
     controls.dampingFactor = 0.07;
     controls.minDistance = INITIAL_CAMERA_DISTANCE / (MAX_ZOOM_PERCENT / 100);
     controls.maxDistance = 10;
-    controls.target.set(0, 0, 0);
-    let lastZoomPercent = 100;
+    controls.target.copy(viewReference.current?.target ?? new THREE.Vector3());
+    let lastZoomPercent = Math.round(INITIAL_CAMERA_DISTANCE / camera.position.distanceTo(controls.target) * 100);
     const updateZoomPercent = () => {
       const nextZoomPercent = Math.min(
         MAX_ZOOM_PERCENT,
@@ -204,7 +218,7 @@ export function Sleeve3DPreview({
     const reliefSurfaces: { geometry: THREE.BufferGeometry; face: 1 | -1 | 0 }[] = [];
     const applyPressing = (preset: PressingPreset) => {
       pressingLight.intensity = preset === "flat" ? 0 : 0.8;
-      for (const surface of reliefSurfaces) applyPressingRelief(surface.geometry, labelRadius, preset, surface.face);
+      for (const surface of reliefSurfaces) applyPressingRelief(surface.geometry, labelRadius, preset, surface.face, pressingMarksReference.current);
     };
     applyPressingReference.current = applyPressing;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
@@ -215,8 +229,8 @@ export function Sleeve3DPreview({
 
     const createSleeveTexture = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 2048;
-      canvas.height = 2048;
+      canvas.width = artworkTextureSize;
+      canvas.height = artworkTextureSize;
       const context = canvas.getContext("2d");
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
@@ -285,6 +299,20 @@ export function Sleeve3DPreview({
     });
     model.add(shell);
     const retiredPrintTextures = new Set<THREE.Texture>();
+    setPaperLoading(sleeveMaterial === "matte");
+    const classicPaper = sleeveMaterial === "matte" ? loadClassicSleevePaper() : null;
+    paperReadyReference.current = classicPaper ?? Promise.resolve();
+    if (classicPaper) {
+      void classicPaper.then(maps => {
+        if (!active) { maps.forEach(map => map.dispose()); return; }
+        setPaperLoading(false);
+      }, failure => {
+        if (active) {
+          setPaperLoading(false);
+          setError(failure instanceof Error ? failure.message : "Classic paper could not be loaded.");
+        }
+      });
+    }
     const applyCapturedRelief = (material: THREE.MeshPhysicalMaterial, masks: ReliefMasks | undefined, mm: number, flip = false) => {
       if (!masks) return;
       const entries = Object.entries(masks).filter(([,url]) => url) as [keyof ReliefMasks,string][];
@@ -295,7 +323,9 @@ export function Sleeve3DPreview({
         const image = new Image(); images[key]=image; labelImages.push(image);
         image.addEventListener("load", () => {
           if (--remaining === 0 && active && !failed) {
+            const oldRoughness = material.roughnessMap;
             const old = applyPrintRelief(material,images,mm,flip);
+            if (oldRoughness && oldRoughness !== material.roughnessMap) retiredPrintTextures.add(oldRoughness);
             for (const map of [material.normalMap,material.roughnessMap,material.clearcoatMap]) {
               if (map) { map.anisotropy=renderer.capabilities.getMaxAnisotropy(); map.needsUpdate=true; }
             }
@@ -306,8 +336,29 @@ export function Sleeve3DPreview({
         image.src=url;
       }
     };
-    applyCapturedRelief((shell.children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],reliefMasks?.sleeveA,SLEEVE_SIZE_MM);
-    applyCapturedRelief((shell.children[1] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],reliefMasks?.sleeveB,SLEEVE_SIZE_MM,true);
+    const sleevePrints = [0,1].map(index =>
+      (shell.children[index] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],
+    );
+    const applySleeveRelief = () => sleevePrints.forEach((material,index) =>
+      applyCapturedRelief(material, index === 0 ? reliefMasks?.sleeveA : reliefMasks?.sleeveB, SLEEVE_SIZE_MM, index === 1),
+    );
+    if (classicPaper) {
+      void classicPaper.then(([normalMap,roughnessMap]) => {
+        if (!active) return;
+        for (const material of sleevePrints) {
+          if (material.normalMap) retiredPrintTextures.add(material.normalMap);
+          if (material.roughnessMap) retiredPrintTextures.add(material.roughnessMap);
+          material.normalMap = normalMap;
+          material.roughnessMap = roughnessMap;
+          material.normalScale.set(0.12,0.12);
+          normalMap.anisotropy = roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          material.needsUpdate = true;
+        }
+        applySleeveRelief();
+      }).catch(() => { /* Shared load handler reports the error. */ });
+    } else {
+      applySleeveRelief();
+    }
     const applyCapturedFoil = (surface: THREE.Mesh, capture?: string, flip = false, printGroupsOnly = false) => {
       if (!capture) return;
       const image = new Image(); labelImages.push(image);
@@ -359,36 +410,45 @@ export function Sleeve3DPreview({
     ]);
     model.add(cookie);
 
-    // Close the recessed shoulder on both faces. The sleeve opening is wider
-    // than the cookie; without this annulus it exposes the scene behind it.
+    // The record is planar beneath the sleeve, with the label just above it.
+    // Continue to the real 12-inch radius so oblique views cannot see through
+    // the sleeve cavity beyond a short decorative rim.
     for (const face of [1, -1]) {
       const innerRadius = cookieRecessInnerRadius;
-      const outerRadius = cookieRecessOpeningRadius + 0.003;
-      const shoulderGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 256, 8);
+      const outerRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
+      const shoulderGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 256, 1);
       const positions = shoulderGeometry.getAttribute("position");
-      const innerZ = cookieDepth / 2 + 0.0025;
-      // Tuck the overlap beneath the paperboard instead of laying a black
-      // coplanar ring over its surface (which reads as a detached outline).
-      const outerZ = sleeveDepth / 2 - 0.0015;
+      // Keep a 0.02 mm paper lip; the carton's cut edge provides the larger step.
+      const vinylZ = cookieDepth / 2 + 0.0025 - 0.0002;
       for (let i = 0; i < positions.count; i++) {
-        const radius = Math.hypot(positions.getX(i), positions.getY(i));
-        const t = THREE.MathUtils.clamp(
-          (radius - innerRadius) / (cookieRecessOpeningRadius - innerRadius),
-          0, 1,
-        );
-        positions.setZ(i, face * THREE.MathUtils.lerp(innerZ, outerZ, t));
+        positions.setZ(i, face * vinylZ);
       }
       positions.needsUpdate = true;
       shoulderGeometry.computeVertexNormals();
       const shoulder = new THREE.Mesh(shoulderGeometry, new THREE.MeshPhysicalMaterial({
         color: 0x12_12_12,
-        roughness: 0.84,
+        roughness: 0.18,
         metalness: 0,
+        clearcoat: 0.65,
+        clearcoatRoughness: 0.1,
+        ior: 1.54,
+        envMapIntensity: 1.2,
         side: THREE.DoubleSide,
       }));
-      shoulder.name = face === 1 ? "Front cookie recess shoulder" : "Back cookie recess shoulder";
+      shoulder.name = face === 1 ? "Front flat vinyl surface" : "Back flat vinyl surface";
       model.add(shoulder);
     }
+    const vinylRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
+    const vinylEdgeGeometry = new THREE.CylinderGeometry(
+      vinylRadius, vinylRadius, cookieDepth + 2 * (0.0025 - 0.0002), 256, 1, true,
+    );
+    vinylEdgeGeometry.rotateX(Math.PI / 2);
+    const vinylEdge = new THREE.Mesh(vinylEdgeGeometry, new THREE.MeshPhysicalMaterial({
+      color: 0x12_12_12, roughness: 0.18, metalness: 0,
+      clearcoat: 0.65, clearcoatRoughness: 0.1, ior: 1.54, envMapIntensity: 1.2,
+    }));
+    vinylEdge.name = "Outer vinyl edge";
+    model.add(vinylEdge);
 
     if (sleeveImage) {
       sleeveImageElement = new Image();
@@ -410,17 +470,19 @@ export function Sleeve3DPreview({
     }
 
     const addLabelFace = (capture: string, z: number, back = false) => {
-      const material = new THREE.MeshPhysicalMaterial({roughness: 0.42, metalness: 0, clearcoat: 0.1, clearcoatRoughness: 0.38, transparent: true, side: THREE.DoubleSide});
+      const material = new THREE.MeshPhysicalMaterial({roughness: 0.46, metalness: 0, specularIntensity: 0.81, clearcoat: 0.081, clearcoatRoughness: 0.38, transparent: true, side: THREE.DoubleSide});
       material.normalMap = createCookiePaperTexture();
       material.normalMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      material.roughnessMap = createCookiePaperRoughnessTexture();
+      material.roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
       material.normalScale.set(0.5,0.5);
       const label = new THREE.Mesh(
-        new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 192), material,
+        new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 384), material,
       );
       label.position.z = z;
       if (back) label.rotation.y = Math.PI;
       reliefSurfaces.push({ geometry: label.geometry, face: 1 });
-      applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1);
+      applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1, pressingMarksReference.current);
       applyCapturedFoil(label, back ? foilMasks?.B : foilMasks?.A);
       applyCapturedRelief(material, back ? reliefMasks?.B : reliefMasks?.A, labelDiameterMm);
       const labelImage = new Image();
@@ -428,8 +490,8 @@ export function Sleeve3DPreview({
       labelImage.addEventListener("load", () => {
         if (!active) return;
         const labelCanvas = document.createElement("canvas");
-        labelCanvas.width = 2048;
-        labelCanvas.height = 2048;
+        labelCanvas.width = artworkTextureSize;
+        labelCanvas.height = artworkTextureSize;
         const context = labelCanvas.getContext("2d");
         if (!context) return;
         context.imageSmoothingEnabled = true;
@@ -496,6 +558,7 @@ export function Sleeve3DPreview({
 
     return () => {
       active = false;
+      viewReference.current = {position: camera.position.clone(), target: controls.target.clone()};
       applyPressingReference.current = null;
       observer.disconnect();
       renderer.setAnimationLoop(null);
@@ -552,6 +615,7 @@ export function Sleeve3DPreview({
   const exportModel = async () => {
     const model = modelReference.current;
     if (!model) throw Error("The 3D preview is not ready yet.");
+    await paperReadyReference.current;
     const images = [
       ...labelImagesReference.current,
       ...(sleeveImageReference.current ? [sleeveImageReference.current] : []),
@@ -577,7 +641,7 @@ export function Sleeve3DPreview({
     );
     return new Promise<Blob>((resolve, reject) => {
       new GLTFExporter().parse(
-        model,
+        prepareVinylModelExport(model),
         (result) => {
           if (!(result instanceof ArrayBuffer)) {
             reject(Error("The 3D model could not be exported."));
@@ -686,17 +750,26 @@ export function Sleeve3DPreview({
     onPressingPresetChange(preset);
     applyPressingReference.current?.(preset);
   };
+  const changePressingMarks = (enabled: boolean) => {
+    setShareUrl(null);
+    pressingMarksReference.current = enabled;
+    onPressingMarksChange(enabled);
+    applyPressingReference.current?.(pressingPresetReference.current);
+  };
 
   return (
     <div className="dc-3d-preview">
-      {headingTarget && createPortal(<PressingPresetPicker value={pressingPreset} onChange={changePressingPreset} disabled={sharing} />, headingTarget)}
+      {headingTarget && createPortal(<PressingPresetPicker value={pressingPreset} onChange={changePressingPreset} disabled={sharing || paperLoading} marksEnabled={pressingMarks} onMarksChange={changePressingMarks} sleeveMaterial={sleeveMaterial} onSleeveMaterialChange={onSleeveMaterialChange} />, headingTarget)}
       <div
         className="dc-3d-scene"
         ref={host}
         aria-label="Interactive 3D sleeve with captured front and back labels"
       >
-        <img className="dc-3d-watermark" src="/media/images/logos/sa-logo.png"
-          alt="" aria-hidden="true" draggable={false} />
+        <a className="dc-3d-watermark" href="https://strangeanimals.de/"
+          target="_blank" rel="noopener noreferrer" aria-label="Strange Animals home (opens in a new tab)">
+          <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" draggable={false} />
+        </a>
+        {paperLoading && <span className="dc-paper-loading" role="status">Loading sleeve texture…</span>}
         {error && (
           <p className="dc-3d-error" role="alert">
             {error}
@@ -714,7 +787,7 @@ export function Sleeve3DPreview({
                 ? `Uploading ${Math.round(uploadProgress * 100)}%`
                 : "Share 3D model"
             }
-            disabled={sharing}
+            disabled={sharing || paperLoading}
             onClick={() => void shareModel()}
           >
             {sharing ? (
@@ -723,9 +796,6 @@ export function Sleeve3DPreview({
               <Share2 size={15} />
             )}
           </button>
-          <output className="dc-3d-zoom-level" aria-label="3D zoom level">
-            {zoomPercent}%
-          </output>
           <button
             aria-label="Zoom out 3D preview"
             title="Zoom out"
@@ -735,6 +805,9 @@ export function Sleeve3DPreview({
           >
             <Minus size={16} />
           </button>
+          <output className="dc-3d-zoom-level" aria-label="3D zoom level">
+            {zoomPercent}%
+          </output>
           <button
             aria-label="Zoom in 3D preview"
             title="Zoom in"

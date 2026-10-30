@@ -25,7 +25,7 @@ const {initialDesign,parseDesign,hasSleeveWindow,textFoilColor,designReducer}=lo
 const {LabelArtwork}=load(base+'/LabelArtwork.tsx');
 const {createSleeveShell}=load(base+'/sleeve-shell.ts');
 const {createPrintedBoardGrain}=load(base+'/sleeve-material.ts');
-const {createCookiePaperTexture}=load(base+'/cookie-paper-texture.ts');
+const {createCookiePaperTexture,createCookiePaperRoughnessTexture}=load(base+'/cookie-paper-texture.ts');
 const paperGrain=createCookiePaperTexture(64);
 assert.ok(paperGrain.isDataTexture);
 assert.equal(paperGrain.colorSpace,THREE.NoColorSpace,'Paper microtexture contains normal data, not ink colors');
@@ -34,10 +34,20 @@ assert.deepEqual([...paperGrain.image.data],[...createCookiePaperTexture(64).ima
 let variation=false;
 for(let i=0;i<paperGrain.image.data.length;i+=4) {
   const [x,y,z,alpha]=paperGrain.image.data.slice(i,i+4);
-  assert.ok(Math.abs(x-128)<8 && Math.abs(y-128)<8 && z>=254,'Circular scuff normals remain subtle');
+  assert.ok(Math.abs(x-128)<12 && Math.abs(y-128)<12 && z>=254,'Paper pores and fibre normals remain subtle');
   assert.equal(alpha,255); variation ||= x!==128 || y!==128;
 }
 assert.ok(variation,'Paper is not perfectly smooth');
+const paperRoughness=createCookiePaperRoughnessTexture(64);
+assert.equal(paperRoughness.colorSpace,THREE.NoColorSpace);
+assert.deepEqual([...paperRoughness.image.data],[...createCookiePaperRoughnessTexture(64).image.data],'Paper reflection stays stable across reopening');
+const roughnessLevels=new Set();
+for(let i=0;i<paperRoughness.image.data.length;i+=4) {
+  const [r,g,b,a]=paperRoughness.image.data.slice(i,i+4);
+  assert.ok(r>=226&&r<=255);assert.equal(r,g);assert.equal(g,b);assert.equal(a,255);
+  roughnessLevels.add(g);
+}
+assert.ok(roughnessLevels.size>20,'Fine variation breaks up the continuous reflection');
 const {foilCoveragePixels}=load(base+'/foil-material.ts');
 const {reliefNormalPixels,smoothReliefHeight}=load(base+'/print-relief-material.ts');
 const layer={...initialDesign.A[0],id:'foil',text:'FOIL',finish:'gold',visible:true};
@@ -142,14 +152,57 @@ const uvMaterial=new THREE.MeshPhysicalMaterial({roughness:.48,metalness:0,color
 reliefModule.exports.applyPrintRelief(uvMaterial,{uv:{naturalWidth:32}},315,true);
 assert.equal(uvMaterial.color.getHexString(),'123456','UV does not recolor ink');
 assert.equal(uvMaterial.metalness,0,'Varnish is not metal');
-assert.ok(uvMaterial.normalMap?.isDataTexture && uvMaterial.roughnessMap?.isCanvasTexture && uvMaterial.clearcoatMap?.isDataTexture);
+for (const map of [uvMaterial.normalMap, uvMaterial.roughnessMap, uvMaterial.clearcoatMap]) {
+  assert.ok(map?.isCanvasTexture, 'Every finish map must use the same transform-aware GLTF image export path');
+  assert.equal(map.flipY, true);
+  assert.equal(map.colorSpace, THREE.NoColorSpace);
+}
 assert.equal(uvMaterial.roughnessMap.image.data,undefined,'GLTF drawImage must receive a canvas, not a raw pixel descriptor');
 assert.equal(typeof uvMaterial.roughnessMap.image.getContext,'function');
 assert.equal(uvMaterial.clearcoat,1);assert.equal(uvMaterial.roughnessMap.image.getContext('2d').getImageData().data[0],18);
 assert.equal(uvMaterial.roughnessMap.colorSpace,THREE.NoColorSpace,'Roughness remains linear data');
 assert.ok(flipped,'Back sleeve masks follow the mirrored artwork');
 uvMaterial.normalMap.dispose();uvMaterial.roughnessMap.dispose();uvMaterial.clearcoatMap.dispose();uvMaterial.dispose();
+const stockNormalPixels=new Uint8ClampedArray(32*32*4);
+for(let p=0;p<32*32;p++) stockNormalPixels.set([150,128,255,255],p*4);
+const stockNormal=new THREE.CanvasTexture({width:32,height:32,getContext:()=>({getImageData:()=>({data:stockNormalPixels})})});
+const stockMaterial=new THREE.MeshPhysicalMaterial({normalMap:stockNormal});
+stockMaterial.normalScale.set(.12,.12);
+reliefModule.exports.applyPrintRelief(stockMaterial,{},100);
+assert.ok(stockMaterial.normalMap.image.pixels[0]>128,'Canvas-backed downloaded paper normals survive print relief composition');
+stockMaterial.normalMap.dispose();stockNormal.dispose();stockMaterial.dispose();
+const stockRoughnessPixels=new Uint8ClampedArray(32*32*4).fill(128);
+const stockRoughness=new THREE.CanvasTexture({width:32,height:32,getContext:()=>({getImageData:()=>({data:stockRoughnessPixels})})});
+const stockUv=new THREE.MeshPhysicalMaterial({roughness:.46,roughnessMap:stockRoughness});
+const originalCoverage=uvPixels[0];uvPixels[0]=0;
+reliefModule.exports.applyPrintRelief(stockUv,{uv:{naturalWidth:32}},100);
+assert.equal(stockUv.roughnessMap.image.pixels[1],59,'Unvarnished paper keeps its downloaded roughness');
+assert.equal(stockUv.roughnessMap.image.pixels[5],18,'Spot UV retains its gloss over paper');
+uvPixels[0]=originalCoverage;
+stockUv.normalMap.dispose();stockUv.roughnessMap.dispose();stockUv.clearcoatMap.dispose();stockRoughness.dispose();stockUv.dispose();
 const preview=renderToStaticMarkup(React.createElement(LabelArtwork,props));
+const inkLayers=[
+  {...layer,id:'plain-ink',finish:undefined,text:'INK'},
+  {...layer,id:'arc-ink',kind:'circular',finish:undefined,text:'ARC'},
+  {...layer,id:'explicit-emboss',finish:'emboss'},
+  {...layer,id:'cover-image',kind:'image',finish:undefined,image:'data:image/png;base64,AA=='},
+];
+const inkMask=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'ink-mask',design:{...design,A:inkLayers}}));
+for(const id of ['plain-ink','arc-ink']) assert.match(inkMask,new RegExp(`data-layer-id="${id}" filter="url\\(#foil-test-foil-white\\)"`),'Normal text contributes to ink height');
+for(const id of ['explicit-emboss','cover-image']) assert.match(inkMask,new RegExp(`data-layer-id="${id}" filter="url\\(#foil-test-foil-black\\)"`),'Images and explicit finishes occlude ink without double relief');
+assert.doesNotMatch(inkMask,/<circle cx="300" cy="300" r="300" fill=/,'Paper background is excluded from ink height');
+const oldInkCoverage=uvPixels[0];uvPixels[0]=255;
+const inkMaterial=new THREE.MeshPhysicalMaterial();
+const embossMaterial=new THREE.MeshPhysicalMaterial();
+reliefModule.exports.applyPrintRelief(inkMaterial,{ink:{naturalWidth:32}},1);
+reliefModule.exports.applyPrintRelief(embossMaterial,{emboss:{naturalWidth:32}},1);
+const inkSlope=Math.abs(inkMaterial.normalMap.image.pixels[0]-128);
+const embossSlope=Math.abs(embossMaterial.normalMap.image.pixels[0]-128);
+assert.ok(inkSlope>0,'Ink adds a small normal slope at glyph edges');
+assert.ok(embossSlope>inkSlope*5,'Ink thickness stays much subtler than explicit emboss');
+assert.equal(inkMaterial.clearcoat,0,'Ink thickness does not add varnish');
+uvPixels[0]=oldInkCoverage;
+inkMaterial.normalMap.dispose();embossMaterial.normalMap.dispose();inkMaterial.dispose();embossMaterial.dispose();
 assert.match(preview,/linearGradient/);assert.match(preview,/fill="url\(#foil-test-foil-foil\)"/);
 const mask=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'mask'}));
 assert.doesNotMatch(mask,/linearGradient|fill="#e5e8d9"/);assert.match(mask,/foil-white/);

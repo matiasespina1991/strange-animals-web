@@ -557,6 +557,9 @@ export function DesignConfiguratorEditor({
   const [previewHeadingTarget, setPreviewHeadingTarget] =
     useState<HTMLDivElement | null>(null);
   const [pressingPreset, setPressingPreset] = useState<PressingPreset>("flat");
+  const [pressingMarks, setPressingMarks] = useState(true);
+  const [previewSleeveMaterial, setPreviewSleeveMaterial] = useState<NonNullable<LabelDesign["sleeveMaterial"]> | null>(null);
+  useEffect(() => setPreviewSleeveMaterial(null), [design.sleeveMaterial]);
   const [sleevePreviewLabels, setSleevePreviewLabels] = useState({
     A: "",
     B: "",
@@ -1873,6 +1876,7 @@ export function DesignConfiguratorEditor({
     e.preventDefault();
   };
   const openSleevePreview = async () => {
+    setPreviewSleeveMaterial(null);
     setSleevePreviewBusy(true);
     try {
       const [markupA, markupB, sleeveMarkupA, sleeveMarkupB] =
@@ -1884,10 +1888,10 @@ export function DesignConfiguratorEditor({
         ]);
       const [captureA, captureB, sleeveCaptureA, sleeveCaptureB] =
         await Promise.all([
-          captureLabelPreview(markupA, 2048),
-          captureLabelPreview(markupB, 2048),
-          captureLabelPreview(sleeveMarkupA, 2048),
-          captureLabelPreview(sleeveMarkupB, 2048),
+          captureLabelPreview(markupA, 4096),
+          captureLabelPreview(markupB, 4096),
+          captureLabelPreview(sleeveMarkupA, 4096),
+          captureLabelPreview(sleeveMarkupB, 4096),
         ]);
       const maskCapture = async (
         maskSide: LabelSide,
@@ -1914,7 +1918,7 @@ export function DesignConfiguratorEditor({
                 maskSide,
                 "mask",
               ),
-          2048,
+          4096,
         );
       };
       const [foilA, foilB, foilSleeveA, foilSleeveB] = await Promise.all([
@@ -1974,7 +1978,17 @@ export function DesignConfiguratorEditor({
                   maskSide,
                   "height-mask",
                 ),
-            2048,
+            4096,
+          );
+        }
+        if (getSurfaceLayers(previewDesign, maskSurface, maskSide).some(
+          layer => layer.visible && layer.kind !== "image" && !layer.finish,
+        )) {
+          result.ink = await captureLabelPreview(
+            maskSurface === "cookie"
+              ? await createLabelSvg(previewDesign, maskSide, fonts, false, "ink-mask")
+              : await createSleeveArtworkSvg(previewDesign, fonts, maskSide, "ink-mask"),
+            4096,
           );
         }
         return result;
@@ -4358,6 +4372,9 @@ export function DesignConfiguratorEditor({
             modelTitle={design.title}
             pressingPreset={pressingPreset}
             onPressingPresetChange={setPressingPreset}
+            pressingMarks={pressingMarks}
+            onPressingMarksChange={setPressingMarks}
+            onSleeveMaterialChange={setPreviewSleeveMaterial}
             headingTarget={previewHeadingTarget}
             labelCapture={sleevePreviewLabels.A}
             labelCaptureBack={sleevePreviewLabels.B}
@@ -4374,7 +4391,7 @@ export function DesignConfiguratorEditor({
             }}
             side={side}
             sleeveColor={design.sleeveColor}
-            sleeveMaterial={design.sleeveMaterial}
+            sleeveMaterial={previewSleeveMaterial ?? design.sleeveMaterial ?? "printed-board"}
             labelColor={design.paper}
             sleeveImage={design.sleeveImage}
             sleeveCaptureFront={sleevePreviewLabels.sleeveA}
@@ -4461,6 +4478,31 @@ export function DesignConfiguratorEditor({
               </div>
             </section>
             <section className="dc-property-section">
+              <label className="dc-field">
+                <span>Sleeve Material</span>
+                <select
+                  aria-label="Sleeve material"
+                  value={design.sleeveMaterial ?? "printed-board"}
+                  onChange={(event) => {
+                    const sleeveMaterial =
+                      event.target.value === "printed-board-glossy"
+                        ? "printed-board-glossy"
+                        : event.target.value === "printed-board"
+                        ? "printed-board"
+                        : "matte";
+                    setPreviewSleeveMaterial(null);
+                    end();
+                    change((current) => ({ ...current, sleeveMaterial }));
+                    end();
+                  }}
+                >
+                  <option value="printed-board">Printed Cardboard</option>
+                  <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
+                  <option value="matte">Matte</option>
+                </select>
+              </label>
+            </section>
+            <section className="dc-property-section">
               <div className="dc-section-caption">
                 Print dimensions<span>MM</span>
               </div>
@@ -4496,30 +4538,6 @@ export function DesignConfiguratorEditor({
                   />
                 </label>
               ))}
-            </section>
-            <section className="dc-property-section">
-              <label className="dc-field">
-                <span>Sleeve material</span>
-                <select
-                  aria-label="Sleeve material"
-                  value={design.sleeveMaterial ?? "printed-board"}
-                  onChange={(event) => {
-                    const sleeveMaterial =
-                      event.target.value === "printed-board-glossy"
-                        ? "printed-board-glossy"
-                        : event.target.value === "printed-board"
-                        ? "printed-board"
-                        : "matte";
-                    end();
-                    change((current) => ({ ...current, sleeveMaterial }));
-                    end();
-                  }}
-                >
-                  <option value="printed-board">Printed Cardboard</option>
-                  <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
-                  <option value="matte">Matte</option>
-                </select>
-              </label>
             </section>
           </div>
         </Modal>
