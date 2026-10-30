@@ -1044,9 +1044,28 @@
   mask-image: none;
   -webkit-mask-image: none;
 }
-.dc-sleeve-design-canvas[data-window-open="false"]
+.dc-sleeve-design-canvas[data-window-open="false"]:not([data-bare-vinyl="true"])
   > .dc-disc {
   display: none;
+}
+.dc-sleeve-design-canvas[data-bare-vinyl="true"] {
+  box-shadow: none;
+}
+.dc-sleeve-design-canvas[data-bare-vinyl="true"] > .dc-sleeve-image-frame,
+.dc-sleeve-design-canvas[data-bare-vinyl="true"] > .dc-sleeve-elements {
+  display: none;
+}
+.dc-sleeve-design-canvas[data-bare-vinyl="true"]::before {
+  content: "";
+  position: absolute;
+  /* A 300 mm record inside the unchanged 315 mm artwork coordinates. */
+  inset: 2.380952%;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    repeating-radial-gradient(circle, transparent 0 2px, #ffffff04 2px 2.5px, transparent 2.5px 4px),
+    conic-gradient(from 30deg, #111 0deg, #252525 45deg, #111 90deg, #191919 180deg, #292929 225deg, #111 270deg, #111 360deg);
+  box-shadow: inset 0 0 0 1px #333;
 }
 .dc-foil-controls {
   margin-top: 12px;

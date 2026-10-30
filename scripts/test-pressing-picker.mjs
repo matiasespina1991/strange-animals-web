@@ -83,7 +83,23 @@ assert.equal(selection().material,'printed-board-glossy','Settings changes overr
 selection().select('matte');
 materialContext.design.sleeveMaterial='printed-board';
 assert.equal(selection().material,'printed-board','Undoing Settings also restores the authoritative material');
-assert.match(preview,/const classicPaper = sleeveMaterial === "matte" \? loadClassicSleevePaper\(\) : null/);
+const previewAst=ts.createSourceFile('Sleeve3DPreview.tsx',preview,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+let paperInitializer;
+function findPaper(node) {
+  if(ts.isVariableDeclaration(node) && node.name.getText(previewAst)==='classicPaper') paperInitializer=node.initializer;
+  ts.forEachChild(node,findPaper);
+}
+findPaper(previewAst);
+assert.ok(paperInitializer && ts.isConditionalExpression(paperInitializer));
+assert.equal(paperInitializer.condition.getText(previewAst),'sleeveMaterial === "matte"');
+assert.equal(paperInitializer.whenFalse.kind,ts.SyntaxKind.NullKeyword);
+let loadsPaper=false;
+function findPaperLoad(node) {
+  if(ts.isCallExpression(node) && node.expression.getText(previewAst)==='loadClassicSleevePaper') loadsPaper=true;
+  ts.forEachChild(node,findPaperLoad);
+}
+findPaperLoad(paperInitializer.whenTrue);
+assert.ok(loadsPaper,'Matte selection loads classic paper, regardless of formatting or error handling');
 const changeHandler = preview.slice(preview.indexOf('const changePressingPreset'), preview.indexOf('\n  return (', preview.indexOf('const changePressingPreset')));
 assert.doesNotMatch(changeHandler, /camera|controls|saveState/, 'Changing preset preserves camera, target and zoom');
 postcss.parse(readFileSync('src/features/identity/design-configurator.css', 'utf8'));

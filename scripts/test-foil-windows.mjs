@@ -10,9 +10,11 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 const require = createRequire(import.meta.url), cache = new Map();
 const canvasCss = readFileSync('src/features/identity/design-configurator.css', 'utf8');
-assert.match(canvasCss, /\.dc-sleeve-design-canvas\[data-window-open="false"\]\s*>\s*\.dc-disc\s*\{\s*display:\s*none;/, 'Closed windows hide the cookie in every editing mode');
+assert.match(canvasCss, /\.dc-sleeve-design-canvas\[data-window-open="false"\]:not\(\[data-bare-vinyl="true"\]\)\s*>\s*\.dc-disc\s*\{\s*display:\s*none;/, 'Closed windows hide the cookie except in the explicit bare-record editor');
 const editorSource = readFileSync('src/features/identity/DesignConfiguratorEditor.tsx', 'utf8');
 assert.doesNotMatch(editorSource, /!hasSleeveWindow\(design, side\)\s*&&\s*surface === "sleeve"/, 'Closed cover must not expose the spindle hole in Cookie mode');
+assert.match(editorSource, /const bareVinyl = surface === "cookie" &&\s*!hasSleeveWindow\(design, "A"\) && !hasSleeveWindow\(design, "B"\)/, 'Bare record requires both windows closed and Cookie mode');
+assert.match(canvasCss, /\[data-bare-vinyl="true"\] > \.dc-sleeve-elements\s*\{\s*display: none;/, 'Sleeve layers are absent from the bare-record view');
 function load(file) {
   if(cache.has(file)) return cache.get(file).exports;
   const module = {exports:{}}; cache.set(file,module);

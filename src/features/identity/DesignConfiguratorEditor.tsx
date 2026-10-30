@@ -528,6 +528,8 @@ export function DesignConfiguratorEditor({
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties"),
     [mobileGlobalSettingsOpen, setMobileGlobalSettingsOpen] = useState(true);
+  const bareVinyl = surface === "cookie" &&
+    !hasSleeveWindow(design, "A") && !hasSleeveWindow(design, "B");
   useEffect(() => {
     const artboard = artboardReference.current;
     if (!artboard) return;
@@ -3297,16 +3299,17 @@ export function DesignConfiguratorEditor({
                 className="dc-sleeve-canvas dc-sleeve-design-canvas"
                 data-editing-surface={surface}
                 data-window-open={hasSleeveWindow(design, side)}
+                data-bare-vinyl={bareVinyl}
                 style={
                   {
-                    backgroundColor: previewDesign.sleeveColor,
+                    backgroundColor: bareVinyl ? "transparent" : previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
                     maskImage:
-                      !hasSleeveWindow(design, side)
+                      !hasSleeveWindow(design, side) && !bareVinyl
                         ? "none"
                         : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
                     WebkitMaskImage:
-                      !hasSleeveWindow(design, side)
+                      !hasSleeveWindow(design, side) && !bareVinyl
                         ? "none"
                         : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
                     maskSize: "100% 100%",

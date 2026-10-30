@@ -9,10 +9,11 @@ function setup(user, failure = false) {
   const context = {
     accountAuth: { currentUser: user }, shareUrl: null, shareInFlight: { current: false },
     modelShareId: 'version-identity', modelTitle: 'Version title',
+    captureSharePreview: {current: async () => { calls.push('capture'); return new Blob(['png'], {type:'image/png'}); }},
     window: { location: { origin: 'https://example.test' }, open: (...args) => calls.push(['open', ...args]) },
     Blob, File, Error, Math, console,
     exportModel: async () => { calls.push('export'); return new Blob(['glb']); },
-    createModelShare: async () => { calls.push('upload'); if (failure) throw Error('Upload failed'); return { id: 'ready-model' }; },
+    createModelShare: async (_file, _title, _progress, _id, preview) => { calls.push('upload'); assert.equal(preview.type,'image/png'); if (failure) throw Error('Upload failed'); return { id: 'ready-model' }; },
   };
   for (const name of ['setShareError', 'setSignInOpen', 'setSharing', 'setSharePhase', 'setCopyStatus', 'setUploadProgress']) context[name] = value => calls.push([name, value]);
   context.setShareUrl = value => { context.shareUrl = value; calls.push(['ready', value]); };
@@ -24,6 +25,7 @@ const guest = setup(null);
 await guest.context.run();
 assert.ok(guest.calls.some(([key, value]) => key === 'setSignInOpen' && value === true));
 assert.ok(!guest.calls.includes('export'));
+assert.ok(!guest.calls.includes('capture'), 'No capture before authentication');
 assert.ok(!guest.calls.some(call => call[0] === 'open'), 'No tab before authentication');
 guest.context.accountAuth.currentUser = { uid: 'owner' };
 await guest.context.run();
