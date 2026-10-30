@@ -47,14 +47,14 @@ marksInput.props.onChange({target:{checked:false}});
 assert.deepEqual(closed.calls.at(-1),['marks',false]);
 assert.equal(tree(false,true).element.props.children[2].props.children[0].props.disabled,true,'Marks cannot change during sharing');
 const paperSelect=closed.element.props.children[3].props.children[1];
-assert.equal(closed.element.props.children[3].props.children[0],'Sleeve Material');
+assert.equal(closed.element.props.children[3].props.children[0],'Sleeve material');
 assert.equal(paperSelect.props.value,'printed-board','Preview defaults to Printed Cardboard');
 paperSelect.props.onChange({target:{value:'matte'}});
 assert.deepEqual(closed.calls.at(-1),['material','matte']);
 assert.equal(tree(false,true).element.props.children[3].props.children[1].props.disabled,true);
 assert.deepEqual(Array.from(paperSelect.props.children,option=>option.props.value),['printed-board','printed-board-glossy','matte']);
 const preview = readFileSync('src/features/identity/Sleeve3DPreview.tsx', 'utf8');
-assert.match(preview, /createPortal\(<PressingPresetPicker/);
+assert.match(preview, /createPortal\(\s*<PressingPresetPicker/);
 assert.match(preview, /camera.add\(viewerLight, viewerLight.target\)/);
 assert.doesNotMatch(preview, /<select/);
 assert.doesNotMatch(preview, /useState<PressingPreset>/, 'Preset is not reset by dialog remount');
@@ -63,8 +63,8 @@ const editor = readFileSync('src/features/identity/DesignConfiguratorEditor.tsx'
 assert.match(editor, /pressingPreset=\{pressingPreset\}/);
 assert.match(editor, /onPressingPresetChange=\{setPressingPreset\}/);
 const settings=editor.slice(editor.indexOf('{dialog === "settings"'));
-assert.ok(settings.indexOf('Sleeve windows')<settings.indexOf('<span>Sleeve Material</span>'));
-assert.ok(settings.indexOf('<span>Sleeve Material</span>')<settings.indexOf('Print dimensions'));
+assert.ok(settings.indexOf('Sleeve windows')<settings.indexOf('<span>Sleeve material</span>'));
+assert.ok(settings.indexOf('<span>Sleeve material</span>')<settings.indexOf('Print dimensions'));
 const selectionCode=editor.slice(editor.indexOf('  const [previewSleeveMaterial,'),editor.indexOf('  const [sleevePreviewLabels,'));
 let override=null, lastSetting;
 const materialContext={design:{sleeveMaterial:'printed-board'},

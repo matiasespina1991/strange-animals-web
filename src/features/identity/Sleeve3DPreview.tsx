@@ -95,6 +95,7 @@ export function Sleeve3DPreview({
   reliefMasks,
 }: Properties) {
   const host = useRef<HTMLDivElement>(null);
+  const captureSharePreview = useRef<(() => Promise<Blob>) | null>(null);
   const modelExporterReference = useRef<() => Promise<Blob>>(() =>
     Promise.reject(Error("The 3D preview is not ready yet.")),
   );
@@ -193,6 +194,26 @@ export function Sleeve3DPreview({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
+    captureSharePreview.current = async () => {
+      // Copy immediately after rendering: the WebGL drawing buffer need not
+      // be preserved between frames. Never change the user's camera or zoom.
+      renderer.render(scene, camera);
+      const canvas = document.createElement("canvas");
+      canvas.width = 1200;
+      canvas.height = 630;
+      const context = canvas.getContext("2d");
+      if (!context) throw Error("The model preview could not be captured.");
+      context.fillStyle = "#eceee5";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const image = renderer.domElement;
+      const scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+      const width = image.width * scale, height = image.height * scale;
+      context.drawImage(image, (canvas.width-width)/2, (canvas.height-height)/2, width, height);
+      return new Promise<Blob>((resolve, reject) => canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(Error("The model preview could not be captured.")),
+        "image/png",
+      ));
+    };
     const artworkTextureSize = Math.min(
       4096,
       renderer.capabilities.maxTextureSize,
@@ -769,6 +790,7 @@ export function Sleeve3DPreview({
 
     return () => {
       active = false;
+      captureSharePreview.current = null;
       viewReference.current = {
         position: camera.position.clone(),
         target: controls.target.clone(),
@@ -906,6 +928,7 @@ export function Sleeve3DPreview({
         modelTitle,
         setUploadProgress,
         modelShareId,
+        await captureSharePreview.current?.(),
       );
       const url = `${window.location.origin}/${shared.id}`;
       if (import.meta.env.DEV) {

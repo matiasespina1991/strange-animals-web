@@ -1,5 +1,6 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/https";
+export {sharedModelPage} from "./model-page-metadata";
 export {
   requestProjectDeletion,
   renameDesignProject,

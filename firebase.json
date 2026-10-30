@@ -28,6 +28,14 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
+        "regex": "^/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/?$",
+        "function": { "functionId": "sharedModelPage", "region": "europe-west3" }
+      },
+      {
+        "source": "/_model-preview/**",
+        "function": { "functionId": "sharedModelPage", "region": "europe-west3" }
+      },
+      {
         "source": "/listen/sajs001",
         "destination": "/route-meta/listen-sajs001.html"
       },

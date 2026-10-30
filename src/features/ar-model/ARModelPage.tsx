@@ -87,9 +87,7 @@ export default function ARModelPage({
   const [shareFeedback, setShareFeedback] = useState("");
 
   useEffect(() => {
-    document.title = shareId
-      ? "Shared 3D model | Strange Animals"
-      : galleryModel
+    if (!shareId) document.title = galleryModel
         ? "My Gallery model | Strange Animals"
         : "3D AR preview | Strange Animals";
     return onAuthStateChanged(accountAuth, (user) => {
@@ -97,6 +95,30 @@ export default function ARModelPage({
       setAccountReady(true);
     });
   }, [galleryModel, shareId]);
+
+  useEffect(() => {
+    if (!shareId || !modelSource) return;
+    const title = `3D MODEL | Strange Animals | ${modelTitle}`;
+    const description = `Interactive 3D view of ${modelTitle}. Explore the artwork, materials and print finishes from different angles.`;
+    const image = `https://strangeanimals.de/_model-preview/${shareId}`;
+    const values: Record<string, string> = {
+      description, "og-title": title, "og-description": description,
+      "og-image": image, "og-image-alt": `${modelTitle} — 3D model preview`,
+      "twitter-title": title, "twitter-description": description, "twitter-image": image,
+    };
+    const previousTitle = document.title;
+    document.title = title;
+    const previous = Object.entries(values).map(([key, value]) => {
+      const element = document.querySelector<HTMLMetaElement>(`meta[data-route-meta="${key}"]`);
+      const content = element?.content;
+      if (element) element.content = value;
+      return {element, content};
+    });
+    return () => {
+      document.title = previousTitle;
+      for (const {element, content} of previous) if (element && content !== undefined) element.content = content;
+    };
+  }, [shareId, modelSource, modelTitle]);
 
   useEffect(() => {
     if (!shareId) return;

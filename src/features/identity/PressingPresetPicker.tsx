@@ -72,7 +72,7 @@ export function PressingPresetPicker({ value, onChange, disabled = false, marksE
       Pressing marks
     </label>
     <label className="dc-paper-texture">
-      Sleeve Material
+      Sleeve material
       <select value={sleeveMaterial} disabled={disabled}
         onChange={event => onSleeveMaterialChange?.(event.target.value as NonNullable<LabelDesign["sleeveMaterial"]>)}>
         <option value="printed-board">Printed Cardboard</option>

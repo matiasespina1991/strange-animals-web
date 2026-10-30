@@ -84,6 +84,7 @@ export async function createModelShare(
   title: string,
   onProgress?: (progress: number) => void,
   modelId?: string,
+  preview?: Blob,
 ) {
   const user = accountAuth.currentUser;
   if (!user) throw Error("Sign in before sharing a 3D model.");
@@ -119,6 +120,18 @@ export async function createModelShare(
       resolve,
     );
   });
+
+  if (preview) {
+    if (preview.type !== "image/png" || !preview.size || preview.size > 5 * 1024 * 1024) {
+      throw Error("The model preview must be a PNG smaller than 5 MB.");
+    }
+    const previewUpload = uploadBytesResumable(
+      ref(shareStorage, `media/public/shared-models/${user.uid}/${id}/preview.png`),
+      preview,
+      { contentType: "image/png", cacheControl: "no-cache, max-age=0" },
+    );
+    await previewUpload;
+  }
 
   try {
     await setDoc(documentReference, {

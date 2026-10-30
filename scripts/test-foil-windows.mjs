@@ -9,6 +9,10 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 const require = createRequire(import.meta.url), cache = new Map();
+const canvasCss = readFileSync('src/features/identity/design-configurator.css', 'utf8');
+assert.match(canvasCss, /\.dc-sleeve-design-canvas\[data-window-open="false"\]\s*>\s*\.dc-disc\s*\{\s*display:\s*none;/, 'Closed windows hide the cookie in every editing mode');
+const editorSource = readFileSync('src/features/identity/DesignConfiguratorEditor.tsx', 'utf8');
+assert.doesNotMatch(editorSource, /!hasSleeveWindow\(design, side\)\s*&&\s*surface === "sleeve"/, 'Closed cover must not expose the spindle hole in Cookie mode');
 function load(file) {
   if(cache.has(file)) return cache.get(file).exports;
   const module = {exports:{}}; cache.set(file,module);
@@ -244,7 +248,7 @@ for (let i=0;i<coverage.length;i+=4) assert.equal(coverage[i],255,'Color remains
 const bare=renderToStaticMarkup(React.createElement(LabelArtwork,{...props,finishMode:'base'}));
 assert.doesNotMatch(bare,/data-layer-id="foil"/,'Paper capture must not contain baked foil fringes');
 const source=readFileSync(base+'/Sleeve3DPreview.tsx','utf8');
-assert.match(source,/scene.environment = environment.texture/);assert.match(source,/foilMasks\?\.sleeveB, true, true/);
+assert.match(source,/scene.environment = environment.texture/);assert.match(source,/foilMasks\?\.sleeveB,\s*true,\s*true/);
 assert.match(source,/surface.add\(foil\)/); assert.match(source,/material.alphaMap\?\.dispose/);
 assert.match(source,/printGroupsOnly \? \[material\] : material/,'Sleeve overlay respects print-only geometry groups');
 const foilSource=readFileSync(base+'/foil-material.ts','utf8');

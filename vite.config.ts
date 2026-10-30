@@ -212,6 +212,11 @@ function copyStaticAssets(): Plugin {
             source: applyPageMetadata(builtIndex, metadata),
           });
         }
+        this.emitFile({
+          type: "asset",
+          fileName: `${routeMetadataDirectory}/model-shell.html`,
+          source: builtIndex,
+        });
       },
     },
   };

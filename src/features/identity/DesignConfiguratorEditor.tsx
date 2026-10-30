@@ -1151,9 +1151,11 @@ export function DesignConfiguratorEditor({
       try {
         localStorage.setItem(RECOVERY_KEY, JSON.stringify(design));
         setStorageError("");
-      } catch {
+      } catch (error) {
         setStorageError(
-          "No hay espacio para recuperación automática. Descargá el proyecto JSON para conservarlo.",
+          error instanceof DOMException && error.name === "QuotaExceededError"
+            ? "Browser storage is full. Automatic recovery is unavailable."
+            : "Browser storage is unavailable. Automatic recovery is off.",
         );
       }
     }, 750);
@@ -2384,7 +2386,7 @@ export function DesignConfiguratorEditor({
             aria-pressed={side === nextSide}
             onClick={() => changeCanvasSide(nextSide)}
           >
-            Side {nextSide}
+            {nextSide} side
           </button>
         ))}
       </div>
@@ -2894,7 +2896,7 @@ export function DesignConfiguratorEditor({
             stopLayerAutoScroll();
           }}
         >
-          {panelTitle(`Side ${side} elements`)}
+          {panelTitle(`${side} side elements`)}
           {canvasContextControls()}
           <div className="dc-add-controls">
             <button onClick={() => add("text")}>
@@ -3181,7 +3183,7 @@ export function DesignConfiguratorEditor({
             <span>
               <span className="dc-live-dot" />
               {surface === "cookie"
-                ? `COOKIE · SIDE ${side}`
+                ? `COOKIE · ${side} SIDE`
                 : "SLEEVE · FRONT / BACK"}{" "}
               / PREVIEW
             </span>
@@ -3300,11 +3302,11 @@ export function DesignConfiguratorEditor({
                     backgroundColor: previewDesign.sleeveColor,
                     "--dc-label-scale": sleeveCanvasSizeMm / design.diameterMm,
                     maskImage:
-                      !hasSleeveWindow(design, side) && surface === "sleeve"
+                      !hasSleeveWindow(design, side)
                         ? "none"
                         : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
                     WebkitMaskImage:
-                      !hasSleeveWindow(design, side) && surface === "sleeve"
+                      !hasSleeveWindow(design, side)
                         ? "none"
                         : canvasHoleMask(design.holeMm, sleeveCanvasSizeMm),
                     maskSize: "100% 100%",
@@ -3400,7 +3402,7 @@ export function DesignConfiguratorEditor({
             <span className="dc-measure dc-measure-bottom">
               {surface === "cookie" ? (
                 <>
-                  <span>SIDE {side}</span>Ø {design.holeMm} mm center hole
+                  <span>{side} SIDE</span>Ø {design.holeMm} mm center hole
                 </>
               ) : (
                 <>
@@ -4443,8 +4445,7 @@ export function DesignConfiguratorEditor({
             <section className="dc-property-section">
               <div className="dc-section-caption">Sleeve windows</div>
               <p className="dc-font-explanation">
-                Choose which sides reveal the record label. Changes are shown in
-                Sleeve view.
+                Choose which sides reveal the record label.
               </p>
               <div className="dc-effect-grid">
                 {(["A", "B"] as const).map((windowSide) => (
@@ -4479,7 +4480,7 @@ export function DesignConfiguratorEditor({
             </section>
             <section className="dc-property-section">
               <label className="dc-field">
-                <span>Sleeve Material</span>
+                <span>Sleeve material</span>
                 <select
                   aria-label="Sleeve material"
                   value={design.sleeveMaterial ?? "printed-board"}
