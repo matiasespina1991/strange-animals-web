@@ -5,8 +5,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { applyFoilMask } from "./foil-material";
-import { createCookiePaperTexture, createCookiePaperRoughnessTexture } from "./cookie-paper-texture";
-import { applyPrintRelief, type ReliefMasks, type SurfaceReliefMasks } from "./print-relief-material";
+import {
+  createCookiePaperTexture,
+  createCookiePaperRoughnessTexture,
+} from "./cookie-paper-texture";
+import {
+  applyPrintRelief,
+  type ReliefMasks,
+  type SurfaceReliefMasks,
+} from "./print-relief-material";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { accountAuth } from "./account-auth";
 import { AccountControl } from "./AccountControl";
@@ -26,7 +33,9 @@ type Properties = {
   onPressingPresetChange: (preset: PressingPreset) => void;
   pressingMarks: boolean;
   onPressingMarksChange: (enabled: boolean) => void;
-  onSleeveMaterialChange: (value: "matte" | "printed-board" | "printed-board-glossy") => void;
+  onSleeveMaterialChange: (
+    value: "matte" | "printed-board" | "printed-board-glossy",
+  ) => void;
   headingTarget: HTMLElement | null;
   labelCapture: string;
   labelCaptureBack: string;
@@ -42,8 +51,8 @@ type Properties = {
   sleeveImageOffsetY: number;
   labelDiameterMm: number;
   labelHoleMm: number;
-  windows?: {A: boolean; B: boolean};
-  foilMasks?: {A: string; B: string; sleeveA: string; sleeveB: string};
+  windows?: { A: boolean; B: boolean };
+  foilMasks?: { A: string; B: string; sleeveA: string; sleeveB: string };
   reliefMasks?: SurfaceReliefMasks;
 };
 
@@ -53,7 +62,9 @@ const WORLD_SCALE = 1 / 100;
 const previewBackgroundUrl = "/media/images/pexels-photo-6131931.avif";
 const INITIAL_CAMERA_POSITION = new THREE.Vector3(1, 0.35, 5.55);
 const INITIAL_CAMERA_DISTANCE = new THREE.Vector3(3.7, 2.8, 5.6).length();
-const INITIAL_ZOOM_PERCENT = Math.round(INITIAL_CAMERA_DISTANCE / INITIAL_CAMERA_POSITION.length() * 100);
+const INITIAL_ZOOM_PERCENT = Math.round(
+  (INITIAL_CAMERA_DISTANCE / INITIAL_CAMERA_POSITION.length()) * 100,
+);
 const MAX_ZOOM_PERCENT = 4000;
 
 export function Sleeve3DPreview({
@@ -93,7 +104,10 @@ export function Sleeve3DPreview({
   const sleeveCaptureImagesReference = useRef<HTMLImageElement[]>([]);
   const cameraReference = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsReference = useRef<OrbitControls | null>(null);
-  const viewReference = useRef<{position: THREE.Vector3; target: THREE.Vector3} | null>(null);
+  const viewReference = useRef<{
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+  } | null>(null);
   const paperReadyReference = useRef<Promise<unknown>>(Promise.resolve());
   const [paperLoading, setPaperLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,12 +121,33 @@ export function Sleeve3DPreview({
   useEffect(() => {
     setShareUrl(null);
     setShareError("");
-  }, [modelShareId, modelTitle, labelCapture, labelCaptureBack, sleeveColor, sleeveMaterial, labelColor,
-    sleeveCaptureFront, sleeveCaptureBack, sleeveImage, sleeveZoom, sleeveImageOffsetX, sleeveImageOffsetY,
-    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB, reliefMasks]);
+  }, [
+    modelShareId,
+    modelTitle,
+    labelCapture,
+    labelCaptureBack,
+    sleeveColor,
+    sleeveMaterial,
+    labelColor,
+    sleeveCaptureFront,
+    sleeveCaptureBack,
+    sleeveImage,
+    sleeveZoom,
+    sleeveImageOffsetX,
+    sleeveImageOffsetY,
+    windows?.A,
+    windows?.B,
+    foilMasks?.A,
+    foilMasks?.B,
+    foilMasks?.sleeveA,
+    foilMasks?.sleeveB,
+    reliefMasks,
+  ]);
   const pressingPresetReference = useRef<PressingPreset>(pressingPreset);
   const pressingMarksReference = useRef(pressingMarks);
-  const applyPressingReference = useRef<((preset: PressingPreset) => void) | null>(null);
+  const applyPressingReference = useRef<
+    ((preset: PressingPreset) => void) | null
+  >(null);
 
   useEffect(() => {
     const container = host.current;
@@ -132,7 +167,9 @@ export function Sleeve3DPreview({
     scene.background = null;
     const previousContainerBackground = container.style.background;
     const camera = new THREE.PerspectiveCamera(34, 1, 0.01, 100);
-    camera.position.copy(viewReference.current?.position ?? INITIAL_CAMERA_POSITION);
+    camera.position.copy(
+      viewReference.current?.position ?? INITIAL_CAMERA_POSITION,
+    );
     // A soft frontal key follows the viewer, remaining above-left even when
     // orbiting to side B. This is preview lighting, not exported geometry.
     const viewerLight = new THREE.DirectionalLight(0xffffff, 1.8);
@@ -156,7 +193,10 @@ export function Sleeve3DPreview({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
-    const artworkTextureSize = Math.min(4096, renderer.capabilities.maxTextureSize);
+    const artworkTextureSize = Math.min(
+      4096,
+      renderer.capabilities.maxTextureSize,
+    );
     let environment: THREE.WebGLRenderTarget | undefined;
     // The exposed vinyl needs studio reflections even with an entirely matte sleeve.
     {
@@ -176,7 +216,10 @@ export function Sleeve3DPreview({
     controls.minDistance = INITIAL_CAMERA_DISTANCE / (MAX_ZOOM_PERCENT / 100);
     controls.maxDistance = 10;
     controls.target.copy(viewReference.current?.target ?? new THREE.Vector3());
-    let lastZoomPercent = Math.round(INITIAL_CAMERA_DISTANCE / camera.position.distanceTo(controls.target) * 100);
+    let lastZoomPercent = Math.round(
+      (INITIAL_CAMERA_DISTANCE / camera.position.distanceTo(controls.target)) *
+        100,
+    );
     const updateZoomPercent = () => {
       const nextZoomPercent = Math.min(
         MAX_ZOOM_PERCENT,
@@ -209,16 +252,25 @@ export function Sleeve3DPreview({
     const sleeveSize = SLEEVE_SIZE_MM * WORLD_SCALE;
     const cookieRecessDepth = 0.012;
     const cookieThicknessScale = 0.8;
-    const cookieDepth =
-      0.012 * cookieThicknessScale;
+    const cookieDepth = 0.012 * cookieThicknessScale;
     const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
     const labelRadius = (labelDiameterMm / 2) * WORLD_SCALE;
-    const reliefSurfaces: { geometry: THREE.BufferGeometry; face: 1 | -1 | 0 }[] = [];
+    const reliefSurfaces: {
+      geometry: THREE.BufferGeometry;
+      face: 1 | -1 | 0;
+    }[] = [];
     const applyPressing = (preset: PressingPreset) => {
       pressingLight.intensity = preset === "flat" ? 0 : 0.8;
-      for (const surface of reliefSurfaces) applyPressingRelief(surface.geometry, labelRadius, preset, surface.face, pressingMarksReference.current);
+      for (const surface of reliefSurfaces)
+        applyPressingRelief(
+          surface.geometry,
+          labelRadius,
+          preset,
+          surface.face,
+          pressingMarksReference.current,
+        );
     };
     applyPressingReference.current = applyPressing;
     const holeRadius = (labelHoleMm / 2) * WORLD_SCALE;
@@ -290,102 +342,207 @@ export function Sleeve3DPreview({
       drawSleeveFace(sleeveBack, sleeveCaptureBackElement, true);
     };
     drawSleeve();
-    const shell = createSleeveShell(sleeveSize, sleeveDepth, cookieRecessOpeningRadius, sleeveFront.texture, sleeveBack.texture, sleeveColor, windows, sleeveMaterial);
-    shell.traverse(object=>{
+    const shell = createSleeveShell(
+      sleeveSize,
+      sleeveDepth,
+      cookieRecessOpeningRadius,
+      sleeveFront.texture,
+      sleeveBack.texture,
+      sleeveColor,
+      windows,
+      sleeveMaterial,
+    );
+    shell.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
-      for(const material of Array.isArray(object.material)?object.material:[object.material]) {
-        if(material.normalMap) material.normalMap.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      for (const material of Array.isArray(object.material)
+        ? object.material
+        : [object.material]) {
+        if (material.normalMap)
+          material.normalMap.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
       }
     });
     model.add(shell);
     const retiredPrintTextures = new Set<THREE.Texture>();
     setPaperLoading(sleeveMaterial === "matte");
-    const classicPaper = sleeveMaterial === "matte" ? loadClassicSleevePaper() : null;
+    const classicPaper =
+      sleeveMaterial === "matte"
+        ? loadClassicSleevePaper().catch((error) => {
+            console.error("[Sleeve3DPreview] Paper loading failed:", error);
+            throw error;
+          })
+        : null;
     paperReadyReference.current = classicPaper ?? Promise.resolve();
     if (classicPaper) {
-      void classicPaper.then(maps => {
-        if (!active) { maps.forEach(map => map.dispose()); return; }
-        setPaperLoading(false);
-      }, failure => {
-        if (active) {
+      void classicPaper.then(
+        (maps) => {
+          if (!active) {
+            maps.forEach((map) => map.dispose());
+            return;
+          }
           setPaperLoading(false);
-          setError(failure instanceof Error ? failure.message : "Classic paper could not be loaded.");
-        }
-      });
+        },
+        (failure) => {
+          if (active) {
+            setPaperLoading(false);
+            setError(
+              failure instanceof Error
+                ? failure.message
+                : "Classic paper could not be loaded.",
+            );
+          }
+        },
+      );
     }
-    const applyCapturedRelief = (material: THREE.MeshPhysicalMaterial, masks: ReliefMasks | undefined, mm: number, flip = false) => {
+    const applyCapturedRelief = (
+      material: THREE.MeshPhysicalMaterial,
+      masks: ReliefMasks | undefined,
+      mm: number,
+      flip = false,
+    ) => {
       if (!masks) return;
-      const entries = Object.entries(masks).filter(([,url]) => url) as [keyof ReliefMasks,string][];
+      const entries = Object.entries(masks).filter(([, url]) => url) as [
+        keyof ReliefMasks,
+        string,
+      ][];
       if (!entries.length) return;
-      const images: Partial<Record<keyof ReliefMasks,HTMLImageElement>> = {};
-      let remaining = entries.length, failed = false;
-      for (const [key,url] of entries) {
-        const image = new Image(); images[key]=image; labelImages.push(image);
+      const images: Partial<Record<keyof ReliefMasks, HTMLImageElement>> = {};
+      let remaining = entries.length,
+        failed = false;
+      for (const [key, url] of entries) {
+        const image = new Image();
+        images[key] = image;
+        labelImages.push(image);
         image.addEventListener("load", () => {
           if (--remaining === 0 && active && !failed) {
             const oldRoughness = material.roughnessMap;
-            const old = applyPrintRelief(material,images,mm,flip);
-            if (oldRoughness && oldRoughness !== material.roughnessMap) retiredPrintTextures.add(oldRoughness);
-            for (const map of [material.normalMap,material.roughnessMap,material.clearcoatMap]) {
-              if (map) { map.anisotropy=renderer.capabilities.getMaxAnisotropy(); map.needsUpdate=true; }
+            const old = applyPrintRelief(material, images, mm, flip);
+            if (oldRoughness && oldRoughness !== material.roughnessMap)
+              retiredPrintTextures.add(oldRoughness);
+            for (const map of [
+              material.normalMap,
+              material.roughnessMap,
+              material.clearcoatMap,
+            ]) {
+              if (map) {
+                map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                map.needsUpdate = true;
+              }
             }
             if (old) retiredPrintTextures.add(old);
           }
         });
-        image.addEventListener("error", () => {failed=true;if(active)setError("The print finish mask could not be loaded.");});
-        image.src=url;
+        image.addEventListener("error", () => {
+          failed = true;
+          if (active) setError("The print finish mask could not be loaded.");
+        });
+        image.src = url;
       }
     };
-    const sleevePrints = [0,1].map(index =>
-      (shell.children[index] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshPhysicalMaterial[]>).material[0],
+    const sleevePrints = [0, 1].map(
+      (index) =>
+        (
+          shell.children[index] as THREE.Mesh<
+            THREE.BufferGeometry,
+            THREE.MeshPhysicalMaterial[]
+          >
+        ).material[0],
     );
-    const applySleeveRelief = () => sleevePrints.forEach((material,index) =>
-      applyCapturedRelief(material, index === 0 ? reliefMasks?.sleeveA : reliefMasks?.sleeveB, SLEEVE_SIZE_MM, index === 1),
-    );
+    const applySleeveRelief = () =>
+      sleevePrints.forEach((material, index) =>
+        applyCapturedRelief(
+          material,
+          index === 0 ? reliefMasks?.sleeveA : reliefMasks?.sleeveB,
+          SLEEVE_SIZE_MM,
+          index === 1,
+        ),
+      );
     if (classicPaper) {
-      void classicPaper.then(([normalMap,roughnessMap]) => {
-        if (!active) return;
-        for (const material of sleevePrints) {
-          if (material.normalMap) retiredPrintTextures.add(material.normalMap);
-          if (material.roughnessMap) retiredPrintTextures.add(material.roughnessMap);
-          material.normalMap = normalMap;
-          material.roughnessMap = roughnessMap;
-          material.normalScale.set(0.12,0.12);
-          normalMap.anisotropy = roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
-          material.needsUpdate = true;
-        }
-        applySleeveRelief();
-      }).catch(() => { /* Shared load handler reports the error. */ });
+      void classicPaper
+        .then(([normalMap, roughnessMap]) => {
+          if (!active) return;
+          for (const material of sleevePrints) {
+            if (material.normalMap)
+              retiredPrintTextures.add(material.normalMap);
+            if (material.roughnessMap)
+              retiredPrintTextures.add(material.roughnessMap);
+            material.normalMap = normalMap;
+            material.roughnessMap = roughnessMap;
+            material.normalScale.set(0.12, 0.12);
+            normalMap.anisotropy = roughnessMap.anisotropy =
+              renderer.capabilities.getMaxAnisotropy();
+            material.needsUpdate = true;
+          }
+          applySleeveRelief();
+        })
+        .catch((error) => {
+          console.error("[Sleeve3DPreview] Paper application failed:", error);
+        });
     } else {
       applySleeveRelief();
     }
-    const applyCapturedFoil = (surface: THREE.Mesh, capture?: string, flip = false, printGroupsOnly = false) => {
+    const applyCapturedFoil = (
+      surface: THREE.Mesh,
+      capture?: string,
+      flip = false,
+      printGroupsOnly = false,
+    ) => {
       if (!capture) return;
-      const image = new Image(); labelImages.push(image);
+      const image = new Image();
+      labelImages.push(image);
       image.addEventListener("load", () => {
         if (!active) return;
         // A separate transparent metal surface blends edge coverage with the
         // actual printed background, not with a partly metallic paper shader.
-        const geometry = printGroupsOnly ? surface.geometry.clone() : surface.geometry;
+        const geometry = printGroupsOnly
+          ? surface.geometry.clone()
+          : surface.geometry;
         if (printGroupsOnly) {
-          const printGroups = geometry.groups.filter(group => group.materialIndex === 0);
+          const printGroups = geometry.groups.filter(
+            (group) => group.materialIndex === 0,
+          );
           geometry.clearGroups();
-          for (const group of printGroups) geometry.addGroup(group.start, group.count, 0);
+          for (const group of printGroups)
+            geometry.addGroup(group.start, group.count, 0);
         }
-        const material = new THREE.MeshPhysicalMaterial({side: THREE.DoubleSide});
+        const material = new THREE.MeshPhysicalMaterial({
+          side: THREE.DoubleSide,
+        });
         applyFoilMask(material, image, flip);
-        if (material.map) material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        const foil = new THREE.Mesh(geometry, printGroupsOnly ? [material] : material);
+        if (material.map)
+          material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const foil = new THREE.Mesh(
+          geometry,
+          printGroupsOnly ? [material] : material,
+        );
         foil.name = "Hot Foil Silver";
         foil.renderOrder = 1;
         surface.add(foil);
       });
-      image.addEventListener("error", () => { if (active) setError("The foil material mask could not be loaded."); });
+      image.addEventListener("error", () => {
+        if (active) setError("The foil material mask could not be loaded.");
+      });
       image.src = capture;
     };
-    applyCapturedFoil(shell.children[0] as THREE.Mesh, foilMasks?.sleeveA, false, true);
-    applyCapturedFoil(shell.children[1] as THREE.Mesh, foilMasks?.sleeveB, true, true);
-    const cookieGeometry = createCookieCoreGeometry(labelRadius, holeRadius, cookieDepth, cookieBevelSize, cookieBevelThickness);
+    applyCapturedFoil(
+      shell.children[0] as THREE.Mesh,
+      foilMasks?.sleeveA,
+      false,
+      true,
+    );
+    applyCapturedFoil(
+      shell.children[1] as THREE.Mesh,
+      foilMasks?.sleeveB,
+      true,
+      true,
+    );
+    const cookieGeometry = createCookieCoreGeometry(
+      labelRadius,
+      holeRadius,
+      cookieDepth,
+      cookieBevelSize,
+      cookieBevelThickness,
+    );
     reliefSurfaces.push({ geometry: cookieGeometry, face: 0 });
     applyPressing(pressingPresetReference.current);
     const cookie = new THREE.Mesh(cookieGeometry, [
@@ -416,7 +573,12 @@ export function Sleeve3DPreview({
     for (const face of [1, -1]) {
       const innerRadius = cookieRecessInnerRadius;
       const outerRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
-      const shoulderGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 256, 1);
+      const shoulderGeometry = new THREE.RingGeometry(
+        innerRadius,
+        outerRadius,
+        256,
+        1,
+      );
       const positions = shoulderGeometry.getAttribute("position");
       // Keep a 0.02 mm paper lip; the carton's cut edge provides the larger step.
       const vinylZ = cookieDepth / 2 + 0.0025 - 0.0002;
@@ -425,7 +587,36 @@ export function Sleeve3DPreview({
       }
       positions.needsUpdate = true;
       shoulderGeometry.computeVertexNormals();
-      const shoulder = new THREE.Mesh(shoulderGeometry, new THREE.MeshPhysicalMaterial({
+      const shoulder = new THREE.Mesh(
+        shoulderGeometry,
+        new THREE.MeshPhysicalMaterial({
+          color: 0x12_12_12,
+          roughness: 0.18,
+          metalness: 0,
+          clearcoat: 0.65,
+          clearcoatRoughness: 0.1,
+          ior: 1.54,
+          envMapIntensity: 1.2,
+          side: THREE.DoubleSide,
+        }),
+      );
+      shoulder.name =
+        face === 1 ? "Front flat vinyl surface" : "Back flat vinyl surface";
+      model.add(shoulder);
+    }
+    const vinylRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
+    const vinylEdgeGeometry = new THREE.CylinderGeometry(
+      vinylRadius,
+      vinylRadius,
+      cookieDepth + 2 * (0.0025 - 0.0002),
+      256,
+      1,
+      true,
+    );
+    vinylEdgeGeometry.rotateX(Math.PI / 2);
+    const vinylEdge = new THREE.Mesh(
+      vinylEdgeGeometry,
+      new THREE.MeshPhysicalMaterial({
         color: 0x12_12_12,
         roughness: 0.18,
         metalness: 0,
@@ -433,20 +624,8 @@ export function Sleeve3DPreview({
         clearcoatRoughness: 0.1,
         ior: 1.54,
         envMapIntensity: 1.2,
-        side: THREE.DoubleSide,
-      }));
-      shoulder.name = face === 1 ? "Front flat vinyl surface" : "Back flat vinyl surface";
-      model.add(shoulder);
-    }
-    const vinylRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
-    const vinylEdgeGeometry = new THREE.CylinderGeometry(
-      vinylRadius, vinylRadius, cookieDepth + 2 * (0.0025 - 0.0002), 256, 1, true,
+      }),
     );
-    vinylEdgeGeometry.rotateX(Math.PI / 2);
-    const vinylEdge = new THREE.Mesh(vinylEdgeGeometry, new THREE.MeshPhysicalMaterial({
-      color: 0x12_12_12, roughness: 0.18, metalness: 0,
-      clearcoat: 0.65, clearcoatRoughness: 0.1, ior: 1.54, envMapIntensity: 1.2,
-    }));
     vinylEdge.name = "Outer vinyl edge";
     model.add(vinylEdge);
 
@@ -470,21 +649,46 @@ export function Sleeve3DPreview({
     }
 
     const addLabelFace = (capture: string, z: number, back = false) => {
-      const material = new THREE.MeshPhysicalMaterial({roughness: 0.46, metalness: 0, specularIntensity: 0.81, clearcoat: 0.081, clearcoatRoughness: 0.38, transparent: true, side: THREE.DoubleSide});
+      const material = new THREE.MeshPhysicalMaterial({
+        roughness: 0.46,
+        metalness: 0,
+        specularIntensity: 0.81,
+        clearcoat: 0.081,
+        clearcoatRoughness: 0.38,
+        transparent: true,
+        side: THREE.DoubleSide,
+      });
       material.normalMap = createCookiePaperTexture();
       material.normalMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
       material.roughnessMap = createCookiePaperRoughnessTexture();
-      material.roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      material.normalScale.set(0.5,0.5);
+      material.roughnessMap.anisotropy =
+        renderer.capabilities.getMaxAnisotropy();
+      material.normalScale.set(0.5, 0.5);
       const label = new THREE.Mesh(
-        new THREE.RingGeometry(holeRadius, labelRadius - cookieBevelSize, 256, 384), material,
+        new THREE.RingGeometry(
+          holeRadius,
+          labelRadius - cookieBevelSize,
+          256,
+          384,
+        ),
+        material,
       );
       label.position.z = z;
       if (back) label.rotation.y = Math.PI;
       reliefSurfaces.push({ geometry: label.geometry, face: 1 });
-      applyPressingRelief(label.geometry, labelRadius, pressingPresetReference.current, 1, pressingMarksReference.current);
+      applyPressingRelief(
+        label.geometry,
+        labelRadius,
+        pressingPresetReference.current,
+        1,
+        pressingMarksReference.current,
+      );
       applyCapturedFoil(label, back ? foilMasks?.B : foilMasks?.A);
-      applyCapturedRelief(material, back ? reliefMasks?.B : reliefMasks?.A, labelDiameterMm);
+      applyCapturedRelief(
+        material,
+        back ? reliefMasks?.B : reliefMasks?.A,
+        labelDiameterMm,
+      );
       const labelImage = new Image();
       labelImages.push(labelImage);
       labelImage.addEventListener("load", () => {
@@ -496,7 +700,13 @@ export function Sleeve3DPreview({
         if (!context) return;
         context.imageSmoothingEnabled = true;
         context.imageSmoothingQuality = "high";
-        context.drawImage(labelImage, 0, 0, labelCanvas.width, labelCanvas.height);
+        context.drawImage(
+          labelImage,
+          0,
+          0,
+          labelCanvas.width,
+          labelCanvas.height,
+        );
         const center = labelCanvas.width / 2;
         const focalOffset = center * 0.005;
         const innerShadow = context.createRadialGradient(
@@ -529,7 +739,8 @@ export function Sleeve3DPreview({
         const labelTexture = new THREE.CanvasTexture(labelCanvas);
         labelTexture.colorSpace = THREE.SRGBColorSpace;
         labelTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        material.map = labelTexture; material.needsUpdate = true;
+        material.map = labelTexture;
+        material.needsUpdate = true;
         // Both local faces point outward; rotating the back mesh mirrors its
         // deformation automatically and preserves the captured artwork UVs.
         model.add(label);
@@ -558,7 +769,10 @@ export function Sleeve3DPreview({
 
     return () => {
       active = false;
-      viewReference.current = {position: camera.position.clone(), target: controls.target.clone()};
+      viewReference.current = {
+        position: camera.position.clone(),
+        target: controls.target.clone(),
+      };
       applyPressingReference.current = null;
       observer.disconnect();
       renderer.setAnimationLoop(null);
@@ -609,7 +823,13 @@ export function Sleeve3DPreview({
     sleeveZoom,
     sleeveImageOffsetX,
     sleeveImageOffsetY,
-    windows?.A, windows?.B, foilMasks?.A, foilMasks?.B, foilMasks?.sleeveA, foilMasks?.sleeveB, reliefMasks,
+    windows?.A,
+    windows?.B,
+    foilMasks?.A,
+    foilMasks?.B,
+    foilMasks?.sleeveA,
+    foilMasks?.sleeveB,
+    reliefMasks,
   ]);
 
   const exportModel = async () => {
@@ -759,17 +979,42 @@ export function Sleeve3DPreview({
 
   return (
     <div className="dc-3d-preview">
-      {headingTarget && createPortal(<PressingPresetPicker value={pressingPreset} onChange={changePressingPreset} disabled={sharing || paperLoading} marksEnabled={pressingMarks} onMarksChange={changePressingMarks} sleeveMaterial={sleeveMaterial} onSleeveMaterialChange={onSleeveMaterialChange} />, headingTarget)}
+      {headingTarget &&
+        createPortal(
+          <PressingPresetPicker
+            value={pressingPreset}
+            onChange={changePressingPreset}
+            disabled={sharing || paperLoading}
+            marksEnabled={pressingMarks}
+            onMarksChange={changePressingMarks}
+            sleeveMaterial={sleeveMaterial}
+            onSleeveMaterialChange={onSleeveMaterialChange}
+          />,
+          headingTarget,
+        )}
       <div
         className="dc-3d-scene"
         ref={host}
         aria-label="Interactive 3D sleeve with captured front and back labels"
       >
-        <a className="dc-3d-watermark" href="https://strangeanimals.de/"
-          target="_blank" rel="noopener noreferrer" aria-label="Strange Animals home (opens in a new tab)">
-          <img src="/media/images/logos/sa-logo.png" alt="Strange Animals" draggable={false} />
+        <a
+          className="dc-3d-watermark"
+          href="https://strangeanimals.de/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Strange Animals home (opens in a new tab)"
+        >
+          <img
+            src="/media/images/logos/sa-logo.png"
+            alt="Strange Animals"
+            draggable={false}
+          />
         </a>
-        {paperLoading && <span className="dc-paper-loading" role="status">Loading sleeve texture…</span>}
+        {paperLoading && (
+          <span className="dc-paper-loading" role="status">
+            Loading sleeve texture…
+          </span>
+        )}
         {error && (
           <p className="dc-3d-error" role="alert">
             {error}
