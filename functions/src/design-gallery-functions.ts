@@ -24,8 +24,8 @@ export const saveDesignVersion = onCall(
     request.auth?.uid, request.data,
   ),
 );
-// Transport access is configured on these two Cloud Run services only.
-// Firebase Auth remains mandatory inside both callable handlers.
+// Transport access is configured separately on the save, rename and deletion
+// Cloud Run services. Firebase Auth remains mandatory inside every handler.
 export const requestProjectDeletion = onCall(
   {region: "europe-west3", maxInstances: 3, serviceAccount,
     invoker: "private"},

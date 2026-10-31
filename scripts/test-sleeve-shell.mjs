@@ -6,13 +6,37 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 const exports = {};
 const materials = {};
+const obi = {};
+vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/obi-elevation.ts', 'utf8'), {
+  compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022},
+}).outputText, {exports: obi, require: () => THREE});
 vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/sleeve-material.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, {exports:materials,require:()=>THREE});
 vm.runInNewContext(ts.transpileModule(readFileSync('src/features/identity/sleeve-shell.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText, { exports, require: name => name.includes('RoundedBoxGeometry') ? { RoundedBoxGeometry } : name === './sleeve-material' ? materials : THREE });
+}).outputText, { exports, require: name => name.includes('RoundedBoxGeometry') ? { RoundedBoxGeometry } : name === './obi-elevation' ? obi : name === './sleeve-material' ? materials : THREE });
 const front = new THREE.Texture(), back = new THREE.Texture();
+for (const windows of [{A:true,B:true},{A:false,B:true},{A:true,B:false},{A:false,B:false}]) {
+  const raised = exports.createSleeveShell(3.15, .0236, .48, front, back, '#ddd', windows, 'printed-board', undefined,
+    {A:{enabled:true,start:40,width:20,heightMm:.3},B:{enabled:true,start:40,width:20,heightMm:.2}});
+  raised.updateMatrixWorld(true);
+  for (const [side, sign, height] of [['A',1,.3],['B',-1,.2]]) {
+    const strip = raised.getObjectByName(`${side==='A'?'Front':'Back'} experimental OBI`);
+    assert.ok(strip);
+    assert.equal(strip.material.map, side==='A'?front:back);
+    const box = new THREE.Box3().setFromObject(strip);
+    assert.ok(Math.abs(box.max.x-box.min.x-.63)<1e-5);
+    const z = sign===1?box.max.z:-box.min.z;
+    assert.ok(Math.abs(z-(.0236/2+height*.01))<1e-6);
+    const hits = new THREE.Raycaster(new THREE.Vector3(0,0,sign*2),new THREE.Vector3(0,0,-sign)).intersectObject(strip);
+    assert.equal(hits.length===0,windows[side], 'OBI respects the window on each side');
+    assert.ok([...strip.geometry.attributes.position.array].every(Number.isFinite));
+  }
+}
+const flatObi = exports.createSleeveShell(3.15,.0236,.48,front,back,'#ddd',{A:true,B:true},'matte',undefined,
+  {A:{enabled:true,start:0,width:12,heightMm:0}});
+assert.equal(flatObi.getObjectByName('Front experimental OBI'),undefined);
 const shell = exports.createSleeveShell(3.15, 0.0236, 0.48, front, back, '#dddddd');
 shell.updateMatrixWorld(true);
 assert.equal(shell.children.length, 5);

@@ -3,7 +3,8 @@ import { fileURLToPath } from "node:url";
 
 // Explicit local regression suite: no credentials, emulators or production writes.
 const suites = [
-  "design-configurator", "design-history", "canvas-zoom", "configurator-assets", "surface-rendering",
+  "text-ink-modes",
+  "design-configurator", "design-history", "canvas-zoom", "workspace-editing", "configurator-assets", "surface-rendering",
   "sleeve-shell", "text-effect-controls", "pressing-rings", "pressing-picker",
   "versioned-model-share", "gallery-save-mode", "model-share-flow", "model-load-progress", "model-thumbnails", "vinyl-model-export", "vinyl-webp-exporter", "sleeve-pbr-paper",
   "layer-context-menu", "layer-panel-order", "multi-font-selection",

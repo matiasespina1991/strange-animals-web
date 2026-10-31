@@ -20,6 +20,7 @@ import { AccountControl } from "./AccountControl";
 import { createModelShare } from "../ar-model/model-share-repository";
 import type { LabelSide } from "./design-configurator-model";
 import { createSleeveShell } from "./sleeve-shell";
+import type {ObiBands} from "./obi-elevation";
 import { createCookieCoreGeometry } from "./cookie-core-geometry";
 import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
 import { PressingPresetPicker } from "./PressingPresetPicker";
@@ -43,6 +44,7 @@ type Properties = {
   side: LabelSide;
   sleeveColor: string;
   sleeveMaterial?: "matte" | "printed-board" | "printed-board-glossy";
+  sleeveObi?: ObiBands;
   labelColor: string;
   sleeveImage?: string;
   sleeveCaptureFront?: string;
@@ -82,6 +84,7 @@ export function Sleeve3DPreview({
   side,
   sleeveColor,
   sleeveMaterial = "printed-board",
+  sleeveObi,
   labelColor,
   sleeveImage,
   sleeveCaptureFront,
@@ -130,6 +133,7 @@ export function Sleeve3DPreview({
     labelCaptureBack,
     sleeveColor,
     sleeveMaterial,
+    sleeveObi,
     labelColor,
     sleeveCaptureFront,
     sleeveCaptureBack,
@@ -377,6 +381,7 @@ export function Sleeve3DPreview({
       windows,
       sleeveMaterial,
       vinylSurfaceZ,
+      sleeveObi,
     );
     shell.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -845,6 +850,7 @@ export function Sleeve3DPreview({
     labelDiameterMm,
     sleeveColor,
     sleeveMaterial,
+    sleeveObi,
     labelColor,
     labelHoleMm,
     sleeveImage,

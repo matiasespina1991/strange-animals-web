@@ -93,6 +93,7 @@ export type LabelLayer = {
   blur?: number;
   image?: string;
   textTexture?: string;
+  inkMode?: "color" | "contrast" | "surface";
   textTextureOpacity?: number;
   textTextureScale?: number;
   imageFill?: string;
@@ -108,6 +109,20 @@ export type LabelLayer = {
   textEffectSettings?: TextEffectSettings;
   blendMode?: TextBlendMode;
 };
+export function textInkMode(layer: LabelLayer): NonNullable<LabelLayer["inkMode"]> {
+  return layer.inkMode ?? (layer.textTexture ? "surface" :
+    layer.blendMode === "difference" ? "contrast" : "color");
+}
+
+export function effectiveTextInk(layer: LabelLayer): LabelLayer {
+  if (layer.kind === "image") return layer;
+  const mode = textInkMode(layer);
+  return {...layer,
+    textTexture: mode === "surface" ? layer.textTexture : undefined,
+    blendMode: mode === "contrast" ? "difference" : "normal",
+  };
+}
+
 export type LabelDesign = {
   version: 2;
   title: string;
@@ -121,6 +136,9 @@ export type LabelDesign = {
   sleeveWindowA?: boolean;
   sleeveWindowB?: boolean;
   sleeveMaterial?: "matte" | "printed-board" | "printed-board-glossy";
+  sleeveObi?: Partial<Record<"A" | "B", {
+    enabled: boolean; start: number; width: number; heightMm: number;
+  }>>;
   sleeveImage?: string;
   sleeveZoom: number;
   sleeveImageOffsetX: number;
@@ -864,6 +882,9 @@ export function parseDesign(input: unknown): LabelDesign {
             : "middle",
         arc: item.arc === "top" ? "top" : "bottom",
         image,
+        ...(kind !== "image" &&
+          (item.inkMode === "color" || item.inkMode === "contrast" ||
+            item.inkMode === "surface") ? {inkMode: item.inkMode} : {}),
         ...(textTexture
           ? {
               textTexture,
@@ -972,6 +993,17 @@ export function parseDesign(input: unknown): LabelDesign {
     sleeveWindowA: input.sleeveWindowA !== false,
     sleeveWindowB: input.sleeveWindowB !== false,
     sleeveMaterial: input.sleeveMaterial === "matte" ? "matte" : input.sleeveMaterial === "printed-board-glossy" ? "printed-board-glossy" : "printed-board",
+    ...(input.sleeveObi && typeof input.sleeveObi === "object" ? {
+      sleeveObi: Object.fromEntries((["A", "B"] as const).flatMap(side => {
+        const band = (input.sleeveObi as Record<string, unknown>)[side];
+        if (!band || typeof band !== "object") return [];
+        const value = band as Record<string, unknown>;
+        const start = numeric(value.start, 0, 0, 99);
+        return [[side, {enabled: value.enabled === true, start,
+          width: numeric(value.width, 12, 1, 100 - start),
+          heightMm: numeric(value.heightMm, 0.15, 0, 0.5)}]];
+      })),
+    } : {}),
     sleeveImage,
     sleeveZoom: numeric(input.sleeveZoom, 1, 0.1, 5),
     sleeveImageOffsetX: numeric(input.sleeveImageOffsetX, 0, -600, 600),

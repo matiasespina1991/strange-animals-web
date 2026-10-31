@@ -66,12 +66,13 @@ import { TypographyValueControl } from "./TypographyValueControl";
 import { RotationValue } from "./RotationValue";
 import { LayerContextMenu } from "./LayerContextMenu";
 import { ContentTextControl } from "./ContentTextControl";
+import { reportRecoveryFailure } from "./recovery-diagnostics";
 import { PrintFinishInfo } from "./PrintFinishInfo";
 import type { ReliefMasks, SurfaceReliefMasks } from "./print-relief-material";
 import { ImageAppearanceControls } from "./ImageAppearanceControls";
 import { TextSurfaceControl } from "./TextSurfaceControl";
 import { readBarcodeSourcePalette } from "./barcode-source-palette";
-import { TextBlendModeControl, TextEffectControls } from "./TextEffectControls";
+import { TextEffectControls } from "./TextEffectControls";
 import { Sleeve3DPreview } from "./Sleeve3DPreview";
 import { ColorSwatches } from "./ColorSwatches";
 import type { PressingPreset } from "./pressing-rings";
@@ -128,6 +129,7 @@ import {
   getSurfaceLayers,
   hasSleeveWindow,
   textFoilColor,
+  textInkMode,
   updateSurfaceLayers,
   initialImageLayerPosition,
   SLEEVE_SIZE_MM,
@@ -393,6 +395,10 @@ export function DesignConfiguratorEditor({
     return () => window.removeEventListener("keydown", handleHistoryShortcut);
   }, []);
   const design = history.present;
+  const recoveryFailure = useRef<string | null>(null);
+  // Downloads must read the live document, even from an older UI callback.
+  const liveDesign = useRef(design);
+  liveDesign.current = design;
   const documentEpoch = useRef(0);
   const fontRequest = useRef(0);
   useEffect(
@@ -1179,10 +1185,24 @@ export function DesignConfiguratorEditor({
   ]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      let serialized = "";
       try {
-        localStorage.setItem(RECOVERY_KEY, JSON.stringify(design));
+        serialized = JSON.stringify(design);
+        localStorage.setItem(RECOVERY_KEY, serialized);
+        if (recoveryFailure.current && import.meta.env.DEV) {
+          console.info("[StudioShelf/recovery] restored", {
+            recoveryKey: RECOVERY_KEY,
+            projectUtf8Bytes: new Blob([serialized]).size,
+          });
+        }
+        recoveryFailure.current = null;
         setStorageError("");
       } catch (error) {
+        const failureName = error instanceof Error ? error.name : "Unknown";
+        if (recoveryFailure.current !== failureName) {
+          reportRecoveryFailure(error, serialized, RECOVERY_KEY);
+        }
+        recoveryFailure.current = failureName;
         setStorageError(
           error instanceof DOMException && error.name === "QuotaExceededError"
             ? "Browser storage is full. Automatic recovery is unavailable."
@@ -1654,11 +1674,16 @@ export function DesignConfiguratorEditor({
     if (accountUser) void saveToGallery();
     else saveLocally();
   };
-  const exportProject = () =>
+  const exportProject = () => {
+    const snapshot = liveDesign.current;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const fileName = `${safeFilename(snapshot.title)}-${timestamp}.json`;
     downloadDesignFile(
-      new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }),
-      `${safeFilename(design.title)}.json`,
+      new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" }),
+      fileName,
     );
+    setNotice(`Downloaded current design: ${fileName}`);
+  };
   const downloadUsedFonts = async () => {
     if (usedFontsBusy) return;
     setUsedFontsBusy(true);
@@ -2525,7 +2550,7 @@ export function DesignConfiguratorEditor({
                   type="button"
                   aria-label="Rotate 15 degrees counterclockwise"
                   title="Rotate 15 degrees counterclockwise"
-                  disabled={value <= min}
+                  disabled={element.locked || value <= min}
                   onClick={() => changeAngle(-15)}
                 >
                   <RotateCcw size={12} aria-hidden="true" />
@@ -2535,7 +2560,7 @@ export function DesignConfiguratorEditor({
                   type="button"
                   aria-label="Rotate 15 degrees clockwise"
                   title="Rotate 15 degrees clockwise"
-                  disabled={value >= max}
+                  disabled={element.locked || value >= max}
                   onClick={() => changeAngle(15)}
                 >
                   <RotateCw size={12} aria-hidden="true" />
@@ -2560,6 +2585,7 @@ export function DesignConfiguratorEditor({
         </span>
         <input
           type="range"
+          disabled={key === "angle" && element.locked}
           min={min}
           max={max}
           step={step}
@@ -3767,7 +3793,7 @@ export function DesignConfiguratorEditor({
                               end();
                             }}
                           >
-                            <option value="ink">Ink Matte</option>
+                            <option value="ink">Ink</option>
                             <option value="silver">Hot Foil Silver</option>
                             <option value="raised-uv">
                               Raised Spot UV / 3D UV
@@ -3820,6 +3846,45 @@ export function DesignConfiguratorEditor({
                         textFoilColor(layer),
                       ) && (
                         <div className="dc-ink dc-ink-priority">
+                          {!element.finish && (
+                            <div className="dc-ink-tabs" role="tablist" aria-label="Ink appearance">
+                              {(["color", "contrast", "surface"] as const).map((mode) => (
+                                <button
+                                  key={mode}
+                                  type="button"
+                                  role="tab"
+                                  id={`ink-tab-${mode}`}
+                                  aria-controls="ink-appearance-panel"
+                                  aria-selected={selectedTextLayers.every((layer) => textInkMode(layer) === mode)}
+                                  tabIndex={textInkMode(element) === mode ? 0 : -1}
+                                  onKeyDown={(event) => {
+                                    const modes = ["color", "contrast", "surface"] as const;
+                                    const index = modes.indexOf(mode);
+                                    const next = event.key === "Home" ? 0 : event.key === "End" ? 2 :
+                                      event.key === "ArrowRight" ? (index + 1) % 3 :
+                                      event.key === "ArrowLeft" ? (index + 2) % 3 : -1;
+                                    if (next < 0) return;
+                                    event.preventDefault();
+                                    const button = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button")[next];
+                                    button?.click();
+                                    button?.focus();
+                                  }}
+                                  onClick={() => {
+                                    end();
+                                    const ids = new Set(selectedTextLayers.map((layer) => layer.id));
+                                    change((current) => updateSurfaceLayers(current, surface, side,
+                                      (items) => items.map((layer) => ids.has(layer.id)
+                                        ? {...layer, inkMode: mode} : layer)));
+                                  }}
+                                >
+                                  {mode === "color" ? "Ink color" : mode === "contrast" ? "Text contrast" : "Text surface"}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <div id="ink-appearance-panel" role={!element.finish ? "tabpanel" : undefined}
+                            aria-labelledby={!element.finish ? `ink-tab-${textInkMode(element)}` : undefined}>
+                          {(element.finish || textInkMode(element) === "color") && <>
                           <span>
                             Ink color
                             {selectedTextLayers.length > 1
@@ -3881,6 +3946,28 @@ export function DesignConfiguratorEditor({
                                 );
                               }}
                             />
+                          </div>
+                          </>}
+                          {!element.finish && textInkMode(element) === "contrast" && (
+                            <span className="dc-ink-mode-caption">Invert backdrop (Difference)</span>
+                          )}
+                          {!element.finish && textInkMode(element) === "surface" && (
+                            <TextSurfaceControl
+                              layerId={element.id}
+                              image={element.textTexture}
+                              opacity={element.textTextureOpacity}
+                              scale={element.textTextureScale}
+                              onChange={(patch, group) => {
+                                if (!group) end();
+                                const ids = new Set(selectedTextLayers.map((layer) => layer.id));
+                                change((current) => updateSurfaceLayers(current, surface, side,
+                                  (items) => items.map((layer) => ids.has(layer.id)
+                                    ? {...layer, ...patch} : layer)), group ? `${group}-${element.id}` : undefined);
+                              }}
+                              onCommit={end}
+                              onError={setNotice}
+                            />
+                          )}
                           </div>
                         </div>
                       )}
@@ -3947,32 +4034,6 @@ export function DesignConfiguratorEditor({
                       </div>
                     </div>
                     {positionControls}
-                    {!element.finish && (
-                      <div className="dc-compact-text-controls">
-                        <TextBlendModeControl
-                          value={element.blendMode}
-                          onChange={(blendMode) => {
-                            end();
-                            update({ blendMode });
-                          }}
-                        />
-                        <TextSurfaceControl
-                          layerId={element.id}
-                          image={element.textTexture}
-                          opacity={element.textTextureOpacity}
-                          scale={element.textTextureScale}
-                          onChange={(patch, group) => {
-                            if (!group) end();
-                            update(
-                              patch,
-                              group ? `${group}-${element.id}` : undefined,
-                            );
-                          }}
-                          onCommit={end}
-                          onError={setNotice}
-                        />
-                      </div>
-                    )}
                     {slider("Rotation", "angle", -180, 180, "°")}
                     {!element.finish && (
                       <TypographyValueControl
@@ -4059,7 +4120,7 @@ export function DesignConfiguratorEditor({
                             end();
                           }}
                         >
-                          <option value="ink">Ink Matte</option>
+                          <option value="ink">Ink</option>
                           <option value="silver">Hot Foil Silver</option>
                           <option value="raised-uv">
                             Raised Spot UV / 3D UV
@@ -4442,6 +4503,7 @@ export function DesignConfiguratorEditor({
             side={side}
             sleeveColor={design.sleeveColor}
             sleeveMaterial={previewSleeveMaterial ?? design.sleeveMaterial ?? "printed-board"}
+            sleeveObi={import.meta.env.DEV && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname) ? design.sleeveObi : undefined}
             labelColor={design.paper}
             sleeveImage={design.sleeveImage}
             sleeveCaptureFront={sleevePreviewLabels.sleeveA}
@@ -4551,6 +4613,38 @@ export function DesignConfiguratorEditor({
                 </select>
               </label>
             </section>
+            {import.meta.env.DEV && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname) && (
+              <section className="dc-property-section">
+                <div className="dc-section-caption">OBI elevation · experimental</div>
+                {(["A", "B"] as const).map(obiSide => {
+                  const band = design.sleeveObi?.[obiSide] ?? {enabled: false, start: 0, width: 12, heightMm: 0.15};
+                  const patchBand = (patch: Partial<typeof band>, group?: string) => {
+                    change(current => {
+                      const previous = current.sleeveObi?.[obiSide] ?? band;
+                      const next = {...previous, ...patch};
+                      next.width = Math.min(next.width, 100 - next.start);
+                      return {...current, sleeveObi: {...current.sleeveObi, [obiSide]: next}};
+                    }, group);
+                  };
+                  return <div key={obiSide}>
+                    <label className="dc-checkbox">
+                      <input type="checkbox" checked={band.enabled} onChange={event => {end(); patchBand({enabled: event.target.checked}); end();}} />
+                      {obiSide} side OBI
+                    </label>
+                    {band.enabled && <>
+                      <div className="dc-field-pair">
+                        <TypographyValueControl label="From left" unit="%" value={band.start} min={0} max={99} step={1}
+                          onChange={start => patchBand({start}, `obi-start-${obiSide}`)} onCommit={end} />
+                        <TypographyValueControl label="Width" unit="%" value={band.width} min={1} max={100 - band.start} step={1}
+                          onChange={width => patchBand({width}, `obi-width-${obiSide}`)} onCommit={end} />
+                      </div>
+                      <TypographyValueControl label="Elevation" unit="MM" value={band.heightMm} min={0} max={0.5} step={0.01}
+                        onChange={heightMm => patchBand({heightMm}, `obi-height-${obiSide}`)} onCommit={end} />
+                    </>}
+                  </div>;
+                })}
+              </section>
+            )}
             <section className="dc-property-section">
               <div className="dc-section-caption">
                 Print dimensions<span>MM</span>

@@ -330,8 +330,16 @@ const texturedDifferenceSvg = renderToStaticMarkup(
 );
 assert.match(
   texturedDifferenceSvg,
-  /<text[^>]*fill="url\(#test-text-surface-0\)"[^>]*style="mix-blend-mode:difference"/,
+  /<text[^>]*fill="url\(#test-text-surface-0\)"/,
 );
+assert.ok(!texturedDifferenceSvg.includes('mix-blend-mode:difference'),
+  'Surface and contrast cannot render simultaneously');
+const contrastModeSvg = renderToStaticMarkup(LabelArtwork({
+  ...artworkProps,
+  design: {...original, A: [{...texturedLayer, inkMode: "contrast"}]},
+}));
+assert.ok(contrastModeSvg.includes('mix-blend-mode:difference'));
+assert.ok(!contrastModeSvg.includes('<pattern'));
 assert.throws(
   () =>
     parseDesign({

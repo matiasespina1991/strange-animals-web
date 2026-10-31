@@ -468,7 +468,7 @@ export default function ARModelPage({
         )}
         <div className="ar-model-viewer" ref={viewerHost}>
           {pageLoading && (
-            <p className="ar-model-stage-message">Loading model…</p>
+            <p className="ar-model-stage-message">Loading 3D model…</p>
           )}
           {pageError && (shareId || galleryModel) && (
             <p className="ar-model-stage-message" role="alert">
@@ -495,7 +495,7 @@ export default function ARModelPage({
             aria-valuenow={modelLoadProgress}
           >
             <strong>{modelLoadProgress}%</strong>
-            <span>Loading model…</span>
+            <span>Loading 3D model…</span>
           </div>
         )}
         {viewerError && (shareId || galleryModel) && (

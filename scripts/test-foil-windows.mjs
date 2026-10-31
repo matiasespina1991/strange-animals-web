@@ -28,6 +28,16 @@ function load(file) {
 }
 const base=resolve('src/features/identity');
 const {initialDesign,parseDesign,hasSleeveWindow,textFoilColor,designReducer}=load(base+'/design-configurator-model.ts');
+const obiSaved = parseDesign(JSON.parse(JSON.stringify({...initialDesign,
+  sleeveObi: {A: {enabled:true,start:35,width:18,heightMm:.22},
+    B: {enabled:false,start:95,width:80,heightMm:2}},
+})));
+assert.equal(obiSaved.sleeveObi.A.start,35);
+assert.equal(obiSaved.sleeveObi.A.heightMm,.22);
+assert.equal(obiSaved.sleeveObi.B.width,5);
+assert.equal(obiSaved.sleeveObi.B.heightMm,.5);
+assert.match(editorSource,/sleeveObi=\{import\.meta\.env\.DEV &&/,
+  'Experimental OBI geometry cannot activate in a production build');
 const {LabelArtwork}=load(base+'/LabelArtwork.tsx');
 const {createSleeveShell}=load(base+'/sleeve-shell.ts');
 const {createPrintedBoardGrain}=load(base+'/sleeve-material.ts');

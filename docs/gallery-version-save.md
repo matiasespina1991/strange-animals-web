@@ -12,6 +12,6 @@ Old snapshot files are retained until the existing durable project deletion remo
 
 The new callable must be deployed before the updated Save UI is used. No Firestore or Storage rules need loosening. Firebase Authentication and namespace ownership are mandatory inside the handler.
 
-Deployment created `savedesignversion` but the organization policy rejected the public invoker binding. Browser access is blocked until the owner explicitly authorizes disabling Cloud Run's invoker IAM check on this endpoint only, matching the existing authenticated rename/deletion callable transport. The source keeps `invoker: private`; do not change the organization's domain restriction or grant `allUsers`.
+On 2026-10-31, the owner explicitly authorized disabling Cloud Run's invoker IAM check only on `savedesignversion`. This is applied: localhost preflight returns 204 with the correct CORS origin; an unauthenticated POST returns 401 UNAUTHENTICATED from the callable handler. Firebase Auth and owner validation remain mandatory. The source keeps `invoker: private`; do not change the organization's domain restriction or grant `allUsers`. After redeployment, verify that the service-level invoker-check exemption remains active.
 
 Regression: `node scripts/test-gallery-save-mode.mjs` and `npm run test:configurator`.

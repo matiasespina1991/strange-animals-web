@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { createPrintedBoardGrain } from "./sleeve-material";
+import {createObiElevation, type ObiBands} from "./obi-elevation";
 
 function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, materialIndex: number) {
   const last = geometry.groups.at(-1);
@@ -9,7 +10,7 @@ function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, mate
 }
 
 /** Thin paperboard panels, three folded edges and an open right-hand mouth. */
-export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}, material: "matte" | "printed-board" | "printed-board-glossy" = "matte", windowFloorZ?: number) {
+export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}, material: "matte" | "printed-board" | "printed-board-glossy" = "matte", windowFloorZ?: number, obi?: ObiBands) {
   const shell = new THREE.Group();
   shell.name = "Paperboard sleeve (open right edge)";
   const thickness = Math.min(0.003, depth / 6);
@@ -80,6 +81,15 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
     panel.name = isBack ? "Back paperboard" : "Front paperboard";
     panel.position.z = isBack ? -depth / 2 : depth / 2 - thickness;
     shell.add(panel);
+    const band = obi?.[isBack ? "B" : "A"];
+    if (band) {
+      const raised = createObiElevation(geometry, size,
+        isBack ? 0 : thickness, isBack, band, print);
+      if (raised) {
+        raised.position.z = panel.position.z;
+        shell.add(raised);
+      }
+    }
   }
   const fold = (name: string, width: number, height: number, x: number, y: number) => {
     const geometry = new RoundedBoxGeometry(width, height, depth - thickness * 2, 5, radius);

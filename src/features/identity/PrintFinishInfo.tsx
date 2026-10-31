@@ -32,7 +32,7 @@ export function PrintFinishInfo() {
       style={{left: popup.left, bottom: popup.bottom, width: popup.width}}>
       <p>Choose how this part of your design will be printed.</p>
       <ul>
-        <li><strong>Ink Matte:</strong> regular ink without a metallic shine.</li>
+        <li><strong>Ink:</strong> regular printing ink without a metallic shine.</li>
         <li><strong>Hot Foil Silver:</strong> shiny silver foil pressed onto the surface with heat.</li>
         <li><strong>Raised Spot UV / 3D UV:</strong> a clear, glossy varnish you can feel.</li>
         <li><strong>Embossing:</strong> raises the paper outward.</li>

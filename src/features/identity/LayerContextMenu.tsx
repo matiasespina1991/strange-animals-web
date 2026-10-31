@@ -49,7 +49,16 @@ export function LayerContextMenu({ x, y, count, targetSide, onCopy, onClose, loc
   return (
     <div ref={menu} className="dc-layer-context-menu" role="menu" aria-label="Layer actions"
       style={{ left: x, top: y }} onContextMenu={event => event.preventDefault()}
-      onKeyDown={event => event.stopPropagation()}>
+      onKeyDown={event => {
+        event.stopPropagation();
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+        const current = buttons.findIndex(button => button === document.activeElement);
+        const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
+          (current + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+        buttons[next]?.focus();
+      }}>
       <small>{count} {count === 1 ? "layer" : "layers"} selected</small>
       {onToggleLock && <button type="button" role="menuitem" onClick={onToggleLock}>
         {locked ? <LockKeyholeOpen size={15} /> : <LockKeyhole size={15} />}

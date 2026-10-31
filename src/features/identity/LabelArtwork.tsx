@@ -23,6 +23,7 @@ import {
   barcodeSourceMatrix,
   getSurfaceLayers,
   textFoilColor,
+  effectiveTextInk,
 } from "./design-configurator-model";
 
 function SvgLayerText({
@@ -440,6 +441,7 @@ export function LabelArtwork({
   // Both surfaces share all text, image and effect rendering.
   const finishMask = finishMode === "mask" || finishMode === "height-mask" || finishMode === "ink-mask";
   const artworkLayers = getSurfaceLayers(design, surface, side)
+    .map(effectiveTextInk)
     .filter(layer => finishMode !== "base" || !textFoilColor(layer))
     .map(layer => textFoilColor(layer) ? {...layer, textTexture: undefined,
       blendMode: "normal" as const,
