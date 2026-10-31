@@ -2,6 +2,15 @@
 
 Public UUID model pages use the same title/description/Open Graph/Twitter tags as release pages. A Hosting function inserts public model metadata into the built SPA HTML before returning it, so link crawlers do not need JavaScript.
 
+## Availability fix
+
+The UUID route currently serves `/index.html` directly. It must not depend on
+`sharedModelPage` while that function is unavailable: that rewrite caused every
+production model URL to return a server 404 before the viewer could load.
+Client metadata remains enabled; crawler-specific initial HTML is temporarily
+not active on UUID URLs. Re-enable server metadata routing only after verifying
+the deployed endpoint, its HTTP access, public-document reads and template.
+
 - Title: `3D MODEL | Strange Animals | {project name}`.
 - Neutral description of the interactive model, materials and finishes.
 - Sharing from the designer uploads a 1200 × 630 PNG capture to the owner's existing public model directory. Re-sharing a changed version replaces its preview.

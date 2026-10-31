@@ -14,6 +14,7 @@ import {
 import { motion, useReducedMotion } from "framer-motion";
 import { onAuthStateChanged } from "firebase/auth";
 import packageManifest from "../../../package.json";
+import { zoomCanvasAt } from "./canvas-zoom";
 import {
   ArrowDownToLine,
   ArrowUpRight,
@@ -531,6 +532,26 @@ export function DesignConfiguratorEditor({
     [mobileGlobalSettingsOpen, setMobileGlobalSettingsOpen] = useState(true);
   const bareVinyl = surface === "cookie" &&
     !hasSleeveWindow(design, "A") && !hasSleeveWindow(design, "B");
+  const touchView = useRef({ zoom, viewOffset });
+  touchView.current = { zoom, viewOffset };
+  const canvasPointer = useRef<{x: number; y: number} | null>(null);
+  const zoomWorkspace = (requestedZoom: number, pointer = canvasPointer.current) => {
+    const bounds = artboardReference.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const inside = pointer && pointer.x >= bounds.left && pointer.x <= bounds.right &&
+      pointer.y >= bounds.top && pointer.y <= bounds.bottom;
+    const x = inside ? pointer.x :
+      (Math.max(0, bounds.left) + Math.min(window.innerWidth, bounds.right)) / 2;
+    const y = inside ? pointer.y :
+      (Math.max(0, bounds.top) + Math.min(window.innerHeight, bounds.bottom)) / 2;
+    const next = zoomCanvasAt(touchView.current, requestedZoom, {
+      x: x - bounds.left - bounds.width / 2,
+      y: y - bounds.top - bounds.height / 2,
+    });
+    touchView.current = next;
+    setZoom(next.zoom);
+    setViewOffset(next.viewOffset);
+  };
   useEffect(() => {
     const artboard = artboardReference.current;
     if (!artboard) return;
@@ -540,9 +561,8 @@ export function DesignConfiguratorEditor({
       event.preventDefault();
       const delta = Math.max(-120, Math.min(120, event.deltaY));
       const sensitivity = event.ctrlKey ? 0.008 : 0.0035;
-      setZoom((current) =>
-        Math.round(clamp(current * Math.exp(-delta * sensitivity), 60, 1200)),
-      );
+      zoomWorkspace(touchView.current.zoom * Math.exp(-delta * sensitivity),
+        {x: event.clientX, y: event.clientY});
     };
     artboard.addEventListener("wheel", handleCanvasWheel, { passive: false });
     return () => artboard.removeEventListener("wheel", handleCanvasWheel);
@@ -791,8 +811,6 @@ export function DesignConfiguratorEditor({
     offsetY: number;
   } | null>(null);
   const prefix = useId().replaceAll(":", "");
-  const touchView = useRef({ zoom, viewOffset });
-  touchView.current = { zoom, viewOffset };
   useEffect(() => {
     const canvas = artboardReference.current;
     if (!canvas) return;
@@ -831,20 +849,22 @@ export function DesignConfiguratorEditor({
       if (!gesture || event.touches.length !== 2) return;
       event.preventDefault();
       const next = measure(event.touches);
-      const nextZoom = clamp(
+      const nextZoom = Math.round(clamp(
         (gesture.zoom * next.distance) / Math.max(1, gesture.distance),
         60,
         1200,
-      );
+      ));
       const ratio = nextZoom / gesture.zoom;
       const bounds = canvas.getBoundingClientRect();
       const originX = bounds.left + bounds.width / 2;
       const originY = bounds.top + bounds.height / 2;
-      setZoom(Math.round(nextZoom));
-      setViewOffset({
+      const nextOffset = {
         x: next.x - originX - (gesture.x - originX - gesture.offset.x) * ratio,
         y: next.y - originY - (gesture.y - originY - gesture.offset.y) * ratio,
-      });
+      };
+      touchView.current = {zoom: nextZoom, viewOffset: nextOffset};
+      setZoom(nextZoom);
+      setViewOffset(nextOffset);
     };
     const finish = (event: TouchEvent) => {
       if (event.touches.length < 2) gesture = null;
@@ -3284,7 +3304,11 @@ export function DesignConfiguratorEditor({
               void importImage(file, dropPosition);
             }}
             onPointerDown={startCanvasPan}
-            onPointerMove={moveCanvasPan}
+            onPointerMove={(event) => {
+              if (event.pointerType !== "touch") canvasPointer.current = {x: event.clientX, y: event.clientY};
+              moveCanvasPan(event);
+            }}
+            onPointerLeave={() => { canvasPointer.current = null; }}
             onPointerUp={endCanvasPan}
             onPointerCancel={endCanvasPan}
             onLostPointerCapture={endCanvasPan}
@@ -3426,7 +3450,7 @@ export function DesignConfiguratorEditor({
               <button
                 aria-label="Zoom out"
                 disabled={zoom <= 60}
-                onClick={() => setZoom(Math.max(60, zoom - 30))}
+                onClick={() => zoomWorkspace(touchView.current.zoom - 30)}
               >
                 <Minus size={14} />
               </button>
@@ -3434,7 +3458,7 @@ export function DesignConfiguratorEditor({
               <button
                 aria-label="Zoom in"
                 disabled={zoom >= 1200}
-                onClick={() => setZoom(Math.min(1200, zoom + 30))}
+                onClick={() => zoomWorkspace(touchView.current.zoom + 30)}
               >
                 <Plus size={14} />
               </button>
@@ -3443,6 +3467,7 @@ export function DesignConfiguratorEditor({
                 onClick={() => {
                   setZoom(100);
                   setViewOffset({ x: 0, y: 0 });
+                  touchView.current = {zoom: 100, viewOffset: {x: 0, y: 0}};
                 }}
               >
                 <Focus size={16} />

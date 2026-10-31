@@ -19,7 +19,7 @@ assert.match(html, new RegExp(`rel="canonical" href="https://strangeanimals.de/$
 assert.match(html, /name="twitter:card" content="summary_large_image"/);
 assert.doesNotMatch(html, /<test>/);
 const hosting=JSON.parse(readFileSync('firebase.json','utf8')).hosting.rewrites;
-assert.equal(hosting[0].function.functionId,'sharedModelPage');
+assert.equal(hosting[0].destination,'/index.html','Opening a model must work even if the optional SEO function is unavailable');
 assert.ok(new RegExp(hosting[0].regex).test('/'+id));
 assert.ok(!new RegExp(hosting[0].regex).test('/listen/sajs001'));
 function response() {

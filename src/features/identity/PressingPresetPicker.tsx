@@ -36,6 +36,15 @@ export function PressingPresetPicker({ value, onChange, disabled = false, marksE
   return <div className="dc-pressing-picker" ref={root} onBlur={event => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
   }}>
+    <label className="dc-paper-texture">
+      Sleeve material
+      <select value={sleeveMaterial} disabled={disabled}
+        onChange={event => onSleeveMaterialChange?.(event.target.value as NonNullable<LabelDesign["sleeveMaterial"]>)}>
+        <option value="printed-board">Printed Cardboard</option>
+        <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
+        <option value="matte">Matte</option>
+      </select>
+    </label>
     <span id={`${id}-label`} className="dc-pressing-label">Pressing rings</span>
     <div className="dc-pressing-select">
     <button ref={trigger} type="button" className="dc-pressing-trigger" disabled={disabled}
@@ -70,15 +79,6 @@ export function PressingPresetPicker({ value, onChange, disabled = false, marksE
       <input type="checkbox" checked={marksEnabled} disabled={disabled}
         onChange={event => onMarksChange?.(event.target.checked)} />
       Pressing marks
-    </label>
-    <label className="dc-paper-texture">
-      Sleeve material
-      <select value={sleeveMaterial} disabled={disabled}
-        onChange={event => onSleeveMaterialChange?.(event.target.value as NonNullable<LabelDesign["sleeveMaterial"]>)}>
-        <option value="printed-board">Printed Cardboard</option>
-        <option value="printed-board-glossy">Printed Cardboard — Glossy</option>
-        <option value="matte">Matte</option>
-      </select>
     </label>
   </div>;
 }
