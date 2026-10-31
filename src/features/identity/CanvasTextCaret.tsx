@@ -22,8 +22,9 @@ export function CanvasTextCaret({layer, offset}: {layer: LabelLayer; offset: num
         const index = layer.kind === "circular" ? before.length :
           lines.slice(0, -1).reduce((sum, value) => sum + Math.max(1, value.length), 0) + lines.at(-1)!.length;
         const next = Math.min(index, count - 1);
-        const atEnd = index >= count;
-        const point = atEnd ? text.getEndPositionOfChar(count - 1) : text.getStartPositionOfChar(next);
+        const atEnd = index >= count || (layer.kind !== "circular" && layer.text[offset] === "\n" && !!lines.at(-1)?.length);
+        const previous = Math.max(0, Math.min(count - 1, index - 1));
+        const point = atEnd ? text.getEndPositionOfChar(previous) : text.getStartPositionOfChar(next);
         const rotation = text.getRotationOfChar(next);
         const matrix = text.getCTM();
         const parentMatrix = (parent as unknown as SVGGElement).getCTM();

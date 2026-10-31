@@ -54,7 +54,8 @@ for(const [text,active] of [['immersion','All lowercase'],['IMMERSION','All uppe
   for(const [align,title] of [['start','Start anchor'],['middle','Center anchor'],['end','End anchor']]) {
     const markup=renderToStaticMarkup(React.createElement(contentExports.ContentTextControl,{text,align,onAlignChange(){},onChange(){},onTransform(){},onCommit(){}}));
     const buttons=[...markup.matchAll(/<button\b([^>]*)>/g)].map(match=>match[1]);
-    assert.equal(buttons.length,6);
+    assert.equal(buttons.length,7);
+    assert.ok(buttons.some(attributes=>attributes.includes('aria-label="Collapse content"')));
     const selected=buttons.filter(attributes=>attributes.includes('aria-pressed="true"'));
     assert.equal(selected.length,active?2:1);
     assert.ok(selected.some(attributes=>attributes.includes(`aria-label="${title}"`)));

@@ -263,6 +263,9 @@ const inkModule = asModule(
     ),
   ),
 );
+const caretModule = asModule(jsxModule(await readFile(
+  new URL("../src/features/identity/CanvasTextCaret.tsx", import.meta.url), "utf8",
+)));
 const artworkCode = jsxModule(
   await readFile(
     new URL("../src/features/identity/LabelArtwork.tsx", import.meta.url),
@@ -271,6 +274,7 @@ const artworkCode = jsxModule(
 )
   .replace('"./design-configurator-model"', JSON.stringify(asModule(compiled)))
   .replace('"./TextSelectionGuide"', JSON.stringify(guideModule))
+  .replace('"./CanvasTextCaret"', JSON.stringify(caretModule))
   .replace('"./InkBleedFilter"', JSON.stringify(inkModule));
 const { LabelArtwork } = await import(asModule(artworkCode));
 const { renderToStaticMarkup } = await import("react-dom/server");

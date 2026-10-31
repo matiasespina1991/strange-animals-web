@@ -843,7 +843,7 @@ export function parseDesign(input: unknown): LabelDesign {
               : base.name,
         text: typeof item.text === "string" ? item.text.slice(0, 3000) : "",
         visible: item.visible !== false,
-        locked: item.locked === true,
+        ...(item.locked === true ? {locked: true} : {}),
         size: numeric(item.size, base.size, 3, 3000),
         spacing: numeric(item.spacing, 0, -10, 30),
         lineHeight: numeric(item.lineHeight, 1.1, 0, 3),
