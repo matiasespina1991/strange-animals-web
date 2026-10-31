@@ -62,6 +62,7 @@ for (const shoulder of model.children.slice(0,2)) {
   for(let i=0;i<positions.count;i++) {
     assert.equal(positions.getZ(i),z,'Vinyl stays planar from the label to beneath the sleeve');
     assert.ok(Math.abs(normals.getX(i))<1e-6&&Math.abs(normals.getY(i))<1e-6,'No bevel normals produce a silver band');
+    assert.ok(Math.abs(normals.getZ(i)-Math.sign(z))<1e-6,'Both vinyl faces point outward, including side B in AR');
   }
   assert.ok(Math.abs(Math.abs(z)-.0073)<1e-8,'Vinyl strip is coplanar with the label, below the sleeve');
   assert.ok(shoulder.material.roughness<.25&&shoulder.material.metalness===0,'Glossy vinyl remains nonmetallic');
@@ -69,10 +70,14 @@ for (const shoulder of model.children.slice(0,2)) {
 const edgeBounds=new THREE.Box3().setFromObject(model.children[2]);
 assert.ok(Math.abs(edgeBounds.max.z-.0073)<1e-7&&Math.abs(edgeBounds.min.z+.0073)<1e-7,'Record edge joins the flat faces at the same thickness');
 for (const face of [1, -1]) {
+  const shoulder=model.children[face===1?0:1];
+  const originalSide=shoulder.material.side;
+  shoulder.material.side=THREE.FrontSide;
   for (const radius of [0.4941, 0.499, 0.505, 0.506, 1, 1.52]) {
-    const hits = new THREE.Raycaster(new THREE.Vector3(radius, 0, face), new THREE.Vector3(0, 0, -face)).intersectObject(model, true);
+    const hits = new THREE.Raycaster(new THREE.Vector3(radius, 0, face), new THREE.Vector3(0, 0, -face)).intersectObject(shoulder);
     assert.ok(hits.length, `Recess shoulder must close the gap at radius ${radius} on face ${face}`);
   }
+  shoulder.material.side=originalSide;
 }
 const straightShell=exports.createSleeveShell(3.15,.0336,.5055,front,back,'#222222',{A:true,B:true},'matte',.0073);
 straightShell.updateMatrixWorld(true);

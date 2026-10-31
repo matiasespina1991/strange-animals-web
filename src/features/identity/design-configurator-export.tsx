@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readVinylExportOptions } from "./vinyl-model-export";
 import { getBytes, ref } from "firebase/storage";
 import { firebaseStorage } from "@/lib/firebase";
 import { LabelArtwork } from "./LabelArtwork";
@@ -166,6 +167,12 @@ export async function createSleeveArtworkSvg(
   const visibleLayers = getSurfaceLayers(design, "sleeve", side).filter(
     (layer) => layer.visible,
   );
+  // A solid stock needs no fonts or full-resolution raster capture.
+  if (finishMode === "base" && !design.sleeveImage && !visibleLayers.length &&
+      readVinylExportOptions().solidColors) {
+    const color = design.sleeveColor.replace(/[&<>"']/g, "");
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"><rect width="1" height="1" fill="${color}"/></svg>`;
+  }
   const resolved = new Map<string, ResolvedLabelFont>();
   for (const layer of visibleLayers) {
     if (layer.kind === "image" || !layer.fontId) continue;
@@ -465,6 +472,7 @@ export async function createSleeveLabelSvg(
 }
 
 export async function captureLabelPreview(svg: string, pixels = 1024) {
+  if (svg.includes('viewBox="0 0 1 1"')) pixels = 1;
   const source = URL.createObjectURL(
     new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
   );

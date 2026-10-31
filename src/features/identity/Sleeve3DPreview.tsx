@@ -322,6 +322,8 @@ export function Sleeve3DPreview({
     ) => {
       const { canvas, context, texture } = target;
       if (!context) return;
+      const requiredSize = capture?.naturalWidth === 1 ? 1 : artworkTextureSize;
+      if (canvas.width !== requiredSize) canvas.width = canvas.height = requiredSize;
       const size = canvas.width;
       context.clearRect(0, 0, size, size);
       if (capture?.complete && capture.naturalWidth) {
@@ -602,6 +604,9 @@ export function Sleeve3DPreview({
         256,
         1,
       );
+      // RingGeometry faces +Z by default. Rotate the back face's winding too,
+      // not just its position: AR renderers must see its outward front side.
+      if (face === -1) shoulderGeometry.rotateX(Math.PI);
       const positions = shoulderGeometry.getAttribute("position");
       // The vinyl strip meets the printed label at exactly the same plane.
       const vinylZ = vinylSurfaceZ;
