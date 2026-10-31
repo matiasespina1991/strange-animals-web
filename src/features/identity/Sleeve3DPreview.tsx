@@ -394,6 +394,15 @@ export function Sleeve3DPreview({
       }
     });
     model.add(shell);
+    if (import.meta.env.DEV && sleeveObi) {
+      console.info("[Sleeve3DPreview/obi] geometry", {
+        bands: sleeveObi,
+        meshes: shell.children.filter(object => object.name.includes("experimental OBI")).map(object => ({
+          name: object.name,
+          vertices: (object as THREE.Mesh).geometry.getAttribute("position").count,
+        })),
+      });
+    }
     const retiredPrintTextures = new Set<THREE.Texture>();
     setPaperLoading(sleeveMaterial === "matte");
     const classicPaper =
@@ -470,10 +479,10 @@ export function Sleeve3DPreview({
         image.src = url;
       }
     };
-    const sleevePrints = [0, 1].map(
-      (index) =>
+    const sleevePrints = ["Front paperboard", "Back paperboard"].map(
+      (name) =>
         (
-          shell.children[index] as THREE.Mesh<
+          shell.getObjectByName(name) as THREE.Mesh<
             THREE.BufferGeometry,
             THREE.MeshPhysicalMaterial[]
           >

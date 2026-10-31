@@ -29,6 +29,7 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
   const board = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0 });
   const interior = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).multiplyScalar(0.55), roughness: 1, metalness: 0 });
   const prints = [front, back].map(map => new THREE.MeshPhysicalMaterial({ map, roughness: 0.72, metalness: 0, clearcoat: 0.025, clearcoatRoughness: 0.8 }));
+  const obiMeshes: THREE.Mesh[] = [];
   {
     const glossy = material === "printed-board-glossy";
     const matte = material === "matte";
@@ -87,7 +88,7 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
         isBack ? 0 : thickness, isBack, band, print);
       if (raised) {
         raised.position.z = panel.position.z;
-        shell.add(raised);
+        obiMeshes.push(raised);
       }
     }
   }
@@ -128,5 +129,6 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
       shell.add(wall);
     }
   }
+  if (obiMeshes.length) shell.add(...obiMeshes);
   return shell;
 }

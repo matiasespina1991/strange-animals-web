@@ -21,6 +21,8 @@ for (const windows of [{A:true,B:true},{A:false,B:true},{A:true,B:false},{A:fals
   const raised = exports.createSleeveShell(3.15, .0236, .48, front, back, '#ddd', windows, 'printed-board', undefined,
     {A:{enabled:true,start:40,width:20,heightMm:.3},B:{enabled:true,start:40,width:20,heightMm:.2}});
   raised.updateMatrixWorld(true);
+  assert.equal(raised.children[0].name, 'Front paperboard');
+  assert.equal(raised.children[1].name, 'Back paperboard', 'OBI does not displace the rear panel in the material pipeline');
   for (const [side, sign, height] of [['A',1,.3],['B',-1,.2]]) {
     const strip = raised.getObjectByName(`${side==='A'?'Front':'Back'} experimental OBI`);
     assert.ok(strip);
@@ -32,6 +34,8 @@ for (const windows of [{A:true,B:true},{A:false,B:true},{A:true,B:false},{A:fals
     const hits = new THREE.Raycaster(new THREE.Vector3(0,0,sign*2),new THREE.Vector3(0,0,-sign)).intersectObject(strip);
     assert.equal(hits.length===0,windows[side], 'OBI respects the window on each side');
     assert.ok([...strip.geometry.attributes.position.array].every(Number.isFinite));
+    const normal = strip.geometry.attributes.normal;
+    assert.ok([...Array(normal.count).keys()].some(i => normal.getZ(i)*sign > .99), 'Raised cap faces outward');
   }
 }
 const flatObi = exports.createSleeveShell(3.15,.0236,.48,front,back,'#ddd',{A:true,B:true},'matte',undefined,

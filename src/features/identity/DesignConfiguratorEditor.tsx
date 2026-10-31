@@ -66,6 +66,7 @@ import { TypographyValueControl } from "./TypographyValueControl";
 import { RotationValue } from "./RotationValue";
 import { LayerContextMenu } from "./LayerContextMenu";
 import { ContentTextControl } from "./ContentTextControl";
+import {ObiControls, defaultObiBand} from "./ObiControls";
 import { reportRecoveryFailure } from "./recovery-diagnostics";
 import { PrintFinishInfo } from "./PrintFinishInfo";
 import type { ReliefMasks, SurfaceReliefMasks } from "./print-relief-material";
@@ -540,6 +541,8 @@ export function DesignConfiguratorEditor({
     [zoom, setZoom] = useState(100),
     [mobileTab, setMobileTab] = useState("properties"),
     [mobileGlobalSettingsOpen, setMobileGlobalSettingsOpen] = useState(true);
+  const obiAvailable = import.meta.env.DEV && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+  const [obiSelected, setObiSelected] = useState(false);
   const bareVinyl = surface === "cookie" &&
     !hasSleeveWindow(design, "A") && !hasSleeveWindow(design, "B");
   const touchView = useRef({ zoom, viewOffset });
@@ -914,6 +917,12 @@ export function DesignConfiguratorEditor({
   const panelLayers = [...layers].reverse();
   const hasSelection =
     selected !== null && layers.some((layer) => layer.id === selected);
+  const activeTextCaret = hasSelection && element.kind !== "image" &&
+    textCaret?.id === selected && !panMode ? textCaret : null;
+  useEffect(() => {
+    setTextCaret(current => !hasSelection || current?.id !== selected ? null : current);
+  }, [hasSelection, selected]);
+  useEffect(() => setTextCaret(null), [side, surface]);
   const selection = new Set(
     !hasSelection ? [] : selectedLayers.length ? selectedLayers : [element.id],
   );
@@ -2495,26 +2504,18 @@ export function DesignConfiguratorEditor({
     unit: string,
     step = 1,
   ) => (
-    <label className="dc-field">
-      <span>
-        {label}
-        <small>{unit}</small>
-      </span>
-      <input
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={element[key]}
-        onChange={(e) =>
-          update(
-            { [key]: clamp(Number(e.target.value), min, max) },
-            `number-${element.id}-${key}`,
-          )
-        }
-        onBlur={end}
-      />
-    </label>
+    <TypographyValueControl
+      label={label}
+      unit={unit}
+      min={min}
+      max={max}
+      step={step}
+      value={element[key]}
+      onChange={(value) => update(
+        {[key]: value}, `position-${element.id}-${key}`,
+      )}
+      onCommit={end}
+    />
   );
   const slider = (
     label: string,
@@ -3277,6 +3278,23 @@ export function DesignConfiguratorEditor({
                 <span>3D</span>
               </span>
             </button>
+            {obiAvailable && <button type="button"
+              className="dc-preview-3d-button dc-obi-button"
+              aria-label="OBI elevation" data-tooltip="OBI elevation"
+              aria-pressed={obiSelected}
+              onClick={() => {
+                if (!obiSelected && !design.sleeveObi?.[side]) {
+                  end();
+                  change(current => ({...current, sleeveObi: {...current.sleeveObi,
+                    [side]: {...defaultObiBand, enabled: true}}}));
+                  end();
+                }
+                setObiSelected(value => !value);
+                setSurface("sleeve");
+                setMobileTab("properties");
+              }}>
+              <span className="dc-preview-3d-icon" aria-hidden="true"><Box size={17} /><span>OBI</span></span>
+            </button>}
             <div className="dc-preview-controls">
               <div className="dc-guides-control">
                 <Grid2X2 size={14} aria-hidden="true" />
@@ -3412,12 +3430,22 @@ export function DesignConfiguratorEditor({
                     />
                   </div>
                 )}
+                {obiAvailable && obiSelected && <svg className="dc-obi-guide" viewBox="0 0 600 600" aria-hidden="true">
+                  <defs><mask id={`${prefix}-obi-guide-mask`}>
+                    <rect width="600" height="600" fill="white" />
+                    {hasSleeveWindow(design, side) && <circle cx="300" cy="300" r={design.diameterMm / sleeveCanvasSizeMm * 300} fill="black" />}
+                  </mask></defs>
+                  <g mask={`url(#${prefix}-obi-guide-mask)`}>
+                    <rect x={(design.sleeveObi?.[side]?.start ?? defaultObiBand.start) * 6} y="1"
+                      width={(design.sleeveObi?.[side]?.width ?? defaultObiBand.width) * 6} height="598" />
+                  </g>
+                </svg>}
                 <div
                   className={`dc-sleeve-elements${surface === "sleeve" ? " is-editing" : ""}`}
                   aria-label="Sleeve artwork layers"
                 >
                   <LabelArtwork
-                    caret={surface === "sleeve" && !panMode ? textCaret : null}
+                    caret={surface === "sleeve" ? activeTextCaret : null}
                     design={previewDesign}
                     side={side}
                     surface="sleeve"
@@ -3454,7 +3482,7 @@ export function DesignConfiguratorEditor({
                   />
                 </div>
                 <LabelArtwork
-                  caret={surface === "cookie" && !panMode ? textCaret : null}
+                  caret={surface === "cookie" ? activeTextCaret : null}
                   design={previewDesign}
                   hiddenTextIds={
                     surface === "cookie" &&
@@ -3594,8 +3622,9 @@ export function DesignConfiguratorEditor({
           className={`dc-properties ${mobileTab === "properties" ? "dc-mobile-visible" : ""}`}
         >
           <div className="dc-panel-title dc-properties-heading">
-            <h2>Properties</h2>
-            {hasSelection && (
+            <h2>{obiSelected ? "OBI" : "Properties"}</h2>
+            {obiSelected && <button type="button" className="dc-reset" onClick={() => setObiSelected(false)} aria-label="Close OBI controls"><X size={15} /></button>}
+            {!obiSelected && hasSelection && (
               <button
                 className="dc-reset"
                 onClick={() =>
@@ -3652,7 +3681,15 @@ export function DesignConfiguratorEditor({
               }}
             />
           )}
-          {!hasSelection ? (
+          {obiAvailable && obiSelected ? (
+            <ObiControls bands={design.sleeveObi} side={side} onSide={setSide} onCommit={end}
+              onChange={(obiSide, patch, group) => change(current => {
+                const previous = current.sleeveObi?.[obiSide] ?? defaultObiBand;
+                const next = {...previous, ...patch};
+                next.width = Math.min(next.width, 100 - next.start);
+                return {...current, sleeveObi: {...current.sleeveObi, [obiSide]: next}};
+              }, group)} />
+          ) : !hasSelection ? (
             <p className="dc-font-explanation">
               Select a layer to edit its properties.
             </p>
@@ -4052,7 +4089,7 @@ export function DesignConfiguratorEditor({
                         onCommit={end}
                       />
                     )}
-                    {!element.finish && (
+                    {import.meta.env.DEV && !element.finish && (
                       <TextEffectControls
                         allowCylinder={element.kind !== "circular"}
                         effect={element.textEffect}
@@ -4613,38 +4650,6 @@ export function DesignConfiguratorEditor({
                 </select>
               </label>
             </section>
-            {import.meta.env.DEV && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname) && (
-              <section className="dc-property-section">
-                <div className="dc-section-caption">OBI elevation · experimental</div>
-                {(["A", "B"] as const).map(obiSide => {
-                  const band = design.sleeveObi?.[obiSide] ?? {enabled: false, start: 0, width: 12, heightMm: 0.15};
-                  const patchBand = (patch: Partial<typeof band>, group?: string) => {
-                    change(current => {
-                      const previous = current.sleeveObi?.[obiSide] ?? band;
-                      const next = {...previous, ...patch};
-                      next.width = Math.min(next.width, 100 - next.start);
-                      return {...current, sleeveObi: {...current.sleeveObi, [obiSide]: next}};
-                    }, group);
-                  };
-                  return <div key={obiSide}>
-                    <label className="dc-checkbox">
-                      <input type="checkbox" checked={band.enabled} onChange={event => {end(); patchBand({enabled: event.target.checked}); end();}} />
-                      {obiSide} side OBI
-                    </label>
-                    {band.enabled && <>
-                      <div className="dc-field-pair">
-                        <TypographyValueControl label="From left" unit="%" value={band.start} min={0} max={99} step={1}
-                          onChange={start => patchBand({start}, `obi-start-${obiSide}`)} onCommit={end} />
-                        <TypographyValueControl label="Width" unit="%" value={band.width} min={1} max={100 - band.start} step={1}
-                          onChange={width => patchBand({width}, `obi-width-${obiSide}`)} onCommit={end} />
-                      </div>
-                      <TypographyValueControl label="Elevation" unit="MM" value={band.heightMm} min={0} max={0.5} step={0.01}
-                        onChange={heightMm => patchBand({heightMm}, `obi-height-${obiSide}`)} onCommit={end} />
-                    </>}
-                  </div>;
-                })}
-              </section>
-            )}
             <section className="dc-property-section">
               <div className="dc-section-caption">
                 Print dimensions<span>MM</span>

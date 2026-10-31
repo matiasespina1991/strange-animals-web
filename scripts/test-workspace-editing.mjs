@@ -6,6 +6,16 @@ const compile=source=>ts.transpileModule(source,{compilerOptions:{module:ts.Modu
 const model={};
 vm.runInNewContext(compile(readFileSync('src/features/identity/design-configurator-model.ts','utf8')),{exports:model,crypto:globalThis.crypto});
 const editor=readFileSync('src/features/identity/DesignConfiguratorEditor.tsx','utf8');
+const caretGuard = editor.slice(editor.indexOf('  const activeTextCaret ='), editor.indexOf('  useEffect', editor.indexOf('  const activeTextCaret =')));
+for (const [hasSelection, selected, kind, panMode, expected] of [
+  [false,null,'text',false,false], [true,'other','text',false,false],
+  [true,'text','image',false,false], [true,'text','text',true,false],
+  [true,'text','text',false,true],
+]) {
+  const scope={hasSelection,selected,element:{kind},panMode,textCaret:{id:'text',offset:3}};
+  vm.runInNewContext(compile(caretGuard+'\nglobalThis.result=activeTextCaret;'),scope);
+  assert.equal(Boolean(scope.result),expected,'Caret requires its selected text layer');
+}
 let current=structuredClone(model.initialDesign);
 const id=current.A[0].id;
 current.A[0].locked=true;

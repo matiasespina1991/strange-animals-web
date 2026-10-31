@@ -62,7 +62,7 @@ export function LayerContextMenu({ x, y, count, targetSide, onCopy, onClose, loc
       <small>{count} {count === 1 ? "layer" : "layers"} selected</small>
       {onToggleLock && <button type="button" role="menuitem" onClick={onToggleLock}>
         {locked ? <LockKeyholeOpen size={15} /> : <LockKeyhole size={15} />}
-        {locked ? "Unlock position" : "Lock position"}
+        {locked ? "Unlock layer" : "Lock layer"}
       </button>}
       <button type="button" role="menuitem" onClick={onCopy}>
         <Copy size={15} aria-hidden="true" /> Copy to {targetSide} side
