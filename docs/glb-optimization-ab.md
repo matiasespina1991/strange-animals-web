@@ -1,5 +1,21 @@
 # GLB optimization A/B
 
+## Experimental WebP
+
+Append `&glbWebp=1` (or `?glbWebp=1` without existing parameters) and reopen the
+preview before sharing. Color artwork, including transparency, is encoded by
+the browser at quality 0.94 and embedded directly through a Three.js exporter
+adapter using required `EXT_texture_webp`. Normal, roughness, relief and alpha
+mask maps retain PNG. No dependency or node_modules patch is needed.
+
+Remove the parameter for the existing JPEG/PNG path. The WebP GLB requires a
+viewer supporting the extension; Android AR and iOS Quick Look conversion must
+be tested on devices before making this the default. Unsupported browser
+encoding fails explicitly instead of mislabelling PNG bytes as WebP. Existing
+shared models are unchanged until exported again. Automated tests exercise the
+real Three GLB writer with a mocked canvas; visual quality and real encoding
+performance still need browser/device comparison.
+
 Experimental changes 2, 3, 4 and 7 are enabled by default. Geometry and artwork resolution are unchanged.
 
 - Baseline: append `&glbBaseline=1` to the editor URL (or `?glbBaseline=1` without existing parameters).

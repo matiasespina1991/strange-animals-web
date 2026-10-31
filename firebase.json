@@ -29,7 +29,7 @@
     "rewrites": [
       {
         "regex": "^/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/?$",
-        "destination": "/index.html"
+        "function": { "functionId": "sharedModelPage", "region": "europe-west3" }
       },
       {
         "source": "/_model-preview/**",

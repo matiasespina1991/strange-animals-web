@@ -161,6 +161,34 @@
   height: 100%;
 }
 
+.ar-model-load-progress {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  background: var(--ar-stage);
+  color: var(--ar-ink);
+}
+
+.ar-model-load-progress strong {
+  font-size: 32px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ar-model-load-progress span {
+  font-size: 14px;
+}
+
+.ar-model-viewer-element::part(default-progress-bar) {
+  display: none;
+}
+
 .ar-model-viewer-element {
   display: block;
   width: 100%;

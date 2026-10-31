@@ -5,6 +5,7 @@ export type VinylExportOptions = {
   solidColors: boolean;
   jpegArtwork: boolean;
   requiredMapsOnly: boolean;
+  webpArtwork?: boolean;
 };
 
 /** Disable individual experiments with ?glbBaseline=1 or ?glbDisable=2,4. */
@@ -15,6 +16,7 @@ export function readVinylExportOptions(): VinylExportOptions {
   return {
     deduplicateTextures: enabled("2"), solidColors: enabled("3"),
     jpegArtwork: enabled("4"), requiredMapsOnly: enabled("7"),
+    webpArtwork: params?.get("glbWebp") === "1",
   };
 }
 
@@ -140,7 +142,7 @@ export function prepareVinylModelExport(
         material.emissiveMap = convert(material.emissiveMap);
         material.alphaMap = convert(material.alphaMap);
 
-        if (material.map && (options.solidColors || options.jpegArtwork)) {
+        if (material.map && (options.solidColors || options.jpegArtwork || options.webpArtwork)) {
           const data = inspect(material.map);
           if (data) {
             const p = data.pixels;
@@ -154,6 +156,8 @@ export function prepareVinylModelExport(
                 material.map.colorSpace === THREE.SRGBColorSpace ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace);
               material.color.multiply(color);
               material.map = null;
+            } else if (options.webpArtwork) {
+              material.map.userData = { ...material.map.userData, vinylWebp: true };
             } else if (opaque && options.jpegArtwork) {
               material.map.userData = { ...material.map.userData, mimeType: "image/jpeg" };
             }

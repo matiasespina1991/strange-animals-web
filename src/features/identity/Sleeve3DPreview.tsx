@@ -24,6 +24,7 @@ import { createCookieCoreGeometry } from "./cookie-core-geometry";
 import { applyPressingRelief, type PressingPreset } from "./pressing-rings";
 import { PressingPresetPicker } from "./PressingPresetPicker";
 import { prepareVinylModelExport } from "./vinyl-model-export";
+import { vinylWebpPlugin } from "./vinyl-webp-exporter";
 import { loadClassicSleevePaper } from "./sleeve-pbr-paper";
 
 type Properties = {
@@ -889,7 +890,7 @@ export function Sleeve3DPreview({
       ),
     );
     return new Promise<Blob>((resolve, reject) => {
-      new GLTFExporter().parse(
+      new GLTFExporter().register(vinylWebpPlugin).parse(
         prepareVinylModelExport(model),
         (result) => {
           if (!(result instanceof ArrayBuffer)) {

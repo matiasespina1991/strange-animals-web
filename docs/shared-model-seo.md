@@ -2,14 +2,16 @@
 
 Public UUID model pages use the same title/description/Open Graph/Twitter tags as release pages. A Hosting function inserts public model metadata into the built SPA HTML before returning it, so link crawlers do not need JavaScript.
 
-## Availability fix
+## Production status — 2026-10-31
 
-The UUID route currently serves `/index.html` directly. It must not depend on
-`sharedModelPage` while that function is unavailable: that rewrite caused every
-production model URL to return a server 404 before the viewer could load.
-Client metadata remains enabled; crawler-specific initial HTML is temporarily
-not active on UUID URLs. Re-enable server metadata routing only after verifying
-the deployed endpoint, its HTTP access, public-document reads and template.
+`sharedModelPage` is deployed and publicly reachable. With explicit owner
+authorization, the Cloud Run invoker IAM check was disabled only for
+`sharedmodelpage`; no database or storage permissions were broadened.
+The UUID Hosting rewrite now uses the verified function. Hosting was released
+by cloning the current live version and changing only this rewrite, preserving
+all deployed assets (version `5fa9473e33afa563`). The preview endpoint returned
+HTTP 200 and PNG for 22REC009. Previously cached social previews may require
+a fresh URL query or time to refresh.
 
 - Title: `3D MODEL | Strange Animals | {project name}`.
 - Neutral description of the interactive model, materials and finishes.
@@ -17,6 +19,6 @@ the deployed endpoint, its HTTP access, public-document reads and template.
 - `/_model-preview/{id}` serves that PNG only after verifying the model is public. No private gallery documents or account data are exposed.
 - Existing models without a capture use the brand image until shared again. No historical files are modified automatically.
 
-Deployment requires **Storage rules, sharedModelPage Function and Hosting** together. The function needs public HTTP transport for link crawlers; do not alter the private deletion/rename workers. Hosting's `route-meta/model-shell.html` must come from the same build as the application assets. No deployment was performed as part of implementation.
+Deployment requires **Storage rules, sharedModelPage Function and Hosting** together. The function needs public HTTP transport for link crawlers; do not alter the private deletion/rename workers. Hosting's `route-meta/model-shell.html` must come from the same build as the application assets. The organization rejects `allUsers` IAM bindings: preserve the explicitly authorized service-level invoker-check exemption rather than changing organization policy.
 
 Run `node scripts/test-model-page-metadata.mjs`, app typecheck and the Functions build before deployment. Verify a production UUID URL returns model-specific tags with JavaScript disabled and its preview endpoint returns `image/png`.

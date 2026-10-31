@@ -73,6 +73,7 @@ export default function ARModelPage({
   const [modelTitle, setModelTitle] = useState("Azucenas");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewerError, setViewerError] = useState("");
+  const [modelLoadProgress, setModelLoadProgress] = useState<number | null>(null);
   const [pageError, setPageError] = useState("");
   const [pageLoading, setPageLoading] = useState(
     Boolean(shareId || galleryModel),
@@ -198,6 +199,7 @@ export default function ARModelPage({
     if (!host || !modelSource) return;
     let active = true;
     setViewerError("");
+    setModelLoadProgress(0);
     void ensureModelViewer()
       .then(() => {
         if (!active) return;
@@ -218,11 +220,31 @@ export default function ARModelPage({
           viewer.setAttribute("crossorigin", "anonymous");
         }
         viewer.className = "ar-model-viewer-element";
+        let loaded = false;
+        viewer.addEventListener("progress", (event) => {
+          if (!active || loaded) return;
+          const detail = (event as unknown as CustomEvent<{
+            totalProgress: number;
+            reason?: string;
+          }>).detail;
+          if (detail?.reason && detail.reason !== "model-load") return;
+          if (!Number.isFinite(detail?.totalProgress)) return;
+          // Completion means the first rendered frame, not merely download.
+          const percent = Math.min(99, Math.max(0, Math.floor(detail.totalProgress * 100)));
+          setModelLoadProgress(previous => previous === null ? null : Math.max(previous, percent));
+        });
+        viewer.addEventListener("load", () => {
+          loaded = true;
+          if (active) setModelLoadProgress(null);
+        });
         viewer.addEventListener("error", () => {
-          if (active)
+          loaded = true;
+          if (active) {
+            setModelLoadProgress(null);
             setViewerError(
               "The model URL could not be loaded. Choose the original GLB file to preview and share it.",
             );
+          }
         });
         const arButton = document.createElement("button");
         arButton.slot = "ar-button";
@@ -232,7 +254,10 @@ export default function ARModelPage({
         host.replaceChildren(viewer);
       })
       .catch(() => {
-        if (active) setViewerError("The 3D viewer could not be loaded.");
+        if (active) {
+          setModelLoadProgress(null);
+          setViewerError("The 3D viewer could not be loaded.");
+        }
       });
     return () => {
       active = false;
@@ -460,6 +485,22 @@ export default function ARModelPage({
           )}
         </div>
         <span className="ar-model-stage-index">MODEL VIEWER / 01</span>
+        {!pageLoading && !pageError && !viewerError && modelLoadProgress !== null && (
+          <div
+            className="ar-model-load-progress"
+            role="progressbar"
+            aria-label="Loading 3D model"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={modelLoadProgress}
+          >
+            <strong>{modelLoadProgress}%</strong>
+            <span>Loading model…</span>
+          </div>
+        )}
+        {viewerError && (shareId || galleryModel) && (
+          <p className="ar-model-stage-message" role="alert">{viewerError}</p>
+        )}
       </section>
       {!shareId && !galleryModel && (
         <section className="ar-model-share-status" aria-live="polite">

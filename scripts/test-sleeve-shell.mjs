@@ -97,5 +97,5 @@ for (const face of [1,-1]) {
 }
 const closedShell=exports.createSleeveShell(3.15,.0336,.5055,front,back,'#222222',{A:false,B:true},'matte',.0073);
 assert.equal(closedShell.getObjectByName('Front vertical window cut'),undefined,'Closed sleeve has no window wall');
-assert.match(component, /new GLTFExporter\(\).parse\(\s*prepareVinylModelExport\(model\),/);
+assert.match(component, /new GLTFExporter\(\).register\(vinylWebpPlugin\).parse\(\s*prepareVinylModelExport\(model\),/);
 console.log('Sleeve shell: thin dimensions, open right edge, center cutout, front/back textures, matte materials and shared export model passed.');
