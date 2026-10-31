@@ -403,6 +403,7 @@ export function DesignConfiguratorEditor({
     new URLSearchParams(window.location.search).get("projectId"),
   );
   const [galleryVersionId, setGalleryVersionId] = useState<string | null>(null);
+  const [gallerySnapshotPath, setGallerySnapshotPath] = useState<string | null>(null);
   const [draftModelId, setDraftModelId] = useState(() => crypto.randomUUID());
   const editorRoot = useRef<HTMLElement>(null);
   const projectBarRef = useRef<HTMLDivElement>(null);
@@ -744,6 +745,7 @@ export function DesignConfiguratorEditor({
         dispatch({ type: "replace", design: loadedDesign });
         setGalleryProjectId(projectId);
         setGalleryVersionId(versionId);
+        setGallerySnapshotPath(version.designPath);
         setLastSaved(JSON.stringify(loadedDesign));
         setNotice(`Loaded version ${version.version} from My Gallery.`);
       } catch (cause) {
@@ -921,6 +923,7 @@ export function DesignConfiguratorEditor({
     end();
     setGalleryProjectId(null);
     setGalleryVersionId(null);
+    setGallerySnapshotPath(null);
     setDraftModelId(crypto.randomUUID());
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.delete("projectId");
@@ -1489,7 +1492,7 @@ export function DesignConfiguratorEditor({
       clamp(workspace.getBoundingClientRect().right - event.clientX, 260, 380),
     );
   };
-  const saveToGallery = async (asNewProject = false) => {
+  const saveToGallery = async (asNewProject = false, asNewVersion = false) => {
     if (gallerySaving) return;
     setSaveMenuOpen(false);
     const user = accountUser;
@@ -1556,9 +1559,15 @@ export function DesignConfiguratorEditor({
         backSleevePreview,
         projectId: galleryProjectId ?? undefined,
         asNewProject,
+        asNewVersion,
+        currentVersionId: galleryVersionId ?? undefined,
+        expectedDesignPath: gallerySnapshotPath ?? undefined,
+        expectedProjectTitle: galleryProjectId && lastSaved
+          ? (JSON.parse(lastSaved) as LabelDesign).title : undefined,
       });
       setGalleryProjectId(saved.project.id);
       setGalleryVersionId(saved.versionId);
+      setGallerySnapshotPath(saved.designPath);
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.set("projectId", saved.project.id);
       nextUrl.searchParams.set("versionId", saved.versionId);
@@ -2724,7 +2733,7 @@ export function DesignConfiguratorEditor({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => void saveToGallery(false)}
+                    onClick={() => void saveToGallery(false, true)}
                   >
                     <History size={15} /> Save as new version
                   </button>

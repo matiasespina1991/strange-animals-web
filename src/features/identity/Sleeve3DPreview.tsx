@@ -274,6 +274,7 @@ export function Sleeve3DPreview({
     const cookieRecessDepth = 0.012;
     const cookieThicknessScale = 0.8;
     const cookieDepth = 0.012 * cookieThicknessScale;
+    const vinylSurfaceZ = cookieDepth / 2 + 0.0025;
     const sleeveDepth = cookieDepth + cookieRecessDepth * 2;
     const cookieBevelSize = 0.006;
     const cookieBevelThickness = 0.002;
@@ -372,6 +373,7 @@ export function Sleeve3DPreview({
       sleeveColor,
       windows,
       sleeveMaterial,
+      vinylSurfaceZ,
     );
     shell.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -592,7 +594,7 @@ export function Sleeve3DPreview({
     // Continue to the real 12-inch radius so oblique views cannot see through
     // the sleeve cavity beyond a short decorative rim.
     for (const face of [1, -1]) {
-      const innerRadius = cookieRecessInnerRadius;
+      const innerRadius = labelRadius - cookieBevelSize;
       const outerRadius = (VINYL_DIAMETER_MM / 2) * WORLD_SCALE;
       const shoulderGeometry = new THREE.RingGeometry(
         innerRadius,
@@ -601,8 +603,8 @@ export function Sleeve3DPreview({
         1,
       );
       const positions = shoulderGeometry.getAttribute("position");
-      // Keep a 0.02 mm paper lip; the carton's cut edge provides the larger step.
-      const vinylZ = cookieDepth / 2 + 0.0025 - 0.0002;
+      // The vinyl strip meets the printed label at exactly the same plane.
+      const vinylZ = vinylSurfaceZ;
       for (let i = 0; i < positions.count; i++) {
         positions.setZ(i, face * vinylZ);
       }
@@ -629,7 +631,7 @@ export function Sleeve3DPreview({
     const vinylEdgeGeometry = new THREE.CylinderGeometry(
       vinylRadius,
       vinylRadius,
-      cookieDepth + 2 * (0.0025 - 0.0002),
+      vinylSurfaceZ * 2,
       256,
       1,
       true,
@@ -771,8 +773,8 @@ export function Sleeve3DPreview({
       });
       labelImage.src = capture;
     };
-    addLabelFace(labelCapture, cookieDepth / 2 + 0.0025);
-    addLabelFace(labelCaptureBack, -cookieDepth / 2 - 0.0025, true);
+    addLabelFace(labelCapture, vinylSurfaceZ);
+    addLabelFace(labelCaptureBack, -vinylSurfaceZ, true);
 
     const resize = () => {
       if (!container.clientWidth || !container.clientHeight) return;

@@ -4,6 +4,7 @@ import {getStorage} from "firebase-admin/storage";
 import {onCall} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onObjectFinalized} from "firebase-functions/v2/storage";
+import {overwriteGalleryVersion} from "./design-version-save";
 import {
   cleanupDeletedProjectUpload,
   deleteProjectPage,
@@ -15,6 +16,14 @@ const app = getApps()[0] ?? initializeApp();
 const db = getFirestore(app);
 const serviceAccount =
   "vinyl-gallery-runtime@strange-animals-web.iam.gserviceaccount.com";
+export const saveDesignVersion = onCall(
+  {region: "europe-west3", maxInstances: 3, serviceAccount,
+    invoker: "private"},
+  (request) => overwriteGalleryVersion(
+    db, getStorage(app).bucket("strange-animals-web.firebasestorage.app"),
+    request.auth?.uid, request.data,
+  ),
+);
 // Transport access is configured on these two Cloud Run services only.
 // Firebase Auth remains mandatory inside both callable handlers.
 export const requestProjectDeletion = onCall(

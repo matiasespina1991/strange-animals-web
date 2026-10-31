@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const suites = [
   "design-configurator", "design-history", "configurator-assets", "surface-rendering",
   "sleeve-shell", "text-effect-controls", "pressing-rings", "pressing-picker",
-  "versioned-model-share", "model-share-flow", "model-thumbnails", "vinyl-model-export", "sleeve-pbr-paper",
+  "versioned-model-share", "gallery-save-mode", "model-share-flow", "model-thumbnails", "vinyl-model-export", "sleeve-pbr-paper",
   "layer-context-menu", "layer-panel-order", "multi-font-selection",
   "gallery-navigation", "font-picker", "font-picker-panel", "font-picker-reveal",
   "font-picker-catalog", "configurator-theme", "font-toolbar-casing",

@@ -9,7 +9,7 @@ function appendMaterialGroup(geometry: THREE.BufferGeometry, start: number, mate
 }
 
 /** Thin paperboard panels, three folded edges and an open right-hand mouth. */
-export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}, material: "matte" | "printed-board" | "printed-board-glossy" = "matte") {
+export function createSleeveShell(size: number, depth: number, openingRadius: number, front: THREE.Texture, back: THREE.Texture, color: string, windows = {A: true, B: true}, material: "matte" | "printed-board" | "printed-board-glossy" = "matte", windowFloorZ?: number) {
   const shell = new THREE.Group();
   shell.name = "Paperboard sleeve (open right edge)";
   const thickness = Math.min(0.003, depth / 6);
@@ -49,6 +49,18 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
     const geometry = new THREE.ExtrudeGeometry(shape, { depth: thickness - 2 * radius, bevelEnabled: true, bevelSize: radius, bevelThickness: radius, bevelSegments: 5, curveSegments: 64 });
     geometry.translate(0, 0, radius);
     const position = geometry.getAttribute("position");
+    if (windowFloorZ !== undefined && (isBack ? windows.B : windows.A)) {
+      // Retain rounded outer folds, but remove the bevel on the window cut.
+      // Its entire contour has one radius: a vertical cut, not a ramp.
+      for (let i = 0; i < position.count; i++) {
+        const x = position.getX(i), y = position.getY(i);
+        const r = Math.hypot(x, y);
+        if (r > 0 && Math.abs(r - openingRadius) <= radius * 2.01) {
+          position.setXY(i, x * openingRadius / r, y * openingRadius / r);
+        }
+      }
+      geometry.computeVertexNormals();
+    }
     const uv = geometry.getAttribute("uv");
     const cap = geometry.groups.find(group => group.materialIndex === 0)!;
     const edge = geometry.groups.find(group => group.materialIndex === 1)!;
@@ -89,5 +101,22 @@ export function createSleeveShell(size: number, depth: number, openingRadius: nu
   fold("Spine fold", thickness, size, -half + thickness / 2, 0);
   fold("Top fold", size - thickness, thickness, thickness / 2, half - thickness / 2);
   fold("Bottom fold", size - thickness, thickness, thickness / 2, -half + thickness / 2);
+  if (windowFloorZ !== undefined) {
+    const floor = Math.max(0, Math.min(depth / 2, windowFloorZ));
+    const height = depth / 2 - floor;
+    for (const face of [1, -1]) {
+      if (!(face === 1 ? windows.A : windows.B) || height <= 0) continue;
+      const geometry = new THREE.CylinderGeometry(
+        openingRadius, openingRadius, height, 256, 1, true,
+      );
+      geometry.rotateX(Math.PI / 2);
+      const wall = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+        color, roughness: 0.95, metalness: 0, side: THREE.DoubleSide,
+      }));
+      wall.position.z = face * (floor + height / 2);
+      wall.name = face === 1 ? "Front vertical window cut" : "Back vertical window cut";
+      shell.add(wall);
+    }
+  }
   return shell;
 }

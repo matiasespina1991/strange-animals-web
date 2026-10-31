@@ -238,6 +238,9 @@ export async function saveGalleryVersion({
   backSleevePreview,
   projectId,
   asNewProject = false,
+  asNewVersion = false,
+  currentVersionId,
+  expectedDesignPath,
   expectedProjectTitle,
 }: {
   uid: string;
@@ -248,6 +251,9 @@ export async function saveGalleryVersion({
   backSleevePreview: Blob;
   projectId?: string;
   asNewProject?: boolean;
+  asNewVersion?: boolean;
+  currentVersionId?: string;
+  expectedDesignPath?: string;
   expectedProjectTitle?: string;
 }) {
   const existingProjectId = projectId && !asNewProject ? projectId : undefined;
@@ -267,9 +273,22 @@ export async function saveGalleryVersion({
   const previousVersion = existingSnapshot?.exists()
     ? readProject(existingSnapshot.id, existingSnapshot.data()).latestVersion
     : 0;
-  const version = previousVersion + 1;
-  const versionId = crypto.randomUUID();
-  const root = `media/private/design-gallery/${uid}/${targetProjectId}/${versionId}`;
+  if (existingProjectId && !asNewVersion && !currentVersionId) {
+    throw Error("Open a version before saving this project.");
+  }
+  const overwrite = Boolean(existingProjectId && currentVersionId && !asNewVersion);
+  const versionId = overwrite ? currentVersionId! : crypto.randomUUID();
+  const originalVersion = overwrite
+    ? await getDoc(versionDocument(uid, targetProjectId, versionId)) : null;
+  if (overwrite && !originalVersion?.exists()) throw Error("This version no longer exists.");
+  if (overwrite && expectedDesignPath && originalVersion!.data()!.designPath !== expectedDesignPath) {
+    throw Error("This version changed in another session. Reload before saving.");
+  }
+  const version = overwrite ? originalVersion!.data()!.version as number : previousVersion + 1;
+  // Stage a fresh immutable snapshot; never overwrite the currently referenced
+  // objects before all uploads succeed and the backend commits the pointer swap.
+  const uploadId = overwrite ? crypto.randomUUID() : versionId;
+  const root = `media/private/design-gallery/${uid}/${targetProjectId}/${uploadId}`;
   const designPath = `${root}/design.json`;
   const frontPreviewPath = `${root}/front.png`;
   const backPreviewPath = `${root}/back.png`;
@@ -305,6 +324,14 @@ export async function saveGalleryVersion({
       ),
     );
 
+    if (overwrite) {
+      await httpsCallable(galleryFunctions, "saveDesignVersion")({
+        projectId: targetProjectId, versionId, uploadId,
+        expectedDesignPath: originalVersion!.data()!.designPath,
+        expectedTitle: existingSnapshot!.data()!.title,
+        title: design.title,
+      });
+    } else {
     const targetVersionReference = versionDocument(
       uid,
       targetProjectId,
@@ -372,6 +399,7 @@ export async function saveGalleryVersion({
         createdAt: serverTimestamp(),
       });
     });
+    }
     if (import.meta.env.DEV) {
       console.info("[StudioShelf/repository] transaction-complete", {
         projectId: targetProjectId,
@@ -382,7 +410,9 @@ export async function saveGalleryVersion({
     if (import.meta.env.DEV) {
       console.error("[StudioShelf/repository] failed", { error });
     }
-    await Promise.all(
+    // A callable can commit and lose its response. Do not delete its staged
+    // files on an ambiguous network failure: they may now be the live version.
+    if (!overwrite) await Promise.all(
       files.map(async ({ path }) =>
         deleteObject(ref(galleryStorage, path)).catch(() => undefined),
       ),
@@ -394,5 +424,5 @@ export async function saveGalleryVersion({
   const project = await getGalleryProject(uid, targetProjectId);
   if (!project)
     throw new Error("The saved gallery project could not be loaded.");
-  return { project, versionId, version };
+  return { project, versionId, version, designPath };
 }

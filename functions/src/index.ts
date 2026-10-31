@@ -4,6 +4,7 @@ export {sharedModelPage} from "./model-page-metadata";
 export {
   requestProjectDeletion,
   renameDesignProject,
+  saveDesignVersion,
   processDesignDeletions,
   cleanupLateDesignUploads,
 } from "./design-gallery-functions";
