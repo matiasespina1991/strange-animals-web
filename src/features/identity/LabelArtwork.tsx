@@ -1,5 +1,6 @@
 import type { PointerEventHandler } from "react";
 import { TextSelectionGuide } from "./TextSelectionGuide";
+import { CanvasTextCaret } from "./CanvasTextCaret";
 import { InkBleedFilter } from "./InkBleedFilter";
 import {
   circularPath,
@@ -409,6 +410,7 @@ export function LabelArtwork({
   finishMode = "preview",
   onSelect,
   onEditText,
+  caret,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -430,6 +432,7 @@ export function LabelArtwork({
   finishMode?: "preview" | "flat" | "mask" | "base" | "height-mask" | "ink-mask";
   onSelect?: (layer: LabelLayer) => void;
   onEditText?: (layer: LabelLayer) => void;
+  caret?: {id: string; offset: number} | null;
   onPointerDown?: PointerEventHandler<SVGGElement>;
   onPointerMove?: PointerEventHandler<SVGGElement>;
   onPointerUp?: PointerEventHandler<SVGGElement>;
@@ -809,6 +812,8 @@ export function LabelArtwork({
                   </>
                 )}
               </g>
+              {caret?.id === layer.id && layer.kind !== "image" && finishMode === "preview" &&
+                <CanvasTextCaret layer={layer} offset={caret.offset} />}
             </g>
           ),
         )}

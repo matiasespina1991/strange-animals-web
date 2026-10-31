@@ -1,8 +1,8 @@
-import { useId, type Ref } from "react";
-import { AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { useId, useState, type Ref } from "react";
+import { AlignLeft, AlignCenter, AlignRight, ChevronDown, ChevronUp } from "lucide-react";
 import { capitalizeWords } from "./design-configurator-model";
 
-export function ContentTextControl({ text, onChange, onTransform, onCommit, align, onAlignChange, textareaRef }: {
+export function ContentTextControl({ text, onChange, onTransform, onCommit, align, onAlignChange, textareaRef, onCaretChange }: {
   text: string;
   onChange: (text: string) => void;
   onTransform: (text: string) => void;
@@ -10,8 +10,10 @@ export function ContentTextControl({ text, onChange, onTransform, onCommit, alig
   align?: "start" | "middle" | "end";
   onAlignChange?: (align: "start" | "middle" | "end") => void;
   textareaRef?: Ref<HTMLTextAreaElement>;
+  onCaretChange?: (offset: number | null) => void;
 }) {
   const id = useId();
+  const [collapsed, setCollapsed] = useState(false);
   // These buttons transform the actual content, so derive their state from it.
   // Manual edits, undo and switching layers cannot leave a stale active button.
   const hasCase = text.toLowerCase() !== text.toUpperCase();
@@ -38,8 +40,17 @@ export function ContentTextControl({ text, onChange, onTransform, onCommit, alig
           aria-pressed={activeCase === label}
           disabled={!text.trim()} onClick={() => onTransform(transform(text).slice(0, 3000))}>{label}</button>)}
       </div>
+      <button type="button" className="dc-content-collapse" aria-label={collapsed ? "Expand content" : "Collapse content"}
+        title={collapsed ? "Expand content" : "Collapse content"} aria-expanded={!collapsed} aria-controls={id}
+        onClick={() => setCollapsed(value => !value)}>
+        {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+      </button>
       </div>
     </div>
-    <textarea ref={textareaRef} id={id} maxLength={3000} rows={4} value={text} onChange={event => onChange(event.target.value)} onBlur={onCommit} />
+    <textarea ref={textareaRef} id={id} maxLength={3000} rows={collapsed ? 1 : 4} data-collapsed={collapsed} value={text}
+      onFocus={event => { setCollapsed(false); onCaretChange?.(event.currentTarget.selectionEnd); }}
+      onSelect={event => onCaretChange?.(event.currentTarget.selectionEnd)}
+      onChange={event => { onChange(event.target.value); onCaretChange?.(event.currentTarget.selectionEnd); }}
+      onBlur={() => { onCommit(); onCaretChange?.(null); }} />
   </div>;
 }

@@ -38,6 +38,8 @@ import {
   Minimize,
   ImagePlus,
   Layers,
+  Move,
+  LockKeyhole,
   Spline,
   Minus,
   Plus,
@@ -477,6 +479,8 @@ export function DesignConfiguratorEditor({
     "tile",
   );
   const [renameDraft, setRenameDraft] = useState("");
+  const [panMode, setPanMode] = useState(false);
+  const [textCaret, setTextCaret] = useState<{id: string; offset: number} | null>(null);
   const [layerPanelWidth, setLayerPanelWidth] = useState(184);
   const [fontPanelWidth, setFontPanelWidth] = useState(345);
   const [propertiesPanelWidth, setPropertiesPanelWidth] = useState(() =>
@@ -990,7 +994,9 @@ export function DesignConfiguratorEditor({
       (current) =>
         updateSurfaceLayers(current, targetSurface, s, (layers) =>
           layers.map((layer) =>
-            layer.id === id ? { ...layer, ...patch } : layer,
+            layer.id === id ? { ...layer, ...patch,
+              ...(layer.locked ? { x: layer.x, y: layer.y, angle: layer.angle, radius: layer.radius } : {}),
+            } : layer,
           ),
         ),
       group,
@@ -1268,11 +1274,12 @@ export function DesignConfiguratorEditor({
     setContentFocusRequest(null);
   }, [contentFocusRequest, element.id, mobileTab]);
   const editCanvasText = (layer: LabelLayer) => {
-    if (layer.kind === "image") return;
+    if (layer.kind === "image" || panMode) return;
     selectLayer(layer);
     setContentFocusRequest(layer.id);
   };
   const selectLayer = (layer: LabelLayer) => {
+    if (panMode) return;
     setSelectedLayers([layer.id]);
     setSelected(layer.id);
     setMobileTab("properties");
@@ -1765,10 +1772,11 @@ export function DesignConfiguratorEditor({
     return { x: p.x, y: p.y };
   };
   const startDrag = (e: ReactPointerEvent<SVGGElement>) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || panMode) return;
     const layer = layers.find((l) => l.id === e.currentTarget.dataset.layerId),
       point = svgPoint(e);
     if (!layer || !point) return;
+    if (layer.locked) { selectLayer(layer); return; }
     end();
     selectLayer(layer);
     drag.current = {
@@ -1823,7 +1831,7 @@ export function DesignConfiguratorEditor({
     event: ReactPointerEvent<SVGGElement>,
     layer: LabelLayer,
   ) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || panMode || layer.locked) return;
     selectLayer(layer);
     sleeveLayerDrag.current = {
       pointerId: event.pointerId,
@@ -1891,12 +1899,14 @@ export function DesignConfiguratorEditor({
   const startCanvasPan = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (
       e.button !== 0 ||
-      (e.target instanceof Element && e.target.closest("[data-layer-id]"))
+      (!panMode && e.target instanceof Element && e.target.closest("[data-layer-id]"))
     )
       return;
     end();
-    setSelected(null);
-    setSelectedLayers([]);
+    if (!panMode) {
+      setSelected(null);
+      setSelectedLayers([]);
+    }
     canvasPan.current = {
       pointerId: e.pointerId,
       clientX: e.clientX,
@@ -2567,6 +2577,17 @@ export function DesignConfiguratorEditor({
       </label>
     );
   };
+  const positionControls = (
+    <fieldset className="dc-position-controls" disabled={element.locked}>
+      <legend className="dc-section-caption">Position</legend>
+      {element.kind === "circular" && slider("Radius", "radius", 30, 295, "PX")}
+      {element.kind === "circular" && overflow && <p className="dc-warning" role="status">Text exceeds the circle. Increase radius or reduce size/tracking.</p>}
+      {element.kind !== "circular" && <div className="dc-field-pair">
+        {number("Horizontal", "x", 0, 600, "PX")}
+        {number("Vertical", "y", 0, 600, "PX")}
+      </div>}
+    </fieldset>
+  );
   return (
     <main
       ref={editorRoot}
@@ -3114,7 +3135,7 @@ export function DesignConfiguratorEditor({
                       <Type size={15} />
                     )}
                     <span className="dc-layer-copy">
-                      <span className="dc-layer-name">{layer.name}</span>
+                      <span className="dc-layer-name">{layer.name}{layer.locked && <LockKeyhole size={12} aria-label="Position locked" />}</span>
                       <small>
                         {layer.kind === "circular"
                           ? "Text arc"
@@ -3259,6 +3280,7 @@ export function DesignConfiguratorEditor({
           </div>
           <div
             className="dc-artboard"
+            data-pan-mode={panMode}
             ref={artboardReference}
             onDragOver={(event) => {
               if (draggedLayerId.current) {
@@ -3369,6 +3391,7 @@ export function DesignConfiguratorEditor({
                   aria-label="Sleeve artwork layers"
                 >
                   <LabelArtwork
+                    caret={surface === "sleeve" && !panMode ? textCaret : null}
                     design={previewDesign}
                     side={side}
                     surface="sleeve"
@@ -3405,6 +3428,7 @@ export function DesignConfiguratorEditor({
                   />
                 </div>
                 <LabelArtwork
+                  caret={surface === "cookie" && !panMode ? textCaret : null}
                   design={previewDesign}
                   hiddenTextIds={
                     surface === "cookie" &&
@@ -3435,6 +3459,11 @@ export function DesignConfiguratorEditor({
             </div>
           </div>
           <div className="dc-canvas-footer">
+            <button type="button" className="dc-pan-toggle" aria-label="Pan workspace"
+              title={`Pan workspace: ${panMode ? "ON" : "OFF"}`} aria-pressed={panMode}
+              onClick={() => { setPanMode(value => !value); setTextCaret(null); }}>
+              <Move size={16} />
+            </button>
             <span className="dc-measure dc-measure-bottom">
               {surface === "cookie" ? (
                 <>
@@ -3654,6 +3683,7 @@ export function DesignConfiguratorEditor({
               {element.kind !== "image" && (
                 <>
                   <ContentTextControl
+                    onCaretChange={offset => setTextCaret(offset === null ? null : { id: element.id, offset })}
                     textareaRef={contentTextareaRef}
                     text={element.text}
                     align={element.align}
@@ -3916,6 +3946,7 @@ export function DesignConfiguratorEditor({
                         />
                       </div>
                     </div>
+                    {positionControls}
                     {!element.finish && (
                       <div className="dc-compact-text-controls">
                         <TextBlendModeControl
@@ -3996,29 +4027,14 @@ export function DesignConfiguratorEditor({
                   </p>
                 </section>
               )}
-              <section className="dc-property-section dc-position-section">
-                <div className="dc-section-caption">
-                  {element.kind === "circular"
-                    ? "Circular path"
-                    : "Position & size"}
-                </div>
-                {element.kind === "circular" ? (
-                  <>
-                    {slider("Radius", "radius", 30, 295, "PX")}
-                    {overflow && (
-                      <p className="dc-warning" role="status">
-                        El texto supera la circunferencia. Aumentá el radio o
-                        reducí tamaño/espaciado. No se achica automáticamente.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
+              {element.kind === "image" && <section className="dc-property-section dc-image-properties">
                     {element.kind === "image" && <TypographyValueControl
                       label="Width" unit="PX" value={element.width} min={10} max={1500}
                       sliderMax={500} expandSlider step={1}
                       onChange={width => update({width}, `width-${element.id}`)} onCommit={end}
                     />}
+                {positionControls}
+
                     {element.kind === "image" && (
                       <label className="dc-field">
                         <span className="dc-finish-heading">
@@ -4142,13 +4158,8 @@ export function DesignConfiguratorEditor({
                         onCommit={end}
                       />
                     )}
-                    <div className="dc-field-pair">
-                      {number("Horizontal", "x", 0, 600, "PX")}
-                      {number("Vertical", "y", 0, 600, "PX")}
-                    </div>
-                  </>
-                )}
-              </section>
+
+              </section>}
             </>
           )}
         </aside>
@@ -4744,6 +4755,18 @@ export function DesignConfiguratorEditor({
           count={layerContextMenu.ids.length}
           targetSide={layerContextMenu.side === "A" ? "B" : "A"}
           onCopy={copyLayersToOtherSide}
+          locked={getSurfaceLayers(design, layerContextMenu.surface, layerContextMenu.side)
+            .filter(layer => layerContextMenu.ids.includes(layer.id)).every(layer => layer.locked)}
+          onToggleLock={() => {
+            const {ids, side: targetSide, surface: targetSurface} = layerContextMenu;
+            const selectedLayers = getSurfaceLayers(design, targetSurface, targetSide).filter(layer => ids.includes(layer.id));
+            const locked = !selectedLayers.every(layer => layer.locked);
+            end();
+            change(current => updateSurfaceLayers(current, targetSurface, targetSide,
+              items => items.map(layer => ids.includes(layer.id) ? {...layer, locked} : layer)));
+            end();
+            setLayerContextMenu(null);
+          }}
           onClose={() => setLayerContextMenu(null)}
         />
       )}

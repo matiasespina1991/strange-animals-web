@@ -13,7 +13,7 @@ all deployed assets (version `5fa9473e33afa563`). The preview endpoint returned
 HTTP 200 and PNG for 22REC009. Previously cached social previews may require
 a fresh URL query or time to refresh.
 
-- Title: `3D MODEL | Strange Animals | {project name}`.
+- Title: `Strange Animals | 3D Record | {project name}`.
 - Neutral description of the interactive model, materials and finishes.
 - Sharing from the designer uploads a 1200 × 630 PNG capture to the owner's existing public model directory. Re-sharing a changed version replaces its preview.
 - `/_model-preview/{id}` serves that PNG only after verifying the model is public. No private gallery documents or account data are exposed.

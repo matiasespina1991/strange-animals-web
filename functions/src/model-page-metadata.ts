@@ -13,7 +13,7 @@ const fallbackImage = `${origin}/media/images/oc/SALOGO2.png`;
  */
 export function modelPageMetadata(id: string, title: string) {
   return {
-    title: `3D MODEL | Strange Animals | ${title}`,
+    title: `Strange Animals | 3D Record | ${title}`,
     description: `Interactive 3D view of ${title}. ` +
       "Explore the artwork, materials and print finishes " +
       "from different angles.",

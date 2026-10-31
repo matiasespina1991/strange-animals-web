@@ -1,13 +1,15 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Copy } from "lucide-react";
+import { Copy, LockKeyhole, LockKeyholeOpen } from "lucide-react";
 
-export function LayerContextMenu({ x, y, count, targetSide, onCopy, onClose }: {
+export function LayerContextMenu({ x, y, count, targetSide, onCopy, onClose, locked, onToggleLock }: {
   x: number;
   y: number;
   count: number;
   targetSide: "A" | "B";
   onCopy: () => void;
   onClose: () => void;
+  locked?: boolean;
+  onToggleLock?: () => void;
 }) {
   const menu = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -49,6 +51,10 @@ export function LayerContextMenu({ x, y, count, targetSide, onCopy, onClose }: {
       style={{ left: x, top: y }} onContextMenu={event => event.preventDefault()}
       onKeyDown={event => event.stopPropagation()}>
       <small>{count} {count === 1 ? "layer" : "layers"} selected</small>
+      {onToggleLock && <button type="button" role="menuitem" onClick={onToggleLock}>
+        {locked ? <LockKeyholeOpen size={15} /> : <LockKeyhole size={15} />}
+        {locked ? "Unlock position" : "Lock position"}
+      </button>}
       <button type="button" role="menuitem" onClick={onCopy}>
         <Copy size={15} aria-hidden="true" /> Copy to {targetSide} side
       </button>

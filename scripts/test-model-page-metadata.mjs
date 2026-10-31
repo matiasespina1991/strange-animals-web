@@ -12,7 +12,7 @@ vm.runInNewContext(ts.transpileModule(readFileSync('functions/src/model-page-met
 const id='176557a2-579b-4057-a3a0-7ff60ff49456';
 const metadata=exports.modelPageMetadata(id,'Artwork <test> & "sample"');
 const html=exports.applyModelMetadata(readFileSync('index.html','utf8'),metadata);
-assert.match(html, /3D MODEL \| Strange Animals \| Artwork &lt;test&gt; &amp; &quot;sample&quot;/);
+assert.match(html, /Strange Animals \| 3D Record \| Artwork &lt;test&gt; &amp; &quot;sample&quot;/);
 assert.match(html, new RegExp(`content="https://strangeanimals.de/_model-preview/${id}"`));
 assert.match(html, /Interactive 3D view of Artwork &lt;test&gt;/);
 assert.match(html, new RegExp(`rel="canonical" href="https://strangeanimals.de/${id}"`));
@@ -44,6 +44,6 @@ assert.equal(res.statusCode,302,'Legacy model without a capture uses the brand f
 assert.match(res.headers.Location,/SALOGO2.png$/);
 replies=[publicDoc,{ok:true,text:async()=>readFileSync('index.html','utf8')}];res=response();
 await exports.sharedModelPage({method:'GET',path:'/'+id},res);
-assert.equal(res.statusCode,200);assert.match(res.body,/3D MODEL \| Strange Animals \| Sample/);
+assert.equal(res.statusCode,200);assert.match(res.body,/Strange Animals \| 3D Record \| Sample/);
 assert.match(requests.at(-1),/\/route-meta\/model-shell.html$/,'Template fetch cannot recurse into the model route');
 console.log('Model SEO: initial HTML, escaped title/description, preview image, canonical, Twitter card and isolated Hosting route passed.');

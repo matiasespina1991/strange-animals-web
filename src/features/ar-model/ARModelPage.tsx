@@ -99,7 +99,7 @@ export default function ARModelPage({
 
   useEffect(() => {
     if (!shareId || !modelSource) return;
-    const title = `3D MODEL | Strange Animals | ${modelTitle}`;
+    const title = `Strange Animals | 3D Record | ${modelTitle}`;
     const description = `Interactive 3D view of ${modelTitle}. Explore the artwork, materials and print finishes from different angles.`;
     const image = `https://strangeanimals.de/_model-preview/${shareId}`;
     const values: Record<string, string> = {
